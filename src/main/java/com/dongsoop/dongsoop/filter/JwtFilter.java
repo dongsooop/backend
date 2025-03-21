@@ -1,20 +1,25 @@
 package com.dongsoop.dongsoop.filter;
 
+import com.dongsoop.dongsoop.exception.domain.jwt.TokenNotFoundException;
+import com.dongsoop.dongsoop.jwt.JwtUtil;
+import com.dongsoop.dongsoop.jwt.JwtValidator;
+import com.dongsoop.dongsoop.member.service.MemberDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Arrays;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
-
-import java.io.IOException;
-import java.util.Arrays;
 
 @Component
 @RequiredArgsConstructor
@@ -26,6 +31,10 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
 
+    private final JwtValidator jwtValidator;
+
+    private final MemberDetailsService memberDetailsService;
+
     private final AntPathMatcher matcher = new AntPathMatcher();
 
     @Value("${authentication.path.all}")
@@ -35,9 +44,12 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String tokenHeader = request.getHeader("Authorization");
         String token = resolveToken(tokenHeader);
-        validateToken(token);
+        jwtValidator.validate(token);
 
-        Authentication auth = jwtUtil.getAuthentication(token);
+        String name = jwtUtil.getNameByToken(token);
+
+        UserDetails userDetails = memberDetailsService.loadUserByUsername(name);
+        Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(auth);
 
         filterChain.doFilter(request, response);
@@ -51,15 +63,11 @@ public class JwtFilter extends OncePerRequestFilter {
                 .anyMatch(allowPath -> matcher.match(allowPath, path));
     }
 
-    private void validateToken(String token) {
-        jwtUtil.validate(token);
-    }
-
     private String resolveToken(String tokenHeader) {
         if (!StringUtils.hasText(tokenHeader) ||
                 tokenHeader.length() <= TOKEN_START_INDEX ||
                 !tokenHeader.startsWith(PREFIX)) {
-            throw new CustomJwtException(ErrorCode.TOKEN_NOT_FOUND_EXCEPTION);
+            throw new TokenNotFoundException();
         }
 
         return tokenHeader.substring(TOKEN_START_INDEX);
