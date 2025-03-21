@@ -20,6 +20,9 @@ public class Member {
     private String email;
 
     @Column(nullable = false)
+    private String password;
+
+    @Column(nullable = false)
     private String nickname;
 
     @Column(name = "student_number", nullable = false)
@@ -29,8 +32,9 @@ public class Member {
     private String department;
 
     @Builder
-    public Member(String email, String nickname, String studentNumber, String department) {
+    public Member(String email, String password, String nickname, String studentNumber, String department) {
         this.email = email;
+        this.password = password;
         this.nickname = nickname;
         this.studentNumber = studentNumber;
         this.department = department;
