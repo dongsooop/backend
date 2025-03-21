@@ -6,18 +6,26 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import lombok.Getter;
 
 @Entity
 public class Member {
 
     @Id @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
+
+    @Getter
     private String email;
-    private String nickname;
+
+    @Getter
     private String password;
-    private String studentId;
-    private String department;
+
+    @Getter
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    private String nickname;
+    private String studentId;
+    private String department;
 
 }
