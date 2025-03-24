@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.member.service;
 
+import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.entity.MemberDetails;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
@@ -18,8 +19,8 @@ public class MemberDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Optional<Member> optionalMember = memberRepository.findById(username);
-        optionalMember.orElseThrow(() -> new UsernameNotFoundException("해당 회원 정보가 존재하지 않습니다."));
+        Optional<Member> optionalMember = memberRepository.findByEmail(username);
+        optionalMember.orElseThrow(() -> new MemberNotFoundException());
 
         Member member = optionalMember.get();
         return new MemberDetails(member);
