@@ -1,16 +1,14 @@
 package com.dongsoop.dongsoop.member.service;
 
-import com.dongsoop.dongsoop.exception.domain.member.*;
+import com.dongsoop.dongsoop.exception.domain.member.EmailDuplicatedException;
+import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
 import com.dongsoop.dongsoop.jwt.TokenGenerator;
 import com.dongsoop.dongsoop.member.dto.LoginRequest;
-import com.dongsoop.dongsoop.member.dto.LoginResponse;
+import com.dongsoop.dongsoop.member.dto.PasswordValidateDto;
 import com.dongsoop.dongsoop.member.dto.SignupRequest;
+import com.dongsoop.dongsoop.jwt.dto.TokenIssueResponse;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
-import java.util.Optional;
-
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -19,6 +17,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -38,40 +38,31 @@ public class MemberService {
 
     @Transactional
     public void signup(SignupRequest request) {
-
         checkEmailDuplication(request.getEmail());
         Member member = request.toEntity(passwordEncoder);
         memberRepository.save(member);
     }
 
     @Transactional
-    public LoginResponse login(LoginRequest loginRequest, HttpServletResponse response) {
+    public TokenIssueResponse login(LoginRequest loginRequest) {
+        Optional<PasswordValidateDto> passwordValidator = memberRepository.findPasswordValidatorByEmail(loginRequest.getEmail());
+        passwordValidator.orElseThrow(MemberNotFoundException::new);
 
-        Member member = memberRepository.findByEmail(loginRequest.getEmail())
-                .orElseThrow(MemberNotFoundException::new);
+        validatePassword(loginRequest, passwordValidator.get());
 
-        if (!passwordEncoder.matches(loginRequest.getPassword(), member.getPassword())) {
-            throw new PasswordNotMatchedException();
-        }
-
-        UsernamePasswordAuthenticationToken authenticationToken =
-                new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword());
-
+        UsernamePasswordAuthenticationToken authenticationToken = loginRequest.toAuthenticationToken();
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
 
         String accessToken = tokenGenerator.generateAccessToken(authentication);
         String refreshToken = tokenGenerator.generateRefreshToken(authentication);
 
-        // 액세스 토큰 헤더에 추가 (Authorization: Bearer xxx 형식으로)
-        response.setHeader(authHeaderName, "Bearer " + accessToken);
+        return new TokenIssueResponse(accessToken, refreshToken);
+    }
 
-        Cookie refreshCookie = new Cookie(refreshTokenCookieName, refreshToken);
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(true);
-        refreshCookie.setMaxAge(604800); // 7일
-        response.addCookie(refreshCookie);
-
-        return new LoginResponse(accessToken);
+    private void validatePassword(LoginRequest requestPassword, PasswordValidateDto passwordValidateDto) {
+        if (!passwordEncoder.matches(requestPassword.getPassword(), passwordValidateDto.getPassword())) {
+            throw new MemberNotFoundException();
+        }
     }
 
     public Member findById(Long id) {
