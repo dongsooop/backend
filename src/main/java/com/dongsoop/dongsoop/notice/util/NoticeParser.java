@@ -47,7 +47,11 @@ public class NoticeParser {
             return Long.parseLong(splitLink[DEPARTMENT_NOTICE_ID_INDEX]);
         }
 
-        return Long.parseLong(splitLink[UNIVERSITY_NOTICE_ID_INDEX]);
+        if (splitLink.length == 6) {
+            return Long.parseLong(splitLink[UNIVERSITY_NOTICE_ID_INDEX]);
+        }
+
+        throw new IllegalArgumentException("공지사항 경로가 올바르지 않습니다: " + link);
     }
 
     public String parseTitle(Element row) {
