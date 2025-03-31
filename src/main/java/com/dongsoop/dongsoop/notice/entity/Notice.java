@@ -45,7 +45,7 @@ public class Notice {
                 return false;
             }
             DepartmentNoticeKey that = (DepartmentNoticeKey) o;
-            return department == that.department && Objects.equals(noticeDetails, that.noticeDetails);
+            return Objects.equals(department, that.department) && Objects.equals(noticeDetails, that.noticeDetails);
         }
 
         @Override
