@@ -17,16 +17,16 @@ import lombok.NoArgsConstructor;
 public class Notice {
 
     @Id
-    private DepartmentNoticeKey id;
+    private NoticeKey id;
 
     public Notice(Department department, NoticeDetails noticeDetails) {
-        this.id = new DepartmentNoticeKey(department, noticeDetails);
+        this.id = new NoticeKey(department, noticeDetails);
     }
 
     @Embeddable
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class DepartmentNoticeKey {
+    public static class NoticeKey {
         @ManyToOne(fetch = FetchType.EAGER)
         @JoinColumn()
         private Department department;
@@ -44,7 +44,7 @@ public class Notice {
             if (o == null || getClass() != o.getClass()) {
                 return false;
             }
-            DepartmentNoticeKey that = (DepartmentNoticeKey) o;
+            NoticeKey that = (NoticeKey) o;
             return Objects.equals(department, that.department) && Objects.equals(noticeDetails, that.noticeDetails);
         }
 
