@@ -1,11 +1,9 @@
 package com.dongsoop.dongsoop.notice.entity;
 
-import com.dongsoop.dongsoop.department.DepartmentType;
-import jakarta.persistence.CascadeType;
+import com.dongsoop.dongsoop.department.Department;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -21,14 +19,19 @@ public class Notice {
     @Id
     private DepartmentNoticeKey id;
 
+    public Notice(Department department, NoticeDetails noticeDetails) {
+        this.id = new DepartmentNoticeKey(department, noticeDetails);
+    }
+
     @Embeddable
     @AllArgsConstructor
     @NoArgsConstructor
     public static class DepartmentNoticeKey {
-        @Enumerated(EnumType.STRING)
-        private DepartmentType type;
+        @ManyToOne(fetch = FetchType.EAGER)
+        @JoinColumn()
+        private Department department;
 
-        @ManyToOne(cascade = CascadeType.PERSIST)
+        @ManyToOne(fetch = FetchType.EAGER)
         @JoinColumn
         private NoticeDetails noticeDetails;
 
@@ -42,12 +45,12 @@ public class Notice {
                 return false;
             }
             DepartmentNoticeKey that = (DepartmentNoticeKey) o;
-            return type == that.type && Objects.equals(noticeDetails, that.noticeDetails);
+            return department == that.department && Objects.equals(noticeDetails, that.noticeDetails);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(type, noticeDetails);
+            return Objects.hash(department, noticeDetails);
         }
     }
 }
