@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 
 @Repository
 public class InMemoryChatRepository implements ChatRepository {
@@ -16,7 +17,7 @@ public class InMemoryChatRepository implements ChatRepository {
     @Override
     public ChatRoom saveRoom(ChatRoom room) {
         rooms.put(room.getRoomId(), room);
-        messages.putIfAbsent(room.getRoomId(), Collections.synchronizedList(new ArrayList<>()));
+        ensureMessageListExists(room.getRoomId());
         return room;
     }
 
@@ -28,22 +29,35 @@ public class InMemoryChatRepository implements ChatRepository {
     @Override
     public Optional<ChatRoom> findRoomByParticipants(String user1, String user2) {
         return rooms.values().stream()
-                .filter(room -> room.getParticipants().size() == 2)
-                .filter(room -> room.getParticipants().contains(user1) && room.getParticipants().contains(user2))
+                .filter(hasExactlyTwoParticipants())
+                .filter(containsBothUsers(user1, user2))
                 .findFirst();
     }
 
     @Override
     public void saveMessage(ChatMessage message) {
-        List<ChatMessage> roomMessages = messages.computeIfAbsent(
-                message.getRoomId(),
-                k -> Collections.synchronizedList(new ArrayList<>())
-        );
+        List<ChatMessage> roomMessages = ensureMessageListExists(message.getRoomId());
         roomMessages.add(message);
     }
 
     @Override
     public List<ChatMessage> findMessagesByRoomId(String roomId) {
         return new ArrayList<>(messages.getOrDefault(roomId, Collections.emptyList()));
+    }
+
+    private List<ChatMessage> ensureMessageListExists(String roomId) {
+        return messages.computeIfAbsent(
+                roomId,
+                key -> Collections.synchronizedList(new ArrayList<>())
+        );
+    }
+
+    private Predicate<ChatRoom> hasExactlyTwoParticipants() {
+        return room -> room.getParticipants().size() == 2;
+    }
+
+    private Predicate<ChatRoom> containsBothUsers(String user1, String user2) {
+        return room -> room.getParticipants().contains(user1)
+                && room.getParticipants().contains(user2);
     }
 }
