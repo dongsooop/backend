@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.handler;
 import com.dongsoop.dongsoop.exception.domain.websocket.UnauthorizedChatAccessException;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
+import com.dongsoop.dongsoop.member.service.MemberDetailsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
@@ -25,6 +26,7 @@ public class StompHandler implements ChannelInterceptor {
 
     private final JwtValidator jwtValidator;
     private final JwtUtil jwtUtil;
+    private final MemberDetailsService memberDetailsService; // 주입 추가
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -74,7 +76,9 @@ public class StompHandler implements ChannelInterceptor {
 
     private void setAuthentication(StompHeaderAccessor accessor, String token) {
         try {
-            UserDetails userDetails = jwtUtil.getUserDetailsByToken(token);
+            String email = jwtUtil.getNameByToken(token);
+            UserDetails userDetails = memberDetailsService.loadUserByUsername(email);
+
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             accessor.setUser(authentication);
