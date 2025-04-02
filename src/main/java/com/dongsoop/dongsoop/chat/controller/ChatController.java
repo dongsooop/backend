@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.chat.controller;
 
+import com.dongsoop.dongsoop.chat.dto.CreateGroupRoomRequest;
 import com.dongsoop.dongsoop.chat.dto.CreateRoomRequest;
 import com.dongsoop.dongsoop.chat.dto.MessageSyncRequest;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
@@ -13,14 +14,14 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
 
-@Controller("/chat")
+@RestController
 @RequiredArgsConstructor
+@RequestMapping("/chat")
 public class ChatController {
     private final ChatService chatService;
 
@@ -28,6 +29,12 @@ public class ChatController {
     public ResponseEntity<ChatRoom> createRoom(@RequestBody CreateRoomRequest request) {
         String currentUserId = getCurrentUserId();
         return ResponseEntity.ok(chatService.createOneToOneChatRoom(currentUserId, request.getTargetUserId()));
+    }
+
+    @GetMapping("/rooms")
+    public ResponseEntity<List<ChatRoom>> getRoomsForUser() {
+        String currentUserId = getCurrentUserId();
+        return ResponseEntity.ok(chatService.getRoomsForUserId(currentUserId));
     }
 
     @GetMapping("/room/{roomId}/enter")
@@ -68,6 +75,12 @@ public class ChatController {
             @RequestBody MessageSyncRequest request) {
         chatService.recreateRoomIfNeeded(roomId, getCurrentUserId(), request.getMessages());
         return ResponseEntity.ok(chatService.getChatRoomById(roomId));
+    }
+
+    @PostMapping("/room/group")
+    public ResponseEntity<ChatRoom> createGroupRoom(@RequestBody CreateGroupRoomRequest request) {
+        String currentUserId = getCurrentUserId();
+        return ResponseEntity.ok(chatService.createGroupChatRoom(currentUserId, request.getParticipants()));
     }
 
     private String getCurrentUserId() {
