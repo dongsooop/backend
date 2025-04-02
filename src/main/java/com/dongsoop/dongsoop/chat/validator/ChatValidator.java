@@ -4,23 +4,31 @@ import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.MessageType;
 import com.dongsoop.dongsoop.chat.repository.ChatRepository;
-import com.dongsoop.dongsoop.exception.domain.websocket.*;
-import lombok.RequiredArgsConstructor;
+import com.dongsoop.dongsoop.exception.domain.websocket.ChatRoomNotFoundException;
+import com.dongsoop.dongsoop.exception.domain.websocket.InvalidChatRequestException;
+import com.dongsoop.dongsoop.exception.domain.websocket.SelfChatException;
+import com.dongsoop.dongsoop.exception.domain.websocket.UnauthorizedChatAccessException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Component
-@RequiredArgsConstructor
 public class ChatValidator {
+    private static final String ANONYMOUS_USER = "anonymousUser";
     private final ChatRepository chatRepository;
 
-    private static final String ANONYMOUS_USER = "anonymousUser";
+    public ChatValidator(@Qualifier("redisChatRepository") ChatRepository chatRepository) {
+        this.chatRepository = chatRepository;
+    }
 
     public void validateUserForRoom(String roomId, String userId) {
         ChatRoom room = findRoomOrThrow(roomId);
@@ -111,6 +119,8 @@ public class ChatValidator {
     private <T extends RuntimeException> void validate(Supplier<Boolean> condition, Supplier<T> exceptionSupplier) {
         Optional.of(condition.get())
                 .filter(result -> result)
-                .ifPresent(result -> { throw exceptionSupplier.get(); });
+                .ifPresent(result -> {
+                    throw exceptionSupplier.get();
+                });
     }
 }
