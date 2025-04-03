@@ -4,10 +4,12 @@ import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.MessageType;
 import com.dongsoop.dongsoop.chat.repository.ChatRepository;
+import com.dongsoop.dongsoop.chat.service.ChatSyncService;
 import com.dongsoop.dongsoop.exception.domain.websocket.ChatRoomNotFoundException;
 import com.dongsoop.dongsoop.exception.domain.websocket.InvalidChatRequestException;
 import com.dongsoop.dongsoop.exception.domain.websocket.SelfChatException;
 import com.dongsoop.dongsoop.exception.domain.websocket.UnauthorizedChatAccessException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -21,18 +23,40 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 public class ChatValidator {
     private static final String ANONYMOUS_USER = "anonymousUser";
     private final ChatRepository chatRepository;
+    private final ChatSyncService chatSyncService;
 
-    public ChatValidator(@Qualifier("redisChatRepository") ChatRepository chatRepository) {
+    public ChatValidator(@Qualifier("redisChatRepository") ChatRepository chatRepository,
+                         ChatSyncService chatSyncService) {
         this.chatRepository = chatRepository;
+        this.chatSyncService = chatSyncService;
     }
 
+    // ChatValidator.java 수정 필요
     public void validateUserForRoom(String roomId, String userId) {
-        ChatRoom room = findRoomOrThrow(roomId);
-        validateUserAccess(room, userId);
+        ChatRoom room = chatRepository.findRoomById(roomId)
+                .orElseGet(() -> {
+                    // Redis에 없는 경우 PostgreSQL에서 복원 시도
+                    ChatRoom restoredRoom = chatSyncService.restoreGroupChatRoom(roomId);
+                    if (restoredRoom != null) {
+                        return restoredRoom;
+                    }
+                    throw new ChatRoomNotFoundException();
+                });
+
+        // 사용자가 참여자 목록에 없으면 자동으로 추가
+        if (!room.getParticipants().contains(userId)) {
+            log.info("사용자 {}가 채팅방 {} 참여자 목록에 없어 자동 추가합니다", userId, roomId);
+            room.getParticipants().add(userId);
+            chatRepository.saveRoom(room);
+        }
+
+        validate(() -> !room.getParticipants().contains(userId),
+                UnauthorizedChatAccessException::new);
     }
 
     public void validateSelfChat(String user1, String user2) {
