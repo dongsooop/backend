@@ -9,7 +9,6 @@ import com.dongsoop.dongsoop.exception.domain.websocket.ChatRoomNotFoundExceptio
 import com.dongsoop.dongsoop.exception.domain.websocket.InvalidChatRequestException;
 import com.dongsoop.dongsoop.exception.domain.websocket.SelfChatException;
 import com.dongsoop.dongsoop.exception.domain.websocket.UnauthorizedChatAccessException;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -23,7 +22,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Component
 public class ChatValidator {
     private static final String ANONYMOUS_USER = "anonymousUser";
@@ -36,32 +34,14 @@ public class ChatValidator {
         this.chatSyncService = chatSyncService;
     }
 
-    // ChatValidator.java 수정 필요
     public void validateUserForRoom(String roomId, String userId) {
-        ChatRoom room = chatRepository.findRoomById(roomId)
-                .orElseGet(() -> {
-                    // Redis에 없는 경우 PostgreSQL에서 복원 시도
-                    ChatRoom restoredRoom = chatSyncService.restoreGroupChatRoom(roomId);
-                    if (restoredRoom != null) {
-                        return restoredRoom;
-                    }
-                    throw new ChatRoomNotFoundException();
-                });
-
-        // 사용자가 참여자 목록에 없으면 자동으로 추가
-        if (!room.getParticipants().contains(userId)) {
-            log.info("사용자 {}가 채팅방 {} 참여자 목록에 없어 자동 추가합니다", userId, roomId);
-            room.getParticipants().add(userId);
-            chatRepository.saveRoom(room);
-        }
-
-        validate(() -> !room.getParticipants().contains(userId),
-                UnauthorizedChatAccessException::new);
+        ChatRoom room = getRoomOrRestore(roomId);
+        addUserToRoomIfNeeded(room, userId);
+        ensureUserInRoom(room, userId);
     }
 
     public void validateSelfChat(String user1, String user2) {
-        validate(() -> user1.equals(user2),
-                SelfChatException::new);
+        validate(() -> user1.equals(user2), SelfChatException::new);
     }
 
     public ChatMessage validateAndEnrichMessage(ChatMessage message) {
@@ -75,33 +55,29 @@ public class ChatValidator {
         return filterMessages(clientMessages, msg -> !existingMessageIds.contains(msg.getMessageId()));
     }
 
-    private ChatRoom findRoomOrThrow(String roomId) {
+    private ChatRoom getRoomOrRestore(String roomId) {
         return chatRepository.findRoomById(roomId)
-                .orElseThrow(ChatRoomNotFoundException::new);
+                .orElseGet(() -> Optional.ofNullable(chatSyncService.restoreGroupChatRoom(roomId))
+                        .orElseThrow(ChatRoomNotFoundException::new));
     }
 
-    private void validateUserAccess(ChatRoom room, String userId) {
-        validateNotAnonymousUser(userId);
-        addUserToRoomIfNeeded(room, userId);
-        validateUserInRoom(room, userId);
+    private void addUserToRoomIfNeeded(ChatRoom room, String userId) {
+        boolean userAdded = room.getParticipants().contains(userId);
+
+        if (!userAdded) {
+            room.getParticipants().add(userId);
+            chatRepository.saveRoom(room);
+        }
     }
 
-    private void validateNotAnonymousUser(String userId) {
-        validate(() -> ANONYMOUS_USER.equals(userId),
-                UnauthorizedChatAccessException::new);
-    }
-
-    private void validateUserInRoom(ChatRoom room, String userId) {
+    private void ensureUserInRoom(ChatRoom room, String userId) {
         validate(() -> !room.getParticipants().contains(userId),
                 UnauthorizedChatAccessException::new);
     }
 
     private void validateRequiredMessageFields(ChatMessage message) {
-        validate(() -> message == null,
-                InvalidChatRequestException::new);
-
-        validate(() -> !hasRequiredFields(message),
-                InvalidChatRequestException::new);
+        validate(() -> message == null, InvalidChatRequestException::new);
+        validate(() -> !hasRequiredFields(message), InvalidChatRequestException::new);
     }
 
     private boolean hasRequiredFields(ChatMessage message) {
@@ -122,12 +98,6 @@ public class ChatValidator {
         return message;
     }
 
-    private void addUserToRoomIfNeeded(ChatRoom room, String userId) {
-        if (room.getParticipants().add(userId)) {
-            chatRepository.saveRoom(room);
-        }
-    }
-
     private Set<String> extractMessageIds(List<ChatMessage> messages) {
         return messages.stream()
                 .map(ChatMessage::getMessageId)
@@ -141,10 +111,8 @@ public class ChatValidator {
     }
 
     private <T extends RuntimeException> void validate(Supplier<Boolean> condition, Supplier<T> exceptionSupplier) {
-        Optional.of(condition.get())
-                .filter(result -> result)
-                .ifPresent(result -> {
-                    throw exceptionSupplier.get();
-                });
+        if (condition.get()) {
+            throw exceptionSupplier.get();
+        }
     }
 }
