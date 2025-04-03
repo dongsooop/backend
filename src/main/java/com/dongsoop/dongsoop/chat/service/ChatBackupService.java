@@ -13,41 +13,68 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
 
 @Service
 @RequiredArgsConstructor
 public class ChatBackupService {
+    private static final int BACKUP_DAYS_THRESHOLD = 25;
+
     private final RedisChatRepository redisChatRepository;
     private final ChatRoomJpaRepository chatRoomJpaRepository;
     private final ChatMessageJpaRepository chatMessageJpaRepository;
 
-    @Scheduled(cron = "0 0 0 * * *") // 매일 자정에 실행
+    @Scheduled(cron = "0 0 0 * * *")
     public void backupExpiringRooms() {
-        List<ChatRoom> expiringSoonRooms = redisChatRepository.findRoomsOlderThan(25);
+        LocalDateTime cutoffTime = LocalDateTime.now().minusDays(BACKUP_DAYS_THRESHOLD);
+        List<ChatRoom> expiringSoonRooms = redisChatRepository.findRoomsCreatedBefore(cutoffTime);
 
-        for (ChatRoom room : expiringSoonRooms) {
-            if (room.getParticipants().size() > 2) { // 그룹 채팅만 백업
-                // 이미 저장되었는지 확인
-                if (!chatRoomJpaRepository.existsById(room.getRoomId())) {
-                    ChatRoomEntity entity = ChatRoomEntity.builder()
-                            .roomId(room.getRoomId())
-                            .isGroupChat(true)
-                            .participants(room.getParticipants())
-                            .createdAt(LocalDateTime.now().minusDays(25)) // 추정치
-                            .lastActivityAt(LocalDateTime.now())
-                            .build();
+        Predicate<ChatRoom> isGroupChatNotBackedUp = room ->
+                isGroupRoom(room.getParticipants().size()) &&
+                        !chatRoomJpaRepository.existsById(room.getRoomId());
 
-                    chatRoomJpaRepository.save(entity);
+        expiringSoonRooms.stream()
+                .filter(isGroupChatNotBackedUp)
+                .forEach(this::backupRoomAndMessages);
+    }
 
-                    // 메시지도 저장
-                    List<ChatMessage> messages = redisChatRepository.findMessagesByRoomId(room.getRoomId());
-                    for (ChatMessage message : messages) {
-                        ChatMessageEntity msgEntity = convertToEntity(message);
-                        chatMessageJpaRepository.save(msgEntity);
-                    }
-                }
-            }
-        }
+    private boolean isGroupRoom(int participantCount) {
+        return participantCount > 2;
+    }
+
+    private void backupRoomAndMessages(ChatRoom room) {
+        backupRoom(room);
+        backupMessages(room.getRoomId());
+    }
+
+    private void backupRoom(ChatRoom room) {
+        ChatRoomEntity entity = createRoomEntity(room);
+        chatRoomJpaRepository.save(entity);
+    }
+
+    private ChatRoomEntity createRoomEntity(ChatRoom room) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime createdAt = resolveCreatedAt(room.getCreatedAt(), now);
+
+        return ChatRoomEntity.builder()
+                .roomId(room.getRoomId())
+                .isGroupChat(true)
+                .participants(room.getParticipants())
+                .createdAt(createdAt)
+                .lastActivityAt(now)
+                .build();
+    }
+
+    private LocalDateTime resolveCreatedAt(LocalDateTime timestamp, LocalDateTime defaultTime) {
+        return Optional.ofNullable(timestamp)
+                .orElseGet(() -> defaultTime.minusDays(BACKUP_DAYS_THRESHOLD));
+    }
+
+    private void backupMessages(String roomId) {
+        redisChatRepository.findMessagesByRoomId(roomId).stream()
+                .map(this::convertToEntity)
+                .forEach(chatMessageJpaRepository::save);
     }
 
     private ChatMessageEntity convertToEntity(ChatMessage message) {
