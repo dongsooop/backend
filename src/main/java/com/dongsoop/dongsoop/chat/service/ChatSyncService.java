@@ -22,7 +22,6 @@ public class ChatSyncService {
     private final ChatRoomJpaRepository chatRoomJpaRepository;
     private final ChatMessageJpaRepository chatMessageJpaRepository;
 
-    // Redis에서 만료된 그룹 채팅방 복원
     public ChatRoom restoreGroupChatRoom(String roomId) {
         Optional<ChatRoomEntity> roomEntityOpt = chatRoomJpaRepository.findById(roomId);
         if (roomEntityOpt.isPresent()) {
@@ -33,10 +32,8 @@ public class ChatSyncService {
                 room.setRoomId(entity.getRoomId());
                 room.setParticipants(entity.getParticipants());
 
-                // Redis에 저장
                 redisChatRepository.saveRoom(room);
 
-                // 최근 메시지도 Redis로 복원
                 List<ChatMessageEntity> messageEntities =
                         chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(roomId);
 
@@ -62,9 +59,7 @@ public class ChatSyncService {
                 .build();
     }
 
-    // ChatSyncService에 메시지 복원 메서드 추가
     public List<ChatMessage> restoreMessagesFromDatabase(String roomId) {
-        // PostgreSQL에서 메시지 조회
         List<ChatMessageEntity> messageEntities = chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(roomId);
         if (messageEntities.isEmpty()) {
             return Collections.emptyList();
@@ -74,7 +69,6 @@ public class ChatSyncService {
                 .map(this::convertToMessage)
                 .collect(Collectors.toList());
 
-        // Redis에 복원
         for (ChatMessage message : messages) {
             redisChatRepository.saveMessage(message);
         }

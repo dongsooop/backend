@@ -18,9 +18,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        // 구독 요청 prefix
         registry.enableSimpleBroker("/topic");
-        // 메시지 발행 요청 prefix
         registry.setApplicationDestinationPrefixes("/app");
     }
 
@@ -28,11 +26,19 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws/chat")
                 .setAllowedOriginPatterns("*")
-                .withSockJS();
+                .withSockJS()
+                .setDisconnectDelay(30 * 1000)  // 30초로 설정
+                .setHeartbeatTime(25 * 1000);   // 25초로 설정
     }
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
         registration.interceptors(stompHandler);
+
+        // 비동기 작업 처리를 위한 스레드 풀 설정 추가
+        registration.taskExecutor()
+                .corePoolSize(2)
+                .maxPoolSize(10)
+                .queueCapacity(50);
     }
 }

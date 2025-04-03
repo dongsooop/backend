@@ -6,20 +6,14 @@ import com.dongsoop.dongsoop.chat.entity.MessageType;
 import com.dongsoop.dongsoop.chat.repository.ChatRepository;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.exception.domain.websocket.ChatRoomNotFoundException;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Service
-@Slf4j
 public class ChatService {
-
     private final ChatRepository chatRepository;
     private final ChatValidator chatValidator;
     private final ChatSyncService chatSyncService;
@@ -39,20 +33,10 @@ public class ChatService {
     }
 
     public ChatRoom createGroupChatRoom(String creatorId, Set<String> participants) {
-        if (participants.size() < 2) {
-            throw new IllegalArgumentException("그룹 채팅에는 최소 2명 이상의 참여자가 필요합니다.");
-        }
-
-        // 생성자도 참여자에 포함
+        validateGroupParticipants(participants);
         participants.add(creatorId);
 
-        String roomId = UUID.randomUUID().toString();
-        ChatRoom room = ChatRoom.builder()
-                .roomId(roomId)
-                .participants(participants)
-                .build();
-
-        return chatRepository.saveRoom(room);
+        return ChatRoom.createWithParticipants(participants);
     }
 
     public void enterChatRoom(String roomId, String userId) {
@@ -68,14 +52,12 @@ public class ChatService {
     public ChatMessage createEnterMessage(String roomId, String userId) {
         chatValidator.validateUserForRoom(roomId, userId);
 
-        ChatMessage message = ChatMessage.builder()
-                .messageId(UUID.randomUUID().toString())
-                .roomId(roomId)
-                .senderId(userId)
-                .content(userId + "님이 입장하셨습니다.")
-                .timestamp(LocalDateTime.now())
-                .type(MessageType.ENTER)
-                .build();
+        ChatMessage message = createSystemMessage(
+                roomId,
+                userId,
+                userId + "님이 입장하셨습니다.",
+                MessageType.ENTER
+        );
 
         chatRepository.saveMessage(message);
         return message;
@@ -86,7 +68,6 @@ public class ChatService {
         List<ChatMessage> messages = chatRepository.findMessagesByRoomId(roomId);
 
         if (messages.isEmpty()) {
-            log.info("Redis에 메시지 없음, DB에서 복구 시도: roomId={}", roomId);
             messages = chatSyncService.restoreMessagesFromDatabase(roomId);
         }
 
@@ -95,55 +76,43 @@ public class ChatService {
 
     public ChatRoom getChatRoomById(String roomId) {
         return chatRepository.findRoomById(roomId)
-                .orElseGet(() -> {
-                    // Redis에 없는 경우 PostgreSQL에서 복원 시도
-                    ChatRoom restoredRoom = chatSyncService.restoreGroupChatRoom(roomId);
-                    if (restoredRoom == null) {
-                        throw new ChatRoomNotFoundException();
-                    }
-                    return restoredRoom;
-                });
+                .orElseGet(() -> Optional.ofNullable(chatSyncService.restoreGroupChatRoom(roomId))
+                        .orElseThrow(ChatRoomNotFoundException::new));
     }
 
     public List<ChatMessage> syncMessages(String roomId, String userId, List<ChatMessage> clientMessages) {
         chatValidator.validateUserForRoom(roomId, userId);
-
-        // 서버에 있는 메시지 가져오기
         List<ChatMessage> serverMessages = chatRepository.findMessagesByRoomId(roomId);
-
-        // 클라이언트에서 온 메시지 중 서버에 없는 메시지만 필터링
         List<ChatMessage> newMessages = chatValidator.filterDuplicateMessages(serverMessages, clientMessages);
 
-        // 새 메시지 저장
-        for (ChatMessage message : newMessages) {
-            ChatMessage validatedMessage = chatValidator.validateAndEnrichMessage(message);
-            chatRepository.saveMessage(validatedMessage);
-        }
+        newMessages.forEach(this::processMessage);
 
         return chatRepository.findMessagesByRoomId(roomId);
     }
 
     public void recreateRoomIfNeeded(String roomId, String userId, List<ChatMessage> localMessages) {
         try {
-            // 채팅방이 존재하는지 확인
-            ChatRoom room = getChatRoomById(roomId);
-
-            // 사용자가 채팅방에 있는지 확인
-            if (!room.getParticipants().contains(userId)) {
-                room.getParticipants().add(userId);
-                chatRepository.saveRoom(room);
-            }
-
-            // 동기화 처리
+            validateAndUpdateRoom(roomId, userId);
             syncMessages(roomId, userId, localMessages);
         } catch (ChatRoomNotFoundException e) {
-            // 채팅방이 없으면 로컬 스토리지 메시지로 재생성
-            if (!localMessages.isEmpty()) {
-                recreateRoomFromMessages(roomId, userId, localMessages);
-                log.info("채팅방 {} 재생성 완료: 사용자 {}", roomId, userId);
-            } else {
-                throw e;
-            }
+            handleRoomNotFound(roomId, userId, localMessages);
+        }
+    }
+
+    private void validateAndUpdateRoom(String roomId, String userId) {
+        ChatRoom room = getChatRoomById(roomId);
+
+        if (!room.getParticipants().contains(userId)) {
+            room.getParticipants().add(userId);
+            chatRepository.saveRoom(room);
+        }
+    }
+
+    private void handleRoomNotFound(String roomId, String userId, List<ChatMessage> localMessages) {
+        if (!localMessages.isEmpty()) {
+            recreateRoomFromMessages(roomId, userId, localMessages);
+        } else {
+            throw new ChatRoomNotFoundException();
         }
     }
 
@@ -153,43 +122,57 @@ public class ChatService {
         }
 
         Set<String> participants = extractParticipantsFromMessages(userId, clientMessages);
+        ChatRoom newRoom = createRoomWithId(roomId, participants);
 
-        // 채팅방 생성
-        ChatRoom newRoom = ChatRoom.builder()
-                .roomId(roomId)
-                .participants(participants)
-                .build();
-
-        chatRepository.saveRoom(newRoom);
-
-        // 메시지 저장
-        for (ChatMessage message : clientMessages) {
-            // 기본 정보 설정
-            if (message.getMessageId() == null) {
-                message.setMessageId(UUID.randomUUID().toString());
-            }
-            if (message.getTimestamp() == null) {
-                message.setTimestamp(LocalDateTime.now());
-            }
-            if (message.getType() == null) {
-                message.setType(MessageType.CHAT);
-            }
-
+        clientMessages.forEach(message -> {
+            enrichMessageIfNeeded(message);
             chatRepository.saveMessage(message);
-        }
+        });
 
         return newRoom;
+    }
+
+    private void enrichMessageIfNeeded(ChatMessage message) {
+        if (message.getMessageId() == null) {
+            message.setMessageId(UUID.randomUUID().toString());
+        }
+        if (message.getTimestamp() == null) {
+            message.setTimestamp(LocalDateTime.now());
+        }
+        if (message.getType() == null) {
+            message.setType(MessageType.CHAT);
+        }
     }
 
     private Set<String> extractParticipantsFromMessages(String userId, List<ChatMessage> messages) {
         Set<String> participants = new HashSet<>();
         participants.add(userId);
 
-        for (ChatMessage message : messages) {
-            participants.add(message.getSenderId());
-        }
+        messages.forEach(message -> participants.add(message.getSenderId()));
 
         return participants;
+    }
+
+    private ChatRoom createRoomWithId(String roomId, Set<String> participants) {
+        ChatRoom newRoom = ChatRoom.builder()
+                .roomId(roomId)
+                .participants(participants)
+                .createdAt(LocalDateTime.now())
+                .lastActivityAt(LocalDateTime.now())
+                .build();
+
+        return chatRepository.saveRoom(newRoom);
+    }
+
+    private ChatMessage createSystemMessage(String roomId, String userId, String content, MessageType type) {
+        return ChatMessage.builder()
+                .messageId(UUID.randomUUID().toString())
+                .roomId(roomId)
+                .senderId(userId)
+                .content(content)
+                .timestamp(LocalDateTime.now())
+                .type(type)
+                .build();
     }
 
     private ChatRoom createRoom(String user1, String user2) {
@@ -197,11 +180,13 @@ public class ChatService {
         return chatRepository.saveRoom(room);
     }
 
-    public List<ChatRoom> findRoomsByUserId(String userId) {
-        return chatRepository.findRoomsByUserId(userId);
+    private void validateGroupParticipants(Set<String> participants) {
+        if (participants.size() < 2) {
+            throw new IllegalArgumentException("그룹 채팅에는 최소 2명 이상의 참여자가 필요합니다.");
+        }
     }
 
     public List<ChatRoom> getRoomsForUserId(String userId) {
-        return findRoomsByUserId(userId);
+        return chatRepository.findRoomsByUserId(userId);
     }
 }
