@@ -40,7 +40,7 @@ public class ChatService {
 
     public ChatRoom createGroupChatRoom(String creatorId, Set<String> participants) {
         if (participants.size() < 2) {
-            throw new IllegalArgumentException("그룹 채팅에는 최소 2명 이상의 참여자가 필요���니다.");
+            throw new IllegalArgumentException("그룹 채팅에는 최소 2명 이상의 참여자가 필요합니다.");
         }
 
         // 생성자도 참여자에 포함
@@ -83,7 +83,14 @@ public class ChatService {
 
     public List<ChatMessage> getChatHistory(String roomId, String userId) {
         chatValidator.validateUserForRoom(roomId, userId);
-        return chatRepository.findMessagesByRoomId(roomId);
+        List<ChatMessage> messages = chatRepository.findMessagesByRoomId(roomId);
+
+        if (messages.isEmpty()) {
+            log.info("Redis에 메시지 없음, DB에서 복구 시도: roomId={}", roomId);
+            messages = chatSyncService.restoreMessagesFromDatabase(roomId);
+        }
+
+        return messages;
     }
 
     public ChatRoom getChatRoomById(String roomId) {

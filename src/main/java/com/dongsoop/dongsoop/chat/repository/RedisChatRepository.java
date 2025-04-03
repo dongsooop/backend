@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.chat.repository;
 
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -9,6 +10,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Repository
 public class RedisChatRepository implements ChatRepository {
     private final static long CHAT_TTL = 30; // 30일 TTL
@@ -52,6 +54,7 @@ public class RedisChatRepository implements ChatRepository {
         return Optional.empty();
     }
 
+    // RedisChatRepository에 로그 추가
     @Override
     public void saveMessage(ChatMessage message) {
         String key = "chat:message:" + message.getRoomId() + ":" + message.getMessageId();
@@ -62,6 +65,8 @@ public class RedisChatRepository implements ChatRepository {
         String listKey = "chat:messages:" + message.getRoomId();
         redisTemplate.opsForList().rightPush(listKey, message);
         redisTemplate.expire(listKey, CHAT_TTL, TimeUnit.DAYS);
+
+        log.info("Redis에 메시지 저장 완료: roomId={}, messageId={}", message.getRoomId(), message.getMessageId());
     }
 
     @Override

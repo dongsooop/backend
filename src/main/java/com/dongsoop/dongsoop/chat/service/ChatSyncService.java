@@ -10,8 +10,10 @@ import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -58,5 +60,25 @@ public class ChatSyncService {
                 .timestamp(entity.getTimestamp())
                 .type(entity.getType())
                 .build();
+    }
+
+    // ChatSyncService에 메시지 복원 메서드 추가
+    public List<ChatMessage> restoreMessagesFromDatabase(String roomId) {
+        // PostgreSQL에서 메시지 조회
+        List<ChatMessageEntity> messageEntities = chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(roomId);
+        if (messageEntities.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<ChatMessage> messages = messageEntities.stream()
+                .map(this::convertToMessage)
+                .collect(Collectors.toList());
+
+        // Redis에 복원
+        for (ChatMessage message : messages) {
+            redisChatRepository.saveMessage(message);
+        }
+
+        return messages;
     }
 }
