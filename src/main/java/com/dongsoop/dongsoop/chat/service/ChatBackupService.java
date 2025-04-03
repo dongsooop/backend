@@ -40,7 +40,7 @@ public class ChatBackupService {
     }
 
     private boolean isGroupRoom(int participantCount) {
-        return participantCount > 2;
+        return participantCount >= 2;
     }
 
     private void backupRoomAndMessages(ChatRoom room) {
