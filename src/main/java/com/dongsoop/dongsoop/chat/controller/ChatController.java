@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.chat.controller;
 
 import com.dongsoop.dongsoop.chat.dto.CreateGroupRoomRequest;
 import com.dongsoop.dongsoop.chat.dto.CreateRoomRequest;
+import com.dongsoop.dongsoop.chat.dto.KickUserRequest;
 import com.dongsoop.dongsoop.chat.dto.MessageSyncRequest;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
@@ -81,6 +82,14 @@ public class ChatController {
     public ResponseEntity<ChatRoom> createGroupRoom(@RequestBody CreateGroupRoomRequest request) {
         String currentUserId = getCurrentUserId();
         return ResponseEntity.ok(chatService.createGroupChatRoom(currentUserId, request.getParticipants()));
+    }
+
+    @PostMapping("/room/{roomId}/kick")
+    public ResponseEntity<ChatRoom> kickUserFromRoom(
+            @PathVariable("roomId") String roomId,
+            @RequestBody KickUserRequest kickUserRequest) {
+        String currentUserId = getCurrentUserId();
+        return ResponseEntity.ok(chatService.kickUserFromRoom(roomId, currentUserId, kickUserRequest.getUserId()));
     }
 
     private String getCurrentUserId() {
