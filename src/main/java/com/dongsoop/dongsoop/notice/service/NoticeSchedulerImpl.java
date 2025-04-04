@@ -10,6 +10,7 @@ import com.dongsoop.dongsoop.notice.repository.NoticeDetailsRepository;
 import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
 import com.dongsoop.dongsoop.notice.util.NoticeParser;
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,7 +35,7 @@ import org.springframework.stereotype.Service;
 public class NoticeSchedulerImpl implements NoticeScheduler {
 
     @Value("${university.domain}")
-    private String universityUrl;
+    private URL universityUrl;
 
     private final NoticeParser noticeParser;
 
@@ -100,7 +101,9 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
     }
 
     private List<NoticeDetails> parseNewNotice(Department department, Long maxId) throws IOException {
-        Connection connect = Jsoup.connect(universityUrl + department.getNoticeUrl());
+        URL url = new URL(this.universityUrl, department.getNoticeUrl());
+
+        Connection connect = Jsoup.connect(url.toExternalForm());
         Document document = connect.get();
 
         Elements rows = document.select("tbody tr");
