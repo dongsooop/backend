@@ -1,8 +1,8 @@
 package com.dongsoop.dongsoop.department;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import lombok.Getter;
 
@@ -10,8 +10,8 @@ import lombok.Getter;
 public class Department {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    private Long id;
+    @Enumerated(EnumType.STRING)
+    private DepartmentType id;
 
     private String name;
 
