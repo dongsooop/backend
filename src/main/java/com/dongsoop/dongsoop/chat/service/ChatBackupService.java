@@ -59,7 +59,8 @@ public class ChatBackupService {
 
         return ChatRoomEntity.builder()
                 .roomId(room.getRoomId())
-                .isGroupChat(true)
+                .isGroupChat(room.isGroupChat())
+                .managerId(room.getManagerId())
                 .participants(room.getParticipants())
                 .createdAt(createdAt)
                 .lastActivityAt(now)

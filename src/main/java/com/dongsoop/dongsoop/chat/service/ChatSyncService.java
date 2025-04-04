@@ -23,56 +23,42 @@ public class ChatSyncService {
     private final ChatMessageJpaRepository chatMessageJpaRepository;
 
     public ChatRoom restoreGroupChatRoom(String roomId) {
-        Optional<ChatRoomEntity> roomEntityOpt = chatRoomJpaRepository.findById(roomId);
-        if (roomEntityOpt.isPresent()) {
-            ChatRoomEntity entity = roomEntityOpt.get();
-
-            if (entity.isGroupChat()) {
-                ChatRoom room = new ChatRoom();
-                room.setRoomId(entity.getRoomId());
-                room.setParticipants(entity.getParticipants());
-
-                redisChatRepository.saveRoom(room);
-
-                List<ChatMessageEntity> messageEntities =
-                        chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(roomId);
-
-                for (ChatMessageEntity msgEntity : messageEntities) {
-                    ChatMessage message = convertToMessage(msgEntity);
-                    redisChatRepository.saveMessage(message);
-                }
-
-                return room;
-            }
-        }
-        return null;
+        return chatRoomJpaRepository.findById(roomId)
+                .filter(ChatRoomEntity::isGroupChat)
+                .map(this::convertAndSaveRoom)
+                .orElse(null);
     }
 
-    private ChatMessage convertToMessage(ChatMessageEntity entity) {
-        return ChatMessage.builder()
-                .messageId(entity.getMessageId())
-                .roomId(entity.getRoomId())
-                .senderId(entity.getSenderId())
-                .content(entity.getContent())
-                .timestamp(entity.getTimestamp())
-                .type(entity.getType())
-                .build();
+    private ChatRoom convertAndSaveRoom(ChatRoomEntity entity) {
+        ChatRoom room = entity.toChatRoom();
+        redisChatRepository.saveRoom(room);
+        restoreAndSaveMessages(entity.getRoomId());
+        return room;
+    }
+
+    private void restoreAndSaveMessages(String roomId) {
+        chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(roomId)
+                .stream()
+                .map(ChatMessageEntity::toChatMessage)
+                .forEach(redisChatRepository::saveMessage);
     }
 
     public List<ChatMessage> restoreMessagesFromDatabase(String roomId) {
-        List<ChatMessageEntity> messageEntities = chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(roomId);
-        if (messageEntities.isEmpty()) {
-            return Collections.emptyList();
-        }
+        List<ChatMessageEntity> messageEntities =
+                chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(roomId);
 
-        List<ChatMessage> messages = messageEntities.stream()
-                .map(this::convertToMessage)
+        return Optional.of(messageEntities)
+                .filter(list -> !list.isEmpty())
+                .map(this::mapAndSaveMessages)
+                .orElse(Collections.emptyList());
+    }
+
+    private List<ChatMessage> mapAndSaveMessages(List<ChatMessageEntity> entities) {
+        List<ChatMessage> messages = entities.stream()
+                .map(ChatMessageEntity::toChatMessage)
                 .collect(Collectors.toList());
 
-        for (ChatMessage message : messages) {
-            redisChatRepository.saveMessage(message);
-        }
-
+        messages.forEach(redisChatRepository::saveMessage);
         return messages;
     }
 }
