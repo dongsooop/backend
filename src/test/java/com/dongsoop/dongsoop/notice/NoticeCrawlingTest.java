@@ -34,8 +34,6 @@ class NoticeCrawlingTest {
     @MockitoBean
     NoticeDetailsRepository noticeDetailsRepository;
 
-    static final Integer NONE_DEPARTMENT_COUNT = 1;
-
     static final Integer MIN_NUMBER_OF_INVOCATIONS = 1;
 
     @AfterEach
@@ -66,6 +64,6 @@ class NoticeCrawlingTest {
                 })
                 .collect(Collectors.toSet());
 
-        return departmentSet.size() == DepartmentType.values().length - NONE_DEPARTMENT_COUNT;
+        return departmentSet.size() == DepartmentType.values().length;
     }
 }
