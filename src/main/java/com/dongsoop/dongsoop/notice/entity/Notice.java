@@ -2,9 +2,9 @@ package com.dongsoop.dongsoop.notice.entity;
 
 import com.dongsoop.dongsoop.department.Department;
 import jakarta.persistence.Embeddable;
+import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.util.Objects;
@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Notice {
 
-    @Id
+    @EmbeddedId
     private NoticeKey id;
 
     public Notice(Department department, NoticeDetails noticeDetails) {
@@ -28,11 +28,11 @@ public class Notice {
     @NoArgsConstructor
     public static class NoticeKey {
         @ManyToOne(fetch = FetchType.EAGER)
-        @JoinColumn()
+        @JoinColumn(name = "department_id")
         private Department department;
 
         @ManyToOne(fetch = FetchType.EAGER)
-        @JoinColumn
+        @JoinColumn(name = "notice_details_id")
         private NoticeDetails noticeDetails;
 
         // JPA 엔티티 비교 및 캐싱 시 사용된다
