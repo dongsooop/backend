@@ -5,10 +5,7 @@ import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.MessageType;
 import com.dongsoop.dongsoop.chat.repository.ChatRepository;
 import com.dongsoop.dongsoop.chat.service.ChatSyncService;
-import com.dongsoop.dongsoop.exception.domain.websocket.ChatRoomNotFoundException;
-import com.dongsoop.dongsoop.exception.domain.websocket.InvalidChatRequestException;
-import com.dongsoop.dongsoop.exception.domain.websocket.SelfChatException;
-import com.dongsoop.dongsoop.exception.domain.websocket.UnauthorizedChatAccessException;
+import com.dongsoop.dongsoop.exception.domain.websocket.*;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -62,9 +59,11 @@ public class ChatValidator {
     }
 
     private void addUserToRoomIfNeeded(ChatRoom room, String userId) {
-        boolean userAdded = room.getParticipants().contains(userId);
+        if (room.isKicked(userId)) {
+            throw new UserKickedException(room.getRoomId());
+        }
 
-        if (!userAdded) {
+        if (!room.getParticipants().contains(userId)) {
             room.getParticipants().add(userId);
             chatRepository.saveRoom(room);
         }
@@ -111,8 +110,32 @@ public class ChatValidator {
     }
 
     private <T extends RuntimeException> void validate(Supplier<Boolean> condition, Supplier<T> exceptionSupplier) {
-        if (condition.get()) {
-            throw exceptionSupplier.get();
-        }
+        Optional.of(condition.get())
+                .filter(Boolean::booleanValue)
+                .ifPresent(result -> {
+                    throw exceptionSupplier.get();
+                });
+    }
+
+    public void validateManagerPermission(ChatRoom room, String userId) {
+        Optional.ofNullable(room.getManagerId())
+                .filter(managerId -> !managerId.equals(userId))
+                .ifPresent(managerId -> {
+                    throw new UnauthorizedManagerActionException();
+                });
+    }
+
+    public void validateKickableUser(ChatRoom room, String userToKick) {
+        Optional.of(room.getParticipants())
+                .filter(participants -> !participants.contains(userToKick))
+                .ifPresent(p -> {
+                    throw new UserNotInRoomException();
+                });
+
+        Optional.ofNullable(room.getManagerId())
+                .filter(id -> id.equals(userToKick))
+                .ifPresent(id -> {
+                    throw new ManagerKickAttemptException();
+                });
     }
 }
