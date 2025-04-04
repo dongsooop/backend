@@ -32,4 +32,15 @@ public class ChatMessageEntity {
 
     @Enumerated(EnumType.STRING)
     private MessageType type;
+
+    public ChatMessage toChatMessage() {
+        return ChatMessage.builder()
+                .messageId(this.messageId)
+                .roomId(this.roomId)
+                .senderId(this.senderId)
+                .content(this.content)
+                .timestamp(this.timestamp)
+                .type(this.type)
+                .build();
+    }
 }
