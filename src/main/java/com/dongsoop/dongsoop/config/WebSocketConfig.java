@@ -1,13 +1,17 @@
 package com.dongsoop.dongsoop.config;
 
+import com.dongsoop.dongsoop.handler.CustomStompErrorHandler;
 import com.dongsoop.dongsoop.handler.StompHandler;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
+import org.springframework.web.socket.messaging.StompSubProtocolErrorHandler;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -15,6 +19,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final StompHandler stompHandler;
+    private final CustomStompErrorHandler customStompErrorHandler;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
@@ -27,18 +32,32 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/ws/chat")
                 .setAllowedOriginPatterns("*")
                 .withSockJS()
-                .setDisconnectDelay(30 * 1000)  // 30초로 설정
-                .setHeartbeatTime(25 * 1000);   // 25초로 설정
+                .setDisconnectDelay(30 * 1000)
+                .setHeartbeatTime(15 * 1000)
+                .setSessionCookieNeeded(true)
+                .setWebSocketEnabled(true)
+                .setStreamBytesLimit(512 * 1024)
+                .setHttpMessageCacheSize(1000);
+    }
+
+    @Override
+    public void configureWebSocketTransport(WebSocketTransportRegistration registry) {
+        registry.setMessageSizeLimit(64 * 1024)
+                .setSendBufferSizeLimit(512 * 1024)
+                .setSendTimeLimit(15 * 1000);
     }
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
         registration.interceptors(stompHandler);
-
-        // 비동기 작업 처리를 위한 스레드 풀 설정 추가
         registration.taskExecutor()
-                .corePoolSize(2)
+                .corePoolSize(4)
                 .maxPoolSize(10)
-                .queueCapacity(50);
+                .queueCapacity(100);
+    }
+
+    @Bean
+    public StompSubProtocolErrorHandler errorHandler() {
+        return customStompErrorHandler;
     }
 }
