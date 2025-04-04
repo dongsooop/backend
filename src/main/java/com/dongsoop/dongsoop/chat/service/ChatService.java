@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ChatService {
@@ -36,7 +37,29 @@ public class ChatService {
         validateGroupParticipants(participants);
         participants.add(creatorId);
 
-        return ChatRoom.createWithParticipants(participants);
+        ChatRoom room = ChatRoom.createWithParticipants(participants, creatorId);
+        return chatRepository.saveRoom(room);
+    }
+
+    public ChatRoom kickUserFromRoom(String roomId, String requesterId, String userToKick) {
+        ChatRoom room = getChatRoomById(roomId);
+
+        chatValidator.validateManagerPermission(room, requesterId);
+        chatValidator.validateKickableUser(room, userToKick);
+
+        room.kickUser(userToKick);
+        chatRepository.saveRoom(room);
+
+        createUserKickedMessage(roomId, requesterId, userToKick);
+
+        return room;
+    }
+
+    private ChatMessage createUserKickedMessage(String roomId, String managerId, String kickedUserId) {
+        String content = kickedUserId + "님이 채팅방에서 추방되었습니다.";
+        ChatMessage message = createSystemMessage(roomId, managerId, content, MessageType.LEAVE);
+        chatRepository.saveMessage(message);
+        return message;
     }
 
     public void enterChatRoom(String roomId, String userId) {
@@ -187,6 +210,9 @@ public class ChatService {
     }
 
     public List<ChatRoom> getRoomsForUserId(String userId) {
-        return chatRepository.findRoomsByUserId(userId);
+        List<ChatRoom> rooms = chatRepository.findRoomsByUserId(userId);
+        return rooms.stream()
+                .filter(room -> !room.isKicked(userId))
+                .collect(Collectors.toList());
     }
 }
