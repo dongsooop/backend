@@ -43,14 +43,14 @@ public class NoticeLinkParser {
         StringBuilder linkBuilder = new StringBuilder();
         linkBuilder.append(departmentUrlPrefix);
 
-        if (matcher.group(1) == null) {
+        if (!matcher.find()) {
             throw new NoticeLinkNotAvailableException();
         }
 
-        while (matcher.find()) {
+        do {
             String match = matcher.group(1);
             linkBuilder.append("/").append(match);
-        }
+        } while (matcher.find());
 
         linkBuilder.append(departmentUrlSuffix);
 
