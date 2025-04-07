@@ -20,10 +20,10 @@ public class NoticeParser {
     private final NoticeLinkParser noticeLinkParser;
 
     private static final Pattern DEPARTMENT_NOTICE_LINK_PATTERN = Pattern.compile(
-            "/combBbs/dmu/[1-9]+/[1-9]+/([1-9]+)/view.do");
+            "^/combBbs/dmu/\\d+/\\d+/(\\d+)/view.do$");
 
     private static final Pattern UNIVERSITY_NOTICE_LINK_PATTERN = Pattern.compile(
-            "/bbs/dmu/[1-9]+/([1-9]+)/artclView.do?layout=unknown");
+            "^/bbs/dmu/\\d+/(\\d+)/artclView.do\\?layout=unknown$");
 
     public NoticeDetails parse(Element row) {
         if (!isNoticeRow(row)) {
