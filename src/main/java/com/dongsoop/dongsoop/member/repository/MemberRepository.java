@@ -9,4 +9,6 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     Optional<PasswordValidateDto> findPasswordValidatorByEmail(String email);
 
     Optional<Member> findByEmail(String email);
+
+    boolean existsByEmail(String email);
 }

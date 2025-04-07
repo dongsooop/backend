@@ -63,10 +63,10 @@ public class MemberService {
     }
 
     private void checkEmailDuplication(String email) {
-        Optional<Member> optionalMember = memberRepository.findByEmail(email);
+        boolean isExists = memberRepository.existsByEmail(email);
 
-        optionalMember.ifPresent((member) -> {
+        if (isExists) {
             throw new EmailDuplicatedException();
-        });
+        }
     }
 }
