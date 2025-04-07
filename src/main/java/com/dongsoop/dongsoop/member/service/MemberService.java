@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +35,7 @@ public class MemberService {
     private final PasswordEncoder passwordEncoder;
     private final TokenGenerator tokenGenerator;
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
+    private final UserDetailsService userDetailsService;
 
     @Transactional
     public void signup(SignupRequest request) {
@@ -46,12 +48,16 @@ public class MemberService {
     public TokenIssueResponse login(LoginRequest loginRequest) {
         Optional<PasswordValidateDto> passwordValidator = memberRepository.findPasswordValidatorByEmail(
                 loginRequest.getEmail());
-        passwordValidator.orElseThrow(MemberNotFoundException::new);
+
+        if (passwordValidator.isEmpty()) {
+            throw new MemberNotFoundException();
+        }
 
         validatePassword(loginRequest, passwordValidator.get());
 
-        UsernamePasswordAuthenticationToken authenticationToken = loginRequest.toAuthenticationToken();
-        Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
+        String cryptedPassword = passwordEncoder.encode(loginRequest.getPassword());
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                loginRequest.getEmail(), cryptedPassword);
 
         String accessToken = tokenGenerator.generateAccessToken(authentication);
         String refreshToken = tokenGenerator.generateRefreshToken(authentication);

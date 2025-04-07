@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Arrays;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -41,7 +42,10 @@ public class JwtFilter extends OncePerRequestFilter {
     private String[] allowedPaths;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
         String tokenHeader = request.getHeader("Authorization");
         String token = resolveToken(tokenHeader);
         jwtValidator.validate(token);
@@ -49,7 +53,7 @@ public class JwtFilter extends OncePerRequestFilter {
         String name = jwtUtil.getNameByToken(token);
 
         UserDetails userDetails = memberDetailsService.loadUserByUsername(name);
-        Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+        Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, userDetails.getPassword());
         SecurityContextHolder.getContext().setAuthentication(auth);
 
         filterChain.doFilter(request, response);
