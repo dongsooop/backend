@@ -53,8 +53,8 @@ public class RedisConfig {
 
         PolymorphicTypeValidator typeValidator = BasicPolymorphicTypeValidator.builder()
                 .allowIfSubType("com.dongsoop.dongsoop.chat.entity.BaseEntity.class")
-                .allowIfSubType("java.util.collection.class")
-                .allowIfSubType("java.time.temporal.temporal.class")
+                .allowIfSubType("java.util.Collection")
+                .allowIfSubType("java.time.temporal.Temporal")
                 .build();
 
         objectMapper.activateDefaultTyping(
