@@ -11,11 +11,8 @@ import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,17 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class MemberService {
 
-    @Value("${jwt.header.name}")
-    private String authHeaderName;
-
-    @Value("${jwt.refreshToken.cookie.name}")
-    private String refreshTokenCookieName;
-
     private final MemberRepository memberRepository;
+
     private final PasswordEncoder passwordEncoder;
+
     private final TokenGenerator tokenGenerator;
-    private final AuthenticationManagerBuilder authenticationManagerBuilder;
-    private final UserDetailsService userDetailsService;
 
     @Transactional
     public void signup(SignupRequest request) {
