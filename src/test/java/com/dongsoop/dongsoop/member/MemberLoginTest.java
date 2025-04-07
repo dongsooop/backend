@@ -61,4 +61,15 @@ class MemberLoginTest {
                 .content("{ \"email\": \"a@dongyang.ac.kr\", \"password\": \"" + password + "\" }")
         ).andExpect(status().isBadRequest());
     }
+
+    @Test
+    @DisplayName("비밀번호에 알파벳이 포함되어 있지 않으면 예외 발생")
+    void throws_an_exception_if_the_password_does_not_contain_alphabet() throws Exception {
+        String password = "1234!@#$"; // 알파벳이 없는 8글자 이상 비밀번호
+
+        mockMvc.perform(post("/member/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{ \"email\": \"a@dongyang.ac.kr\", \"password\": \"" + password + "\" }")
+        ).andExpect(status().isBadRequest());
+    }
 }
