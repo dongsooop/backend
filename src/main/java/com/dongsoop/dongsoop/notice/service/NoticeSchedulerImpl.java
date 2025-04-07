@@ -2,7 +2,7 @@ package com.dongsoop.dongsoop.notice.service;
 
 import com.dongsoop.dongsoop.department.Department;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
-import com.dongsoop.dongsoop.exception.domain.jsoup.JsoupConnectionFailedException;
+import com.dongsoop.dongsoop.exception.domain.notice.NoticeParsingException;
 import com.dongsoop.dongsoop.notice.dto.NoticeMaxIdByType;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
@@ -19,19 +19,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class NoticeSchedulerImpl implements NoticeScheduler {
 
     @Value("${university.domain}")
@@ -44,8 +40,6 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
     private final NoticeDetailsRepository noticeDetailsRepository;
 
     private final DepartmentRepository departmentRepository;
-
-    private static final Logger logger = LoggerFactory.getLogger(NoticeSchedulerImpl.class);
 
     public void scheduled() {
         // 학과별 최신 공지 번호(가장 높은 번호) 가져오기
@@ -86,9 +80,8 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
         try {
             // 최신 공지사항 파싱
             return new HashSet<>(parseNewNotice(department, maxId));
-        } catch (IOException e) {
-            logger.error("notice parsing failed: ", e);
-            throw new JsoupConnectionFailedException();
+        } catch (Exception e) {
+            throw new NoticeParsingException(department, maxId, e);
         }
     }
 
