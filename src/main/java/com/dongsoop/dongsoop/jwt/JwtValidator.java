@@ -17,22 +17,20 @@ public class JwtValidator {
     private final JwtUtil jwtUtil;
 
     public void validate(String token) {
-        Date expireAt = null;
-
         try {
             Claims claims = jwtUtil.getClaims(token);
             claims.getSubject();
-            expireAt = claims.getExpiration();
-        } catch (ExpiredJwtException e) {
-            throw new TokenExpiredException();
-        } catch (MalformedJwtException e) {
-            throw new TokenMalformedException();
-        } catch (Exception e) {
-            throw new TokenUnsupportedException();
-        }
+            claims.getExpiration();
 
-        if (expireAt != null && isExpired(token)) {
-            throw new TokenExpiredException();
+            if (token == null || token.isBlank() || isExpired(token)) {
+                throw new TokenMalformedException();
+            }
+        } catch (ExpiredJwtException e) {
+            throw new TokenExpiredException(e);
+        } catch (MalformedJwtException e) {
+            throw new TokenMalformedException(e);
+        } catch (Exception e) {
+            throw new TokenUnsupportedException(e);
         }
     }
 
