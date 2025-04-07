@@ -1,21 +1,29 @@
 package com.dongsoop.dongsoop.notice.util;
 
+import com.dongsoop.dongsoop.exception.domain.notice.NoticeLinkFormatNotAvailable;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class NoticeParser {
 
     private final NoticeLinkParser noticeLinkParser;
 
-    private static final Integer DEPARTMENT_NOTICE_ID_INDEX = 5;
-    private static final Integer UNIVERSITY_NOTICE_ID_INDEX = 4;
+    private static final Pattern DEPARTMENT_NOTICE_LINK_PATTERN = Pattern.compile(
+            "/combBbs/dmu/[1-9]+/[1-9]+/([1-9]+)/view.do");
+
+    private static final Pattern UNIVERSITY_NOTICE_LINK_PATTERN = Pattern.compile(
+            "/bbs/dmu/[1-9]+/([1-9]+)/artclView.do?layout=unknown");
 
     public NoticeDetails parse(Element row) {
         if (!isNoticeRow(row)) {
@@ -41,17 +49,31 @@ public class NoticeParser {
     }
 
     public Long parseNoticeNumber(String link) {
-        String[] splitLink = link.split("/");
-
-        if (splitLink.length == 7) {
-            return Long.parseLong(splitLink[DEPARTMENT_NOTICE_ID_INDEX]);
+        Long noticeNumberByDepartmentLink = parseLinkByRegex(link, DEPARTMENT_NOTICE_LINK_PATTERN);
+        if (noticeNumberByDepartmentLink != null) {
+            return noticeNumberByDepartmentLink;
         }
 
-        if (splitLink.length == 6) {
-            return Long.parseLong(splitLink[UNIVERSITY_NOTICE_ID_INDEX]);
+        Long noticeNumberByUniversityLink = parseLinkByRegex(link, UNIVERSITY_NOTICE_LINK_PATTERN);
+        if (noticeNumberByUniversityLink != null) {
+            return noticeNumberByUniversityLink;
         }
 
-        throw new IllegalArgumentException("공지사항 경로가 올바르지 않습니다: " + link);
+        throw new NoticeLinkFormatNotAvailable(link);
+    }
+
+    private Long parseLinkByRegex(String link, Pattern pattern) {
+        Matcher matcher = pattern.matcher(link);
+        if (!matcher.find()) {
+            return null;
+        }
+
+        try {
+            return Long.parseLong(matcher.group(1));
+        } catch (NumberFormatException e) {
+            log.error("공지 번호 파싱 중 숫자가 아닌 오류: {}", link, e);
+            return null;
+        }
     }
 
     public String parseTitle(Element row) {
