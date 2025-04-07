@@ -28,11 +28,16 @@ public class NoticeLinkParser {
         Pattern pattern = Pattern.compile(departmentNoticeRegex);
         Matcher matcher = pattern.matcher(link);
 
-        if (link.startsWith(departmentUrlStart)) {
-            return parseDepartment(matcher);
+        if (!link.startsWith(departmentUrlStart)) {
+            return parseUniversity(link);
         }
 
-        return parseUniversity(link);
+        String parsedLink = parseDepartment(matcher);
+        if (parsedLink == null) {
+            throw new NoticeLinkNotAvailableException(link);
+        }
+
+        return parsedLink;
     }
 
     private String parseUniversity(String link) {
@@ -44,7 +49,7 @@ public class NoticeLinkParser {
         linkBuilder.append(departmentUrlPrefix);
 
         if (!matcher.find()) {
-            throw new NoticeLinkNotAvailableException();
+            return null;
         }
 
         do {
