@@ -13,7 +13,7 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface NoticeRepository extends JpaRepository<Notice, NoticeKey> {
 
-    @Query("SELECT n.id.department, MAX(n.id.noticeDetails.id) FROM Notice n GROUP BY n.id.department")
+    @Query("SELECT n.id.department AS department, MAX(n.id.noticeDetails.id) AS maxId FROM Notice n GROUP BY n.id.department")
     List<NoticeMaxIdByType> findMaxIdGroupByType();
 
     @Query("SELECT n.id.noticeDetails.id AS id,"
