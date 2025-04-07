@@ -1,0 +1,10 @@
+package com.dongsoop.dongsoop.exception.domain.websocket;
+
+import com.dongsoop.dongsoop.exception.CustomException;
+import org.springframework.http.HttpStatus;
+
+public class UnauthorizedChatAccessException extends CustomException {
+    public UnauthorizedChatAccessException() {
+        super("채팅방에 접근할 권한이 없습니다.", HttpStatus.FORBIDDEN);
+    }
+}
