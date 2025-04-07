@@ -28,4 +28,15 @@ class MemberLoginTest {
                 .content("{ \"email\": \"a@dongyang.ac.kr\", \"password\": \"" + password + "\" }")
         ).andExpect(status().isBadRequest());
     }
+
+    @Test
+    @DisplayName("비밀번호가 20자 초과일 경우 예외 발생")
+    void throws_an_exception_if_the_password_length_more_than_20() throws Exception {
+        String password = "abc!@121asvc:ryd2@&a2"; // 20자 이상
+
+        mockMvc.perform(post("/member/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{ \"email\": \"a@dongyang.ac.kr\", \"password\": \"" + password + "\" }")
+        ).andExpect(status().isBadRequest());
+    }
 }
