@@ -52,10 +52,9 @@ public class RedisConfig {
         objectMapper.registerModule(new JavaTimeModule());
 
         PolymorphicTypeValidator typeValidator = BasicPolymorphicTypeValidator.builder()
-                .allowIfBaseType(Object.class)
-                .allowIfSubType("com.dongsoop.dongsoop.chat.entity")
-                .allowIfSubType("java.util")
-                .allowIfSubType("java.time")
+                .allowIfSubType("com.dongsoop.dongsoop.chat.entity.BaseEntity.class")
+                .allowIfSubType("java.util.collection.class")
+                .allowIfSubType("java.time.temporal.temporal.class")
                 .build();
 
         objectMapper.activateDefaultTyping(
