@@ -58,6 +58,70 @@ class MemberLoginTest {
         postToLogin(null, password);
     }
 
+    @Test
+    @DisplayName("이메일 서명에서 kr이 잘못된 경우 예외 발생")
+    void throws_an_exception_if_the_email_signature_kr_not_available() throws Exception {
+        String krNotAvailable = "a@dongyang.ac.k";
+
+        postToLogin(krNotAvailable, null);
+    }
+
+    @Test
+    @DisplayName("이메일 서명에서 ac가 잘못된 경우 예외 발생")
+    void throws_an_exception_if_the_email_signature_ac_not_available() throws Exception {
+        String acNotAvailable = "a@dongyang.a.kr";
+
+        postToLogin(acNotAvailable, null);
+    }
+
+    @Test
+    @DisplayName("이메일 서명에서 at(@)이 잘못된 경우 예외 발생")
+    void throws_an_exception_if_the_email_signature_at_not_available() throws Exception {
+        String emailAtNotAvailable = "adongyang.ac.kr";
+
+        postToLogin(emailAtNotAvailable, null);
+    }
+
+    @Test
+    @DisplayName("이메일 서명에서 이름이 없는 경우 예외 발생")
+    void throws_an_exception_if_the_email_name_is_empty() throws Exception {
+        String signatureNameNotAvailable = "@dongyang.ac.kr";
+
+        postToLogin(signatureNameNotAvailable, null);
+    }
+
+    @Test
+    @DisplayName("이메일 서명에서 첫 번째 닷(.)이 없는 경우 예외 발생")
+    void throws_an_exception_if_the_email_signature_first_dot_is_empty() throws Exception {
+        String firstDotNotAvailable = "a@dongyangac.kr";
+
+        postToLogin(firstDotNotAvailable, null);
+    }
+
+    @Test
+    @DisplayName("이메일 서명에서 두 번째 닷(.)이 없는 경우 예외 발생")
+    void throws_an_exception_if_the_email_signature_second_dot_is_empty() throws Exception {
+        String secondDotNotAvailable = "a@dongyang.ackr";
+
+        postToLogin(secondDotNotAvailable, null);
+    }
+
+    @Test
+    @DisplayName("이메일에 시그니처가 중첩된 경우 예외 발생")
+    void throws_an_exception_if_the_signature_duplicated() throws Exception {
+        String signatureDuplication = "@dongyang.ac.kr@dongyang.ac.kr";
+
+        postToLogin(signatureDuplication, null);
+    }
+
+    @Test
+    @DisplayName("이메일 포맷이 올바르지 않으면 예외 발생")
+    void throws_an_exception_if_the_email_name_contain_special_characters() throws Exception {
+        String useSpecialCharacterAtName = "dongyang!@dongyang.ac.kr";
+
+        postToLogin(useSpecialCharacterAtName, null);
+    }
+
     void postToLogin(String email, String password) throws Exception {
         String testEmail = "test@dongyang.ac.kr";
         if (email != null) {
