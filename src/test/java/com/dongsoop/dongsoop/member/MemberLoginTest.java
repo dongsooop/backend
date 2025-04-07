@@ -23,10 +23,7 @@ class MemberLoginTest {
     void throws_an_exception_if_the_password_length_less_than_8() throws Exception {
         String password = "abc!@12"; // 8자 미만
 
-        mockMvc.perform(post("/member/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{ \"email\": \"a@dongyang.ac.kr\", \"password\": \"" + password + "\" }")
-        ).andExpect(status().isBadRequest());
+        postToLogin(null, password);
     }
 
     @Test
@@ -34,10 +31,7 @@ class MemberLoginTest {
     void throws_an_exception_if_the_password_length_more_than_20() throws Exception {
         String password = "abc!@121asvc:ryd2@&a2"; // 20자 이상
 
-        mockMvc.perform(post("/member/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{ \"email\": \"a@dongyang.ac.kr\", \"password\": \"" + password + "\" }")
-        ).andExpect(status().isBadRequest());
+        postToLogin(null, password);
     }
 
     @Test
@@ -45,10 +39,7 @@ class MemberLoginTest {
     void throws_an_exception_if_the_password_does_not_contain_special_characters() throws Exception {
         String password = "abcd1234"; // 특수문자가 없는 8글자 이상 비밀번호
 
-        mockMvc.perform(post("/member/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{ \"email\": \"a@dongyang.ac.kr\", \"password\": \"" + password + "\" }")
-        ).andExpect(status().isBadRequest());
+        postToLogin(null, password);
     }
 
     @Test
@@ -56,10 +47,7 @@ class MemberLoginTest {
     void throws_an_exception_if_the_password_does_not_contain_numbers() throws Exception {
         String password = "abcd!@#$"; // 숫자가 없는 8글자 이상 비밀번호
 
-        mockMvc.perform(post("/member/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{ \"email\": \"a@dongyang.ac.kr\", \"password\": \"" + password + "\" }")
-        ).andExpect(status().isBadRequest());
+        postToLogin(null, password);
     }
 
     @Test
@@ -67,9 +55,23 @@ class MemberLoginTest {
     void throws_an_exception_if_the_password_does_not_contain_alphabet() throws Exception {
         String password = "1234!@#$"; // 알파벳이 없는 8글자 이상 비밀번호
 
+        postToLogin(null, password);
+    }
+
+    void postToLogin(String email, String password) throws Exception {
+        String testEmail = "test@dongyang.ac.kr";
+        if (email != null) {
+            testEmail = email;
+        }
+
+        String testPassword = "abc123!@#Z";
+        if (password != null) {
+            testPassword = password;
+        }
+
         mockMvc.perform(post("/member/login")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{ \"email\": \"a@dongyang.ac.kr\", \"password\": \"" + password + "\" }")
+                .content("{ \"email\": \"" + testEmail + "\", \"password\": \"" + testPassword + "\" }")
         ).andExpect(status().isBadRequest());
     }
 }
