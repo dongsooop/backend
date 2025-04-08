@@ -15,11 +15,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class MemberService {
 
     private final MemberRepository memberRepository;
@@ -28,14 +26,12 @@ public class MemberService {
 
     private final TokenGenerator tokenGenerator;
 
-    @Transactional
     public void signup(SignupRequest request) {
         checkEmailDuplication(request.getEmail());
         Member member = request.toEntity(passwordEncoder);
         memberRepository.save(member);
     }
 
-    @Transactional
     public TokenIssueResponse login(LoginRequest loginRequest) {
         Optional<PasswordValidateDto> passwordValidator = memberRepository.findPasswordValidatorByEmail(
                 loginRequest.getEmail());
