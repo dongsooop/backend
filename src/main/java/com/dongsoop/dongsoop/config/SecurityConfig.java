@@ -1,8 +1,8 @@
 package com.dongsoop.dongsoop.config;
 
-import com.dongsoop.dongsoop.filter.JwtFilter;
-import com.dongsoop.dongsoop.member.entity.Role;
+import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
 import com.dongsoop.dongsoop.member.service.MemberDetailsService;
+import com.dongsoop.dongsoop.role.entity.RoleType;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,8 +47,8 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authorizationManagerRequestMatcherRegistry ->
                         authorizationManagerRequestMatcherRegistry
-                                .requestMatchers(userAllowedPaths).hasRole(Role.USER.name())
-                                .requestMatchers(adminAllowedPaths).hasRole(Role.ADMIN.name())
+                                .requestMatchers(userAllowedPaths).hasRole(RoleType.USER.name())
+                                .requestMatchers(adminAllowedPaths).hasRole(RoleType.ADMIN.name())
                                 .requestMatchers(allowedPaths).permitAll()
                                 .anyRequest().authenticated()
                 )

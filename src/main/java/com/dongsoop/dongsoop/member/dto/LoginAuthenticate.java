@@ -1,6 +1,8 @@
 package com.dongsoop.dongsoop.member.dto;
 
-public interface PasswordValidateDto {
+public interface LoginAuthenticate {
+
+    Long getId();
 
     String getPassword();
 }
