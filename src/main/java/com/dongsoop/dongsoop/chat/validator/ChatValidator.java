@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 
 @Component
 public class ChatValidator {
-    private static final String ANONYMOUS_USER = "anonymousUser";
     private final ChatRepository chatRepository;
     private final ChatSyncService chatSyncService;
 
@@ -59,6 +58,10 @@ public class ChatValidator {
     }
 
     private void addUserToRoomIfNeeded(ChatRoom room, String userId) {
+        if ("anonymousUser".equals(userId)) {
+            return;
+        }
+
         if (room.isKicked(userId)) {
             throw new UserKickedException(room.getRoomId());
         }
