@@ -21,7 +21,7 @@ public class JwtValidator {
             Claims claims = jwtUtil.getClaims(token);
             claims.getSubject();
             claims.getExpiration();
-
+            
             if (token == null || token.isBlank() || isExpired(token)) {
                 throw new TokenMalformedException();
             }
