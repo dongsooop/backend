@@ -12,6 +12,7 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -28,19 +29,19 @@ public class StompHandler implements ChannelInterceptor {
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
-        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+        try {
+            StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+            if (accessor == null) {
+                return message;
+            }
 
-        if (accessor == null) {
+            if (StompCommand.CONNECT.equals(accessor.getCommand())) {
+                authenticateConnection(accessor);
+            }
+
             return message;
-        }
-
-        processCommand(accessor, accessor.getCommand());
-        return message;
-    }
-
-    private void processCommand(StompHeaderAccessor accessor, StompCommand command) {
-        if (StompCommand.CONNECT == command) {
-            authenticateConnection(accessor);
+        } catch (Exception e) {
+            throw e;
         }
     }
 
@@ -82,9 +83,12 @@ public class StompHandler implements ChannelInterceptor {
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+
             accessor.setUser(authentication);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (Exception e) {
             throw new UnauthorizedChatAccessException();
         }
     }
+
 }
