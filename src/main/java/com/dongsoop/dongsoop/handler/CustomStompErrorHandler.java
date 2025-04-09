@@ -25,11 +25,10 @@ public class CustomStompErrorHandler extends StompSubProtocolErrorHandler {
         return super.handleClientMessageProcessingError(clientMessage, ex);
     }
 
-    // STOMP 오류 메시지 생성 메서드 추가
     private Message<byte[]> createStompErrorMessage(Message<byte[]> clientMessage, String errorMessage) {
         StompHeaderAccessor clientHeaderAccessor = StompHeaderAccessor.wrap(clientMessage);
         String sessionId = clientHeaderAccessor.getSessionId();
-        
+
         StompHeaderAccessor errorHeaderAccessor = StompHeaderAccessor.create(StompCommand.ERROR);
         errorHeaderAccessor.setSessionId(sessionId);
         errorHeaderAccessor.setMessage(errorMessage);
