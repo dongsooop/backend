@@ -1,4 +1,4 @@
-package com.dongsoop.dongsoop.filter;
+package com.dongsoop.dongsoop.jwt.filter;
 
 import com.dongsoop.dongsoop.exception.domain.jwt.TokenNotFoundException;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
