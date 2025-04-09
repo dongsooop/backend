@@ -1,7 +1,6 @@
 package com.dongsoop.dongsoop.config;
 
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
-import com.dongsoop.dongsoop.member.service.MemberDetailsService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +21,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final MemberDetailsService memberDetailsService;
     private final JwtFilter jwtFilter;
+
     private final LogoutHandler logoutHandler;
 
     @Value("${authentication.path.all}")
@@ -59,7 +58,6 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable) // 기본 인증 기능 제거
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable) // JWT를 사용하기 때문에 form login 비활성화
-                .userDetailsService(memberDetailsService)
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
