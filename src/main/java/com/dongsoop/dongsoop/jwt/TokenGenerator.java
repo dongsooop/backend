@@ -25,26 +25,26 @@ public class TokenGenerator {
         long now = (new Date()).getTime();
         Date expireAt = new Date(now + this.accessTokenExpiredTime);
 
-        String name = authentication.getName();
+        String id = authentication.getName();
         List<String> roleList = authentication.getAuthorities()
                 .stream()
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-        return jwtUtil.issue(expireAt, name, roleList);
+        return jwtUtil.issue(expireAt, id, roleList);
     }
 
     public String generateRefreshToken(Authentication authentication) {
         long now = (new Date()).getTime();
         Date expireAt = new Date(now + this.refreshTokenExpiredTime);
 
-        String name = authentication.getName();
+        String id = authentication.getName();
         List<String> roleList = authentication.getAuthorities()
                 .stream()
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-        return jwtUtil.issue(expireAt, name, roleList);
+        return jwtUtil.issue(expireAt, id, roleList);
     }
 
 }

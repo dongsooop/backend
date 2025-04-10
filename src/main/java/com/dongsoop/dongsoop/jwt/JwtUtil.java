@@ -31,11 +31,11 @@ public class JwtUtil {
                 .getPayload();
     }
 
-    protected String issue(Date tokenExpiredTime, String name, List<String> roleList) {
+    protected String issue(Date tokenExpiredTime, String id, List<String> roleList) {
         SecretKey key = jwtKeyManager.getSecretKey();
 
         return Jwts.builder()
-                .subject(name)
+                .subject(id)
                 .claim(roleClaimName, roleList)
                 .signWith(key)
                 .expiration(tokenExpiredTime)
