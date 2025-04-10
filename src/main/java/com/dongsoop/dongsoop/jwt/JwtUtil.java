@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class JwtUtil {
 
-    @Value("${jwt.claims.name}")
+    @Value("${jwt.claims.role.name}")
     private String roleClaimName;
 
     private final JwtKeyManager jwtKeyManager;
