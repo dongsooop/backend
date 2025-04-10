@@ -6,8 +6,11 @@ import com.dongsoop.dongsoop.exception.domain.jwt.TokenUnsupportedException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
+import io.micrometer.common.util.StringUtils;
 import java.util.Date;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -16,15 +19,18 @@ public class JwtValidator {
 
     private final JwtUtil jwtUtil;
 
+    @Value("${jwt.claims.role.name}")
+    private String roleClaimName;
+
     public void validate(String token) {
+        if (StringUtils.isBlank(token)) {
+            throw new TokenMalformedException();
+        }
+
         try {
             Claims claims = jwtUtil.getClaims(token);
-            claims.getSubject();
-            claims.getExpiration();
-            
-            if (token == null || token.isBlank() || isExpired(token)) {
-                throw new TokenMalformedException();
-            }
+            Long.valueOf(claims.getSubject());
+            claims.get(roleClaimName, List.class);
         } catch (ExpiredJwtException e) {
             throw new TokenExpiredException(e);
         } catch (MalformedJwtException e) {
@@ -33,17 +39,4 @@ public class JwtValidator {
             throw new TokenUnsupportedException(e);
         }
     }
-
-    public boolean isExpired(String token) {
-        try {
-            Claims claims = jwtUtil.getClaims(token);
-            Date expiration = claims.getExpiration();
-            return expiration.before(new Date());
-        } catch (ExpiredJwtException e) {
-            return true;
-        } catch (Exception e) {
-            throw new TokenExpiredException();
-        }
-    }
-
 }
