@@ -8,6 +8,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
@@ -30,11 +31,29 @@ public class MemberRole {
     public static class MemberRoleKey {
 
         @ManyToOne(fetch = FetchType.EAGER)
-        @JoinColumn(name = "member_id")
+        @JoinColumn(name = "member_id", nullable = false)
         private Member member;
 
         @ManyToOne(fetch = FetchType.EAGER)
-        @JoinColumn(name = "role_id")
+        @JoinColumn(name = "role_id", nullable = false)
         private Role role;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            MemberRoleKey that = (MemberRoleKey) o;
+            return Objects.equals(member.getId(), that.member.getId())
+                    && Objects.equals(role.getRoleType(), that.role.getRoleType());
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(member.getId(), role.getRoleType());
+        }
     }
 }
