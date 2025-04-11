@@ -39,12 +39,12 @@ public class RedisChatRepository implements ChatRepository {
 
     @Override
     public Optional<ChatRoom> findRoomByParticipants(String user1, String user2) {
-        return findRoomsWithFilter(room ->
-                room.getParticipants().size() == 2 &&
-                        room.getParticipants().contains(user1) &&
-                        room.getParticipants().contains(user2))
-                .stream()
-                .findFirst();
+        return findRoomsWithFilter(room -> {
+            Set<String> participants = room.getParticipants();
+            return participants.size() == 2
+                    && participants.contains(user1)
+                    && participants.contains(user2);
+        }).stream().findFirst();
     }
 
     @Override
