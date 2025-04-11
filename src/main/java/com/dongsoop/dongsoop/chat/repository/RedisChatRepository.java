@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 @Repository
 public class RedisChatRepository implements ChatRepository {
@@ -100,7 +99,7 @@ public class RedisChatRepository implements ChatRepository {
 
         return objects.stream()
                 .map(obj -> (ChatMessage) obj)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<ChatRoom> findRoomsWithFilter(Predicate<ChatRoom> filter) {
@@ -114,6 +113,6 @@ public class RedisChatRepository implements ChatRepository {
                 .map(key -> (ChatRoom) redisTemplate.opsForValue().get(key))
                 .filter(Objects::nonNull)
                 .filter(filter)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

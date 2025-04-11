@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -221,6 +220,6 @@ public class ChatService {
         List<ChatRoom> rooms = chatRepository.findRoomsByUserId(userId);
         return rooms.stream()
                 .filter(room -> !room.isKicked(userId))
-                .collect(Collectors.toList());
+                .toList();
     }
 }
