@@ -132,11 +132,11 @@ public class ChatService {
     }
 
     private void handleRoomNotFound(String roomId, String userId, List<ChatMessage> localMessages) {
-        if (!localMessages.isEmpty()) {
-            recreateRoomFromMessages(roomId, userId, localMessages);
-        } else {
+        if (localMessages.isEmpty()) {
             throw new ChatRoomNotFoundException();
         }
+
+        recreateRoomFromMessages(roomId, userId, localMessages);
     }
 
     public ChatRoom recreateRoomFromMessages(String roomId, String userId, List<ChatMessage> clientMessages) {
