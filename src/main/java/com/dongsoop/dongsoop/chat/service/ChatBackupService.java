@@ -1,10 +1,7 @@
 package com.dongsoop.dongsoop.chat.service;
 
-import com.dongsoop.dongsoop.chat.entity.ChatMessage;
-import com.dongsoop.dongsoop.chat.entity.ChatMessageEntity;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomEntity;
-import com.dongsoop.dongsoop.chat.repository.ChatMessageJpaRepository;
 import com.dongsoop.dongsoop.chat.repository.ChatRoomJpaRepository;
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +20,6 @@ public class ChatBackupService {
 
     private final RedisChatRepository redisChatRepository;
     private final ChatRoomJpaRepository chatRoomJpaRepository;
-    private final ChatMessageJpaRepository chatMessageJpaRepository;
 
     @Scheduled(cron = "0 0 0 * * *")
     public void backupExpiringRooms() {
@@ -44,8 +40,9 @@ public class ChatBackupService {
     }
 
     private void backupRoomAndMessages(ChatRoom room) {
-        backupRoom(room);
-        backupMessages(room.getRoomId());
+        if (room.isGroupChat()) {
+            backupRoom(room);
+        }
     }
 
     private void backupRoom(ChatRoom room) {
@@ -70,22 +67,5 @@ public class ChatBackupService {
     private LocalDateTime resolveCreatedAt(LocalDateTime timestamp, LocalDateTime defaultTime) {
         return Optional.ofNullable(timestamp)
                 .orElseGet(() -> defaultTime.minusDays(BACKUP_DAYS_THRESHOLD));
-    }
-
-    private void backupMessages(String roomId) {
-        redisChatRepository.findMessagesByRoomId(roomId).stream()
-                .map(this::convertToEntity)
-                .forEach(chatMessageJpaRepository::save);
-    }
-
-    private ChatMessageEntity convertToEntity(ChatMessage message) {
-        return ChatMessageEntity.builder()
-                .messageId(message.getMessageId())
-                .roomId(message.getRoomId())
-                .senderId(message.getSenderId())
-                .content(message.getContent())
-                .timestamp(message.getTimestamp())
-                .type(message.getType())
-                .build();
     }
 }
