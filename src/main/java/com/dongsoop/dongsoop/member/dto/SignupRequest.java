@@ -1,7 +1,6 @@
 package com.dongsoop.dongsoop.member.dto;
 
 import com.dongsoop.dongsoop.member.entity.Member;
-import com.dongsoop.dongsoop.member.entity.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -46,7 +45,6 @@ public class SignupRequest {
                 .nickname(this.nickname)
                 .studentId(this.studentId)
                 .department(this.department)
-                .role(Role.USER)
                 .build();
     }
 }

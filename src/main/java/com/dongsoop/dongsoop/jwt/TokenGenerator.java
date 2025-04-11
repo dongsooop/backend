@@ -1,9 +1,11 @@
 package com.dongsoop.dongsoop.jwt;
 
 import java.util.Date;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
 
@@ -23,14 +25,26 @@ public class TokenGenerator {
         long now = (new Date()).getTime();
         Date expireAt = new Date(now + this.accessTokenExpiredTime);
 
-        return jwtUtil.issue(expireAt, authentication);
+        String id = authentication.getName();
+        List<String> roleList = authentication.getAuthorities()
+                .stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+
+        return jwtUtil.issue(expireAt, id, roleList);
     }
 
     public String generateRefreshToken(Authentication authentication) {
         long now = (new Date()).getTime();
         Date expireAt = new Date(now + this.refreshTokenExpiredTime);
 
-        return jwtUtil.issue(expireAt, authentication);
+        String id = authentication.getName();
+        List<String> roleList = authentication.getAuthorities()
+                .stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+
+        return jwtUtil.issue(expireAt, id, roleList);
     }
 
 }
