@@ -8,12 +8,12 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class LoginRequest {
-    @Pattern(regexp = "^[a-zA-Z0-9]+@dongyang.ac.kr$", message = "email 형식이 올바르지 않습니다.")
+    @Pattern(regexp = "^[a-zA-Z0-9]+@dongyang.ac.kr$", message = "email 형식이 올바르지 않습니다. 특수 문자를 제외한 영문자와 숫자만 포함해야 하며, @dongyang.ac.kr로 끝나야 합니다.")
     @NotBlank(message = "로그인 시 이메일은 필수입니다.")
     private String email;
 
     @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[~!@#$%^&*()_\\-+=\\[\\]{}|\\\\;:'\"<>,.?/]).{8,20}$",
-            message = "비밀번호 형식이 올바르지 않습니다.")
+            message = "비밀번호 형식이 올바르지 않습니다. 영문, 숫자, 특수문자를 포함해야 하며 8자 이상 20자 이하여야 합니다.")
     @NotBlank(message = "로그인 시 비밀번호 입력은 필수입니다.")
     private String password;
 }
