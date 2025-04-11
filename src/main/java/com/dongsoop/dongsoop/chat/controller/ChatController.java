@@ -9,15 +9,10 @@ import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.handler.annotation.DestinationVariable;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -42,20 +37,6 @@ public class ChatController {
     public ResponseEntity<Void> enterRoom(@PathVariable("roomId") String roomId) {
         chatService.enterChatRoom(roomId, getCurrentUserId());
         return ResponseEntity.ok().build();
-    }
-
-    @MessageMapping("/message/{roomId}")
-    @SendTo("/topic/chat/room/{roomId}")
-    public ChatMessage sendMessage(@Payload ChatMessage message, @DestinationVariable("roomId") String roomId, Principal principal) {
-        message.setSenderId(principal.getName());
-        message.setRoomId(roomId);
-        return chatService.processMessage(message);
-    }
-
-    @MessageMapping("/enter/{roomId}")
-    @SendTo("/topic/chat/room/{roomId}")
-    public ChatMessage enterChatRoom(@DestinationVariable("roomId") String roomId, Principal principal) {
-        return chatService.createEnterMessage(roomId, principal.getName());
     }
 
     @GetMapping("/room/{roomId}/messages")
