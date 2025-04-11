@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 @Service
@@ -46,26 +45,7 @@ public class ChatBackupService {
     }
 
     private void backupRoom(ChatRoom room) {
-        ChatRoomEntity entity = createRoomEntity(room);
+        ChatRoomEntity entity = room.toChatRoomEntity();
         chatRoomJpaRepository.save(entity);
-    }
-
-    private ChatRoomEntity createRoomEntity(ChatRoom room) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime createdAt = resolveCreatedAt(room.getCreatedAt(), now);
-
-        return ChatRoomEntity.builder()
-                .roomId(room.getRoomId())
-                .isGroupChat(room.isGroupChat())
-                .managerId(room.getManagerId())
-                .participants(room.getParticipants())
-                .createdAt(createdAt)
-                .lastActivityAt(now)
-                .build();
-    }
-
-    private LocalDateTime resolveCreatedAt(LocalDateTime timestamp, LocalDateTime defaultTime) {
-        return Optional.ofNullable(timestamp)
-                .orElseGet(() -> defaultTime.minusDays(BACKUP_DAYS_THRESHOLD));
     }
 }
