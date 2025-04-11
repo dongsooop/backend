@@ -29,20 +29,16 @@ public class StompHandler implements ChannelInterceptor {
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
-        try {
-            StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
-            if (accessor == null) {
-                return message;
-            }
-
-            if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-                authenticateConnection(accessor);
-            }
-
+        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+        if (accessor == null) {
             return message;
-        } catch (Exception e) {
-            throw e;
         }
+
+        if (StompCommand.CONNECT.equals(accessor.getCommand())) {
+            authenticateConnection(accessor);
+        }
+
+        return message;
     }
 
     private void authenticateConnection(StompHeaderAccessor accessor) {
@@ -72,7 +68,7 @@ public class StompHandler implements ChannelInterceptor {
         try {
             jwtValidator.validate(token);
         } catch (Exception e) {
-            throw new UnauthorizedChatAccessException();
+            throw new UnauthorizedChatAccessException(e);
         }
     }
 
@@ -87,8 +83,7 @@ public class StompHandler implements ChannelInterceptor {
             accessor.setUser(authentication);
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (Exception e) {
-            throw new UnauthorizedChatAccessException();
+            throw new UnauthorizedChatAccessException(e);
         }
     }
-
 }
