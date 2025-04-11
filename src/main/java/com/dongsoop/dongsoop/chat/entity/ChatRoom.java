@@ -21,7 +21,7 @@ public class ChatRoom {
     private boolean isGroupChat;
     private LocalDateTime createdAt;
     private LocalDateTime lastActivityAt;
-    private Set<String> kickedUsers = new HashSet<>();
+    private Set<String> kickedUsers;
 
     public static ChatRoom create(String user1, String user2) {
         String roomId = UUID.randomUUID().toString();
@@ -35,6 +35,7 @@ public class ChatRoom {
                 .participants(participants)
                 .createdAt(now)
                 .lastActivityAt(now)
+                .kickedUsers(new HashSet<>())
                 .build();
     }
 
@@ -49,6 +50,7 @@ public class ChatRoom {
                 .isGroupChat(true)
                 .createdAt(now)
                 .lastActivityAt(now)
+                .kickedUsers(new HashSet<>())
                 .build();
     }
 
@@ -58,17 +60,18 @@ public class ChatRoom {
 
     public void kickUser(String userId) {
         participants.remove(userId);
-        if (kickedUsers == null) {
-            kickedUsers = new HashSet<>();
-        }
-        kickedUsers.add(userId);
+        getKickedUsersSet().add(userId);
         updateActivity();
     }
 
     public boolean isKicked(String userId) {
+        return getKickedUsersSet().contains(userId);
+    }
+
+    private Set<String> getKickedUsersSet() {
         if (kickedUsers == null) {
             kickedUsers = new HashSet<>();
         }
-        return kickedUsers.contains(userId);
+        return kickedUsers;
     }
 }
