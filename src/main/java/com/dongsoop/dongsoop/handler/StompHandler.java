@@ -3,7 +3,7 @@ package com.dongsoop.dongsoop.handler;
 import com.dongsoop.dongsoop.exception.domain.websocket.UnauthorizedChatAccessException;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
-import com.dongsoop.dongsoop.member.service.MemberDetailsService;
+import com.dongsoop.dongsoop.jwt.dto.AuthenticationInformationByToken;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -13,7 +13,7 @@ import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -25,7 +25,6 @@ public class StompHandler implements ChannelInterceptor {
 
     private final JwtValidator jwtValidator;
     private final JwtUtil jwtUtil;
-    private final MemberDetailsService memberDetailsService;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -74,8 +73,13 @@ public class StompHandler implements ChannelInterceptor {
 
     private void setAuthentication(StompHeaderAccessor accessor, String token) {
         try {
-            String email = jwtUtil.getNameByToken(token);
-            UserDetails userDetails = memberDetailsService.loadUserByUsername(email);
+            AuthenticationInformationByToken tokenInfo = jwtUtil.getTokenInformation(token);
+
+            Authentication authentication = new UsernamePasswordAuthenticationToken(
+                    tokenInfo.getId(),
+                    null,
+                    tokenInfo.getRole()
+            );
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
