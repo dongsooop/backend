@@ -6,13 +6,15 @@ import com.dongsoop.dongsoop.chat.entity.MessageType;
 import com.dongsoop.dongsoop.chat.repository.ChatRepository;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.exception.domain.websocket.ChatRoomNotFoundException;
+import com.dongsoop.dongsoop.exception.domain.websocket.UnauthorizedChatAccessException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ChatService {
     private final ChatRepository chatRepository;
@@ -29,6 +31,11 @@ public class ChatService {
 
     public ChatRoom createOneToOneChatRoom(String userId, String targetUserId) {
         chatValidator.validateSelfChat(userId, targetUserId);
+
+        if ("anonymousUser".equals(userId) || "anonymousUser".equals(targetUserId)) {
+            throw new UnauthorizedChatAccessException();
+        }
+
         return chatRepository.findRoomByParticipants(userId, targetUserId)
                 .orElseGet(() -> createRoom(userId, targetUserId));
     }
@@ -213,6 +220,6 @@ public class ChatService {
         List<ChatRoom> rooms = chatRepository.findRoomsByUserId(userId);
         return rooms.stream()
                 .filter(room -> !room.isKicked(userId))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

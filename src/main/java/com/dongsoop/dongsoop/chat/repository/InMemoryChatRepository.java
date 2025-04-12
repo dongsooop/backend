@@ -7,7 +7,6 @@ import org.springframework.stereotype.Repository;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 @Repository
 public class InMemoryChatRepository implements ChatRepository {
@@ -66,6 +65,6 @@ public class InMemoryChatRepository implements ChatRepository {
     public List<ChatRoom> findRoomsByUserId(String userId) {
         return rooms.values().stream()
                 .filter(room -> room.getParticipants().contains(userId))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

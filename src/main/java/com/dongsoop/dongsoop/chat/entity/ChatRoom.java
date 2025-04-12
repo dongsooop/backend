@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -15,6 +16,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatRoom {
+    private static final int BACKUP_DAYS_THRESHOLD = 25;
+
     private String roomId;
     private Set<String> participants;
     private String managerId;
@@ -51,6 +54,23 @@ public class ChatRoom {
                 .createdAt(now)
                 .lastActivityAt(now)
                 .kickedUsers(new HashSet<>())
+                .build();
+    }
+
+    public ChatRoomEntity toChatRoomEntity() {
+        LocalDateTime effectiveCreatedAt = Optional.ofNullable(this.createdAt)
+                .orElseGet(() -> LocalDateTime.now().minusDays(BACKUP_DAYS_THRESHOLD));
+
+        LocalDateTime effectiveLastActivityAt = Optional.ofNullable(this.lastActivityAt)
+                .orElseGet(LocalDateTime::now);
+
+        return ChatRoomEntity.builder()
+                .roomId(this.roomId)
+                .isGroupChat(this.isGroupChat)
+                .managerId(this.managerId)
+                .participants(new HashSet<>(this.participants))
+                .createdAt(effectiveCreatedAt)
+                .lastActivityAt(effectiveLastActivityAt)
                 .build();
     }
 
