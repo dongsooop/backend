@@ -3,8 +3,6 @@ name: Deploy to EC2
 on:
   push:
     branches: [ main ]  # main 브랜치에 푸시될 때만 배포
-  pull_request:
-    branches: [ main ]  # main으로의 PR에서는 빌드만 테스트 (배포 X)
 
 jobs:
   build:
