@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.notice.controller;
 
-import com.dongsoop.dongsoop.department.DepartmentType;
+import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.notice.dto.NoticeListResponse;
 import com.dongsoop.dongsoop.notice.service.NoticeService;
 import lombok.RequiredArgsConstructor;

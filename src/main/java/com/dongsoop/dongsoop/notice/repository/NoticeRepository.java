@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.notice.repository;
 
-import com.dongsoop.dongsoop.department.Department;
+import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.notice.dto.NoticeListResponse;
 import com.dongsoop.dongsoop.notice.dto.NoticeMaxIdByType;
 import com.dongsoop.dongsoop.notice.entity.Notice;

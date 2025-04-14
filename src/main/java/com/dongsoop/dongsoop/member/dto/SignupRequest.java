@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.member.dto;
 
-import com.dongsoop.dongsoop.department.Department;
+import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.member.entity.Member;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

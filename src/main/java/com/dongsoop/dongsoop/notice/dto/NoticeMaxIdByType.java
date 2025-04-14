@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.notice.dto;
 
-import com.dongsoop.dongsoop.department.Department;
+import com.dongsoop.dongsoop.department.entity.Department;
 
 public interface NoticeMaxIdByType {
 

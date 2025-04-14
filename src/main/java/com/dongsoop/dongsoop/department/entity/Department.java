@@ -1,4 +1,4 @@
-package com.dongsoop.dongsoop.department;
+package com.dongsoop.dongsoop.department.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

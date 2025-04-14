@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.member.entity;
 
-import com.dongsoop.dongsoop.department.Department;
+import com.dongsoop.dongsoop.department.entity.Department;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
