@@ -45,7 +45,7 @@ public class Member {
     @JoinColumn(name = "department")
     private Department department;
 
-    @Column(name = "createdAt", nullable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
 }
