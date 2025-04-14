@@ -1,4 +1,4 @@
-package com.dongsoop.dongsoop.department;
+package com.dongsoop.dongsoop.department.entity;
 
 import java.util.HashMap;
 import java.util.Map;

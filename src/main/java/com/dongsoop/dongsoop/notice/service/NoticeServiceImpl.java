@@ -1,7 +1,7 @@
 package com.dongsoop.dongsoop.notice.service;
 
-import com.dongsoop.dongsoop.department.Department;
-import com.dongsoop.dongsoop.department.DepartmentType;
+import com.dongsoop.dongsoop.department.entity.Department;
+import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
 import com.dongsoop.dongsoop.exception.domain.department.DepartmentNotFoundException;
 import com.dongsoop.dongsoop.notice.dto.NoticeListResponse;
@@ -21,7 +21,7 @@ public class NoticeServiceImpl implements NoticeService {
 
     public Page<NoticeListResponse> getNoticeByDepartmentType(DepartmentType departmentType, Pageable pageable) {
         Optional<Department> optionalDepartment = departmentRepository.findById(departmentType);
-        Department department = optionalDepartment.orElseThrow(DepartmentNotFoundException::new);
+        Department department = optionalDepartment.orElseThrow(() -> new DepartmentNotFoundException(departmentType));
 
         return noticeRepository.findAllByDepartment(department, pageable);
     }

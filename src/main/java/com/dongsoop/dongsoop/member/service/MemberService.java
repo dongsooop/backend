@@ -1,5 +1,9 @@
 package com.dongsoop.dongsoop.member.service;
 
+import com.dongsoop.dongsoop.department.entity.Department;
+import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
+import com.dongsoop.dongsoop.department.service.DepartmentService;
 import com.dongsoop.dongsoop.exception.domain.member.EmailDuplicatedException;
 import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
 import com.dongsoop.dongsoop.jwt.TokenGenerator;
@@ -35,6 +39,10 @@ public class MemberService {
 
     private final MemberRoleRepository memberRoleRepository;
 
+    private final DepartmentRepository departmentRepository;
+
+    private final DepartmentService departmentService;
+
     private final PasswordEncoder passwordEncoder;
 
     private final TokenGenerator tokenGenerator;
@@ -42,12 +50,30 @@ public class MemberService {
     @Transactional
     public void signup(SignupRequest request) {
         checkEmailDuplication(request.getEmail());
-        Member member = request.toEntity(passwordEncoder);
+
+        Member member = transformToMemberBySignupRequest(request);
         memberRepository.save(member);
 
         Role userRole = roleRepository.findByRoleType(RoleType.USER);
         MemberRole memberRole = new MemberRole(member, userRole);
         memberRoleRepository.save(memberRole);
+    }
+
+    private Member transformToMemberBySignupRequest(SignupRequest request) {
+        String email = request.getEmail();
+        String nickname = request.getNickname();
+        String studentId = request.getStudentId();
+        DepartmentType departmentType = request.getDepartmentType();
+
+        Department proxyDepartment = departmentService.getReferenceById(departmentType);
+
+        return Member.builder()
+                .email(email)
+                .password(passwordEncoder.encode(request.getPassword()))
+                .nickname(nickname)
+                .studentId(studentId)
+                .department(proxyDepartment)
+                .build();
     }
 
     public TokenIssueResponse login(LoginRequest loginRequest) {

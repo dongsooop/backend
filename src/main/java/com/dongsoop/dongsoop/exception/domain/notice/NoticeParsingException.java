@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.exception.domain.notice;
 
-import com.dongsoop.dongsoop.department.Department;
+import com.dongsoop.dongsoop.department.entity.Department;
 
 public class NoticeParsingException extends RuntimeException {
 

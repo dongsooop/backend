@@ -4,8 +4,8 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.verify;
 
-import com.dongsoop.dongsoop.department.Department;
-import com.dongsoop.dongsoop.department.DepartmentType;
+import com.dongsoop.dongsoop.department.entity.Department;
+import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notice.entity.Notice.NoticeKey;
 import com.dongsoop.dongsoop.notice.repository.NoticeDetailsRepository;
