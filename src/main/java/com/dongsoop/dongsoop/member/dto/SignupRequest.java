@@ -35,7 +35,7 @@ public class SignupRequest {
     @Pattern(regexp = "^\\d{8}$", message = "학번은 8자리 숫자여야 합니다.")
     private String studentId;
 
-    @NotBlank(message = "학과는 필수 입력값입니다.")
+    @NotNull(message = "학과는 필수 입력값입니다.")
     private String department;
 
     public Member toEntity(PasswordEncoder passwordEncoder) {
