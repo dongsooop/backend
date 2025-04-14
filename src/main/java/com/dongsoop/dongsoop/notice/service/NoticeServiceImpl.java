@@ -21,7 +21,7 @@ public class NoticeServiceImpl implements NoticeService {
 
     public Page<NoticeListResponse> getNoticeByDepartmentType(DepartmentType departmentType, Pageable pageable) {
         Optional<Department> optionalDepartment = departmentRepository.findById(departmentType);
-        Department department = optionalDepartment.orElseThrow(DepartmentNotFoundException::new);
+        Department department = optionalDepartment.orElseThrow(() -> new DepartmentNotFoundException(departmentType));
 
         return noticeRepository.findAllByDepartment(department, pageable);
     }
