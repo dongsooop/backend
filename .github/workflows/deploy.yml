@@ -1,0 +1,86 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ main ]  # main 브랜치에 푸시될 때만 배포
+  pull_request:
+    branches: [ main ]  # main으로의 PR에서는 빌드만 테스트 (배포 X)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    # 코드 체크아웃
+    - uses: actions/checkout@v3
+    
+    # JDK 설정
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+    
+    # Spring Boot 앱 빌드
+    - name: Build with Gradle
+      run: |
+        chmod +x ./gradlew
+        ./gradlew clean build -x test
+
+  # 배포 작업은 main 브랜치에 푸시된 경우에만 실행
+  deploy:
+    needs: build  # build 작업이 성공한 후 실행
+    if: github.ref == 'refs/heads/main'  # main 브랜치일 때만 실행
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    # JDK 설정
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+    
+    # Spring Boot 앱 빌드
+    - name: Build with Gradle
+      run: |
+        chmod +x ./gradlew
+        ./gradlew clean build -x test
+    
+    # Docker Hub 로그인
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    # Docker 이미지 빌드 및 푸시
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: ${{ secrets.DOCKER_USERNAME }}/spring-app:latest
+    
+    # EC2에 배포
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          # Docker 이미지 풀
+          docker pull ${{ secrets.DOCKER_USERNAME }}/spring-app:latest
+          
+          # 기존 컨테이너 중지 및 삭제
+          docker stop spring-app || true
+          docker rm spring-app || true
+          
+          # 새 컨테이너 실행
+          docker run -d --name spring-app -p 8080:8080 ${{ secrets.DOCKER_USERNAME }}/spring-app:latest
+          
+          # 미사용 이미지 정리
+          docker system prune -af
