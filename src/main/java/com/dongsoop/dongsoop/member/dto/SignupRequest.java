@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.member.dto;
 
+import com.dongsoop.dongsoop.department.Department;
 import com.dongsoop.dongsoop.member.entity.Member;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -36,7 +37,7 @@ public class SignupRequest {
     private String studentId;
 
     @NotNull(message = "학과는 필수 입력값입니다.")
-    private String department;
+    private Department department;
 
     public Member toEntity(PasswordEncoder passwordEncoder) {
         return Member.builder()
