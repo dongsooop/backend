@@ -42,7 +42,7 @@ public class Member {
     private String studentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department")
+    @JoinColumn(name = "department_id")
     private Department department;
 
     @Column(name = "created_at", nullable = false)
