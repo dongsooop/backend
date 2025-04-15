@@ -3,8 +3,6 @@ package com.dongsoop.dongsoop.tutoring.entity;
 import com.dongsoop.dongsoop.board.RecruitmentBoard;
 import com.dongsoop.dongsoop.department.entity.Department;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -22,7 +20,6 @@ public class TutoringBoard extends RecruitmentBoard {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
-    @Enumerated(EnumType.STRING)
     @JoinColumn(name = "recruitment_department_id", nullable = false)
     private Department recruitmentDepartment;
 }
