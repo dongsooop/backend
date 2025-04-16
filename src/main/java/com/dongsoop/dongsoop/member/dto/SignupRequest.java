@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.member.dto;
 
-import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -9,7 +9,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Getter
 @NoArgsConstructor
@@ -35,16 +34,6 @@ public class SignupRequest {
     @Pattern(regexp = "^\\d{8}$", message = "학번은 8자리 숫자여야 합니다.")
     private String studentId;
 
-    @NotBlank(message = "학과는 필수 입력값입니다.")
-    private String department;
-
-    public Member toEntity(PasswordEncoder passwordEncoder) {
-        return Member.builder()
-                .email(this.email)
-                .password(passwordEncoder.encode(this.password))
-                .nickname(this.nickname)
-                .studentId(this.studentId)
-                .department(this.department)
-                .build();
-    }
+    @NotNull(message = "학과는 필수 입력값입니다.")
+    private DepartmentType departmentType;
 }

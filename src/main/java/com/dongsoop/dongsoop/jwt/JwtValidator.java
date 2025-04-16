@@ -22,7 +22,7 @@ public class JwtValidator {
     private String roleClaimName;
 
     public void validate(String token) {
-        if (StringUtils.hasText(token)) {
+        if (!StringUtils.hasText(token)) {
             throw new TokenMalformedException();
         }
 
