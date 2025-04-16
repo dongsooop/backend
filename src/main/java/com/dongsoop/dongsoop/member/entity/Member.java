@@ -33,7 +33,7 @@ public class Member {
     @Column(name = "email", length = 50, unique = true, nullable = false)
     private String email;
 
-    @Column(name = "nickname", length = 20, nullable = false)
+    @Column(name = "nickname", length = 20, unique = true, nullable = false)
     private String nickname;
 
     @Column(name = "password", length = 100, nullable = false)
