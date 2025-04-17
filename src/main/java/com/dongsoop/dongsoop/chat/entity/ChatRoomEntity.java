@@ -24,13 +24,14 @@ public class ChatRoomEntity {
     private boolean isGroupChat;
 
     @Column
-    private String managerId;
+    private Long managerId;
 
     @ElementCollection
     @CollectionTable(name = "chat_room_participants",
             joinColumns = @JoinColumn(name = "room_id"))
     @Column(name = "participant_id")
-    private Set<String> participants = new HashSet<>();
+    private Set<Long> participants = new HashSet<>();
+
     private LocalDateTime createdAt;
     private LocalDateTime lastActivityAt;
 
