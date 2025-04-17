@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 
 @Component
 public class ChatValidator {
-    private static final String ANONYMOUS_USER = "anonymousUser";
+    private static final Long ANONYMOUS_USER_ID = -1L;
 
     private final ChatRepository chatRepository;
     private final ChatSyncService chatSyncService;
@@ -31,13 +31,13 @@ public class ChatValidator {
         this.chatSyncService = chatSyncService;
     }
 
-    public void validateUserForRoom(String roomId, String userId) {
+    public void validateUserForRoom(String roomId, Long userId) {
         ChatRoom room = getRoomOrRestore(roomId);
         checkUserAccess(room, userId);
     }
 
-    private void checkUserAccess(ChatRoom room, String userId) {
-        if (ANONYMOUS_USER.equals(userId)) {
+    private void checkUserAccess(ChatRoom room, Long userId) {
+        if (ANONYMOUS_USER_ID.equals(userId)) {
             return;
         }
 
@@ -51,7 +51,7 @@ public class ChatValidator {
         }
     }
 
-    public void validateSelfChat(String user1, String user2) {
+    public void validateSelfChat(Long user1, Long user2) {
         if (user1.equals(user2)) {
             throw new SelfChatException();
         }
@@ -86,7 +86,7 @@ public class ChatValidator {
 
     private boolean hasRequiredFields(ChatMessage message) {
         return StringUtils.hasText(message.getRoomId()) &&
-                StringUtils.hasText(message.getSenderId());
+                message.getSenderId() != null;
     }
 
     private ChatMessage enrichMessage(ChatMessage message) {
@@ -119,19 +119,19 @@ public class ChatValidator {
                 .toList();
     }
 
-    public void validateManagerPermission(ChatRoom room, String userId) {
-        String managerId = room.getManagerId();
+    public void validateManagerPermission(ChatRoom room, Long userId) {
+        Long managerId = room.getManagerId();
         if (managerId != null && !managerId.equals(userId)) {
             throw new UnauthorizedManagerActionException();
         }
     }
 
-    public void validateKickableUser(ChatRoom room, String userToKick) {
+    public void validateKickableUser(ChatRoom room, Long userToKick) {
         if (!room.getParticipants().contains(userToKick)) {
             throw new UserNotInRoomException();
         }
 
-        String managerId = room.getManagerId();
+        Long managerId = room.getManagerId();
         if (managerId != null && managerId.equals(userToKick)) {
             throw new ManagerKickAttemptException();
         }
