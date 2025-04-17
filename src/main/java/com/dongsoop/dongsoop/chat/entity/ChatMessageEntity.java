@@ -20,7 +20,7 @@ public class ChatMessageEntity {
     private String roomId;
 
     @Column(nullable = false)
-    private String senderId;
+    private Long senderId;
 
     @Column(nullable = false, length = 1000)
     private String content;
