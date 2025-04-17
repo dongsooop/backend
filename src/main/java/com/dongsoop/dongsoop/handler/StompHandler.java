@@ -12,8 +12,8 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -29,15 +29,19 @@ public class StompHandler implements ChannelInterceptor {
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+
         if (accessor == null) {
             return message;
         }
 
-        if (StompCommand.CONNECT.equals(accessor.getCommand())) {
+        processCommand(accessor, accessor.getCommand());
+        return message;
+    }
+
+    private void processCommand(StompHeaderAccessor accessor, StompCommand command) {
+        if (StompCommand.CONNECT == command) {
             authenticateConnection(accessor);
         }
-
-        return message;
     }
 
     private void authenticateConnection(StompHeaderAccessor accessor) {
@@ -80,9 +84,6 @@ public class StompHandler implements ChannelInterceptor {
                     null,
                     tokenInfo.getRole()
             );
-
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 
             accessor.setUser(authentication);
             SecurityContextHolder.getContext().setAuthentication(authentication);
