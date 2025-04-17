@@ -27,7 +27,7 @@ public class InMemoryChatRepository implements ChatRepository {
     }
 
     @Override
-    public Optional<ChatRoom> findRoomByParticipants(String user1, String user2) {
+    public Optional<ChatRoom> findRoomByParticipants(Long user1, Long user2) {
         return rooms.values().stream()
                 .filter(hasExactlyTwoParticipants())
                 .filter(containsBothUsers(user1, user2))
@@ -56,13 +56,13 @@ public class InMemoryChatRepository implements ChatRepository {
         return room -> room.getParticipants().size() == 2;
     }
 
-    private Predicate<ChatRoom> containsBothUsers(String user1, String user2) {
+    private Predicate<ChatRoom> containsBothUsers(Long user1, Long user2) {
         return room -> room.getParticipants().contains(user1)
                 && room.getParticipants().contains(user2);
     }
 
     @Override
-    public List<ChatRoom> findRoomsByUserId(String userId) {
+    public List<ChatRoom> findRoomsByUserId(Long userId) {
         return rooms.values().stream()
                 .filter(room -> room.getParticipants().contains(userId))
                 .toList();
