@@ -11,11 +11,11 @@ public interface ChatRepository {
 
     Optional<ChatRoom> findRoomById(String roomId);
 
-    Optional<ChatRoom> findRoomByParticipants(String user1, String user2);
+    Optional<ChatRoom> findRoomByParticipants(Long user1, Long user2);
 
     void saveMessage(ChatMessage message);
 
     List<ChatMessage> findMessagesByRoomId(String roomId);
 
-    List<ChatRoom> findRoomsByUserId(String userId);
+    List<ChatRoom> findRoomsByUserId(Long userId);
 }
