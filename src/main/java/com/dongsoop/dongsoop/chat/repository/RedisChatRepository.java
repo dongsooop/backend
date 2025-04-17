@@ -37,9 +37,9 @@ public class RedisChatRepository implements ChatRepository {
     }
 
     @Override
-    public Optional<ChatRoom> findRoomByParticipants(String user1, String user2) {
+    public Optional<ChatRoom> findRoomByParticipants(Long user1, Long user2) {
         return findRoomsWithFilter(room -> {
-            Set<String> participants = room.getParticipants();
+            Set<Long> participants = room.getParticipants();
             return participants.size() == 2
                     && participants.contains(user1)
                     && participants.contains(user2);
@@ -64,7 +64,7 @@ public class RedisChatRepository implements ChatRepository {
     }
 
     @Override
-    public List<ChatRoom> findRoomsByUserId(String userId) {
+    public List<ChatRoom> findRoomsByUserId(Long userId) {
         return findRoomsWithFilter(room -> room.getParticipants().contains(userId));
     }
 
