@@ -29,10 +29,10 @@ public class ChatService {
         this.chatSyncService = chatSyncService;
     }
 
-    public ChatRoom createOneToOneChatRoom(String userId, String targetUserId) {
+    public ChatRoom createOneToOneChatRoom(Long userId, Long targetUserId) {
         chatValidator.validateSelfChat(userId, targetUserId);
 
-        if ("anonymousUser".equals(userId) || "anonymousUser".equals(targetUserId)) {
+        if (userId < 0 || targetUserId < 0) {
             throw new UnauthorizedChatAccessException();
         }
 
@@ -40,7 +40,7 @@ public class ChatService {
                 .orElseGet(() -> createRoom(userId, targetUserId));
     }
 
-    public ChatRoom createGroupChatRoom(String creatorId, Set<String> participants) {
+    public ChatRoom createGroupChatRoom(Long creatorId, Set<Long> participants) {
         validateGroupParticipants(participants);
         participants.add(creatorId);
 
@@ -48,7 +48,7 @@ public class ChatService {
         return chatRepository.saveRoom(room);
     }
 
-    public ChatRoom kickUserFromRoom(String roomId, String requesterId, String userToKick) {
+    public ChatRoom kickUserFromRoom(String roomId, Long requesterId, Long userToKick) {
         ChatRoom room = getChatRoomById(roomId);
 
         chatValidator.validateManagerPermission(room, requesterId);
@@ -62,14 +62,14 @@ public class ChatService {
         return room;
     }
 
-    private ChatMessage createUserKickedMessage(String roomId, String managerId, String kickedUserId) {
+    private ChatMessage createUserKickedMessage(String roomId, Long managerId, Long kickedUserId) {
         String content = kickedUserId + "님이 채팅방에서 추방되었습니다.";
         ChatMessage message = createSystemMessage(roomId, managerId, content, MessageType.LEAVE);
         chatRepository.saveMessage(message);
         return message;
     }
 
-    public void enterChatRoom(String roomId, String userId) {
+    public void enterChatRoom(String roomId, Long userId) {
         chatValidator.validateUserForRoom(roomId, userId);
     }
 
@@ -79,7 +79,7 @@ public class ChatService {
         return validatedMessage;
     }
 
-    public ChatMessage createEnterMessage(String roomId, String userId) {
+    public ChatMessage createEnterMessage(String roomId, Long userId) {
         chatValidator.validateUserForRoom(roomId, userId);
 
         ChatMessage message = createSystemMessage(
@@ -93,7 +93,7 @@ public class ChatService {
         return message;
     }
 
-    public List<ChatMessage> getChatHistory(String roomId, String userId) {
+    public List<ChatMessage> getChatHistory(String roomId, Long userId) {
         chatValidator.validateUserForRoom(roomId, userId);
         List<ChatMessage> messages = chatRepository.findMessagesByRoomId(roomId);
 
@@ -110,7 +110,7 @@ public class ChatService {
                         .orElseThrow(ChatRoomNotFoundException::new));
     }
 
-    public List<ChatMessage> syncMessages(String roomId, String userId, List<ChatMessage> clientMessages) {
+    public List<ChatMessage> syncMessages(String roomId, Long userId, List<ChatMessage> clientMessages) {
         chatValidator.validateUserForRoom(roomId, userId);
         List<ChatMessage> serverMessages = chatRepository.findMessagesByRoomId(roomId);
         List<ChatMessage> newMessages = chatValidator.filterDuplicateMessages(serverMessages, clientMessages);
@@ -120,7 +120,7 @@ public class ChatService {
         return chatRepository.findMessagesByRoomId(roomId);
     }
 
-    public void recreateRoomIfNeeded(String roomId, String userId, List<ChatMessage> localMessages) {
+    public void recreateRoomIfNeeded(String roomId, Long userId, List<ChatMessage> localMessages) {
         try {
             validateAndUpdateRoom(roomId, userId);
             syncMessages(roomId, userId, localMessages);
@@ -129,7 +129,7 @@ public class ChatService {
         }
     }
 
-    private void validateAndUpdateRoom(String roomId, String userId) {
+    private void validateAndUpdateRoom(String roomId, Long userId) {
         ChatRoom room = getChatRoomById(roomId);
 
         if (!room.getParticipants().contains(userId)) {
@@ -138,7 +138,7 @@ public class ChatService {
         }
     }
 
-    private void handleRoomNotFound(String roomId, String userId, List<ChatMessage> localMessages) {
+    private void handleRoomNotFound(String roomId, Long userId, List<ChatMessage> localMessages) {
         if (localMessages.isEmpty()) {
             throw new ChatRoomNotFoundException();
         }
@@ -146,12 +146,12 @@ public class ChatService {
         recreateRoomFromMessages(roomId, userId, localMessages);
     }
 
-    public ChatRoom recreateRoomFromMessages(String roomId, String userId, List<ChatMessage> clientMessages) {
+    public ChatRoom recreateRoomFromMessages(String roomId, Long userId, List<ChatMessage> clientMessages) {
         if (clientMessages.isEmpty()) {
             throw new IllegalArgumentException("메시지가 없어 채팅방을 재생성할 수 없습니다.");
         }
 
-        Set<String> participants = extractParticipantsFromMessages(userId, clientMessages);
+        Set<Long> participants = extractParticipantsFromMessages(userId, clientMessages);
         ChatRoom newRoom = createRoomWithId(roomId, participants);
 
         clientMessages.forEach(message -> {
@@ -174,8 +174,8 @@ public class ChatService {
         }
     }
 
-    private Set<String> extractParticipantsFromMessages(String userId, List<ChatMessage> messages) {
-        Set<String> participants = new HashSet<>();
+    private Set<Long> extractParticipantsFromMessages(Long userId, List<ChatMessage> messages) {
+        Set<Long> participants = new HashSet<>();
         participants.add(userId);
 
         messages.forEach(message -> participants.add(message.getSenderId()));
@@ -183,7 +183,7 @@ public class ChatService {
         return participants;
     }
 
-    private ChatRoom createRoomWithId(String roomId, Set<String> participants) {
+    private ChatRoom createRoomWithId(String roomId, Set<Long> participants) {
         ChatRoom newRoom = ChatRoom.builder()
                 .roomId(roomId)
                 .participants(participants)
@@ -194,7 +194,7 @@ public class ChatService {
         return chatRepository.saveRoom(newRoom);
     }
 
-    private ChatMessage createSystemMessage(String roomId, String userId, String content, MessageType type) {
+    private ChatMessage createSystemMessage(String roomId, Long userId, String content, MessageType type) {
         return ChatMessage.builder()
                 .messageId(UUID.randomUUID().toString())
                 .roomId(roomId)
@@ -205,18 +205,18 @@ public class ChatService {
                 .build();
     }
 
-    private ChatRoom createRoom(String user1, String user2) {
+    private ChatRoom createRoom(Long user1, Long user2) {
         ChatRoom room = ChatRoom.create(user1, user2);
         return chatRepository.saveRoom(room);
     }
 
-    private void validateGroupParticipants(Set<String> participants) {
+    private void validateGroupParticipants(Set<Long> participants) {
         if (participants.size() < 2) {
             throw new IllegalArgumentException("그룹 채팅에는 최소 2명 이상의 참여자가 필요합니다.");
         }
     }
 
-    public List<ChatRoom> getRoomsForUserId(String userId) {
+    public List<ChatRoom> getRoomsForUserId(Long userId) {
         List<ChatRoom> rooms = chatRepository.findRoomsByUserId(userId);
         return rooms.stream()
                 .filter(room -> !room.isKicked(userId))
