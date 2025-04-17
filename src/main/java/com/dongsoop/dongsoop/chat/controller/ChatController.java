@@ -71,9 +71,11 @@ public class ChatController {
     @PostMapping("/room/group")
     public ResponseEntity<ChatRoom> createGroupRoom(@RequestBody CreateGroupRoomRequest request) {
         Long currentUserId = getCurrentUserId();
+
         Set<Long> participantIds = request.getParticipants().stream()
-                .map(Long::parseLong)
+                .map(nickname -> memberService.getLoginAuthenticateByNickname(nickname).getId())
                 .collect(Collectors.toSet());
+
         return ResponseEntity.ok(chatService.createGroupChatRoom(currentUserId, participantIds));
     }
 
@@ -82,7 +84,9 @@ public class ChatController {
             @PathVariable("roomId") String roomId,
             @RequestBody KickUserRequest kickUserRequest) {
         Long currentUserId = getCurrentUserId();
-        Long userToKickId = Long.parseLong(kickUserRequest.getUserId());
+
+        Long userToKickId = memberService.getLoginAuthenticateByNickname(kickUserRequest.getUserId()).getId();
+
         return ResponseEntity.ok(chatService.kickUserFromRoom(roomId, currentUserId, userToKickId));
     }
 
