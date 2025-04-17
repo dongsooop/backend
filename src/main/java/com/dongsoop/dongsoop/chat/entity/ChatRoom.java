@@ -19,16 +19,16 @@ public class ChatRoom {
     private static final int BACKUP_DAYS_THRESHOLD = 25;
 
     private String roomId;
-    private Set<String> participants;
-    private String managerId;
+    private Set<Long> participants;
+    private Long managerId;
     private boolean isGroupChat;
     private LocalDateTime createdAt;
     private LocalDateTime lastActivityAt;
-    private Set<String> kickedUsers;
+    private Set<Long> kickedUsers;
 
-    public static ChatRoom create(String user1, String user2) {
+    public static ChatRoom create(Long user1, Long user2) {
         String roomId = UUID.randomUUID().toString();
-        Set<String> participants = new HashSet<>();
+        Set<Long> participants = new HashSet<>();
         participants.add(user1);
         participants.add(user2);
         LocalDateTime now = LocalDateTime.now();
@@ -42,7 +42,7 @@ public class ChatRoom {
                 .build();
     }
 
-    public static ChatRoom createWithParticipants(Set<String> participants, String creatorId) {
+    public static ChatRoom createWithParticipants(Set<Long> participants, Long creatorId) {
         String roomId = UUID.randomUUID().toString();
         LocalDateTime now = LocalDateTime.now();
 
@@ -78,17 +78,17 @@ public class ChatRoom {
         this.lastActivityAt = LocalDateTime.now();
     }
 
-    public void kickUser(String userId) {
+    public void kickUser(Long userId) {
         participants.remove(userId);
         getKickedUsersSet().add(userId);
         updateActivity();
     }
 
-    public boolean isKicked(String userId) {
+    public boolean isKicked(Long userId) {
         return getKickedUsersSet().contains(userId);
     }
 
-    private Set<String> getKickedUsersSet() {
+    private Set<Long> getKickedUsersSet() {
         if (kickedUsers == null) {
             kickedUsers = new HashSet<>();
         }
