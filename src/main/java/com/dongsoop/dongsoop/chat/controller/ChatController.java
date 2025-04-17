@@ -7,6 +7,8 @@ import com.dongsoop.dongsoop.chat.dto.MessageSyncRequest;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatService;
+import com.dongsoop.dongsoop.member.dto.LoginAuthenticate;
+import com.dongsoop.dongsoop.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -14,22 +16,29 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/chat")
 public class ChatController {
     private final ChatService chatService;
+    private final MemberService memberService;
 
     @PostMapping("/room")
     public ResponseEntity<ChatRoom> createRoom(@RequestBody CreateRoomRequest request) {
-        String currentUserId = getCurrentUserId();
-        return ResponseEntity.ok(chatService.createOneToOneChatRoom(currentUserId, request.getTargetUserId()));
+        Long currentUserId = getCurrentUserId();
+
+        LoginAuthenticate targetUserAuth = memberService.getLoginAuthenticateByNickname(request.getTargetUserId());
+        Long targetUserId = targetUserAuth.getId();
+
+        return ResponseEntity.ok(chatService.createOneToOneChatRoom(currentUserId, targetUserId));
     }
 
     @GetMapping("/rooms")
     public ResponseEntity<List<ChatRoom>> getRoomsForUser() {
-        String currentUserId = getCurrentUserId();
+        Long currentUserId = getCurrentUserId();
         return ResponseEntity.ok(chatService.getRoomsForUserId(currentUserId));
     }
 
@@ -61,20 +70,24 @@ public class ChatController {
 
     @PostMapping("/room/group")
     public ResponseEntity<ChatRoom> createGroupRoom(@RequestBody CreateGroupRoomRequest request) {
-        String currentUserId = getCurrentUserId();
-        return ResponseEntity.ok(chatService.createGroupChatRoom(currentUserId, request.getParticipants()));
+        Long currentUserId = getCurrentUserId();
+        Set<Long> participantIds = request.getParticipants().stream()
+                .map(Long::parseLong)
+                .collect(Collectors.toSet());
+        return ResponseEntity.ok(chatService.createGroupChatRoom(currentUserId, participantIds));
     }
 
     @PostMapping("/room/{roomId}/kick")
     public ResponseEntity<ChatRoom> kickUserFromRoom(
             @PathVariable("roomId") String roomId,
             @RequestBody KickUserRequest kickUserRequest) {
-        String currentUserId = getCurrentUserId();
-        return ResponseEntity.ok(chatService.kickUserFromRoom(roomId, currentUserId, kickUserRequest.getUserId()));
+        Long currentUserId = getCurrentUserId();
+        Long userToKickId = Long.parseLong(kickUserRequest.getUserId());
+        return ResponseEntity.ok(chatService.kickUserFromRoom(roomId, currentUserId, userToKickId));
     }
 
-    private String getCurrentUserId() {
+    private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication.getName();
+        return Long.parseLong(authentication.getName());
     }
 }
