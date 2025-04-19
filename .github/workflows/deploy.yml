@@ -53,7 +53,7 @@ jobs:
         context: .
         file: ./Dockerfile
         push: true
-        tags: alpine1/spring-app:latest
+        tags: ${{ secrets.DOCKER_USERNAME }}/spring-app:latest
     
     - name: Deploy to EC2
       uses: appleboy/ssh-action@master
