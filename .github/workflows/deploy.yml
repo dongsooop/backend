@@ -63,7 +63,7 @@ jobs:
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
           cd /home/ubuntu/dongsoop
-          export DOCKER_USERNAME=alpine1
+          export DOCKER_USERNAME= ${{ secrets.DOCKER_USERNAME }}
           docker pull ${DOCKER_USERNAME}/spring-app:latest
           docker-compose down
           docker-compose up -d
