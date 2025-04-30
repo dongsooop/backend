@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.member.entity;
 
+import com.dongsoop.dongsoop.common.BaseEntity;
 import com.dongsoop.dongsoop.department.entity.Department;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -24,7 +25,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 @Table(name = "member")
-public class Member {
+public class Member extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
