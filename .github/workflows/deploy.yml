@@ -55,17 +55,24 @@ jobs:
         push: true
         tags: ${{ secrets.DOCKER_USERNAME }}/spring-app:latest
     
-    - name: Deploy to EC2
-      uses: appleboy/ssh-action@master
+    # SSH 접속을 위한 SSH 키 설정
+    - name: Set up SSH
+      uses: webfactory/ssh-agent@v0.9.0
       with:
-        key: ${{ secrets.EC2_SSH_KEY }}
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        port: ${{ secrets.PORT }}
-        script: |
-          cd /home/ubuntu/dongsoop
-          export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
-          docker pull ${DOCKER_USERNAME}/spring-app:latest
-          docker-compose down
-          docker-compose up -d
+        ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+    
+    # 원격 서버의 SSH 호스트 키를 저장하여 SSH 연결 시 신뢰성을 확인하는 과정
+    - name: Add known hosts
+      run: ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+    
+    # SSH로 직접 명령 실행
+    - name: Deploy to EC2
+      run: |
+        ssh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} -p ${{ secrets.PORT }} "
+          cd /home/ubuntu/dongsoop && 
+          export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} && 
+          docker pull \${DOCKER_USERNAME}/spring-app:latest && 
+          docker-compose down && 
+          docker-compose up -d && 
           docker system prune -af
+        "
