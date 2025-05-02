@@ -2,7 +2,6 @@ package com.dongsoop.dongsoop.member.service;
 
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
-import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
 import com.dongsoop.dongsoop.department.service.DepartmentService;
 import com.dongsoop.dongsoop.exception.domain.member.EmailDuplicatedException;
 import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
@@ -18,17 +17,19 @@ import com.dongsoop.dongsoop.role.entity.Role;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import com.dongsoop.dongsoop.role.repository.MemberRoleRepository;
 import com.dongsoop.dongsoop.role.repository.RoleRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.jsoup.internal.StringUtil;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -39,8 +40,6 @@ public class MemberService {
     private final RoleRepository roleRepository;
 
     private final MemberRoleRepository memberRoleRepository;
-
-    private final DepartmentRepository departmentRepository;
 
     private final DepartmentService departmentService;
 
@@ -114,6 +113,22 @@ public class MemberService {
     public LoginAuthenticate getLoginAuthenticateByNickname(String nickname) {
         Optional<LoginAuthenticate> optionalAuthenticate = memberRepository.findLoginAuthenticateByNickname(nickname);
         return optionalAuthenticate.orElseThrow(MemberNotFoundException::new);
+    }
+
+    public Member getMemberReferenceByContext() {
+        Long id = getMemberIdByContext();
+        return memberRepository.getReferenceById(id);
+    }
+
+    private Long getMemberIdByContext() {
+        Authentication authentication = SecurityContextHolder.getContext()
+                .getAuthentication();
+        String id = authentication.getName();
+        if (StringUtils.hasText(id) && StringUtil.isNumeric(id)) {
+            return (Long) authentication.getPrincipal();
+        }
+
+        throw new MemberNotFoundException();
     }
 
     private void validatePassword(String loginPassword, String password) {
