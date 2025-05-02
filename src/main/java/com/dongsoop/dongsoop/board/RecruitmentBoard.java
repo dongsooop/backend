@@ -13,8 +13,12 @@ import lombok.experimental.SuperBuilder;
 public abstract class RecruitmentBoard extends Board {
 
     @NotNull
-    @Column(name = "recruitment_deadline", nullable = false)
-    private LocalDateTime recruitmentDeadline;
+    @Column(name = "start_at", nullable = false)
+    private LocalDateTime startAt;
+
+    @NotNull
+    @Column(name = "end_at", nullable = false)
+    private LocalDateTime endAt;
 
     @NotNull
     @Column(name = "recruitment_capacity", nullable = false, columnDefinition = "INT DEFAULT 0")
