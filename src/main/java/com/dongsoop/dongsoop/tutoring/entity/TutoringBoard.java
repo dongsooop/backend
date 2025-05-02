@@ -9,13 +9,15 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.validation.constraints.NotNull;
 
 @Entity
+@SequenceGenerator(name = "tutoring_board_sequence_generator")
 public class TutoringBoard extends RecruitmentBoard {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "tutoring_board_sequence_generator")
     private Long id;
 
     @NotNull
