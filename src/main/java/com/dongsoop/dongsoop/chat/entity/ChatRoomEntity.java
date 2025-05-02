@@ -3,7 +3,7 @@ package com.dongsoop.dongsoop.chat.entity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
@@ -12,8 +12,8 @@ import java.util.Set;
 
 @Entity
 @Table(name = "chat_rooms")
-@Data
 @Builder
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatRoomEntity {
@@ -38,7 +38,7 @@ public class ChatRoomEntity {
     public ChatRoom toChatRoom() {
         return ChatRoom.builder()
                 .roomId(this.roomId)
-                .participants(new HashSet<>(this.participants))
+                .participants(participants)
                 .managerId(this.managerId)
                 .isGroupChat(this.isGroupChat)
                 .createdAt(this.createdAt)
