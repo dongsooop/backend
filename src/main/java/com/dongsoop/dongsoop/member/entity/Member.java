@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.member.entity;
 
+import com.dongsoop.dongsoop.common.BaseEntity;
 import com.dongsoop.dongsoop.department.entity.Department;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -17,14 +18,16 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
+@SQLRestriction("is_deleted = false")
 @Table(name = "member")
-public class Member {
+public class Member extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
