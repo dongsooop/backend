@@ -4,8 +4,12 @@ import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 @MappedSuperclass
+@SuperBuilder
+@NoArgsConstructor
 public abstract class RecruitmentBoard extends Board {
 
     @NotNull
