@@ -3,11 +3,12 @@ package com.dongsoop.dongsoop.tutoring.service;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.tutoring.dto.CreateTutoringBoardRequest;
 import com.dongsoop.dongsoop.tutoring.dto.TutoringBoardOverview;
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface TutoringBoardService {
 
-    List<TutoringBoardOverview> getAllTutoringBoard(DepartmentType departmentType);
+    Page<TutoringBoardOverview> getTutoringBoardByPage(DepartmentType departmentType, Pageable pageable);
 
     void create(CreateTutoringBoardRequest request);
 }

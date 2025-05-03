@@ -4,6 +4,8 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.tutoring.dto.TutoringBoardOverview;
 import com.dongsoop.dongsoop.tutoring.entity.TutoringBoard;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -13,5 +15,5 @@ public interface TutoringBoardRepository extends JpaRepository<TutoringBoard, Lo
             + "FROM TutoringBoard b "
             + "WHERE b.department = :recruitmentDepartment AND "
             + " b.endAt > CURRENT_TIMESTAMP")
-    List<TutoringBoardOverview> findAllTutoringBoardOverviews(Department recruitmentDepartment);
+    Page<TutoringBoardOverview> findTutoringBoardOverviewsByPage(Department recruitmentDepartment, Pageable Pageable);
 }

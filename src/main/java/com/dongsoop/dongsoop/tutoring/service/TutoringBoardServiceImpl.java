@@ -14,6 +14,8 @@ import com.dongsoop.dongsoop.tutoring.repository.TutoringBoardRepository;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -26,12 +28,12 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
 
     private final MemberService memberService;
 
-    public List<TutoringBoardOverview> getAllTutoringBoard(DepartmentType departmentType) {
+    public Page<TutoringBoardOverview> getTutoringBoardByPage(DepartmentType departmentType, Pageable pageable) {
         Optional<Department> optionalRecruitmentDepartment = departmentRepository.findById(departmentType);
         Department recruitmentDepartment = optionalRecruitmentDepartment.orElseThrow(
                 () -> new DepartmentNotFoundException(departmentType));
 
-        return tutoringBoardRepository.findAllTutoringBoardOverviews(recruitmentDepartment);
+        return tutoringBoardRepository.findTutoringBoardOverviewsByPage(recruitmentDepartment, pageable);
     }
 
     public void create(CreateTutoringBoardRequest request) {
