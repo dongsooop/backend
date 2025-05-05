@@ -3,11 +3,13 @@ package com.dongsoop.dongsoop.tutoring.controller;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.tutoring.dto.CreateTutoringBoardRequest;
 import com.dongsoop.dongsoop.tutoring.dto.TutoringBoardOverview;
+import com.dongsoop.dongsoop.tutoring.entity.TutoringBoard;
 import com.dongsoop.dongsoop.tutoring.service.TutoringBoardService;
 import jakarta.validation.Valid;
+import java.net.URI;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,15 +28,17 @@ public class TutoringBoardController {
     @GetMapping("/{departmentType}")
     public ResponseEntity<Page<TutoringBoardOverview>> getTutoringBoardOverviews(
             @PathVariable("departmentType") DepartmentType departmentType, Pageable pageable) {
-        Page<TutoringBoardOverview> tutoringBoardList = tutoringBoardService.getTutoringBoardByPage(departmentType, pageable);
+        Page<TutoringBoardOverview> tutoringBoardList = tutoringBoardService.getTutoringBoardByPage(departmentType,
+                pageable);
         return ResponseEntity.ok(tutoringBoardList);
     }
 
     @PostMapping
     public ResponseEntity<Void> createTutoringBoard(@Valid @RequestBody CreateTutoringBoardRequest request) {
-        tutoringBoardService.create(request);
+        TutoringBoard createdBoard = tutoringBoardService.create(request);
+        URI uri = URI.create("/tutoring/" + createdBoard.getId());
 
-        return ResponseEntity.ok()
+        return ResponseEntity.created(uri)
                 .build();
     }
 }

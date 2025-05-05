@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
@@ -21,6 +22,7 @@ import lombok.experimental.SuperBuilder;
 public class TutoringBoard extends RecruitmentBoard {
 
     @Id
+    @Getter
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "tutoring_board_sequence_generator")
     private Long id;
 

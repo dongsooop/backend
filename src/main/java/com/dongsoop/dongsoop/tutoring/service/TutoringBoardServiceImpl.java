@@ -11,7 +11,6 @@ import com.dongsoop.dongsoop.tutoring.dto.CreateTutoringBoardRequest;
 import com.dongsoop.dongsoop.tutoring.dto.TutoringBoardOverview;
 import com.dongsoop.dongsoop.tutoring.entity.TutoringBoard;
 import com.dongsoop.dongsoop.tutoring.repository.TutoringBoardRepository;
-import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -36,9 +35,9 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
         return tutoringBoardRepository.findTutoringBoardOverviewsByPage(recruitmentDepartment, pageable);
     }
 
-    public void create(CreateTutoringBoardRequest request) {
+    public TutoringBoard create(CreateTutoringBoardRequest request) {
         TutoringBoard tutoringBoard = transformToTutoringBoard(request);
-        tutoringBoardRepository.save(tutoringBoard);
+        return tutoringBoardRepository.save(tutoringBoard);
     }
 
     private TutoringBoard transformToTutoringBoard(CreateTutoringBoardRequest request) {
