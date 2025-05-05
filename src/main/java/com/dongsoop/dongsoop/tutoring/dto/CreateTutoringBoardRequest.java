@@ -20,20 +20,20 @@ public class CreateTutoringBoardRequest {
     private String content;
 
     @NotBlank
-    String tags;
+    private String tags;
 
     @NotNull
     @Min(1)
-    Integer recruitmentCapacity;
+    private Integer recruitmentCapacity;
 
     @NotNull
     @TodayOrFuture
-    LocalDateTime startAt;
+    private LocalDateTime startAt;
 
     @NotNull
     @TodayOrFuture
-    LocalDateTime endAt;
+    private LocalDateTime endAt;
 
     @NotNull
-    DepartmentType departmentType;
+    private DepartmentType departmentType;
 }
