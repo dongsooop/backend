@@ -50,14 +50,15 @@ class TutoringBoardCreateTest {
 
     @BeforeEach
     void setUp() {
-        this.request = new CreateTutoringBoardRequest();
-        this.request.setTitle(VALID_TITLE);
-        this.request.setContent(VALID_CONTENT);
-        this.request.setTags(VALID_TAGS);
-        this.request.setRecruitmentCapacity(VALID_RECRUITMENT_CAPACITY);
-        this.request.setStartAt(VALID_START_AT);
-        this.request.setEndAt(VALID_END_AT);
-        this.request.setDepartmentType(VALID_DEPARTMENT_TYPE);
+        request = CreateTutoringBoardRequest.builder()
+                .title(VALID_TITLE)
+                .content(VALID_CONTENT)
+                .tags(VALID_TAGS)
+                .recruitmentCapacity(VALID_RECRUITMENT_CAPACITY)
+                .startAt(VALID_START_AT)
+                .endAt(VALID_END_AT)
+                .departmentType(VALID_DEPARTMENT_TYPE)
+                .build();
     }
 
     @Test
