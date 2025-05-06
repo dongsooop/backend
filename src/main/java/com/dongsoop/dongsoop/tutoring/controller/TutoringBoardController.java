@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.tutoring.controller;
 
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.tutoring.dto.CreateTutoringBoardRequest;
+import com.dongsoop.dongsoop.tutoring.dto.TutoringBoardDetails;
 import com.dongsoop.dongsoop.tutoring.dto.TutoringBoardOverview;
 import com.dongsoop.dongsoop.tutoring.entity.TutoringBoard;
 import com.dongsoop.dongsoop.tutoring.service.TutoringBoardService;
@@ -25,12 +26,20 @@ public class TutoringBoardController {
 
     private final TutoringBoardService tutoringBoardService;
 
-    @GetMapping("/{departmentType}")
+    @GetMapping("/department/{departmentType}")
     public ResponseEntity<Page<TutoringBoardOverview>> getTutoringBoardOverviews(
             @PathVariable("departmentType") DepartmentType departmentType, Pageable pageable) {
         Page<TutoringBoardOverview> tutoringBoardList = tutoringBoardService.getTutoringBoardByPage(departmentType,
                 pageable);
         return ResponseEntity.ok(tutoringBoardList);
+    }
+
+    @GetMapping("/{tutoringBoardId}")
+    public ResponseEntity<TutoringBoardDetails> getTutoringBoard(
+            @PathVariable("tutoringBoardId") Long tutoringBoardId) {
+        tutoringBoardService.getTutoringBoardById(tutoringBoardId);
+        TutoringBoardDetails tutoringBoard = tutoringBoardService.getTutoringBoardById(tutoringBoardId);
+        return ResponseEntity.ok(tutoringBoard);
     }
 
     @PostMapping

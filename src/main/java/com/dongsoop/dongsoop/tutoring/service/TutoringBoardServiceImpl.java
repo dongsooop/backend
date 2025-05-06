@@ -5,9 +5,11 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
 import com.dongsoop.dongsoop.exception.domain.department.DepartmentNotFoundException;
+import com.dongsoop.dongsoop.exception.domain.tutoring.TutoringBoardNotFound;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.tutoring.dto.CreateTutoringBoardRequest;
+import com.dongsoop.dongsoop.tutoring.dto.TutoringBoardDetails;
 import com.dongsoop.dongsoop.tutoring.dto.TutoringBoardOverview;
 import com.dongsoop.dongsoop.tutoring.entity.TutoringBoard;
 import com.dongsoop.dongsoop.tutoring.repository.TutoringBoardRepository;
@@ -38,6 +40,12 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
     public TutoringBoard create(CreateTutoringBoardRequest request) {
         TutoringBoard tutoringBoard = transformToTutoringBoard(request);
         return tutoringBoardRepository.save(tutoringBoard);
+    }
+
+    public TutoringBoardDetails getTutoringBoardById(Long tutoringBoardId) {
+        Optional<TutoringBoardDetails> optionalTutoringBoardInformation = tutoringBoardRepository.findInformationById(
+                tutoringBoardId);
+        return optionalTutoringBoardInformation.orElseThrow(() -> new TutoringBoardNotFound(tutoringBoardId));
     }
 
     private TutoringBoard transformToTutoringBoard(CreateTutoringBoardRequest request) {
