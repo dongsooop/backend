@@ -123,8 +123,6 @@ public class TutoringBoardStartAtTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.toString());
 
-        //TODO 정확한 예외 클래스 검증
-
         // then
         MvcResult result = mockMvc.perform(content)
                 .andExpect(status().isBadRequest())
