@@ -40,4 +40,10 @@ public class CreateTutoringBoardRequest {
 
     @NotNull
     private DepartmentType departmentType;
+
+    public void validateEndAt() {
+        if (startAt.isAfter(endAt)) {
+            throw new IllegalArgumentException("시작일은 종료일보다 이전이어야 합니다.");
+        }
+    }
 }

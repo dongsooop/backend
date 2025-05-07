@@ -38,6 +38,7 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
     }
 
     public TutoringBoard create(CreateTutoringBoardRequest request) {
+        request.validateEndAt();
         TutoringBoard tutoringBoard = transformToTutoringBoard(request);
         return tutoringBoardRepository.save(tutoringBoard);
     }
