@@ -33,7 +33,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 
 @WebMvcTest(controllers = TutoringBoardController.class)
 @AutoConfigureMockMvc(addFilters = false)
-public class TutoringBoardStartAtTest {
+class TutoringBoardStartAtTest {
 
     private final JSONObject json = new JSONObject();
 
