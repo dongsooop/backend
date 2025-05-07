@@ -62,7 +62,7 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
                 .department(departmentReference)
                 .startAt(request.getStartAt())
                 .endAt(request.getEndAt())
-                .recruitmentCapacity(request.getRecruitmentCapacity())
+                .capacity(request.getRecruitmentCapacity())
                 .boardDate(new BoardDate())
                 .build();
     }

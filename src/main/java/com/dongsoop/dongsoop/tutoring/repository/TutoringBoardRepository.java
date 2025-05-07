@@ -26,7 +26,7 @@ public interface TutoringBoardRepository extends JpaRepository<TutoringBoard, Lo
             + "b.content as content, "
             + "b.startAt as startAt, "
             + "b.endAt as endAt, "
-            + "b.recruitmentCapacity as recruitmentCapacity, "
+            + "b.capacity as capacity, "
             + "b.tags as tags, "
             + "b.author.nickname as author, "
             + "b.department.id as departmentType, "

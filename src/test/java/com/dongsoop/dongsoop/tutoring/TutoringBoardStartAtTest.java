@@ -89,7 +89,7 @@ public class TutoringBoardStartAtTest {
                 .title("title")
                 .content("content")
                 .tags("tags")
-                .recruitmentCapacity(5)
+                .capacity(5)
                 .startAt(LocalDate.now().atStartOfDay())
                 .endAt(LocalDate.now().atStartOfDay())
                 .department(department)
