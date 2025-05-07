@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.tutoring.dto;
 
+import com.dongsoop.dongsoop.date.EndAtAfterStartAt;
 import com.dongsoop.dongsoop.date.TodayOrFuture;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import jakarta.validation.constraints.Min;
@@ -15,6 +16,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
+@EndAtAfterStartAt
 public class CreateTutoringBoardRequest {
 
     @NotBlank
