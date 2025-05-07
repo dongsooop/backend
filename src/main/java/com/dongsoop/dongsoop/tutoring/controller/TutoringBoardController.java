@@ -37,8 +37,7 @@ public class TutoringBoardController {
     @GetMapping("/{tutoringBoardId}")
     public ResponseEntity<TutoringBoardDetails> getTutoringBoard(
             @PathVariable("tutoringBoardId") Long tutoringBoardId) {
-        tutoringBoardService.getTutoringBoardById(tutoringBoardId);
-        TutoringBoardDetails tutoringBoard = tutoringBoardService.getTutoringBoardById(tutoringBoardId);
+        TutoringBoardDetails tutoringBoard = tutoringBoardService.getTutoringBoardDetailsById(tutoringBoardId);
         return ResponseEntity.ok(tutoringBoard);
     }
 

@@ -14,5 +14,5 @@ public interface TutoringBoardService {
 
     TutoringBoard create(CreateTutoringBoardRequest request);
 
-    TutoringBoardDetails getTutoringBoardById(Long tutoringBoardId);
+    TutoringBoardDetails getTutoringBoardDetailsById(Long tutoringBoardId);
 }

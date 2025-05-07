@@ -42,10 +42,9 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
         return tutoringBoardRepository.save(tutoringBoard);
     }
 
-    public TutoringBoardDetails getTutoringBoardById(Long tutoringBoardId) {
-        Optional<TutoringBoardDetails> optionalTutoringBoardInformation = tutoringBoardRepository.findInformationById(
-                tutoringBoardId);
-        return optionalTutoringBoardInformation.orElseThrow(() -> new TutoringBoardNotFound(tutoringBoardId));
+    public TutoringBoardDetails getTutoringBoardDetailsById(Long tutoringBoardId) {
+        return tutoringBoardRepository.findInformationById(tutoringBoardId)
+                .orElseThrow(() -> new TutoringBoardNotFound(tutoringBoardId));
     }
 
     private TutoringBoard transformToTutoringBoard(CreateTutoringBoardRequest request) {
