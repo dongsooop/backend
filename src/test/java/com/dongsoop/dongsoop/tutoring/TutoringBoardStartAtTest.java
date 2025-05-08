@@ -99,7 +99,7 @@ class TutoringBoardStartAtTest {
                 .thenReturn(tutoringBoard);
 
         json.put("startAt", LocalDate.now().atStartOfDay());
-        json.put("endAt", LocalDate.now().atStartOfDay());
+        json.put("endAt", LocalDate.now().atStartOfDay().plusDays(1));
 
         // when
         MockHttpServletRequestBuilder httpContent = post("/tutoring")
