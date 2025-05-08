@@ -5,12 +5,12 @@ import com.dongsoop.dongsoop.tutoring.dto.CreateTutoringBoardRequest;
 import com.dongsoop.dongsoop.tutoring.dto.TutoringBoardDetails;
 import com.dongsoop.dongsoop.tutoring.dto.TutoringBoardOverview;
 import com.dongsoop.dongsoop.tutoring.entity.TutoringBoard;
-import org.springframework.data.domain.Page;
+import java.util.List;
 import org.springframework.data.domain.Pageable;
 
 public interface TutoringBoardService {
 
-    Page<TutoringBoardOverview> getTutoringBoardByPage(DepartmentType departmentType, Pageable pageable);
+    List<TutoringBoardOverview> getTutoringBoardByPage(DepartmentType departmentType, Pageable pageable);
 
     TutoringBoard create(CreateTutoringBoardRequest request);
 
