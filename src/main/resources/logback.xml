@@ -18,7 +18,7 @@
         <layout class="ch.qos.logback.classic.PatternLayout">
             <pattern>%d{HH:mm:ss} [%thread] [%-5level] %logger{36} - %msg%n```%ex{full}```</pattern>
         </layout>
-        <username>에러 났다~</username>
+        <username>에러 알리미</username>
         <tts>false</tts>
     </appender>
 
