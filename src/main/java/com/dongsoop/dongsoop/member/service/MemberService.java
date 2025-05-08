@@ -21,7 +21,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.jsoup.internal.StringUtil;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -124,7 +123,7 @@ public class MemberService {
         Authentication authentication = SecurityContextHolder.getContext()
                 .getAuthentication();
         String id = authentication.getName();
-        if (StringUtils.hasText(id) && StringUtil.isNumeric(id)) {
+        if (StringUtils.hasText(id) && id.matches("\\d+")) {
             return (Long) authentication.getPrincipal();
         }
 
