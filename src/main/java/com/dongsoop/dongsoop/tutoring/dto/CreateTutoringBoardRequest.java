@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.tutoring.dto;
 
 import com.dongsoop.dongsoop.date.EndAtAfterStartAt;
+import com.dongsoop.dongsoop.date.MaxDate;
 import com.dongsoop.dongsoop.date.MaxDuration;
 import com.dongsoop.dongsoop.date.MinDuration;
 import com.dongsoop.dongsoop.date.TodayOrFuture;
@@ -37,6 +38,7 @@ public class CreateTutoringBoardRequest {
     private Integer recruitmentCapacity;
 
     @NotNull
+    @MaxDate(month = 3)
     @TodayOrFuture
     private LocalDateTime startAt;
 
