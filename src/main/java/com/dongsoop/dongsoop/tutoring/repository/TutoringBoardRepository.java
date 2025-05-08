@@ -17,8 +17,8 @@ public interface TutoringBoardRepository extends JpaRepository<TutoringBoard, Lo
             + "FROM TutoringBoard b "
             + "WHERE b.department = :recruitmentDepartment AND "
             + " b.endAt > CURRENT_TIMESTAMP")
-    Page<TutoringBoardOverview> findTutoringBoardOverviewsByPage(
-            @Param("recruitmentDepartment") Department recruitmentDepartment, Pageable Pageable);
+    List<TutoringBoardOverview> findTutoringBoardOverviewsByPage(
+            @Param("recruitmentDepartment") Department recruitmentDepartment, Pageable pageable);
 
     @Query("SELECT "
             + "b.id as id, "
