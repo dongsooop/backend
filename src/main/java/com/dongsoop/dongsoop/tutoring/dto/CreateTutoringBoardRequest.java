@@ -1,6 +1,8 @@
 package com.dongsoop.dongsoop.tutoring.dto;
 
 import com.dongsoop.dongsoop.date.EndAtAfterStartAt;
+import com.dongsoop.dongsoop.date.MaxDuration;
+import com.dongsoop.dongsoop.date.MinDuration;
 import com.dongsoop.dongsoop.date.TodayOrFuture;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import jakarta.validation.constraints.Min;
@@ -16,6 +18,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
+@MaxDuration // 최대 4주 (28일)
+@MinDuration // 최소 하루
 @EndAtAfterStartAt
 public class CreateTutoringBoardRequest {
 
