@@ -54,7 +54,7 @@ class TutoringBoardCreateTest {
                 .title(VALID_TITLE)
                 .content(VALID_CONTENT)
                 .tags(VALID_TAGS)
-                .recruitmentCapacity(VALID_RECRUITMENT_CAPACITY)
+                .capacity(VALID_RECRUITMENT_CAPACITY)
                 .startAt(VALID_START_AT)
                 .endAt(VALID_END_AT)
                 .departmentType(VALID_DEPARTMENT_TYPE)

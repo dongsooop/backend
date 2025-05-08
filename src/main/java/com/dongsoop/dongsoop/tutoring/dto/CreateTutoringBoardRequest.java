@@ -35,7 +35,7 @@ public class CreateTutoringBoardRequest {
 
     @NotNull
     @Min(1)
-    private Integer recruitmentCapacity;
+    private Integer capacity;
 
     @NotNull
     @MaxDate(month = 3)

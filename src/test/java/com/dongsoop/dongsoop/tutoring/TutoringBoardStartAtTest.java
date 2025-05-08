@@ -50,7 +50,7 @@ class TutoringBoardStartAtTest {
     void setUp() throws JSONException {
         json.put("title", "title");
         json.put("tags", "tags");
-        json.put("recruitmentCapacity", 5);
+        json.put("capacity", 5);
         json.put("content", "content");
         json.put("departmentType", DepartmentType.DEPT_2001);
     }

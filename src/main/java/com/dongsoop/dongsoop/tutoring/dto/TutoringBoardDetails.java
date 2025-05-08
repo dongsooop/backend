@@ -13,7 +13,7 @@ public interface TutoringBoardDetails {
 
     String getTags();
 
-    Integer getRecruitmentCapacity();
+    Integer getCapacity();
 
     LocalDateTime getStartAt();
 
