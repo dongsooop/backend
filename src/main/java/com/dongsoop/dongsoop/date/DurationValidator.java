@@ -17,13 +17,13 @@ public abstract class DurationValidator<A extends Annotation> implements Constra
     @Override
     public boolean isValid(Object object, ConstraintValidatorContext constraintValidatorContext) {
         try {
-            setUp(object);
+            if (setUp(object)) {
+                return true;
+            }
 
             return validateDuration();
-        } catch (NoSuchFieldException e) {
+        } catch (Exception e) {
             return false;
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
         }
     }
 
