@@ -18,7 +18,7 @@ public @interface MinDuration {
 
     String end() default "endAt";
 
-    String message() default "시작일이 종료일보다 늦을 수 없습니다";
+    String message() default "최소 설정 가능 기간보다 짧을 수 없습니다.";
 
     Class<?>[] groups() default {};
 
