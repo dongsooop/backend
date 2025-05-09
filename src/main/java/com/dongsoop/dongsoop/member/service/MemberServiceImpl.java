@@ -124,7 +124,7 @@ public class MemberServiceImpl implements MemberService {
                 .getAuthentication();
         String id = authentication.getName();
         if (StringUtils.hasText(id) && id.matches("\\d+")) {
-            return (Long) authentication.getPrincipal();
+            return Long.valueOf(id);
         }
 
         throw new MemberNotFoundException();
