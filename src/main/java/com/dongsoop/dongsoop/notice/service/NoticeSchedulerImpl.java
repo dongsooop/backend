@@ -9,38 +9,33 @@ import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
 import com.dongsoop.dongsoop.notice.repository.NoticeDetailsRepository;
 import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
 import com.dongsoop.dongsoop.notice.util.NoticeParser;
-import java.io.IOException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.*;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NoticeSchedulerImpl implements NoticeScheduler {
 
+    private final NoticeParser noticeParser;
+    private final NoticeRepository noticeRepository;
+    private final NoticeDetailsRepository noticeDetailsRepository;
+    private final DepartmentRepository departmentRepository;
     @Value("${university.domain}")
     private URL universityUrl;
 
-    private final NoticeParser noticeParser;
-
-    private final NoticeRepository noticeRepository;
-
-    private final NoticeDetailsRepository noticeDetailsRepository;
-
-    private final DepartmentRepository departmentRepository;
-
+    @Scheduled(cron = "0 0 10,14,18 * * *")
     public void scheduled() {
         // 학과별 최신 공지 번호(가장 높은 번호) 가져오기
         List<NoticeMaxIdByType> noticeMaxIdList = noticeRepository.findMaxIdGroupByType();
