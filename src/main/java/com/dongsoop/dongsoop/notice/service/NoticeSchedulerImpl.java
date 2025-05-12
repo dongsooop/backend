@@ -10,7 +10,6 @@ import com.dongsoop.dongsoop.notice.repository.NoticeDetailsRepository;
 import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
 import com.dongsoop.dongsoop.notice.util.NoticeParser;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -23,7 +22,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NoticeSchedulerImpl implements NoticeScheduler {
@@ -106,5 +104,4 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
                 .filter(noticeDetails -> noticeDetails.getId() > maxId)
                 .toList();
     }
-
 }
