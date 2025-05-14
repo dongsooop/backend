@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.service.DepartmentService;
 import com.dongsoop.dongsoop.exception.domain.member.EmailDuplicatedException;
+import com.dongsoop.dongsoop.exception.domain.member.InvalidPasswordFormatException;
 import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
 import com.dongsoop.dongsoop.jwt.TokenGenerator;
 import com.dongsoop.dongsoop.jwt.dto.TokenIssueResponse;
@@ -132,7 +133,7 @@ public class MemberServiceImpl implements MemberService {
 
     private void validatePassword(String loginPassword, String password) {
         if (!passwordEncoder.matches(loginPassword, password)) {
-            throw new MemberNotFoundException();
+            throw new InvalidPasswordFormatException();
         }
     }
 
