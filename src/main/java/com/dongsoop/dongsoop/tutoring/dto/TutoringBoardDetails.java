@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.tutoring.dto;
 
-import com.dongsoop.dongsoop.board.BoardDate;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
@@ -34,5 +33,5 @@ public class TutoringBoardDetails {
 
     private LocalDateTime updatedAt;
 
-    private BoardDate boardDate;
+    private Integer volunteer;
 }

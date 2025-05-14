@@ -10,7 +10,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class TutoringBoardOverview {
 
+    private Long id;
+
     private Integer capacity;
+
+    private Integer volunteer;
 
     private LocalDateTime endAt;
 
