@@ -34,7 +34,7 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                         tutoringBoard.title,
                         tutoringBoard.content,
                         tutoringBoard.tags,
-                        tutoringBoard.boardDate.createdAt))
+                        tutoringBoard.createdAt))
                 .from(tutoringBoard)
                 .leftJoin(tutoringApplication)
                 .on(tutoringApplication.id.tutoringBoard.id.eq(tutoringBoard.id))
@@ -61,8 +61,8 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                                 tutoringBoard.endAt,
                                 tutoringBoard.department.id,
                                 tutoringBoard.author.nickname,
-                                tutoringBoard.boardDate.createdAt.as("createdAt"),
-                                tutoringBoard.boardDate.updatedAt.as("updatedAt"),
+                                tutoringBoard.createdAt.as("createdAt"),
+                                tutoringBoard.updatedAt.as("updatedAt"),
                                 tutoringApplication.id.member.count().intValue()
                         ))
                         .from(tutoringBoard)
