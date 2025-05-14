@@ -264,7 +264,7 @@ class TutoringBoardRecruitDateTest {
     }
 
     ResultActions requestCreateTutoring(String jsonTypeString) throws Exception {
-        MockHttpServletRequestBuilder request = post("/tutoring")
+        MockHttpServletRequestBuilder request = post("/tutoring-board")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonTypeString);
 

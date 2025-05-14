@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/tutoring")
+@RequestMapping("/tutoring-board")
 @RequiredArgsConstructor
 public class TutoringBoardController {
 
@@ -44,7 +44,7 @@ public class TutoringBoardController {
     @PostMapping
     public ResponseEntity<Void> createTutoringBoard(@Valid @RequestBody CreateTutoringBoardRequest request) {
         TutoringBoard createdBoard = tutoringBoardService.create(request);
-        URI uri = URI.create("/tutoring/" + createdBoard.getId());
+        URI uri = URI.create("/tutoring-board/" + createdBoard.getId());
 
         return ResponseEntity.created(uri)
                 .build();

@@ -37,6 +37,8 @@ class TutoringBoardStartAtTest {
 
     private final JSONObject json = new JSONObject();
 
+    private final String REQUEST_URL = "/tutoring-board";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -63,7 +65,7 @@ class TutoringBoardStartAtTest {
         json.put("endAt", LocalDateTime.of(1999, 10, 30, 23, 59, 59));
 
         // when
-        MockHttpServletRequestBuilder content = post("/tutoring")
+        MockHttpServletRequestBuilder content = post(REQUEST_URL)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.toString());
 
@@ -102,7 +104,7 @@ class TutoringBoardStartAtTest {
         json.put("endAt", LocalDate.now().atStartOfDay().plusDays(1));
 
         // when
-        MockHttpServletRequestBuilder httpContent = post("/tutoring")
+        MockHttpServletRequestBuilder httpContent = post(REQUEST_URL)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.toString());
 
@@ -119,7 +121,7 @@ class TutoringBoardStartAtTest {
         json.put("endAt", null);
 
         // when
-        MockHttpServletRequestBuilder content = post("/tutoring")
+        MockHttpServletRequestBuilder content = post(REQUEST_URL)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.toString());
 
