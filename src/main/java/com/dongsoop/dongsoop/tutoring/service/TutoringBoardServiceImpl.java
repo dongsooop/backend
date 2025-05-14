@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.tutoring.service;
 
-import com.dongsoop.dongsoop.board.BoardDate;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
@@ -65,7 +64,6 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
                 .startAt(request.getStartAt())
                 .endAt(request.getEndAt())
                 .capacity(request.getCapacity())
-                .boardDate(new BoardDate())
                 .build();
     }
 }

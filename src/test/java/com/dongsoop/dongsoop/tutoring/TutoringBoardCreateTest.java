@@ -99,7 +99,7 @@ class TutoringBoardCreateTest {
         assertThat(board)
                 .usingRecursiveComparison()
                 .ignoringExpectedNullFields()
-                .ignoringFields("id", "boardDate.createdAt", "boardDate.updatedAt")
+                .ignoringFields("id", "createdAt", "updatedAt")
                 .isEqualTo(compareBoard);
     }
 }
