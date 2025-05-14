@@ -1,16 +1,24 @@
 package com.dongsoop.dongsoop.tutoring.dto;
 
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-public interface TutoringBoardOverview {
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+public class TutoringBoardOverview {
 
-    Integer getCapacity();
+    private Integer capacity;
 
-    LocalDateTime getEndAt();
+    private LocalDateTime endAt;
 
-    String getTitle();
+    private String title;
 
-    String getContent();
+    private String content;
 
-    String getTags();
+    private String tags;
+
+    private LocalDateTime createdAt;
 }

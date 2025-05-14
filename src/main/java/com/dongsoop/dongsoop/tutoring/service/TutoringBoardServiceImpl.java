@@ -13,6 +13,7 @@ import com.dongsoop.dongsoop.tutoring.dto.TutoringBoardDetails;
 import com.dongsoop.dongsoop.tutoring.dto.TutoringBoardOverview;
 import com.dongsoop.dongsoop.tutoring.entity.TutoringBoard;
 import com.dongsoop.dongsoop.tutoring.repository.TutoringBoardRepository;
+import com.dongsoop.dongsoop.tutoring.repository.TutoringBoardRepositoryCustom;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,8 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
 
     private final TutoringBoardRepository tutoringBoardRepository;
 
+    private final TutoringBoardRepositoryCustom tutoringBoardRepositoryCustom;
+
     private final DepartmentRepository departmentRepository;
 
     private final MemberService memberService;
@@ -34,7 +37,7 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
         Department recruitmentDepartment = optionalRecruitmentDepartment.orElseThrow(
                 () -> new DepartmentNotFoundException(departmentType));
 
-        return tutoringBoardRepository.findTutoringBoardOverviewsByPage(recruitmentDepartment, pageable);
+        return tutoringBoardRepositoryCustom.findTutoringBoardOverviewsByPage(recruitmentDepartment, pageable);
     }
 
     public TutoringBoard create(CreateTutoringBoardRequest request) {
@@ -43,7 +46,7 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
     }
 
     public TutoringBoardDetails getTutoringBoardDetailsById(Long tutoringBoardId) {
-        return tutoringBoardRepository.findInformationById(tutoringBoardId)
+        return tutoringBoardRepositoryCustom.findInformationById(tutoringBoardId)
                 .orElseThrow(() -> new TutoringBoardNotFound(tutoringBoardId));
     }
 

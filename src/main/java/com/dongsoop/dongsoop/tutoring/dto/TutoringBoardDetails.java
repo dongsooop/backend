@@ -1,29 +1,38 @@
 package com.dongsoop.dongsoop.tutoring.dto;
 
+import com.dongsoop.dongsoop.board.BoardDate;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-public interface TutoringBoardDetails {
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+public class TutoringBoardDetails {
 
-    Long getId();
+    private Long id;
 
-    String getTitle();
+    private String title;
 
-    String getContent();
+    private String content;
 
-    String getTags();
+    private String tags;
 
-    Integer getCapacity();
+    private Integer capacity;
 
-    LocalDateTime getStartAt();
+    private LocalDateTime startAt;
 
-    LocalDateTime getEndAt();
+    private LocalDateTime endAt;
 
-    DepartmentType getDepartmentType();
+    private DepartmentType departmentType;
 
-    String getAuthor();
+    private String author;
 
-    LocalDateTime getCreatedAt();
+    private LocalDateTime createdAt;
 
-    LocalDateTime getUpdatedAt();
+    private LocalDateTime updatedAt;
+
+    private BoardDate boardDate;
 }
