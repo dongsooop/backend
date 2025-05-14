@@ -29,6 +29,10 @@ public class PageableUtil {
     }
 
     private Order getOrder(Sort.Order order) {
-        return order.isAscending() ? Order.ASC : Order.DESC;
+        if (order.isDescending()) {
+            return Order.DESC;
+        }
+
+        return Order.ASC;
     }
 }
