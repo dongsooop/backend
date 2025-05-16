@@ -30,7 +30,6 @@ public class SignupRequest {
     @NotBlank(message = "닉네임은 필수 입력값입니다.")
     private String nickname;
 
-    @NotBlank(message = "학번은 필수 입력값입니다.")
     @Pattern(regexp = "^\\d{8}$", message = "학번은 8자리 숫자여야 합니다.")
     private String studentId;
 
