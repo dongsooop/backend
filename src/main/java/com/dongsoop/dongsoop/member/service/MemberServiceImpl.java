@@ -7,12 +7,15 @@ import com.dongsoop.dongsoop.exception.domain.member.EmailDuplicatedException;
 import com.dongsoop.dongsoop.exception.domain.member.InvalidPasswordFormatException;
 import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
 import com.dongsoop.dongsoop.jwt.TokenGenerator;
-import com.dongsoop.dongsoop.jwt.dto.TokenIssueResponse;
+import com.dongsoop.dongsoop.jwt.dto.IssuedToken;
 import com.dongsoop.dongsoop.member.dto.LoginAuthenticate;
+import com.dongsoop.dongsoop.member.dto.LoginDetails;
+import com.dongsoop.dongsoop.member.dto.LoginMemberDetails;
 import com.dongsoop.dongsoop.member.dto.LoginRequest;
 import com.dongsoop.dongsoop.member.dto.SignupRequest;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
+import com.dongsoop.dongsoop.member.repository.MemberRepositoryCustom;
 import com.dongsoop.dongsoop.role.entity.MemberRole;
 import com.dongsoop.dongsoop.role.entity.Role;
 import com.dongsoop.dongsoop.role.entity.RoleType;
@@ -40,6 +43,8 @@ public class MemberServiceImpl implements MemberService {
     private final RoleRepository roleRepository;
 
     private final MemberRoleRepository memberRoleRepository;
+
+    private final MemberRepositoryCustom memberRepositoryCustom;
 
     private final DepartmentService departmentService;
 
@@ -76,7 +81,7 @@ public class MemberServiceImpl implements MemberService {
                 .build();
     }
 
-    public TokenIssueResponse login(LoginRequest loginRequest) {
+    public LoginDetails login(LoginRequest loginRequest) {
         LoginAuthenticate loginAuthenticate = getLoginAuthenticate(loginRequest.getEmail());
 
         String password = loginAuthenticate.getPassword();
@@ -87,7 +92,12 @@ public class MemberServiceImpl implements MemberService {
         String accessToken = tokenGenerator.generateAccessToken(authentication);
         String refreshToken = tokenGenerator.generateRefreshToken(authentication);
 
-        return new TokenIssueResponse(accessToken, refreshToken);
+        IssuedToken issuedToken = new IssuedToken(accessToken, refreshToken);
+        LoginMemberDetails loginMemberDetails = memberRepositoryCustom.findLoginMemberDetailById(
+                        loginAuthenticate.getId())
+                .orElseThrow(MemberNotFoundException::new);
+
+        return new LoginDetails(loginMemberDetails, issuedToken);
     }
 
     private Authentication getAuthenticationByLoginAuthenticate(LoginAuthenticate loginAuthenticate) {
