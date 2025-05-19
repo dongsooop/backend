@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.member.controller;
 
-import com.dongsoop.dongsoop.jwt.dto.IssuedToken;
+import com.dongsoop.dongsoop.jwt.dto.TokenIssueResponse;
 import com.dongsoop.dongsoop.member.dto.LoginDetails;
 import com.dongsoop.dongsoop.member.dto.LoginRequest;
 import com.dongsoop.dongsoop.member.dto.LoginResponse;
@@ -40,7 +40,7 @@ public class MemberController {
                                                HttpServletResponse response) {
         LoginDetails loginDetail = memberService.login(loginRequest);
 
-        IssuedToken issuedToken = loginDetail.getIssuedToken();
+        TokenIssueResponse issuedToken = loginDetail.getIssuedToken();
         String accessToken = issuedToken.getAccessToken();
         String refreshToken = issuedToken.getRefreshToken();
 
