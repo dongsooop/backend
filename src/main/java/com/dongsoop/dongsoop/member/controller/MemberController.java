@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.member.controller;
 
-import com.dongsoop.dongsoop.jwt.dto.TokenIssueResponse;
+import com.dongsoop.dongsoop.jwt.dto.IssuedToken;
+import com.dongsoop.dongsoop.member.dto.LoginDetails;
 import com.dongsoop.dongsoop.member.dto.LoginRequest;
 import com.dongsoop.dongsoop.member.dto.LoginResponse;
 import com.dongsoop.dongsoop.member.dto.SignupRequest;
@@ -22,13 +23,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/member")
 public class MemberController {
+    private final MemberService memberService;
     @Value("${jwt.refreshToken.cookie.name}")
     private String refreshTokenCookieName;
-
     @Value("${jwt.expired-time.refresh-token}")
     private Long refreshTokenExpiredTime;
-
-    private final MemberService memberService;
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody @Valid SignupRequest signupRequest) {
@@ -39,16 +38,25 @@ public class MemberController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest,
                                                HttpServletResponse response) {
-        TokenIssueResponse loginDetail = memberService.login(loginRequest);
+        LoginDetails loginDetail = memberService.login(loginRequest);
 
-        Cookie refreshCookie = new Cookie(refreshTokenCookieName, loginDetail.getRefreshToken());
+        IssuedToken issuedToken = loginDetail.getIssuedToken();
+        String accessToken = issuedToken.getAccessToken();
+        String refreshToken = issuedToken.getRefreshToken();
+
+        setRefreshTokenCookie(response, refreshToken);
+
+        LoginResponse loginResponse = new LoginResponse(loginDetail.getLoginMemberDetail(), accessToken);
+        return ResponseEntity.ok(loginResponse);
+    }
+
+    private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
+        Cookie refreshCookie = new Cookie(refreshTokenCookieName, refreshToken);
         refreshCookie.setHttpOnly(true);
         refreshCookie.setSecure(true);
         refreshCookie.setPath("/");
         refreshCookie.setMaxAge((int) (refreshTokenExpiredTime / 1000));
 
         response.addCookie(refreshCookie);
-
-        return ResponseEntity.ok(new LoginResponse(loginDetail.getAccessToken()));
     }
 }

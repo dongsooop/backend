@@ -1,0 +1,40 @@
+<configuration debug="true">
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- 콘솔 로깅 설정 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <Pattern>${CONSOLE_LOG_PATTERN}</Pattern>
+            <charset>utf8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 디스코드 웹훅 로깅 설정 -->
+    <springProperty name="DISCORD_WEBHOOK_URL" source="logging.discord.webhook-url" defaultValue=""/>
+    <appender name="DISCORD" class="com.github.napstr.logback.DiscordAppender">
+        <webhookUri>
+            https://discord.com/api/webhooks/1369530910864838717/LXZMjuiIgXj1oqaRYrxa3a7eJJReOxWBCcYXh1dUlHhBJb4N-DemY2C0HIa_arKPgbfW
+        </webhookUri>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>%d{HH:mm:ss} [%thread] [%-5level] %logger{36} - %msg%n```%ex{full}```</pattern>
+        </layout>
+        <username>에러 알리미</username>
+        <tts>false</tts>
+    </appender>
+
+    <!-- 디스코드 비동기 처리 설정 (ERROR 레벨 이상만) -->
+    <appender name="ASYNC_DISCORD" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="DISCORD"/>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+    </appender>
+
+    <logger name="com.github.napstr.logback" level="DEBUG"/>
+
+    <!-- 루트 로거 설정 -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_DISCORD"/>
+    </root>
+</configuration>
