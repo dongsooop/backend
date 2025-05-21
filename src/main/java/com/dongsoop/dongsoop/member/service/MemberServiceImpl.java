@@ -7,7 +7,7 @@ import com.dongsoop.dongsoop.exception.domain.member.EmailDuplicatedException;
 import com.dongsoop.dongsoop.exception.domain.member.InvalidPasswordFormatException;
 import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
 import com.dongsoop.dongsoop.jwt.TokenGenerator;
-import com.dongsoop.dongsoop.jwt.dto.TokenIssueResponse;
+import com.dongsoop.dongsoop.jwt.dto.IssuedToken;
 import com.dongsoop.dongsoop.member.dto.*;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
@@ -89,7 +89,7 @@ public class MemberServiceImpl implements MemberService {
         String accessToken = tokenGenerator.generateAccessToken(authentication);
         String refreshToken = tokenGenerator.generateRefreshToken(authentication);
 
-        TokenIssueResponse issuedToken = new TokenIssueResponse(accessToken, refreshToken);
+        IssuedToken issuedToken = new IssuedToken(accessToken, refreshToken);
         LoginMemberDetails loginMemberDetails = memberRepositoryCustom.findLoginMemberDetailById(
                         loginAuthenticate.getId())
                 .orElseThrow(MemberNotFoundException::new);
