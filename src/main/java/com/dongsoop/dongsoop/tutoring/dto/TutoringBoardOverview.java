@@ -16,6 +16,8 @@ public class TutoringBoardOverview {
 
     private Integer volunteer;
 
+    private LocalDateTime startAt;
+
     private LocalDateTime endAt;
 
     private String title;
@@ -23,6 +25,4 @@ public class TutoringBoardOverview {
     private String content;
 
     private String tags;
-
-    private LocalDateTime createdAt;
 }
