@@ -29,7 +29,6 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
 
         return queryFactory.select(Projections.constructor(TutoringBoardOverview.class,
                         tutoringBoard.id,
-                        tutoringBoard.capacity,
                         tutoringApplication.id.member.count().intValue(),
                         tutoringBoard.startAt,
                         tutoringBoard.endAt,
@@ -57,7 +56,6 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                                 tutoringBoard.title,
                                 tutoringBoard.content,
                                 tutoringBoard.tags,
-                                tutoringBoard.capacity,
                                 tutoringBoard.startAt,
                                 tutoringBoard.endAt,
                                 tutoringBoard.department.id,

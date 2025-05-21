@@ -12,8 +12,6 @@ public class TutoringBoardOverview {
 
     private Long id;
 
-    private Integer capacity;
-
     private Integer volunteer;
 
     private LocalDateTime startAt;

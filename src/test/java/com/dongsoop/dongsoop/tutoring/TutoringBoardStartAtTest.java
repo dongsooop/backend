@@ -52,7 +52,6 @@ class TutoringBoardStartAtTest {
     void setUp() throws JSONException {
         json.put("title", "title");
         json.put("tags", "tags");
-        json.put("capacity", 5);
         json.put("content", "content");
         json.put("departmentType", DepartmentType.DEPT_2001);
     }
@@ -91,7 +90,6 @@ class TutoringBoardStartAtTest {
                 .title("title")
                 .content("content")
                 .tags("tags")
-                .capacity(5)
                 .startAt(LocalDate.now().atStartOfDay())
                 .endAt(LocalDate.now().atStartOfDay())
                 .department(department)

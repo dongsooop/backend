@@ -20,10 +20,6 @@ public abstract class RecruitmentBoard extends Board {
     @Column(name = "end_at", nullable = false)
     private LocalDateTime endAt;
 
-    @NotNull
-    @Column(name = "capacity", nullable = false, columnDefinition = "INT DEFAULT 0")
-    private Integer capacity;
-
     @Column(name = "tags", length = 100)
     private String tags;
 }

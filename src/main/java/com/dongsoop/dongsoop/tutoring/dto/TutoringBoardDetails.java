@@ -19,8 +19,6 @@ public class TutoringBoardDetails {
 
     private String tags;
 
-    private Integer capacity;
-
     private LocalDateTime startAt;
 
     private LocalDateTime endAt;
