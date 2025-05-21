@@ -67,7 +67,6 @@ public class MemberServiceImpl implements MemberService {
     private Member transformToMemberBySignupRequest(SignupRequest request) {
         String email = request.getEmail();
         String nickname = request.getNickname();
-        String studentId = request.getStudentId();
         DepartmentType departmentType = request.getDepartmentType();
 
         Department proxyDepartment = departmentService.getReferenceById(departmentType);
@@ -76,7 +75,6 @@ public class MemberServiceImpl implements MemberService {
                 .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .nickname(nickname)
-                .studentId(studentId)
                 .department(proxyDepartment)
                 .build();
     }
