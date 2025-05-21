@@ -245,7 +245,6 @@ class TutoringBoardRecruitDateTest {
         JSONObject json = new JSONObject();
         json.put("title", "title");
         json.put("tags", "tags");
-        json.put("capacity", 5);
         json.put("content", "content");
         json.put("departmentType", DepartmentType.DEPT_2001);
         json.put("startAt", startAt.toString());

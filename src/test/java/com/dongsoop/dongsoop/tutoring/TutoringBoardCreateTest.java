@@ -29,7 +29,6 @@ class TutoringBoardCreateTest {
     private final String VALID_TITLE = "This is a test title";
     private final String VALID_CONTENT = "This is a test content";
     private final String VALID_TAGS = "tag1, tag2";
-    private final Integer VALID_RECRUITMENT_CAPACITY = 5;
     private final DepartmentType VALID_DEPARTMENT_TYPE = DepartmentType.DEPT_2001;
     private final LocalDateTime VALID_START_AT = LocalDateTime.of(2099, 1, 1, 0, 0);
     private final LocalDateTime VALID_END_AT = LocalDateTime.of(2099, 12, 31, 23, 59);
@@ -54,7 +53,6 @@ class TutoringBoardCreateTest {
                 .title(VALID_TITLE)
                 .content(VALID_CONTENT)
                 .tags(VALID_TAGS)
-                .capacity(VALID_RECRUITMENT_CAPACITY)
                 .startAt(VALID_START_AT)
                 .endAt(VALID_END_AT)
                 .departmentType(VALID_DEPARTMENT_TYPE)
@@ -89,7 +87,6 @@ class TutoringBoardCreateTest {
                 .title(VALID_TITLE)
                 .content(VALID_CONTENT)
                 .tags(VALID_TAGS)
-                .capacity(VALID_RECRUITMENT_CAPACITY)
                 .startAt(VALID_START_AT)
                 .endAt(VALID_END_AT)
                 .department(department)

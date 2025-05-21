@@ -12,9 +12,9 @@ public class TutoringBoardOverview {
 
     private Long id;
 
-    private Integer capacity;
-
     private Integer volunteer;
+
+    private LocalDateTime startAt;
 
     private LocalDateTime endAt;
 
@@ -23,6 +23,4 @@ public class TutoringBoardOverview {
     private String content;
 
     private String tags;
-
-    private LocalDateTime createdAt;
 }

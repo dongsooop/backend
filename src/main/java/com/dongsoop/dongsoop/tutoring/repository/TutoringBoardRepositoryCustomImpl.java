@@ -22,19 +22,19 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
 
     private final PageableUtil pageableUtil;
 
-    public List<TutoringBoardOverview> findTutoringBoardOverviewsByPage(Department recruitmentDepartment, Pageable pageable) {
+    public List<TutoringBoardOverview> findTutoringBoardOverviewsByPage(Department recruitmentDepartment,
+                                                                        Pageable pageable) {
         QTutoringBoard tutoringBoard = QTutoringBoard.tutoringBoard;
         QTutoringApplication tutoringApplication = QTutoringApplication.tutoringApplication;
 
         return queryFactory.select(Projections.constructor(TutoringBoardOverview.class,
                         tutoringBoard.id,
-                        tutoringBoard.capacity,
                         tutoringApplication.id.member.count().intValue(),
+                        tutoringBoard.startAt,
                         tutoringBoard.endAt,
                         tutoringBoard.title,
                         tutoringBoard.content,
-                        tutoringBoard.tags,
-                        tutoringBoard.createdAt))
+                        tutoringBoard.tags))
                 .from(tutoringBoard)
                 .leftJoin(tutoringApplication)
                 .on(tutoringApplication.id.tutoringBoard.id.eq(tutoringBoard.id))
@@ -56,7 +56,6 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                                 tutoringBoard.title,
                                 tutoringBoard.content,
                                 tutoringBoard.tags,
-                                tutoringBoard.capacity,
                                 tutoringBoard.startAt,
                                 tutoringBoard.endAt,
                                 tutoringBoard.department.id,
