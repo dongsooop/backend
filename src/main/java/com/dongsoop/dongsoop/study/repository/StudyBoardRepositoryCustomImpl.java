@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.study.repository;
 
+import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.study.dto.StudyBoardDetails;
 import com.dongsoop.dongsoop.study.dto.StudyBoardOverview;
 import com.dongsoop.dongsoop.study.entity.QStudyBoard;
@@ -28,7 +29,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
 
     private final JPAQueryFactory queryFactory;
 
-    public List<StudyBoardOverview> findStudyBoardOverviewsByPage(Pageable pageable) {
+    public List<StudyBoardOverview> findStudyBoardOverviewsByPage(DepartmentType departmentType, Pageable pageable) {
         return queryFactory
                 .select(Projections.constructor(StudyBoardOverview.class,
                         studyBoard.id,
@@ -43,6 +44,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .on(equalStudyBoardId(studyBoardApplication.id.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
                 .on(equalStudyBoardId(studyBoardDepartment.id.studyBoard.id))
+                .where(equalDepartmentType(departmentType))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(studyBoard.id)
@@ -86,5 +88,9 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
 
     private BooleanExpression equalStudyBoardId(NumberPath<Long> studyBoardId) {
         return studyBoard.id.eq(studyBoardId);
+    }
+
+    private BooleanExpression equalDepartmentType(DepartmentType departmentType) {
+        return studyBoardDepartment.id.department.id.eq(departmentType);
     }
 }

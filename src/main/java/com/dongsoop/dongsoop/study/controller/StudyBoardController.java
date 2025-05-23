@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.study.controller;
 
+import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.study.dto.CreateStudyBoardRequest;
 import com.dongsoop.dongsoop.study.dto.StudyBoardDetails;
 import com.dongsoop.dongsoop.study.dto.StudyBoardOverview;
@@ -42,9 +43,11 @@ public class StudyBoardController {
                 .build();
     }
 
-    @GetMapping
-    public ResponseEntity<List<StudyBoardOverview>> getStudyBoardList(Pageable pageable) {
-        List<StudyBoardOverview> studyBoardOverviews = studyBoardService.getStudyBoardByPage(pageable);
+    @GetMapping("/department/{departmentType}")
+    public ResponseEntity<List<StudyBoardOverview>> getStudyBoardList(
+            @PathVariable("departmentType") DepartmentType departmentType,
+            Pageable pageable) {
+        List<StudyBoardOverview> studyBoardOverviews = studyBoardService.getStudyBoardByPage(departmentType, pageable);
 
         return ResponseEntity.ok(studyBoardOverviews);
     }

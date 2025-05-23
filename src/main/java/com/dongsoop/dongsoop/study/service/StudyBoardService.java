@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.study.service;
 
+import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.study.dto.CreateStudyBoardRequest;
 import com.dongsoop.dongsoop.study.dto.StudyBoardDetails;
 import com.dongsoop.dongsoop.study.dto.StudyBoardOverview;
@@ -11,7 +12,7 @@ public interface StudyBoardService {
 
     StudyBoard create(CreateStudyBoardRequest request);
 
-    List<StudyBoardOverview> getStudyBoardByPage(Pageable pageable);
+    List<StudyBoardOverview> getStudyBoardByPage(DepartmentType departmentType, Pageable pageable);
 
     StudyBoardDetails getStudyBoardDetails(Long studyBoardId);
 }

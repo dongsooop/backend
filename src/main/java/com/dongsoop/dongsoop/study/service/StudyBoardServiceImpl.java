@@ -50,8 +50,8 @@ public class StudyBoardServiceImpl implements StudyBoardService {
         return studyBoard;
     }
 
-    public List<StudyBoardOverview> getStudyBoardByPage(Pageable pageable) {
-        return studyBoardRepositoryCustom.findStudyBoardOverviewsByPage(pageable);
+    public List<StudyBoardOverview> getStudyBoardByPage(DepartmentType departmentType, Pageable pageable) {
+        return studyBoardRepositoryCustom.findStudyBoardOverviewsByPage(departmentType, pageable);
     }
 
     public StudyBoardDetails getStudyBoardDetails(Long studyBoardId) {
