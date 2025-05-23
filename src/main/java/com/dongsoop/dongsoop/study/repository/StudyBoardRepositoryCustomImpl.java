@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.study.repository;
 
+import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.study.dto.StudyBoardDetails;
 import com.dongsoop.dongsoop.study.dto.StudyBoardOverview;
@@ -29,6 +30,8 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
 
     private final JPAQueryFactory queryFactory;
 
+    private final PageableUtil pageableUtil;
+
     public List<StudyBoardOverview> findStudyBoardOverviewsByPage(DepartmentType departmentType, Pageable pageable) {
         return queryFactory
                 .select(Projections.constructor(StudyBoardOverview.class,
@@ -48,6 +51,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(studyBoard.id)
+                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort()))
                 .fetch();
     }
 
