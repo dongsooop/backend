@@ -1,0 +1,51 @@
+package com.dongsoop.dongsoop.study.controller;
+
+import com.dongsoop.dongsoop.study.dto.CreateStudyBoardRequest;
+import com.dongsoop.dongsoop.study.dto.StudyBoardDetails;
+import com.dongsoop.dongsoop.study.dto.StudyBoardOverview;
+import com.dongsoop.dongsoop.study.entity.StudyBoard;
+import com.dongsoop.dongsoop.study.service.StudyBoardService;
+import jakarta.validation.Valid;
+import java.net.URI;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/study-board")
+@RequiredArgsConstructor
+public class StudyBoardController {
+
+    private final StudyBoardService studyBoardService;
+
+    @GetMapping("/{studyBoardId}")
+    public ResponseEntity<StudyBoardDetails> getStudyBoardDetails(@PathVariable Long studyBoardId) {
+        StudyBoardDetails studyBoardDetails = studyBoardService.getStudyBoardDetails(studyBoardId);
+
+        return ResponseEntity.ok(studyBoardDetails);
+    }
+
+    @PostMapping
+    public ResponseEntity<Void> createStudyBoard(@RequestBody @Valid CreateStudyBoardRequest request) {
+        StudyBoard studyBoard = studyBoardService.create(request);
+
+        URI uri = URI.create("/study-board/" + studyBoard.getId());
+
+        return ResponseEntity.created(uri)
+                .build();
+    }
+
+    @GetMapping
+    public ResponseEntity<List<StudyBoardOverview>> getStudyBoardList(Pageable pageable) {
+        List<StudyBoardOverview> studyBoardOverviews = studyBoardService.getStudyBoardByPage(pageable);
+
+        return ResponseEntity.ok(studyBoardOverviews);
+    }
+}
