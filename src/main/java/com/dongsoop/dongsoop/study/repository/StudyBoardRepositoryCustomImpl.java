@@ -36,7 +36,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .from(studyBoard)
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
-                .rightJoin(studyBoardDepartment)
+                .leftJoin(studyBoardDepartment)
                 .fetch();
     }
 
