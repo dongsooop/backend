@@ -15,6 +15,7 @@ import com.dongsoop.dongsoop.study.entity.StudyBoard;
 import com.dongsoop.dongsoop.study.service.StudyBoardServiceImpl;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,7 +53,8 @@ class StudyBoardStartAtTest {
         json.put("title", "title");
         json.put("tags", "tags");
         json.put("content", "content");
-        json.put("departmentType", new DepartmentType[]{DepartmentType.DEPT_2001, DepartmentType.DEPT_3001});
+        json.put("departmentTypeList",
+                new JSONArray(new String[]{DepartmentType.DEPT_2001.name(), DepartmentType.DEPT_3001.name()}));
     }
 
     @Test
