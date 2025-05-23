@@ -10,11 +10,9 @@
     </appender>
 
     <!-- 디스코드 웹훅 로깅 설정 -->
-    <springProperty name="DISCORD_WEBHOOK_URL" source="logging.discord.webhook-url" defaultValue=""/>
+    <springProperty name="DISCORD_WEBHOOK_URL" source="spring.logging.discord.webhook-url" defaultValue=""/>
     <appender name="DISCORD" class="com.github.napstr.logback.DiscordAppender">
-        <webhookUri>
-            https://discord.com/api/webhooks/1369530910864838717/LXZMjuiIgXj1oqaRYrxa3a7eJJReOxWBCcYXh1dUlHhBJb4N-DemY2C0HIa_arKPgbfW
-        </webhookUri>
+        <webhookUri>${DISCORD_WEBHOOK_URL}</webhookUri>
         <layout class="ch.qos.logback.classic.PatternLayout">
             <pattern>%d{HH:mm:ss} [%thread] [%-5level] %logger{36} - %msg%n```%ex{full}```</pattern>
         </layout>

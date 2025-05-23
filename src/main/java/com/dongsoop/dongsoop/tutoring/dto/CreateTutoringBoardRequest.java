@@ -6,7 +6,6 @@ import com.dongsoop.dongsoop.date.MaxDuration;
 import com.dongsoop.dongsoop.date.MinDuration;
 import com.dongsoop.dongsoop.date.TodayOrFuture;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
@@ -32,10 +31,6 @@ public class CreateTutoringBoardRequest {
 
     @NotBlank
     private String tags;
-
-    @NotNull
-    @Min(1)
-    private Integer capacity;
 
     @NotNull
     @MaxDate(month = 3)
