@@ -96,7 +96,6 @@ class StudyBoardCreateTest {
         verify(studyBoardRepository).save(captor.capture());
         StudyBoard board = captor.getValue();
 
-//        Department department = new Department(VALID_DEPARTMENT_TYPE, null, null);
         StudyBoard compareBoard = StudyBoard.builder()
                 .title(VALID_TITLE)
                 .content(VALID_CONTENT)
