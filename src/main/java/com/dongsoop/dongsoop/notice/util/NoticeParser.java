@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.exception.domain.notice.NoticeSubjectNotAvailableEx
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -76,23 +77,16 @@ public class NoticeParser {
     }
 
     public String parseTitle(Element row) {
-        Element subjectElement = row.getElementsByClass("td-subject")
-                .first();
+        Element subjectElement = row.selectFirst(".td-subject");
 
         if (subjectElement == null) {
             throw new NoticeSubjectNotAvailableException();
         }
 
-        Elements subjectTextElement = subjectElement.getElementsByTag("strong");
+        Element subjectTextElement = subjectElement.selectFirst("strong");
 
-        // strong 태그가 없으면 td-subject 내용 전체 반환
-        if (subjectTextElement.isEmpty()) {
-            return subjectElement.text();
-        }
-
-        // strong 태그가 있으면 strong 태그 내용만 반환
-        return subjectTextElement.first() // subjectTextElement가 비어있는지 확인했기 때문에 추가 검증하지 않음
-                .text();
+        // strong 클래스가 있다면 반환하고 없다면 subject 내용 전체 반환
+        return Objects.requireNonNullElse(subjectTextElement, subjectElement).text();
     }
 
     public String parseLink(Element row) {
