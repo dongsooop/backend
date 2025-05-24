@@ -19,6 +19,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class NoticeParser {
 
+    private static final String TD_SUBJECT_SELECTOR = ".td-subject";
+
     private static final Pattern DEPARTMENT_NOTICE_LINK_PATTERN = Pattern.compile(
             "^/combBbs/dmu/\\d+/\\d+/(\\d+)/view.do$");
     private static final Pattern UNIVERSITY_NOTICE_LINK_PATTERN = Pattern.compile(
@@ -77,7 +79,7 @@ public class NoticeParser {
     }
 
     public String parseTitle(Element row) {
-        Element subjectElement = row.selectFirst(".td-subject");
+        Element subjectElement = row.selectFirst(TD_SUBJECT_SELECTOR);
 
         if (subjectElement == null) {
             throw new NoticeSubjectNotAvailableException();
@@ -90,8 +92,7 @@ public class NoticeParser {
     }
 
     public String parseLink(Element row) {
-        Element titleElement = row.getElementsByClass("td-subject")
-                .first();
+        Element titleElement = row.selectFirst(TD_SUBJECT_SELECTOR);
         if (titleElement == null) {
             return "";
         }
