@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.notice.util;
 
 import com.dongsoop.dongsoop.exception.domain.notice.NoticeLinkFormatNotAvailable;
+import com.dongsoop.dongsoop.exception.domain.notice.NoticeSubjectNotAvailableException;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -17,13 +18,11 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class NoticeParser {
 
-    private final NoticeLinkParser noticeLinkParser;
-
     private static final Pattern DEPARTMENT_NOTICE_LINK_PATTERN = Pattern.compile(
             "^/combBbs/dmu/\\d+/\\d+/(\\d+)/view.do$");
-
     private static final Pattern UNIVERSITY_NOTICE_LINK_PATTERN = Pattern.compile(
             "^/bbs/dmu/\\d+/(\\d+)/artclView.do\\?layout=unknown$");
+    private final NoticeLinkParser noticeLinkParser;
 
     public NoticeDetails parse(Element row) {
         if (!isNoticeRow(row)) {
@@ -77,7 +76,27 @@ public class NoticeParser {
     }
 
     public String parseTitle(Element row) {
-        return parseTextByClass(row, "td-subject");
+        Element subjectElement = row.getElementsByClass("td-subject")
+                .first();
+
+        if (subjectElement == null) {
+            throw new NoticeSubjectNotAvailableException();
+        }
+
+        Elements subjectTextElement = subjectElement.getElementsByTag("strong");
+
+        // strong 태그가 없으면 td-subject 내용 전체 반환
+        if (subjectTextElement.isEmpty()) {
+            return subjectElement.text();
+        }
+
+        // strong 태그가 있으면 strong 태그 내용만 반환
+        Element textElement = subjectTextElement.first();
+        if (textElement == null) {
+            throw new NoticeSubjectNotAvailableException();
+        }
+
+        return textElement.text();
     }
 
     public String parseLink(Element row) {
