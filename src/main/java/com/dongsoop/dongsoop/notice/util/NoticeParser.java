@@ -91,12 +91,8 @@ public class NoticeParser {
         }
 
         // strong 태그가 있으면 strong 태그 내용만 반환
-        Element textElement = subjectTextElement.first();
-        if (textElement == null) {
-            throw new NoticeSubjectNotAvailableException();
-        }
-
-        return textElement.text();
+        return subjectTextElement.first() // subjectTextElement가 비어있는지 확인했기 때문에 추가 검증하지 않음
+                .text();
     }
 
     public String parseLink(Element row) {
