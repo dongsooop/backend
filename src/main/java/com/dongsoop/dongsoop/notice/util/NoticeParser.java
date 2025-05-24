@@ -1,9 +1,11 @@
 package com.dongsoop.dongsoop.notice.util;
 
 import com.dongsoop.dongsoop.exception.domain.notice.NoticeLinkFormatNotAvailable;
+import com.dongsoop.dongsoop.exception.domain.notice.NoticeSubjectNotAvailableException;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -17,13 +19,13 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class NoticeParser {
 
-    private final NoticeLinkParser noticeLinkParser;
+    private static final String TD_SUBJECT_SELECTOR = ".td-subject";
 
     private static final Pattern DEPARTMENT_NOTICE_LINK_PATTERN = Pattern.compile(
             "^/combBbs/dmu/\\d+/\\d+/(\\d+)/view.do$");
-
     private static final Pattern UNIVERSITY_NOTICE_LINK_PATTERN = Pattern.compile(
             "^/bbs/dmu/\\d+/(\\d+)/artclView.do\\?layout=unknown$");
+    private final NoticeLinkParser noticeLinkParser;
 
     public NoticeDetails parse(Element row) {
         if (!isNoticeRow(row)) {
@@ -77,12 +79,20 @@ public class NoticeParser {
     }
 
     public String parseTitle(Element row) {
-        return parseTextByClass(row, "td-subject");
+        Element subjectElement = row.selectFirst(TD_SUBJECT_SELECTOR);
+
+        if (subjectElement == null) {
+            throw new NoticeSubjectNotAvailableException();
+        }
+
+        Element subjectTextElement = subjectElement.selectFirst("strong");
+
+        // strong 클래스가 있다면 반환하고 없다면 subject 내용 전체 반환
+        return Objects.requireNonNullElse(subjectTextElement, subjectElement).text();
     }
 
     public String parseLink(Element row) {
-        Element titleElement = row.getElementsByClass("td-subject")
-                .first();
+        Element titleElement = row.selectFirst(TD_SUBJECT_SELECTOR);
         if (titleElement == null) {
             return "";
         }
