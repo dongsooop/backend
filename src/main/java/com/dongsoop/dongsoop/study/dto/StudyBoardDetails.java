@@ -42,13 +42,16 @@ public class StudyBoardDetails {
         this.tags = tags;
         this.startAt = startAt;
         this.endAt = endAt;
-
-        this.departmentTypeList = Arrays.stream(departmentTypes.split(","))
-                .map(DepartmentType::valueOf)
-                .toList();
+        this.departmentTypeList = getDepartmentTypeList(departmentTypes);
         this.author = author;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.volunteer = volunteer;
+    }
+
+    private List<DepartmentType> getDepartmentTypeList(String departmentTypes) {
+        return Arrays.stream(departmentTypes.split(","))
+                .map(DepartmentType::valueOf)
+                .toList();
     }
 }
