@@ -51,7 +51,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(studyBoard.id)
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort()))
+                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), studyBoard))
                 .fetch();
     }
 
