@@ -42,6 +42,11 @@ public class StudyBoardDepartment {
                 return false;
             }
             StudyBoardDepartmentId that = (StudyBoardDepartmentId) o;
+            if (this.studyBoard == null || that.studyBoard == null
+                    || this.department == null || that.department == null) {
+                return false;
+            }
+
             return this.studyBoard.equalsId(that.studyBoard) && this.department.equalsId(that.department);
         }
 
