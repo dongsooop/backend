@@ -44,9 +44,9 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                         studyBoard.tags))
                 .from(studyBoard)
                 .leftJoin(studyBoardApplication)
-                .on(equalStudyBoardId(studyBoardApplication.id.studyBoard.id))
+                .on(hasMatchingStudyBoardId(studyBoardApplication.id.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
-                .on(equalStudyBoardId(studyBoardDepartment.id.studyBoard.id))
+                .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
                 .where(equalDepartmentType(departmentType))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -71,9 +71,9 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                         studyBoardApplication.id.member.count().intValue()))
                 .from(studyBoard)
                 .leftJoin(studyBoardApplication)
-                .on(equalStudyBoardId(studyBoardApplication.id.studyBoard.id))
+                .on(hasMatchingStudyBoardId(studyBoardApplication.id.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
-                .on(equalStudyBoardId(studyBoardDepartment.id.studyBoard.id))
+                .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
                 .groupBy(
                         studyBoard.id,
                         studyBoard.title,
@@ -90,7 +90,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
         return Optional.ofNullable(studyBoardDetails);
     }
 
-    private BooleanExpression equalStudyBoardId(NumberPath<Long> studyBoardId) {
+    private BooleanExpression hasMatchingStudyBoardId(NumberPath<Long> studyBoardId) {
         return studyBoard.id.eq(studyBoardId);
     }
 
