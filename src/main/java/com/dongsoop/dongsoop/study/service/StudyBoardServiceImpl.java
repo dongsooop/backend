@@ -19,6 +19,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +35,7 @@ public class StudyBoardServiceImpl implements StudyBoardService {
 
     private final StudyBoardDepartmentRepository studyBoardDepartmentRepository;
 
+    @Transactional
     public StudyBoard create(CreateStudyBoardRequest request) {
         StudyBoard studyBoardToSave = transformToStudyBoard(request);
         List<Department> departmentList = getDepartmentReferenceList(request.getDepartmentTypeList());
