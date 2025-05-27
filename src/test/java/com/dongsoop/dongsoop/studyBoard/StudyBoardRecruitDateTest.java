@@ -55,7 +55,7 @@ class StudyBoardRecruitDateTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private StudyBoardService StudyBoardService;
+    private StudyBoardService studyBoardService;
 
     @MockitoBean
     private JwtFilter jwtFilter;
@@ -73,7 +73,7 @@ class StudyBoardRecruitDateTest {
                 .id(1L)
                 .build();
 
-        when(StudyBoardService.create(any(CreateStudyBoardRequest.class)))
+        when(studyBoardService.create(any(CreateStudyBoardRequest.class)))
                 .thenReturn(createdBoard);
     }
 
