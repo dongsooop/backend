@@ -39,14 +39,14 @@ public class StudyBoardServiceImpl implements StudyBoardService {
         List<Department> departmentList = getDepartmentReferenceList(request.getDepartmentTypeList());
 
         StudyBoard studyBoard = studyBoardRepository.save(studyBoardToSave);
-        List<StudyBoardDepartment> studyBoardDepartment = departmentList.stream()
+        List<StudyBoardDepartment> studyBoardDepartmentList = departmentList.stream()
                 .map(department -> {
                     StudyBoardDepartmentId studyBoardDepartmentId = new StudyBoardDepartmentId(studyBoard, department);
                     return new StudyBoardDepartment(studyBoardDepartmentId);
                 })
                 .toList();
 
-        studyBoardDepartmentRepository.saveAll(studyBoardDepartment);
+        studyBoardDepartmentRepository.saveAll(studyBoardDepartmentList);
         return studyBoard;
     }
 
