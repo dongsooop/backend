@@ -51,6 +51,7 @@ public class StudyBoardDetails {
 
     private List<DepartmentType> getDepartmentTypeList(String departmentTypes) {
         return Arrays.stream(departmentTypes.split(","))
+                .map(String::trim)
                 .map(DepartmentType::valueOf)
                 .toList();
     }
