@@ -64,7 +64,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                         studyBoard.tags,
                         studyBoard.startAt,
                         studyBoard.endAt,
-                        Expressions.stringTemplate("listagg({0}, ',')", studyBoardDepartment.id.department.id),
+                        Expressions.stringTemplate("string_agg({0}, ',')", studyBoardDepartment.id.department.id),
                         studyBoard.author.nickname,
                         studyBoard.createdAt,
                         studyBoard.updatedAt,
