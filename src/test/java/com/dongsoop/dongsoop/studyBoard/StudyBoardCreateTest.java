@@ -12,6 +12,7 @@ import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.study.dto.CreateStudyBoardRequest;
 import com.dongsoop.dongsoop.study.entity.StudyBoard;
+import com.dongsoop.dongsoop.study.entity.StudyBoardDepartment;
 import com.dongsoop.dongsoop.study.repository.StudyBoardDepartmentRepository;
 import com.dongsoop.dongsoop.study.repository.StudyBoardRepository;
 import com.dongsoop.dongsoop.study.service.StudyBoardServiceImpl;
@@ -92,9 +93,14 @@ class StudyBoardCreateTest {
         studyBoardService.create(this.request);
 
         // then
-        ArgumentCaptor<StudyBoard> captor = ArgumentCaptor.forClass(StudyBoard.class);
-        verify(studyBoardRepository).save(captor.capture());
-        StudyBoard board = captor.getValue();
+        ArgumentCaptor<StudyBoard> captorStudyBoard = ArgumentCaptor.forClass(StudyBoard.class);
+        ArgumentCaptor<List<StudyBoardDepartment>> captorDepartment = ArgumentCaptor.forClass(List.class);
+
+        verify(studyBoardRepository).save(captorStudyBoard.capture());
+        verify(studyBoardDepartmentRepository).saveAll(captorDepartment.capture());
+
+        StudyBoard board = captorStudyBoard.getValue();
+        List<StudyBoardDepartment> studyBoardDepartmentList = captorDepartment.getValue();
 
         StudyBoard compareBoard = StudyBoard.builder()
                 .title(VALID_TITLE)
@@ -105,10 +111,22 @@ class StudyBoardCreateTest {
                 .author(Member.builder().id(1L).build())
                 .build();
 
+        List<StudyBoardDepartment> compareDepartmentList = List.of(
+                new StudyBoardDepartment(new StudyBoardDepartment.StudyBoardDepartmentId(board,
+                        new Department(VALID_DEPARTMENT_TYPE_A, null, null))),
+                new StudyBoardDepartment(new StudyBoardDepartment.StudyBoardDepartmentId(board,
+                        new Department(VALID_DEPARTMENT_TYPE_B, null, null)))
+        );
+
         assertThat(board)
                 .usingRecursiveComparison()
                 .ignoringExpectedNullFields()
                 .ignoringFields("id", "createdAt", "updatedAt")
                 .isEqualTo(compareBoard);
+
+        assertThat(studyBoardDepartmentList)
+                .usingRecursiveComparison()
+                .ignoringExpectedNullFields()
+                .isEqualTo(compareDepartmentList);
     }
 }
