@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 public class Department {
 
     @Id
+    @Getter
     @Enumerated(EnumType.STRING)
     private DepartmentType id;
 
@@ -21,4 +22,8 @@ public class Department {
 
     @Getter
     private String noticeUrl;
+
+    public boolean equalsId(Department department) {
+        return this.id.equals(department.id);
+    }
 }
