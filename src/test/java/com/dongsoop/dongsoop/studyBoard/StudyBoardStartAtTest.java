@@ -61,8 +61,12 @@ class StudyBoardStartAtTest {
     @DisplayName("모집 게시판 생성 시 모집 시작일이 과거일 경우 예외를 던진다")
     void startRecruitment_WithPast_ShouldThrowException() throws Exception {
         // given
-        json.put("startAt", LocalDateTime.of(1999, 10, 1, 0, 0, 0));
-        json.put("endAt", LocalDateTime.of(1999, 10, 30, 23, 59, 59));
+
+        LocalDateTime startAt = LocalDateTime.of(1999, 10, 1, 0, 0, 0);
+        LocalDateTime endAt = LocalDateTime.of(1999, 10, 30, 23, 59, 59);
+
+        json.put("startAt", startAt.toString());
+        json.put("endAt", endAt.toString());
 
         // when
         MockHttpServletRequestBuilder content = post(REQUEST_URL)
@@ -95,8 +99,11 @@ class StudyBoardStartAtTest {
         when(studyBoardService.create(any(CreateStudyBoardRequest.class)))
                 .thenReturn(studyBoard);
 
-        json.put("startAt", LocalDate.now().atStartOfDay());
-        json.put("endAt", LocalDate.now().atStartOfDay().plusDays(1));
+        LocalDateTime startAt = LocalDate.now().atStartOfDay();
+        LocalDateTime endAt = LocalDate.now().atStartOfDay().plusDays(1);
+
+        json.put("startAt", startAt.toString());
+        json.put("endAt", endAt.toString());
 
         // when
         MockHttpServletRequestBuilder httpContent = post(REQUEST_URL)

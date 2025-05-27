@@ -78,7 +78,7 @@ class StudyBoardRecruitDateTest {
     }
 
     @Test
-    @DisplayName("모집 시작 날짜가 종료 날짜보다 미래인 경우 예외를 던진다")
+    @DisplayName("모집 시작 날짜가 종료 날짜 이후인 경우 예외를 던진다")
     void startRecruitment_WhenEndAtDateIsBeforeStartAtDate_ThrowsMethodArgumentNotValidException() throws Exception {
         // given
         LocalDateTime endAt = standardDateTime; // 기준일 종료
@@ -107,7 +107,7 @@ class StudyBoardRecruitDateTest {
     }
 
     @Test
-    @DisplayName("모집 시작 시간이 종료 시간보다 미래인 경우 예외를 던진다")
+    @DisplayName("모집 시작 시간이 종료 시간 이후인 경우 예외를 던진다")
     void startRecruitment_WhenEndAtTimeIsBeforeStartAtTime_ThrowsMethodArgumentNotValidException() throws Exception {
         // given
         LocalDateTime endAt = standardDateTime; // 기준일 00시 종료
@@ -248,7 +248,7 @@ class StudyBoardRecruitDateTest {
         json.put("tags", "tags");
         json.put("content", "content");
         JSONArray departmentTypeList = new JSONArray();
-        departmentTypeList.put(DepartmentType.DEPT_2001);
+        departmentTypeList.put(DepartmentType.DEPT_2001.name());
         json.put("departmentTypeList", departmentTypeList);
         json.put("startAt", startAt.toString());
         json.put("endAt", endAt.toString());
