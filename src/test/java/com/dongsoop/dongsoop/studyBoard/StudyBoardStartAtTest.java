@@ -119,8 +119,8 @@ class StudyBoardStartAtTest {
     @DisplayName("모집 게시판 생성 시 모집 시작일이 null인 경우 예외를 던진다")
     void startRecruitment_WithNull_ShouldThrowException() throws Exception {
         // given
-        json.put("startAt", null);
-        json.put("endAt", null);
+        json.put("startAt", JSONObject.NULL);
+        json.put("endAt", JSONObject.NULL);
 
         // when
         MockHttpServletRequestBuilder content = post(REQUEST_URL)
