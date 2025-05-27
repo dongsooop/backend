@@ -79,7 +79,7 @@ class StudyBoardRecruitDateTest {
 
     @Test
     @DisplayName("모집 시작 날짜가 종료 날짜 이후인 경우 예외를 던진다")
-    void startRecruitment_WhenEndAtDateIsBeforeStartAtDate_ThrowsMethodArgumentNotValidException() throws Exception {
+    void startRecruitment_WhenStartDateIsAfterEndDate_ThrowsMethodArgumentNotValidException() throws Exception {
         // given
         LocalDateTime endAt = standardDateTime; // 기준일 종료
         LocalDateTime startAt = standardDateTime.plusDays(1); // 기준일보다 하루 뒤 시작
@@ -108,7 +108,7 @@ class StudyBoardRecruitDateTest {
 
     @Test
     @DisplayName("모집 시작 시간이 종료 시간 이후인 경우 예외를 던진다")
-    void startRecruitment_WhenEndAtTimeIsBeforeStartAtTime_ThrowsMethodArgumentNotValidException() throws Exception {
+    void startRecruitment_WhenStartTimeIsAfterEndTime_ThrowsMethodArgumentNotValidException() throws Exception {
         // given
         LocalDateTime endAt = standardDateTime; // 기준일 00시 종료
         LocalDateTime startAt = endAt.plusHours(1); // 기준일 01시 시작
