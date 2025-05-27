@@ -8,6 +8,7 @@ import com.dongsoop.dongsoop.date.TodayOrFuture;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -40,5 +41,7 @@ public class CreateStudyBoardRequest {
     @TodayOrFuture
     private LocalDateTime endAt;
 
+    @NotNull
+    @Size(min = 1)
     private List<DepartmentType> departmentTypeList;
 }
