@@ -52,8 +52,8 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
     private TutoringBoard transformToTutoringBoard(CreateTutoringBoardRequest request) {
         Member memberReference = memberService.getMemberReferenceByContext();
 
-        DepartmentType departmentType = request.getDepartmentType();
-        Department departmentReference = departmentRepository.getReferenceById(departmentType);
+        List<DepartmentType> departmentTypeList = request.getDepartmentTypeList();
+        Department departmentReference = departmentRepository.getReferenceById(departmentTypeList.get(0));
 
         return TutoringBoard.builder()
                 .title(request.getTitle())
