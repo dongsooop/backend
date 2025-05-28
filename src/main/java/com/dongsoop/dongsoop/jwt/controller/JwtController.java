@@ -33,13 +33,13 @@ public class JwtController {
 
         String refreshToken = refreshCookie.getValue();
         IssuedToken issuedToken = jwtService.issuedTokenByRefreshToken(refreshToken);
-        Cookie newRefreshCookie = issuedNewRefreshTokenCookie(issuedToken.getRefreshToken());
+        Cookie newRefreshCookie = issueNewRefreshTokenCookie(issuedToken.getRefreshToken());
         response.addCookie(newRefreshCookie);
 
         return ResponseEntity.ok(issuedToken.getAccessToken());
     }
 
-    private Cookie issuedNewRefreshTokenCookie(String newRefreshToken) {
+    private Cookie issueNewRefreshTokenCookie(String newRefreshToken) {
         Cookie newRefreshCookie = new Cookie(refreshTokenCookieName, newRefreshToken);
         newRefreshCookie.setHttpOnly(true);
         newRefreshCookie.setSecure(true);
