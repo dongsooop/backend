@@ -15,6 +15,7 @@ import com.dongsoop.dongsoop.tutoring.entity.TutoringBoard;
 import com.dongsoop.dongsoop.tutoring.repository.TutoringBoardRepository;
 import com.dongsoop.dongsoop.tutoring.service.TutoringBoardServiceImpl;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,7 +56,7 @@ class TutoringBoardCreateTest {
                 .tags(VALID_TAGS)
                 .startAt(VALID_START_AT)
                 .endAt(VALID_END_AT)
-                .departmentType(VALID_DEPARTMENT_TYPE)
+                .departmentTypeList(List.of(VALID_DEPARTMENT_TYPE))
                 .build();
     }
 

@@ -17,6 +17,7 @@ import com.dongsoop.dongsoop.tutoring.repository.TutoringBoardRepository;
 import com.dongsoop.dongsoop.tutoring.service.TutoringBoardService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeAll;
@@ -246,7 +247,9 @@ class TutoringBoardRecruitDateTest {
         json.put("title", "title");
         json.put("tags", "tags");
         json.put("content", "content");
-        json.put("departmentType", DepartmentType.DEPT_2001);
+        JSONArray departmentTypeList = new JSONArray();
+        departmentTypeList.put(DepartmentType.DEPT_2001.name());
+        json.put("departmentTypeList", departmentTypeList);
         json.put("startAt", startAt.toString());
         json.put("endAt", endAt.toString());
 
