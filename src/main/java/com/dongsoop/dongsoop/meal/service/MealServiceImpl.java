@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.*;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -130,11 +129,11 @@ public class MealServiceImpl implements MealService {
 
     private boolean isCurrentWeekData(List<Meal> meals, LocalDate monday) {
         LocalDate currentWeekEnd = monday.plusDays(4);
+        return meals.stream().allMatch(meal -> isDateInRange(meal.getMealDate(), monday, currentWeekEnd));
+    }
 
-        Predicate<Meal> isInCurrentWeek = meal ->
-                !meal.getMealDate().isBefore(monday) && !meal.getMealDate().isAfter(currentWeekEnd);
-
-        return meals.stream().allMatch(isInCurrentWeek);
+    private boolean isDateInRange(LocalDate date, LocalDate startDate, LocalDate endDate) {
+        return !date.isBefore(startDate) && !date.isAfter(endDate);
     }
 
     private List<Meal> adjustToNextWeek(List<Meal> meals, LocalDate nextWeekStart) {
@@ -163,13 +162,14 @@ public class MealServiceImpl implements MealService {
     }
 
     private List<Meal> filterNewMeals(List<Meal> allMeals, LocalDate lastDate, LocalDate currentWeekStart) {
-        Predicate<Meal> isCurrentWeek = meal -> !meal.getMealDate().isBefore(currentWeekStart);
-        Predicate<Meal> isAfterLastDate = meal -> meal.getMealDate().isAfter(lastDate);
-        Predicate<Meal> shouldInclude = isCurrentWeek.or(isAfterLastDate);
-
         return allMeals.stream()
-                .filter(shouldInclude)
+                .filter(meal -> isCurrentWeekOrAfterLastDate(meal, lastDate, currentWeekStart))
                 .collect(Collectors.toList());
+    }
+
+    private boolean isCurrentWeekOrAfterLastDate(Meal meal, LocalDate lastDate, LocalDate currentWeekStart) {
+        LocalDate mealDate = meal.getMealDate();
+        return !mealDate.isBefore(currentWeekStart) || mealDate.isAfter(lastDate);
     }
 
     private void performCleanup() {
@@ -216,17 +216,14 @@ public class MealServiceImpl implements MealService {
         LocalDate nextWeekStart = currentWeekStart.plusWeeks(1);
         LocalDate nextWeekEnd = currentWeekEnd.plusWeeks(1);
 
-        Predicate<Meal> isCurrentWeek = meal ->
-                !meal.getMealDate().isBefore(currentWeekStart) && !meal.getMealDate().isAfter(currentWeekEnd);
-        Predicate<Meal> isNextWeek = meal ->
-                !meal.getMealDate().isBefore(nextWeekStart) && !meal.getMealDate().isAfter(nextWeekEnd);
-
         Optional.of(meals)
-                .filter(mealList -> mealList.stream().anyMatch(isCurrentWeek))
+                .filter(mealList -> mealList.stream().anyMatch(meal ->
+                        isDateInRange(meal.getMealDate(), currentWeekStart, currentWeekEnd)))
                 .ifPresent(mealList -> deleteWeekData(currentWeekStart, currentWeekEnd));
 
         Optional.of(meals)
-                .filter(mealList -> mealList.stream().anyMatch(isNextWeek))
+                .filter(mealList -> mealList.stream().anyMatch(meal ->
+                        isDateInRange(meal.getMealDate(), nextWeekStart, nextWeekEnd)))
                 .ifPresent(mealList -> deleteWeekData(nextWeekStart, nextWeekEnd));
     }
 
