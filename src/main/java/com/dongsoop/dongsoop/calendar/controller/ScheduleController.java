@@ -24,7 +24,7 @@ public class ScheduleController {
 
     private final ScheduleService scheduleService;
 
-    @GetMapping("/member/{memberId}/month/{yearMonth}")
+    @GetMapping("/member/{memberId}/year-month/{yearMonth}")
     public ResponseEntity<List<ScheduleDetails>> getMemberSchedule(@PathVariable("memberId") Long memberId,
                                                                    @PathVariable("yearMonth") YearMonth yearMonth) {
         List<ScheduleDetails> scheduleList = scheduleService.getMemberSchedule(memberId, yearMonth);
