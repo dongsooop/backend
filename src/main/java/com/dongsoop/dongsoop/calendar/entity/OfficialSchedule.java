@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.calendar.entity;
 
 import com.dongsoop.dongsoop.calendar.dto.ScheduleDetails;
+import com.dongsoop.dongsoop.calendar.dto.ScheduleType;
 import com.dongsoop.dongsoop.common.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -45,6 +46,7 @@ public class OfficialSchedule extends BaseEntity {
                 .location("")
                 .startAt(startAt.atStartOfDay())
                 .endAt(endAt.atTime(23, 59, 59)) // 하루종일
+                .type(ScheduleType.OFFICIAL)
                 .build();
     }
 }

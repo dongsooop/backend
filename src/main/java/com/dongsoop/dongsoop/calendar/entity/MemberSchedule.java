@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.calendar.entity;
 
 import com.dongsoop.dongsoop.calendar.dto.ScheduleDetails;
+import com.dongsoop.dongsoop.calendar.dto.ScheduleType;
 import com.dongsoop.dongsoop.common.BaseEntity;
 import com.dongsoop.dongsoop.member.entity.Member;
 import jakarta.persistence.Column;
@@ -56,6 +57,7 @@ public class MemberSchedule extends BaseEntity {
                 .location(location)
                 .startAt(startAt)
                 .endAt(endAt)
+                .type(ScheduleType.MEMBER)
                 .build();
     }
 }
