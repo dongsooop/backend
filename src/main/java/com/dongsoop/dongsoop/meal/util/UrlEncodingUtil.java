@@ -15,6 +15,7 @@ import java.util.Base64;
 public class UrlEncodingUtil {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd");
+    private static final String ENCODING_PREFIX = "fnct1|@@|";
 
     public String buildWeekUrl(String baseUrl, LocalDate monday, String weekParam) {
         String mondayStr = monday.format(DATE_FORMATTER);
@@ -26,12 +27,12 @@ public class UrlEncodingUtil {
     private String createEncodedUrl(String baseUrl, String pathOnly) {
         try {
             String urlEncodedPath = URLEncoder.encode(pathOnly, StandardCharsets.UTF_8);
-            String fullPath = "fnct1|@@|" + urlEncodedPath;
+            String fullPath = ENCODING_PREFIX + urlEncodedPath;
             String base64Encoded = Base64.getEncoder().encodeToString(fullPath.getBytes(StandardCharsets.UTF_8));
-            String finalEncoded = base64Encoded.replace("==", "%3D%3D");
+            String finalEncoded = URLEncoder.encode(base64Encoded, StandardCharsets.UTF_8);
 
             return baseUrl + finalEncoded;
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
             throw new MealCrawlingException("URL 생성 실패: " + pathOnly, e);
         }
     }

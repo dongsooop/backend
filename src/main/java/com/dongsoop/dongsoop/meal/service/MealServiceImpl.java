@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 public class MealServiceImpl implements MealService {
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final String DEFAULT_EMPTY_MENU = "식단 정보 없음";
 
     private static final Map<Boolean, Consumer<Integer>> CLEANUP_LOG_ACTIONS = Map.of(
             true, count -> log.info("✅ 처리 완료: {} 건", count),
@@ -331,8 +332,8 @@ public class MealServiceImpl implements MealService {
         return MealDailyResponse.builder()
                 .date(date)
                 .dayOfWeek(DayOfWeekUtil.toKorean(date.getDayOfWeek()))
-                .koreanMenu(dailyMealMap.getOrDefault(MealType.KOREAN, "식단 정보 없음"))
-                .specialMenu(dailyMealMap.getOrDefault(MealType.SPECIAL, "식단 정보 없음"))
+                .koreanMenu(dailyMealMap.getOrDefault(MealType.KOREAN, DEFAULT_EMPTY_MENU ))
+                .specialMenu(dailyMealMap.getOrDefault(MealType.SPECIAL, DEFAULT_EMPTY_MENU ))
                 .build();
     }
 
