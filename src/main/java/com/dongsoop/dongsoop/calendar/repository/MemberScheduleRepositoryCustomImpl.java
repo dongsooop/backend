@@ -14,7 +14,7 @@ import org.springframework.stereotype.Repository;
 public class MemberScheduleRepositoryCustomImpl implements MemberScheduleRepositoryCustom {
 
     private static final QMemberSchedule memberSchedule = QMemberSchedule.memberSchedule;
-    
+
     private final JPAQueryFactory queryFactory;
 
     public List<MemberSchedule> findMemberScheduleByDuration(Long memberId, LocalDateTime startAt,
@@ -26,12 +26,17 @@ public class MemberScheduleRepositoryCustomImpl implements MemberScheduleReposit
     }
 
     public BooleanExpression isDurationWithin(LocalDateTime startAt, LocalDateTime endAt) {
-        BooleanExpression a = memberSchedule.startAt.goe(startAt)
+        BooleanExpression startsWithinDuration = memberSchedule.startAt.goe(startAt)
                 .and(memberSchedule.startAt.lt(endAt));
 
-        BooleanExpression b = memberSchedule.endAt.goe(startAt)
+        BooleanExpression endsWithinDuration = memberSchedule.endAt.goe(startAt)
                 .and(memberSchedule.endAt.lt(endAt));
 
-        return a.or(b);
+        BooleanExpression overlapAllDuration = memberSchedule.startAt.lt(startAt)
+                .and(memberSchedule.endAt.gt(endAt));
+
+        return startsWithinDuration
+                .or(endsWithinDuration)
+                .or(overlapAllDuration);
     }
 }
