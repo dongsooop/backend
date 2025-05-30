@@ -7,6 +7,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Table(name = "meal_details",
@@ -45,12 +46,28 @@ public class MealDetails {
 
     @Override
     public boolean equals(Object o) {
-        return o instanceof MealDetails that &&
-                id != null && id.equals(that.id);
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        MealDetails that = (MealDetails) o;
+
+        if (id == null && that.id == null) {
+            return Objects.equals(mealDate, that.mealDate) &&
+                    Objects.equals(mealType, that.mealType);
+        }
+
+        return Objects.equals(id, that.id);
     }
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        if (id == null) {
+            return Objects.hash(mealDate, mealType);
+        }
+
+        return Objects.hash(id);
     }
 }

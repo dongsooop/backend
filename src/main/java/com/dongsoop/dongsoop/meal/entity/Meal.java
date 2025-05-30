@@ -1,16 +1,17 @@
 package com.dongsoop.dongsoop.meal.entity;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.Objects;
+
 @Entity
 @Table(name = "meal")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
+@NoArgsConstructor
 public class Meal {
 
     @EmbeddedId
@@ -22,7 +23,8 @@ public class Meal {
 
     @Embeddable
     @AllArgsConstructor
-    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    @NoArgsConstructor
+    @Getter
     public static class MealKey implements java.io.Serializable {
 
         @ManyToOne(fetch = FetchType.LAZY)
@@ -31,17 +33,19 @@ public class Meal {
 
         @Override
         public boolean equals(Object o) {
-            return o instanceof MealKey that &&
-                    mealDetails != null &&
-                    mealDetails.getId() != null &&
-                    mealDetails.getId().equals(that.mealDetails.getId());
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            MealKey that = (MealKey) o;
+            return Objects.equals(mealDetails, that.mealDetails);
         }
 
         @Override
         public int hashCode() {
-            return mealDetails != null && mealDetails.getId() != null
-                    ? mealDetails.getId().hashCode()
-                    : 0;
+            return Objects.hash(mealDetails);
         }
     }
 }
