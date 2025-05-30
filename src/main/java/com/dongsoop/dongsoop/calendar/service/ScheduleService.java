@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.calendar.service;
 
 import com.dongsoop.dongsoop.calendar.dto.CreateMemberScheduleRequest;
+import com.dongsoop.dongsoop.calendar.dto.MemberScheduleUpdateRequest;
 import com.dongsoop.dongsoop.calendar.dto.ScheduleDetails;
 import com.dongsoop.dongsoop.calendar.entity.MemberSchedule;
 import java.time.YearMonth;
@@ -13,4 +14,6 @@ public interface ScheduleService {
     List<ScheduleDetails> getMemberSchedule(Long memberId, YearMonth yearMonth);
 
     void deleteMemberSchedule(Long scheduleId);
+
+    void updateMemberSchedule(Long scheduleId, MemberScheduleUpdateRequest request);
 }

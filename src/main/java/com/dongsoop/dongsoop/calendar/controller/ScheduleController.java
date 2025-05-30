@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.calendar.controller;
 
 import com.dongsoop.dongsoop.calendar.dto.CreateMemberScheduleRequest;
+import com.dongsoop.dongsoop.calendar.dto.MemberScheduleUpdateRequest;
 import com.dongsoop.dongsoop.calendar.dto.ScheduleDetails;
 import com.dongsoop.dongsoop.calendar.entity.MemberSchedule;
 import com.dongsoop.dongsoop.calendar.service.ScheduleService;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -44,7 +46,15 @@ public class ScheduleController {
     @DeleteMapping("/member/{scheduleId}")
     public ResponseEntity<Void> deleteMemberSchedule(@PathVariable("scheduleId") Long scheduleId) {
         scheduleService.deleteMemberSchedule(scheduleId);
-        
+
+        return ResponseEntity.noContent()
+                .build();
+    }
+
+    @PatchMapping("/member/{scheduleId}")
+    public ResponseEntity<Void> updateMemberSchedule(@PathVariable("scheduleId") Long scheduleId,
+                                                     @RequestBody @Valid MemberScheduleUpdateRequest request) {
+        scheduleService.updateMemberSchedule(scheduleId, request);
         return ResponseEntity.noContent()
                 .build();
     }

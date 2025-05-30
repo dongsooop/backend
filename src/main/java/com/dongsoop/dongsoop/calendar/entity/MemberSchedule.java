@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.calendar.entity;
 
+import com.dongsoop.dongsoop.calendar.dto.MemberScheduleUpdateRequest;
 import com.dongsoop.dongsoop.calendar.dto.ScheduleDetails;
 import com.dongsoop.dongsoop.calendar.dto.ScheduleType;
 import com.dongsoop.dongsoop.common.BaseEntity;
@@ -50,6 +51,7 @@ public class MemberSchedule extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
+    @Getter
     private Member member;
 
     public ScheduleDetails toDetails() {
@@ -61,5 +63,23 @@ public class MemberSchedule extends BaseEntity {
                 .endAt(endAt)
                 .type(ScheduleType.MEMBER)
                 .build();
+    }
+
+    public void update(MemberScheduleUpdateRequest request) {
+        if (request.getTitle() != null) {
+            this.title = request.getTitle();
+        }
+
+        if (request.getLocation() != null) {
+            this.location = request.getLocation();
+        }
+
+        if (request.getStartAt() != null) {
+            this.startAt = request.getStartAt();
+        }
+
+        if (request.getEndAt() != null) {
+            this.endAt = request.getEndAt();
+        }
     }
 }
