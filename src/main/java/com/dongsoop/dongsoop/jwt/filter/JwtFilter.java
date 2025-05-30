@@ -3,21 +3,17 @@ package com.dongsoop.dongsoop.jwt.filter;
 import com.dongsoop.dongsoop.exception.domain.jwt.TokenNotFoundException;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
-import com.dongsoop.dongsoop.jwt.dto.AuthenticationInformationByToken;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collection;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -50,13 +46,9 @@ public class JwtFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String tokenHeader = request.getHeader("Authorization");
         String token = resolveToken(tokenHeader);
+        
         jwtValidator.validate(token);
-
-        AuthenticationInformationByToken authenticationInformation = jwtUtil.getTokenInformation(token);
-        Long id = authenticationInformation.getId();
-        Collection<? extends GrantedAuthority> role = authenticationInformation.getRole();
-
-        Authentication auth = new UsernamePasswordAuthenticationToken(id, null, role);
+        Authentication auth = jwtUtil.getAuthenticationByToken(token);
 
         SecurityContext context = SecurityContextHolder.getContext();
         context.setAuthentication(auth);

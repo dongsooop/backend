@@ -1,4 +1,4 @@
-package com.dongsoop.dongsoop.tutoring.dto;
+package com.dongsoop.dongsoop.project.dto;
 
 import com.dongsoop.dongsoop.date.EndAtAfterStartAt;
 import com.dongsoop.dongsoop.date.MaxDate;
@@ -12,18 +12,16 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
-@Builder
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @MaxDuration // 최대 4주 (28일)
 @MinDuration // 최소 하루
 @EndAtAfterStartAt
-public class CreateTutoringBoardRequest {
+public class CreateProjectBoardRequest {
 
     @NotBlank
     private String title;
@@ -44,6 +42,6 @@ public class CreateTutoringBoardRequest {
     private LocalDateTime endAt;
 
     @NotNull
-    @Size(min = 1, max = 1)
+    @Size(min = 1)
     private List<DepartmentType> departmentTypeList;
 }

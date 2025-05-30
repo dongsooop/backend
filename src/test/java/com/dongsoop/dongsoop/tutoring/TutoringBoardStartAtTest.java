@@ -16,6 +16,7 @@ import com.dongsoop.dongsoop.tutoring.entity.TutoringBoard;
 import com.dongsoop.dongsoop.tutoring.service.TutoringBoardServiceImpl;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,7 +54,9 @@ class TutoringBoardStartAtTest {
         json.put("title", "title");
         json.put("tags", "tags");
         json.put("content", "content");
-        json.put("departmentType", DepartmentType.DEPT_2001);
+        JSONArray departmentTypeList = new JSONArray();
+        departmentTypeList.put(DepartmentType.DEPT_2001.name());
+        json.put("departmentTypeList", departmentTypeList);
     }
 
     @Test
@@ -115,8 +118,8 @@ class TutoringBoardStartAtTest {
     @DisplayName("모집 게시판 생성 시 모집 시작일이 null인 경우 예외를 던진다")
     void startRecruitment_WithNull_ShouldThrowException() throws Exception {
         // given
-        json.put("startAt", null);
-        json.put("endAt", null);
+        json.put("startAt", JSONObject.NULL);
+        json.put("endAt", JSONObject.NULL);
 
         // when
         MockHttpServletRequestBuilder content = post(REQUEST_URL)

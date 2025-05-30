@@ -42,7 +42,7 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(tutoringBoard.id)
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort()))
+                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), tutoringBoard))
                 .fetch();
     }
 

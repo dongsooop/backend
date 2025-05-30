@@ -1,4 +1,4 @@
-package com.dongsoop.dongsoop.tutoring;
+package com.dongsoop.dongsoop.projectBoard;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.ArgumentMatchers.any;
@@ -10,11 +10,11 @@ import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
 import com.dongsoop.dongsoop.member.service.MemberService;
-import com.dongsoop.dongsoop.tutoring.controller.TutoringBoardController;
-import com.dongsoop.dongsoop.tutoring.dto.CreateTutoringBoardRequest;
-import com.dongsoop.dongsoop.tutoring.entity.TutoringBoard;
-import com.dongsoop.dongsoop.tutoring.repository.TutoringBoardRepository;
-import com.dongsoop.dongsoop.tutoring.service.TutoringBoardService;
+import com.dongsoop.dongsoop.project.controller.ProjectBoardController;
+import com.dongsoop.dongsoop.project.dto.CreateProjectBoardRequest;
+import com.dongsoop.dongsoop.project.entity.ProjectBoard;
+import com.dongsoop.dongsoop.project.repository.ProjectBoardRepository;
+import com.dongsoop.dongsoop.project.service.ProjectBoardService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import org.json.JSONArray;
@@ -36,14 +36,14 @@ import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
-@WebMvcTest(controllers = TutoringBoardController.class)
+@WebMvcTest(controllers = ProjectBoardController.class)
 @AutoConfigureMockMvc(addFilters = false)
-class TutoringBoardRecruitDateTest {
+class ProjectBoardRecruitDateTest {
 
     private static LocalDateTime standardDateTime;
 
     @MockitoBean
-    private TutoringBoardRepository tutoringBoardRepository;
+    private ProjectBoardRepository projectBoardRepository;
 
     @MockitoBean
     private DepartmentRepository departmentRepository;
@@ -55,7 +55,7 @@ class TutoringBoardRecruitDateTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private TutoringBoardService tutoringBoardService;
+    private ProjectBoardService projectBoardService;
 
     @MockitoBean
     private JwtFilter jwtFilter;
@@ -69,11 +69,11 @@ class TutoringBoardRecruitDateTest {
 
     @BeforeEach
     void setUpEach() {
-        TutoringBoard createdBoard = TutoringBoard.builder()
+        ProjectBoard createdBoard = ProjectBoard.builder()
                 .id(1L)
                 .build();
 
-        when(tutoringBoardService.create(any(CreateTutoringBoardRequest.class)))
+        when(projectBoardService.create(any(CreateProjectBoardRequest.class)))
                 .thenReturn(createdBoard);
     }
 
@@ -87,7 +87,7 @@ class TutoringBoardRecruitDateTest {
         String jsonString = getJsonStringWithDate(startAt, endAt);
 
         // when
-        ResultActions perform = requestCreateTutoring(jsonString);
+        ResultActions perform = requestCreateProject(jsonString);
 
         // then
         testInvalidDates(perform);
@@ -100,7 +100,7 @@ class TutoringBoardRecruitDateTest {
         String jsonString = getJsonStringWithDate(standardDateTime, standardDateTime); // 동일한 시작, 종료일
 
         // when
-        ResultActions perform = requestCreateTutoring(jsonString);
+        ResultActions perform = requestCreateProject(jsonString);
 
         // then
         testInvalidDates(perform);
@@ -116,7 +116,7 @@ class TutoringBoardRecruitDateTest {
         String jsonString = getJsonStringWithDate(startAt, endAt);
 
         // when
-        ResultActions perform = requestCreateTutoring(jsonString);
+        ResultActions perform = requestCreateProject(jsonString);
 
         // then
         testInvalidDates(perform);
@@ -132,7 +132,7 @@ class TutoringBoardRecruitDateTest {
         String jsonString = getJsonStringWithDate(startAt, endAt);
 
         // when
-        ResultActions perform = requestCreateTutoring(jsonString);
+        ResultActions perform = requestCreateProject(jsonString);
 
         // then
         ResultMatcher created = status().isCreated();
@@ -149,7 +149,7 @@ class TutoringBoardRecruitDateTest {
         String jsonString = getJsonStringWithDate(startAt, endAt);
 
         // when
-        ResultActions perform = requestCreateTutoring(jsonString);
+        ResultActions perform = requestCreateProject(jsonString);
 
         // then
         testInvalidDates(perform);
@@ -165,7 +165,7 @@ class TutoringBoardRecruitDateTest {
         String jsonString = getJsonStringWithDate(startAt, endAt);
 
         // when
-        ResultActions perform = requestCreateTutoring(jsonString);
+        ResultActions perform = requestCreateProject(jsonString);
 
         // then
         testInvalidDates(perform);
@@ -182,7 +182,7 @@ class TutoringBoardRecruitDateTest {
         String jsonString = getJsonStringWithDate(startAt, endAt);
 
         // when
-        ResultActions perform = requestCreateTutoring(jsonString);
+        ResultActions perform = requestCreateProject(jsonString);
 
         // then
         ResultMatcher created = status().isCreated();
@@ -199,7 +199,7 @@ class TutoringBoardRecruitDateTest {
         String jsonString = getJsonStringWithDate(startAt, endAt);
 
         // when
-        ResultActions perform = requestCreateTutoring(jsonString);
+        ResultActions perform = requestCreateProject(jsonString);
 
         // then
         ResultMatcher created = status().isCreated();
@@ -218,7 +218,7 @@ class TutoringBoardRecruitDateTest {
         String jsonString = getJsonStringWithDate(startAt, endAt);
 
         // when
-        ResultActions perform = requestCreateTutoring(jsonString);
+        ResultActions perform = requestCreateProject(jsonString);
 
         // then
         testInvalidDates(perform);
@@ -235,7 +235,7 @@ class TutoringBoardRecruitDateTest {
         String jsonString = getJsonStringWithDate(startAt, endAt);
 
         // when
-        ResultActions perform = requestCreateTutoring(jsonString);
+        ResultActions perform = requestCreateProject(jsonString);
 
         // then
         ResultMatcher created = status().isCreated();
@@ -265,8 +265,8 @@ class TutoringBoardRecruitDateTest {
         assertInstanceOf(MethodArgumentNotValidException.class, result.getResolvedException());
     }
 
-    ResultActions requestCreateTutoring(String jsonTypeString) throws Exception {
-        MockHttpServletRequestBuilder request = post("/tutoring-board")
+    ResultActions requestCreateProject(String jsonTypeString) throws Exception {
+        MockHttpServletRequestBuilder request = post("/project-board")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonTypeString);
 
