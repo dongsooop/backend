@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.meal.util;
 
-import com.dongsoop.dongsoop.meal.entity.MealDetails;
+import com.dongsoop.dongsoop.meal.entity.Meal;
 import com.dongsoop.dongsoop.meal.entity.MealType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,12 +41,12 @@ public class MealParser {
 
     private final TextProcessingUtil textProcessingUtil;
 
-    public List<MealDetails> parseWeeklyMeal(Document document) {
+    public List<Meal> parseWeeklyMeal(Document document) {
         log.info("HTML 구조 기반 식단 파싱 시작");
 
         DateRange dateRange = parseDateRange(document);
         Map<MealType, List<String>> menuMap = parseAllMenus(document);
-        List<MealDetails> result = buildMealDetailsList(dateRange, menuMap);
+        List<Meal> result = buildMealList(dateRange, menuMap);
 
         log.info("총 {}개의 식단 데이터가 생성되었습니다.", result.size());
         return result;
@@ -150,7 +150,7 @@ public class MealParser {
                 .orElse(textProcessingUtil.getDefaultEmptyMenu());
     }
 
-    private List<MealDetails> buildMealDetailsList(DateRange dateRange, Map<MealType, List<String>> menuMap) {
+    private List<Meal> buildMealList(DateRange dateRange, Map<MealType, List<String>> menuMap) {
         return IntStream.range(0, MAX_DAYS)
                 .boxed()
                 .map(dayIndex -> createDayMeals(dayIndex, dateRange, menuMap))
@@ -159,17 +159,17 @@ public class MealParser {
                 .collect(Collectors.toList());
     }
 
-    private List<MealDetails> createDayMeals(int dayIndex, DateRange dateRange, Map<MealType, List<String>> menuMap) {
+    private List<Meal> createDayMeals(int dayIndex, DateRange dateRange, Map<MealType, List<String>> menuMap) {
         LocalDate currentDate = dateRange.startDate().plusDays(dayIndex);
         String dayName = DayOfWeekUtil.toKorean(currentDate.getDayOfWeek());
 
         return Arrays.stream(MealType.values())
-                .map(type -> createMealDetails(currentDate, dayName, type, menuMap.get(type).get(dayIndex)))
+                .map(type -> createMeal(currentDate, dayName, type, menuMap.get(type).get(dayIndex)))
                 .collect(Collectors.toList());
     }
 
-    private MealDetails createMealDetails(LocalDate date, String dayName, MealType mealType, String menu) {
-        return MealDetails.builder()
+    private Meal createMeal(LocalDate date, String dayName, MealType mealType, String menu) {
+        return Meal.builder()
                 .mealDate(date)
                 .dayOfWeek(dayName)
                 .mealType(mealType)
