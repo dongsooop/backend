@@ -5,7 +5,8 @@ import com.dongsoop.dongsoop.calendar.dto.ScheduleDetails;
 import com.dongsoop.dongsoop.calendar.entity.MemberSchedule;
 import com.dongsoop.dongsoop.calendar.entity.OfficialSchedule;
 import com.dongsoop.dongsoop.calendar.repository.MemberScheduleRepository;
-import com.dongsoop.dongsoop.calendar.repository.OfficialScheduleRepository;
+import com.dongsoop.dongsoop.calendar.repository.MemberScheduleRepositoryCustom;
+import com.dongsoop.dongsoop.calendar.repository.OfficialScheduleRepositoryCustom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -20,7 +21,9 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     private final MemberScheduleRepository memberScheduleRepository;
 
-    private final OfficialScheduleRepository commonScheduleRepository;
+    private final MemberScheduleRepositoryCustom memberScheduleRepositoryCustom;
+
+    private final OfficialScheduleRepositoryCustom commonScheduleRepositoryCustom;
 
     public MemberSchedule createMemberSchedule(CreateMemberScheduleRequest createMemberScheduleRequest) {
         MemberSchedule schedule = createMemberScheduleRequest.toEntity();
@@ -34,10 +37,10 @@ public class ScheduleServiceImpl implements ScheduleService {
         LocalDateTime startAt = startMonth.atStartOfDay();
         LocalDateTime endAt = endMonth.atStartOfDay();
 
-        List<OfficialSchedule> officialSchedule = commonScheduleRepository.findByStartAtIsGreaterThanEqualAndEndAtIsLessThan(
+        List<OfficialSchedule> officialSchedule = commonScheduleRepositoryCustom.findOfficialScheduleByDuration(
                 startMonth, endMonth);
 
-        List<MemberSchedule> memberSchedule = memberScheduleRepository.findByMember_IdAndStartAtIsGreaterThanEqualAndEndAtIsLessThan(
+        List<MemberSchedule> memberSchedule = memberScheduleRepositoryCustom.findMemberScheduleByDuration(
                 memberId, startAt, endAt);
 
         List<ScheduleDetails> officialScheduleDetails = officialSchedule.stream()
