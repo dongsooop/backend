@@ -19,6 +19,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
@@ -27,6 +28,7 @@ import org.hibernate.annotations.SQLRestriction;
 @AllArgsConstructor
 @SequenceGenerator(name = "member_schedule_sequence_generator")
 @SQLRestriction("is_deleted = false")
+@SQLDelete(sql = "UPDATE member_schedule SET is_deleted = true WHERE id = ?")
 public class MemberSchedule extends BaseEntity {
 
     @Id

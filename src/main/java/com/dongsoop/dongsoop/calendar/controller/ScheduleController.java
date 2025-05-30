@@ -10,6 +10,7 @@ import java.time.YearMonth;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,6 +38,14 @@ public class ScheduleController {
         URI uri = URI.create("/schedule/member/" + schedule.getId().toString());
 
         return ResponseEntity.created(uri)
+                .build();
+    }
+
+    @DeleteMapping("/member/{scheduleId}")
+    public ResponseEntity<Void> deleteMemberSchedule(@PathVariable("scheduleId") Long scheduleId) {
+        scheduleService.deleteMemberSchedule(scheduleId);
+        
+        return ResponseEntity.noContent()
                 .build();
     }
 }

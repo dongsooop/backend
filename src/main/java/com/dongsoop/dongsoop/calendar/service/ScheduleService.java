@@ -11,4 +11,6 @@ public interface ScheduleService {
     MemberSchedule createMemberSchedule(CreateMemberScheduleRequest createMemberScheduleRequest);
 
     List<ScheduleDetails> getMemberSchedule(Long memberId, YearMonth yearMonth);
+
+    void deleteMemberSchedule(Long scheduleId);
 }

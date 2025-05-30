@@ -57,4 +57,8 @@ public class ScheduleServiceImpl implements ScheduleService {
 
         return totalScheduleDetails;
     }
+
+    public void deleteMemberSchedule(Long scheduleId) {
+        memberScheduleRepository.deleteById(scheduleId);
+    }
 }
