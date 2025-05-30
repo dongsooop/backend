@@ -16,10 +16,11 @@ public class UrlEncodingUtil {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd");
     private static final String ENCODING_PREFIX = "fnct1|@@|";
+    private static final String DIET_PATH_TEMPLATE = "/diet/dmu/13/view.do?monday=%s&week=%s&";
 
     public String buildWeekUrl(String baseUrl, LocalDate monday, String weekParam) {
         String mondayStr = monday.format(DATE_FORMATTER);
-        String pathOnly = String.format("/diet/dmu/13/view.do?monday=%s&week=%s&", mondayStr, weekParam);
+        String pathOnly = String.format(DIET_PATH_TEMPLATE, mondayStr, weekParam);
 
         return createEncodedUrl(baseUrl, pathOnly);
     }
@@ -28,7 +29,9 @@ public class UrlEncodingUtil {
         try {
             String urlEncodedPath = URLEncoder.encode(pathOnly, StandardCharsets.UTF_8);
             String fullPath = ENCODING_PREFIX + urlEncodedPath;
-            String base64Encoded = Base64.getEncoder().encodeToString(fullPath.getBytes(StandardCharsets.UTF_8));
+
+            byte[] pathBytes = fullPath.getBytes(StandardCharsets.UTF_8);
+            String base64Encoded = Base64.getEncoder().encodeToString(pathBytes);
             String finalEncoded = URLEncoder.encode(base64Encoded, StandardCharsets.UTF_8);
 
             return baseUrl + finalEncoded;
