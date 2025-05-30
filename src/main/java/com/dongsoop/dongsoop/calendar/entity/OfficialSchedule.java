@@ -41,7 +41,7 @@ public class OfficialSchedule extends BaseEntity {
 
     public ScheduleDetails toDetails() {
         return ScheduleDetails.builder()
-                .id(null)
+                .id(null) // id를 노출할 필요가 없으며, 사용자 일정과 분리된 id 라는 점에서 잘못된 사용자 일정 삭제를 방지하기 위해 null로 설정
                 .title(title)
                 .location("")
                 .startAt(startAt.atStartOfDay())
