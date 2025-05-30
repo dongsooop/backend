@@ -18,6 +18,7 @@ public class CreateMemberScheduleRequest {
     private String title;
 
     @NotNull
+    @Length(max = 20)
     private String location;
 
     @NotNull

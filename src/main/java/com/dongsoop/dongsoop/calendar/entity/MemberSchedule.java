@@ -37,10 +37,10 @@ public class MemberSchedule extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "member_schedule_sequence_generator")
     private Long id;
 
-    @Column(name = "title", nullable = false)
+    @Column(name = "title", length = 60, nullable = false)
     private String title;
 
-    @Column(name = "location")
+    @Column(name = "location", length = 20)
     private String location;
 
     @Column(name = "start_at", nullable = false)
