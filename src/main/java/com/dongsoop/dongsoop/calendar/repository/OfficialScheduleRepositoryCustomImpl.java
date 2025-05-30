@@ -15,7 +15,7 @@ public class OfficialScheduleRepositoryCustomImpl implements OfficialScheduleRep
 
 
     private static final QOfficialSchedule officialSchedule = QOfficialSchedule.officialSchedule;
-    
+
     private final JPAQueryFactory queryFactory;
 
     public List<OfficialSchedule> findOfficialScheduleByDuration(LocalDate startAt, LocalDate endAt) {
@@ -25,12 +25,17 @@ public class OfficialScheduleRepositoryCustomImpl implements OfficialScheduleRep
     }
 
     public BooleanExpression isDurationWithin(LocalDate startAt, LocalDate endAt) {
-        BooleanExpression a = officialSchedule.startAt.goe(startAt)
+        BooleanExpression startsWithinDuration = officialSchedule.startAt.goe(startAt)
                 .and(officialSchedule.startAt.lt(endAt));
 
-        BooleanExpression b = officialSchedule.endAt.goe(startAt)
+        BooleanExpression endsWithinDuration = officialSchedule.endAt.goe(startAt)
                 .and(officialSchedule.endAt.lt(endAt));
 
-        return a.or(b);
+        BooleanExpression overlapAllDuration = officialSchedule.startAt.lt(startAt)
+                .and(officialSchedule.endAt.gt(endAt));
+
+        return startsWithinDuration
+                .or(endsWithinDuration)
+                .or(overlapAllDuration);
     }
 }
