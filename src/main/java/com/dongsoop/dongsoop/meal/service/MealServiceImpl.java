@@ -12,6 +12,7 @@ import com.dongsoop.dongsoop.meal.repository.MealDetailsRepository;
 import com.dongsoop.dongsoop.meal.repository.MealRepository;
 import com.dongsoop.dongsoop.meal.util.DayOfWeekUtil;
 import com.dongsoop.dongsoop.meal.util.MealParser;
+import com.dongsoop.dongsoop.meal.util.UrlEncodingUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -27,9 +28,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,25 +39,36 @@ import java.util.stream.Collectors;
 public class MealServiceImpl implements MealService {
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    private static final int CLEANUP_WEEKS = 2;
-    private static final int DEFAULT_WEEKS_BACK = 1;
 
-    private static final Function<LocalDate, LocalDate> GET_WEEK_START = date -> date.with(DayOfWeek.MONDAY);
-    private static final Function<LocalDate, LocalDate> GET_WEEK_END = date -> date.with(DayOfWeek.FRIDAY);
-
-    private static final Map<Boolean, BiConsumer<Object, Integer>> LOG_STRATEGIES = Map.of(
-            true, (context, count) -> log.info("✅ 처리 완료: {} 건", count),
-            false, (context, count) -> log.info("ℹ️ 처리할 데이터가 없습니다.")
+    private static final Map<Boolean, Consumer<Integer>> CLEANUP_LOG_ACTIONS = Map.of(
+            true, count -> log.info("✅ 처리 완료: {} 건", count),
+            false, count -> log.info("ℹ️ 처리할 데이터가 없습니다.")
     );
 
+    private static final Map<Boolean, Consumer<Integer>> CRAWLING_LOG_ACTIONS = Map.of(
+            true, count -> log.info("✅ 처리 완료: {} 건", count),
+            false, count -> log.info("ℹ️ 처리할 데이터가 없습니다.")
+    );
+
+    private final Map<Boolean, Function<CrawlingData, List<MealDetails>>> MEAL_SELECTION_STRATEGIES = Map.of(
+            true, data -> data.allMeals(),
+            false, this::filterNewMeals
+    );
     private final MealRepository mealRepository;
     private final MealDetailsRepository mealDetailsRepository;
+    private final Map<String, Consumer<WeekDataContext>> DELETE_WEEK_ACTIONS = Map.of(
+            "current", this::deleteCurrentWeekData,
+            "next", this::deleteNextWeekData
+    );
     private final MealParser mealParser;
+    private final UrlEncodingUtil urlEncodingUtil;
 
-    @Value("${meal.crawler.url}")
-    private String mealUrl;
+    @Value("${meal.crawler.base-url}")
+    private String mealBaseUrl;
+
     @Value("${meal.crawler.timeout:15000}")
     private int connectionTimeout;
+
     @Value("${meal.crawler.user-agent}")
     private String userAgent;
 
@@ -64,31 +76,31 @@ public class MealServiceImpl implements MealService {
     @Transactional(readOnly = true)
     public MealWeeklyResponse getCurrentWeekMealResponse() {
         LocalDate today = LocalDate.now();
-        LocalDate startDate = GET_WEEK_START.apply(today);
-        LocalDate endDate = GET_WEEK_END.apply(today);
+        LocalDate startDate = today.with(DayOfWeek.MONDAY);
+        LocalDate endDate = today.with(DayOfWeek.FRIDAY);
 
         List<MealListDto> meals = mealDetailsRepository.findMealsByDateRangeList(startDate, endDate);
 
         return Optional.of(meals)
                 .filter(list -> !list.isEmpty())
-                .map(list -> buildWeeklyMealResponse(startDate, endDate, list))
+                .map(list -> buildWeeklyResponse(startDate, endDate, list))
                 .orElseThrow(() -> new MealNotFoundException(startDate, endDate));
     }
 
-    @Scheduled(cron = "0 0 9 * * FRI", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 9 * * SAT", zone = "Asia/Seoul")
     @Transactional
     public void crawlWeeklyMeal() {
-        executeScheduledTask("자동 식단 크롤링", this::performCrawling);
+        executeTask("자동 식단 크롤링", this::performCrawling);
     }
 
-    @Scheduled(cron = "0 0 2 * * SAT", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 2 * * SUN", zone = "Asia/Seoul")
     @Transactional
     public void cleanupOldMealData() {
-        executeScheduledTask("자동 식단 데이터 정리", this::performCleanup);
+        executeTask("자동 식단 데이터 정리", this::performCleanup);
     }
 
-    private void executeScheduledTask(String taskName, Runnable task) {
-        logTaskStart(taskName);
+    private void executeTask(String taskName, Runnable task) {
+        log.info("=== {} 시작 === [{}]", taskName, LocalDateTime.now().format(DATE_TIME_FORMATTER));
 
         try {
             task.run();
@@ -96,132 +108,201 @@ public class MealServiceImpl implements MealService {
             log.error("❌ {} 중 오류 발생", taskName, e);
         }
 
-        logTaskEnd(taskName);
+        log.info("=== {} 종료 === [{}]", taskName, LocalDateTime.now().format(DATE_TIME_FORMATTER));
     }
 
     private void performCrawling() {
-        LocalDate lastDate = getLastCrawledDate();
+        LocalDate monday = LocalDate.now().with(DayOfWeek.MONDAY);
+
+        List<MealDetails> currentWeekMeals = crawlCurrentWeek(monday);
+        List<MealDetails> nextWeekMeals = crawlNextWeek(monday);
+
+        List<MealDetails> allMeals = new ArrayList<>();
+        allMeals.addAll(currentWeekMeals);
+        allMeals.addAll(nextWeekMeals);
+
+        log.info("🌐 크롤링 완료 - 현재주: {}개, 다음주: {}개", currentWeekMeals.size(), nextWeekMeals.size());
+
+        boolean isFirstCrawling = mealDetailsRepository.count() == 0;
+        LocalDate lastDate = mealDetailsRepository.findMaxMealDate()
+                .orElse(LocalDate.now().minusWeeks(1));
         LocalDate currentWeekStart = LocalDate.now().with(DayOfWeek.MONDAY);
-        Document document = fetchMealDocument();
 
-        List<MealDetails> weeklyMeals = mealParser.parseWeeklyMeal(document);
+        CrawlingData crawlingData = new CrawlingData(allMeals, lastDate, currentWeekStart);
+        List<MealDetails> newMeals = MEAL_SELECTION_STRATEGIES.get(isFirstCrawling).apply(crawlingData);
 
-        boolean isFirstCrawling = isFirstCrawling();
-        List<MealDetails> newMeals = isFirstCrawling ?
-                weeklyMeals :
-                filterNewMeals(weeklyMeals, lastDate, currentWeekStart);
+        log.info("📊 크롤링 결과 - 전체: {}개, 새로운 데이터: {}개", allMeals.size(), newMeals.size());
 
-        log.info("📊 크롤링 결과 - 전체: {}개, 새로운 데이터: {}개 (첫 크롤링: {})",
-                weeklyMeals.size(), newMeals.size(), isFirstCrawling);
-        processDataWithLogging(newMeals, this::saveMealData);
+        Optional.of(newMeals)
+                .filter(meals -> !meals.isEmpty())
+                .ifPresent(this::saveMealData);
+
+        CRAWLING_LOG_ACTIONS.get(!newMeals.isEmpty()).accept(newMeals.size());
     }
 
-    private boolean isFirstCrawling() {
-        return mealDetailsRepository.count() == 0;
+    private List<MealDetails> crawlCurrentWeek(LocalDate monday) {
+        LocalDate nextMonday = monday.plusWeeks(1);
+        String url = urlEncodingUtil.buildWeekUrl(mealBaseUrl, nextMonday, "pre");
+
+        Document document = fetchDocument(url);
+        List<MealDetails> meals = mealParser.parseWeeklyMeal(document);
+
+        logCrawlResult("current", meals);
+        return meals;
     }
 
-    private List<MealDetails> filterNewMeals(List<MealDetails> weeklyMeals, LocalDate lastDate, LocalDate currentWeekStart) {
-        return weeklyMeals.stream()
-                .filter(meal -> {
-                    LocalDate mealDate = meal.getMealDate();
-                    boolean isCurrentWeek = !mealDate.isBefore(currentWeekStart);
-                    boolean isAfterLastDate = mealDate.isAfter(lastDate);
+    private List<MealDetails> crawlNextWeek(LocalDate monday) {
+        String url = urlEncodingUtil.buildWeekUrl(mealBaseUrl, monday, "next");
 
-                    log.debug("🗓️ 필터링 체크 - 날짜: {}, 현재주: {}, 최신이후: {}",
-                            mealDate, isCurrentWeek, isAfterLastDate);
+        Document document = fetchDocument(url);
+        List<MealDetails> meals = mealParser.parseWeeklyMeal(document);
 
-                    return isCurrentWeek || isAfterLastDate;
+        List<MealDetails> processedMeals = Optional.of(meals)
+                .filter(mealList -> isCurrentWeekData(mealList, monday))
+                .map(mealList -> {
+                    log.warn("⚠️ 다음주 크롤링인데 현재주 데이터 반환됨 - 날짜를 다음주로 강제 수정");
+                    return adjustToNextWeek(mealList, monday.plusWeeks(1));
                 })
+                .orElse(meals);
+
+        logCrawlResult("next", processedMeals);
+        return processedMeals;
+    }
+
+    private boolean isCurrentWeekData(List<MealDetails> meals, LocalDate monday) {
+        LocalDate currentWeekEnd = monday.plusDays(4);
+
+        Predicate<MealDetails> isInCurrentWeek = meal ->
+                !meal.getMealDate().isBefore(monday) && !meal.getMealDate().isAfter(currentWeekEnd);
+
+        return meals.stream().allMatch(isInCurrentWeek);
+    }
+
+    private List<MealDetails> adjustToNextWeek(List<MealDetails> meals, LocalDate nextWeekStart) {
+        return meals.stream()
+                .map(meal -> createAdjustedMeal(meal, nextWeekStart))
+                .collect(Collectors.toList());
+    }
+
+    private MealDetails createAdjustedMeal(MealDetails meal, LocalDate nextWeekStart) {
+        int dayOffset = meal.getMealDate().getDayOfWeek().getValue() - 1;
+        LocalDate nextWeekDate = nextWeekStart.plusDays(dayOffset);
+
+        return MealDetails.builder()
+                .mealDate(nextWeekDate)
+                .dayOfWeek(meal.getDayOfWeek())
+                .mealType(meal.getMealType())
+                .menuItems(meal.getMenuItems())
+                .build();
+    }
+
+    private void logCrawlResult(String weekType, List<MealDetails> meals) {
+        Optional<LocalDate> minDate = meals.stream().map(MealDetails::getMealDate).min(LocalDate::compareTo);
+        Optional<LocalDate> maxDate = meals.stream().map(MealDetails::getMealDate).max(LocalDate::compareTo);
+
+        log.info("🗓️ {} 크롤링 결과: {} ~ {} ({}개)",
+                weekType, minDate.orElse(null), maxDate.orElse(null), meals.size());
+    }
+
+    private List<MealDetails> filterNewMeals(CrawlingData data) {
+        Predicate<MealDetails> isCurrentWeek = meal -> !meal.getMealDate().isBefore(data.currentWeekStart());
+        Predicate<MealDetails> isAfterLastDate = meal -> meal.getMealDate().isAfter(data.lastDate());
+        Predicate<MealDetails> shouldInclude = isCurrentWeek.or(isAfterLastDate);
+
+        return data.allMeals().stream()
+                .filter(shouldInclude)
                 .collect(Collectors.toList());
     }
 
     private void performCleanup() {
-        LocalDate cutoffDate = LocalDate.now().minusWeeks(CLEANUP_WEEKS);
+        LocalDate cutoffDate = LocalDate.now().minusWeeks(2);
         int deletedCount = mealDetailsRepository.deleteOldMealData(cutoffDate);
 
-        LOG_STRATEGIES.get(deletedCount > 0).accept(cutoffDate, deletedCount);
+        CLEANUP_LOG_ACTIONS.get(deletedCount > 0).accept(deletedCount);
     }
 
-    private void processDataWithLogging(List<MealDetails> data, Consumer<List<MealDetails>> processor) {
-        Optional.of(data)
-                .filter(list -> !list.isEmpty())
-                .ifPresent(processor);
-
-        LOG_STRATEGIES.get(!data.isEmpty()).accept(null, data.size());
-    }
-
-    private LocalDate getLastCrawledDate() {
-        return mealDetailsRepository.findMaxMealDate()
-                .orElse(LocalDate.now().minusWeeks(DEFAULT_WEEKS_BACK));
-    }
-
-    private Document fetchMealDocument() {
+    private Document fetchDocument(String url) {
         try {
-            return Jsoup.connect(mealUrl)
+            return Jsoup.connect(url)
                     .timeout(connectionTimeout)
                     .userAgent(userAgent)
-                    .headers(getDefaultHeaders())
+                    .headers(Map.of(
+                            "Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                            "Accept-Language", "ko-KR,ko;q=0.8,en-US;q=0.5,en;q=0.3"
+                    ))
                     .get();
         } catch (IOException e) {
-            throw new MealCrawlingException(mealUrl, e);
+            throw new MealCrawlingException(url, e);
         }
     }
 
-    private Map<String, String> getDefaultHeaders() {
-        return Map.of(
-                "Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                "Accept-Language", "ko-KR,ko;q=0.8,en-US;q=0.5,en;q=0.3"
-        );
+    private void saveMealData(List<MealDetails> newMeals) {
+        List<MealDetails> uniqueMeals = removeDuplicates(newMeals);
+        deleteExistingData(uniqueMeals);
+        saveToDatabase(uniqueMeals);
     }
 
-    private void saveMealData(List<MealDetails> newMealDetails) {
-        List<MealDetails> uniqueDetails = removeDuplicates(newMealDetails);
+    private List<MealDetails> removeDuplicates(List<MealDetails> meals) {
+        Map<String, MealDetails> uniqueMap = new LinkedHashMap<>();
 
-        Optional<LocalDate> currentWeekStart = uniqueDetails.stream()
-                .map(MealDetails::getMealDate)
-                .filter(date -> !date.isBefore(LocalDate.now().with(DayOfWeek.MONDAY)))
-                .findFirst();
-
-        if (currentWeekStart.isPresent()) {
-            LocalDate weekStart = LocalDate.now().with(DayOfWeek.MONDAY);
-            LocalDate weekEnd = LocalDate.now().with(DayOfWeek.FRIDAY);
-            log.info("🔄 현재 주({} ~ {}) 기존 데이터 삭제 후 새로 저장", weekStart, weekEnd);
-            mealDetailsRepository.deleteByMealDateBetween(weekStart, weekEnd);
+        for (MealDetails meal : meals) {
+            String key = meal.getMealDate() + "_" + meal.getMealType();
+            uniqueMap.putIfAbsent(key, meal);
         }
 
-        List<Meal> mealList = createMealEntities(uniqueDetails);
-
-        mealDetailsRepository.saveAll(uniqueDetails);
-        mealRepository.saveAll(mealList);
-        mealRepository.flush();
-
-        log.info("💾 저장 완료 - MealDetails: {}개, Meal: {}개", uniqueDetails.size(), mealList.size());
+        return new ArrayList<>(uniqueMap.values());
     }
 
-    private List<MealDetails> removeDuplicates(List<MealDetails> mealDetails) {
-        return new ArrayList<>(new LinkedHashSet<>(mealDetails));
+    private void deleteExistingData(List<MealDetails> meals) {
+        LocalDate now = LocalDate.now();
+        LocalDate currentWeekStart = now.with(DayOfWeek.MONDAY);
+        LocalDate currentWeekEnd = now.with(DayOfWeek.FRIDAY);
+        LocalDate nextWeekStart = currentWeekStart.plusWeeks(1);
+        LocalDate nextWeekEnd = currentWeekEnd.plusWeeks(1);
+
+        Predicate<MealDetails> isCurrentWeek = meal ->
+                !meal.getMealDate().isBefore(currentWeekStart) && !meal.getMealDate().isAfter(currentWeekEnd);
+        Predicate<MealDetails> isNextWeek = meal ->
+                !meal.getMealDate().isBefore(nextWeekStart) && !meal.getMealDate().isAfter(nextWeekEnd);
+
+        Optional.of(meals)
+                .filter(mealList -> mealList.stream().anyMatch(isCurrentWeek))
+                .ifPresent(mealList -> DELETE_WEEK_ACTIONS.get("current")
+                        .accept(new WeekDataContext(currentWeekStart, currentWeekEnd, "현재 주")));
+
+        Optional.of(meals)
+                .filter(mealList -> mealList.stream().anyMatch(isNextWeek))
+                .ifPresent(mealList -> DELETE_WEEK_ACTIONS.get("next")
+                        .accept(new WeekDataContext(nextWeekStart, nextWeekEnd, "다음주")));
     }
 
-    private List<Meal> createMealEntities(List<MealDetails> mealDetails) {
-        return mealDetails.stream()
+    private void deleteCurrentWeekData(WeekDataContext context) {
+        log.info("🔄 {}({} ~ {}) 기존 데이터 삭제", context.weekName(), context.startDate(), context.endDate());
+        mealRepository.deleteByMealDateBetween(context.startDate(), context.endDate());
+        mealDetailsRepository.deleteByMealDateBetween(context.startDate(), context.endDate());
+    }
+
+    private void deleteNextWeekData(WeekDataContext context) {
+        log.info("🔄 {}({} ~ {}) 기존 데이터 삭제", context.weekName(), context.startDate(), context.endDate());
+        mealRepository.deleteByMealDateBetween(context.startDate(), context.endDate());
+        mealDetailsRepository.deleteByMealDateBetween(context.startDate(), context.endDate());
+    }
+
+    private void saveToDatabase(List<MealDetails> uniqueMeals) {
+        List<MealDetails> savedMealDetails = mealDetailsRepository.saveAll(uniqueMeals);
+
+        List<Meal> meals = savedMealDetails.stream()
                 .map(Meal::new)
                 .collect(Collectors.toList());
+
+        mealRepository.saveAll(meals);
+        mealRepository.flush();
+
+        log.info("💾 저장 완료 - MealDetails: {}개, Meal: {}개", savedMealDetails.size(), meals.size());
     }
 
-    private MealWeeklyResponse buildWeeklyMealResponse(LocalDate startDate, LocalDate endDate,
-                                                       List<MealListDto> meals) {
-        Map<LocalDate, Map<MealType, String>> mealsByDate = groupMealsByDate(meals);
-        List<MealDailyResponse> dailyMeals = createDailyMealResponses(startDate, endDate, mealsByDate);
-
-        return MealWeeklyResponse.builder()
-                .startDate(startDate)
-                .endDate(endDate)
-                .dailyMeals(dailyMeals)
-                .build();
-    }
-
-    private Map<LocalDate, Map<MealType, String>> groupMealsByDate(List<MealListDto> meals) {
-        return meals.stream()
+    private MealWeeklyResponse buildWeeklyResponse(LocalDate startDate, LocalDate endDate, List<MealListDto> meals) {
+        Map<LocalDate, Map<MealType, String>> mealsByDate = meals.stream()
                 .collect(Collectors.groupingBy(
                         MealListDto::getMealDate,
                         Collectors.toMap(
@@ -231,14 +312,17 @@ public class MealServiceImpl implements MealService {
                                 () -> new EnumMap<>(MealType.class)
                         )
                 ));
-    }
 
-    private List<MealDailyResponse> createDailyMealResponses(LocalDate startDate, LocalDate endDate,
-                                                             Map<LocalDate, Map<MealType, String>> mealsByDate) {
-        return startDate.datesUntil(endDate.plusDays(1))
+        List<MealDailyResponse> dailyMeals = startDate.datesUntil(endDate.plusDays(1))
                 .map(date -> createDailyMeal(date, mealsByDate))
                 .sorted(Comparator.comparing(MealDailyResponse::getDate))
                 .collect(Collectors.toList());
+
+        return MealWeeklyResponse.builder()
+                .startDate(startDate)
+                .endDate(endDate)
+                .dailyMeals(dailyMeals)
+                .build();
     }
 
     private MealDailyResponse createDailyMeal(LocalDate date, Map<LocalDate, Map<MealType, String>> mealsByDate) {
@@ -252,11 +336,9 @@ public class MealServiceImpl implements MealService {
                 .build();
     }
 
-    private void logTaskStart(String taskName) {
-        log.info("=== {} 시작 === [{}]", taskName, LocalDateTime.now().format(DATE_TIME_FORMATTER));
+    private record CrawlingData(List<MealDetails> allMeals, LocalDate lastDate, LocalDate currentWeekStart) {
     }
 
-    private void logTaskEnd(String taskName) {
-        log.info("=== {} 종료 === [{}]", taskName, LocalDateTime.now().format(DATE_TIME_FORMATTER));
+    private record WeekDataContext(LocalDate startDate, LocalDate endDate, String weekName) {
     }
 }
