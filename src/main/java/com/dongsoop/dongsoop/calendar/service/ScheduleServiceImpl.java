@@ -39,7 +39,7 @@ public class ScheduleServiceImpl implements ScheduleService {
     public List<ScheduleDetails> getMemberSchedule(Long memberId, YearMonth yearMonth) {
         LocalDate startMonth = LocalDate.of(yearMonth.getYear(), yearMonth.getMonth(), 1);
         YearMonth oneMonthLater = yearMonth.plusMonths(1);
-        LocalDate endMonth = LocalDate.of(yearMonth.getYear(), oneMonthLater.getMonth(), 1);
+        LocalDate endMonth = LocalDate.of(oneMonthLater.getYear(), oneMonthLater.getMonth(), 1);
 
         LocalDateTime startAt = startMonth.atStartOfDay();
         LocalDateTime endAt = endMonth.atStartOfDay();
