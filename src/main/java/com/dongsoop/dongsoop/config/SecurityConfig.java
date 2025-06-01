@@ -53,8 +53,7 @@ public class SecurityConfig {
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
-                        .addLogoutHandler(logoutHandler)
-                        .deleteCookies())
+                        .addLogoutHandler(logoutHandler))
                 .httpBasic(AbstractHttpConfigurer::disable) // 기본 인증 기능 제거
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable) // JWT를 사용하기 때문에 form login 비활성화
