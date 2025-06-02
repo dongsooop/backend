@@ -1,5 +1,7 @@
 package com.dongsoop.dongsoop.config;
 
+import com.dongsoop.dongsoop.handler.CustomAccessDeniedHandler;
+import com.dongsoop.dongsoop.handler.CustomAuthenticationEntryPoint;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import java.util.List;
@@ -24,6 +26,10 @@ public class SecurityConfig {
     private final JwtFilter jwtFilter;
 
     private final LogoutHandler logoutHandler;
+
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+
+    private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
     @Value("${authentication.path.all}")
     private String[] allowedPaths;
@@ -58,6 +64,9 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable) // JWT를 사용하기 때문에 form login 비활성화
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(customAuthenticationEntryPoint) // 401 에러 응답 처리
+                        .accessDeniedHandler(customAccessDeniedHandler)) // 403 에러 응답 처리
                 .build();
     }
 
