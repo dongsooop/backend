@@ -2,7 +2,6 @@ package com.dongsoop.dongsoop.calendar.repository;
 
 import com.dongsoop.dongsoop.calendar.entity.MemberSchedule;
 import com.dongsoop.dongsoop.calendar.entity.QMemberSchedule;
-import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,22 +20,11 @@ public class MemberScheduleRepositoryCustomImpl implements MemberScheduleReposit
                                                              LocalDateTime endAt) {
         return queryFactory.selectFrom(memberSchedule)
                 .where(memberSchedule.member.id.eq(memberId))
-                .where(isDurationWithin(startAt, endAt))
+                .where(ScheduleDurationChecker.isDurationWithin(
+                        memberSchedule.startAt,
+                        memberSchedule.endAt,
+                        startAt,
+                        endAt))
                 .fetch();
-    }
-
-    public BooleanExpression isDurationWithin(LocalDateTime startAt, LocalDateTime endAt) {
-        BooleanExpression startsWithinDuration = memberSchedule.startAt.goe(startAt)
-                .and(memberSchedule.startAt.lt(endAt));
-
-        BooleanExpression endsWithinDuration = memberSchedule.endAt.goe(startAt)
-                .and(memberSchedule.endAt.lt(endAt));
-
-        BooleanExpression overlapAllDuration = memberSchedule.startAt.lt(startAt)
-                .and(memberSchedule.endAt.gt(endAt));
-
-        return startsWithinDuration
-                .or(endsWithinDuration)
-                .or(overlapAllDuration);
     }
 }

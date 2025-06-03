@@ -2,7 +2,6 @@ package com.dongsoop.dongsoop.calendar.repository;
 
 import com.dongsoop.dongsoop.calendar.entity.OfficialSchedule;
 import com.dongsoop.dongsoop.calendar.entity.QOfficialSchedule;
-import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDate;
 import java.util.List;
@@ -20,22 +19,11 @@ public class OfficialScheduleRepositoryCustomImpl implements OfficialScheduleRep
 
     public List<OfficialSchedule> findOfficialScheduleByDuration(LocalDate startAt, LocalDate endAt) {
         return queryFactory.selectFrom(officialSchedule)
-                .where(isDurationWithin(startAt, endAt))
+                .where(ScheduleDurationChecker.isDurationWithin(
+                        officialSchedule.startAt,
+                        officialSchedule.endAt,
+                        startAt,
+                        endAt))
                 .fetch();
-    }
-
-    public BooleanExpression isDurationWithin(LocalDate startAt, LocalDate endAt) {
-        BooleanExpression startsWithinDuration = officialSchedule.startAt.goe(startAt)
-                .and(officialSchedule.startAt.lt(endAt));
-
-        BooleanExpression endsWithinDuration = officialSchedule.endAt.goe(startAt)
-                .and(officialSchedule.endAt.lt(endAt));
-
-        BooleanExpression overlapAllDuration = officialSchedule.startAt.lt(startAt)
-                .and(officialSchedule.endAt.gt(endAt));
-
-        return startsWithinDuration
-                .or(endsWithinDuration)
-                .or(overlapAllDuration);
     }
 }
