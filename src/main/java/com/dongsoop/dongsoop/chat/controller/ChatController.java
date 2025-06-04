@@ -15,7 +15,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -72,11 +74,19 @@ public class ChatController {
     public ResponseEntity<ChatRoom> createGroupRoom(@RequestBody CreateGroupRoomRequest request) {
         Long currentUserId = getCurrentUserId();
 
-        Set<Long> participantIds = request.getParticipants().stream()
+        Set<Long> participantIds = convertNicknamesToIds(request.getParticipants());
+
+        return ResponseEntity.ok(
+                chatService.createGroupChatRoom(currentUserId, participantIds, request.getTitle())
+        );
+    }
+
+    private Set<Long> convertNicknamesToIds(Set<String> nicknames) {
+        return Optional.ofNullable(nicknames)
+                .orElse(Collections.emptySet())
+                .stream()
                 .map(nickname -> memberService.getLoginAuthenticateByNickname(nickname).getId())
                 .collect(Collectors.toSet());
-
-        return ResponseEntity.ok(chatService.createGroupChatRoom(currentUserId, participantIds));
     }
 
     @PostMapping("/room/{roomId}/kick")
@@ -85,9 +95,12 @@ public class ChatController {
             @RequestBody KickUserRequest kickUserRequest) {
         Long currentUserId = getCurrentUserId();
 
-        Long userToKickId = memberService.getLoginAuthenticateByNickname(kickUserRequest.getUserId()).getId();
+        String userToKickNickname = kickUserRequest.getUserId();
+        Long userToKickId = memberService.getLoginAuthenticateByNickname(userToKickNickname).getId();
 
-        return ResponseEntity.ok(chatService.kickUserFromRoom(roomId, currentUserId, userToKickId));
+        return ResponseEntity.ok(
+                chatService.kickUserFromRoom(roomId, currentUserId, userToKickId)
+        );
     }
 
     private Long getCurrentUserId() {
