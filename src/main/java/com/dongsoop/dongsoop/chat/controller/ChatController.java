@@ -8,11 +8,10 @@ import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.member.dto.LoginAuthenticate;
+import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
@@ -101,8 +100,8 @@ public class ChatController {
     }
 
     private Long getCurrentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return Long.parseLong(authentication.getName());
+        Member member = memberService.getMemberReferenceByContext();
+        return member.getId();
     }
 
     private Set<Long> convertNicknamesToIds(Set<String> nicknames) {
@@ -113,10 +112,10 @@ public class ChatController {
     }
 
     private Set<String> getSafeNicknames(Set<String> nicknames) {
-        if (nicknames != null) {
-            return nicknames;
+        if (nicknames == null) {
+            return Collections.emptySet();
         }
-        return Collections.emptySet();
+        return nicknames;
     }
 
     private Long convertNicknameToId(String nickname) {
