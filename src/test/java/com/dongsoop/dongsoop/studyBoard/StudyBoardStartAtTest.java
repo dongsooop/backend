@@ -9,10 +9,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
-import com.dongsoop.dongsoop.study.controller.StudyBoardController;
-import com.dongsoop.dongsoop.study.dto.CreateStudyBoardRequest;
-import com.dongsoop.dongsoop.study.entity.StudyBoard;
-import com.dongsoop.dongsoop.study.service.StudyBoardServiceImpl;
+import com.dongsoop.dongsoop.recruitment.study.controller.StudyBoardController;
+import com.dongsoop.dongsoop.recruitment.study.dto.CreateStudyBoardRequest;
+import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoard;
+import com.dongsoop.dongsoop.recruitment.study.service.StudyBoardServiceImpl;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import org.json.JSONArray;
