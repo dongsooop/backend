@@ -10,6 +10,7 @@ import java.util.function.Predicate;
 
 @Repository
 public class InMemoryChatRepository implements ChatRepository {
+    private static final int ONE_TO_ONE_PARTICIPANT_COUNT = 2;
 
     private final Map<String, ChatRoom> rooms = new ConcurrentHashMap<>();
     private final Map<String, List<ChatMessage>> messages = new ConcurrentHashMap<>();
@@ -29,8 +30,8 @@ public class InMemoryChatRepository implements ChatRepository {
     @Override
     public Optional<ChatRoom> findRoomByParticipants(Long user1, Long user2) {
         return rooms.values().stream()
-                .filter(hasExactlyTwoParticipants())
-                .filter(containsBothUsers(user1, user2))
+                .filter(createOneToOneRoomFilter())
+                .filter(createParticipantMatchFilter(user1, user2))
                 .findFirst();
     }
 
@@ -42,7 +43,14 @@ public class InMemoryChatRepository implements ChatRepository {
 
     @Override
     public List<ChatMessage> findMessagesByRoomId(String roomId) {
-        return new ArrayList<>(messages.getOrDefault(roomId, Collections.emptyList()));
+        return createMessagesCopy(roomId);
+    }
+
+    @Override
+    public List<ChatRoom> findRoomsByUserId(Long userId) {
+        return rooms.values().stream()
+                .filter(createUserParticipationFilter(userId))
+                .toList();
     }
 
     private List<ChatMessage> ensureMessageListExists(String roomId) {
@@ -52,19 +60,22 @@ public class InMemoryChatRepository implements ChatRepository {
         );
     }
 
-    private Predicate<ChatRoom> hasExactlyTwoParticipants() {
-        return room -> room.getParticipants().size() == 2;
+    private List<ChatMessage> createMessagesCopy(String roomId) {
+        return new ArrayList<>(messages.getOrDefault(roomId, Collections.emptyList()));
     }
 
-    private Predicate<ChatRoom> containsBothUsers(Long user1, Long user2) {
-        return room -> room.getParticipants().contains(user1)
-                && room.getParticipants().contains(user2);
+    private Predicate<ChatRoom> createOneToOneRoomFilter() {
+        return room -> room.getParticipants().size() == ONE_TO_ONE_PARTICIPANT_COUNT;
     }
 
-    @Override
-    public List<ChatRoom> findRoomsByUserId(Long userId) {
-        return rooms.values().stream()
-                .filter(room -> room.getParticipants().contains(userId))
-                .toList();
+    private Predicate<ChatRoom> createParticipantMatchFilter(Long user1, Long user2) {
+        return room -> {
+            Set<Long> participants = room.getParticipants();
+            return participants.contains(user1) && participants.contains(user2);
+        };
+    }
+
+    private Predicate<ChatRoom> createUserParticipationFilter(Long userId) {
+        return room -> room.getParticipants().contains(userId);
     }
 }
