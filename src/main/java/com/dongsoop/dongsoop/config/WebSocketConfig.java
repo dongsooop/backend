@@ -34,7 +34,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .withSockJS()
                 .setDisconnectDelay(30 * 1000)
                 .setHeartbeatTime(15 * 1000)
-                .setSessionCookieNeeded(true)
                 .setWebSocketEnabled(true)
                 .setStreamBytesLimit(512 * 1024)
                 .setHttpMessageCacheSize(1000);
