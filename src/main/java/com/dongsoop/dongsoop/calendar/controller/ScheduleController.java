@@ -10,6 +10,7 @@ import java.net.URI;
 import java.time.YearMonth;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,7 +30,7 @@ public class ScheduleController {
 
     @GetMapping("/member/{memberId}/year-month/{yearMonth}")
     public ResponseEntity<List<ScheduleDetails>> getMemberSchedule(@PathVariable("memberId") Long memberId,
-                                                                   @PathVariable("yearMonth") YearMonth yearMonth) {
+                                                                   @PathVariable("yearMonth") @DateTimeFormat(pattern = "yyyy-MM") YearMonth yearMonth) {
         List<ScheduleDetails> scheduleList = scheduleService.getMemberSchedule(memberId, yearMonth);
         return ResponseEntity.ok(scheduleList);
     }
