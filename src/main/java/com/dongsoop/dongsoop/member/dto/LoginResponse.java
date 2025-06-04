@@ -14,18 +14,21 @@ public class LoginResponse {
 
     private String accessToken;
 
+    private String refreshToken;
+
     private String nickname;
 
     private String email;
 
     private DepartmentType departmentType;
 
-    public LoginResponse(LoginMemberDetails loginMemberDetail, String accessToken) {
+    public LoginResponse(LoginMemberDetails loginMemberDetail, String accessToken, String refreshToken) {
         this.id = loginMemberDetail.getId();
         this.nickname = loginMemberDetail.getNickname();
         this.email = loginMemberDetail.getEmail();
         this.departmentType = loginMemberDetail.getDepartmentType();
 
         this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
     }
 }
