@@ -4,7 +4,6 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -19,12 +18,17 @@ public class ChatRoom {
 
     private String roomId;
     private String title;
-    private Set<Long> participants;
+
+    @Builder.Default
+    private Set<Long> participants = new HashSet<>();
+
     private Long managerId;
     private boolean isGroupChat;
     private LocalDateTime createdAt;
     private LocalDateTime lastActivityAt;
-    private Set<Long> kickedUsers;
+
+    @Builder.Default
+    private Set<Long> kickedUsers = new HashSet<>();
 
     public static ChatRoom create(Long user1, Long user2) {
         return ChatRoom.builder()
@@ -91,20 +95,23 @@ public class ChatRoom {
     }
 
     private LocalDateTime getEffectiveCreatedAt() {
-        return Optional.ofNullable(this.createdAt)
-                .orElseGet(() -> getCurrentTime().minusDays(BACKUP_DAYS_THRESHOLD));
+        if (this.createdAt != null) {
+            return this.createdAt;
+        }
+        return getCurrentTime().minusDays(BACKUP_DAYS_THRESHOLD);
     }
 
     private LocalDateTime getEffectiveLastActivityAt() {
-        return Optional.ofNullable(this.lastActivityAt)
-                .orElseGet(LocalDateTime::now);
+        if (this.lastActivityAt != null) {
+            return this.lastActivityAt;
+        }
+        return LocalDateTime.now();
     }
 
     private Set<Long> ensureKickedUsersSet() {
-        return Optional.ofNullable(kickedUsers)
-                .orElseGet(() -> {
-                    kickedUsers = new HashSet<>();
-                    return kickedUsers;
-                });
+        if (kickedUsers == null) {
+            kickedUsers = new HashSet<>();
+        }
+        return kickedUsers;
     }
 }
