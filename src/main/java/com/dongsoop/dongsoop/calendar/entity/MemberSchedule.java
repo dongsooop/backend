@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.calendar.entity;
 import com.dongsoop.dongsoop.calendar.dto.MemberScheduleUpdateRequest;
 import com.dongsoop.dongsoop.calendar.dto.ScheduleDetails;
 import com.dongsoop.dongsoop.calendar.dto.ScheduleType;
+import com.dongsoop.dongsoop.calendar.exception.ScheduleAlreadySetByMemberException;
 import com.dongsoop.dongsoop.common.BaseEntity;
 import com.dongsoop.dongsoop.member.entity.Member;
 import jakarta.persistence.Column;
@@ -53,6 +54,15 @@ public class MemberSchedule extends BaseEntity {
     @JoinColumn(name = "member_id", nullable = false)
     @Getter
     private Member member;
+
+    public void setMember(Member member) {
+        if (this.member == null) {
+            this.member = member;
+            return;
+        }
+
+        throw new ScheduleAlreadySetByMemberException(member.getId(), this.member.getId());
+    }
 
     public ScheduleDetails toDetails() {
         return ScheduleDetails.builder()

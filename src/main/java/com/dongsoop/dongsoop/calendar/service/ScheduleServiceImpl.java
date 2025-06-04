@@ -10,6 +10,7 @@ import com.dongsoop.dongsoop.calendar.repository.MemberScheduleRepositoryCustom;
 import com.dongsoop.dongsoop.calendar.repository.OfficialScheduleRepositoryCustom;
 import com.dongsoop.dongsoop.exception.domain.schedule.MemberScheduleNotFoundException;
 import com.dongsoop.dongsoop.exception.domain.schedule.NotScheduleOwnerException;
+import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -33,6 +34,9 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     public MemberSchedule createMemberSchedule(CreateMemberScheduleRequest createMemberScheduleRequest) {
         MemberSchedule schedule = createMemberScheduleRequest.toEntity();
+        Member member = memberService.getMemberReferenceByContext();
+        schedule.setMember(member);
+        
         return memberScheduleRepository.save(schedule);
     }
 
