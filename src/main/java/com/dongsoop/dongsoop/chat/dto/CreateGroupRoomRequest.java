@@ -11,4 +11,5 @@ import java.util.Set;
 @AllArgsConstructor
 public class CreateGroupRoomRequest {
     private Set<String> participants;
+    private String title;
 }
