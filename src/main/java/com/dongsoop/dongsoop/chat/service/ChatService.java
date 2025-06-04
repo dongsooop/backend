@@ -12,8 +12,10 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Stream;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -101,17 +103,26 @@ public class ChatService {
     }
 
     private void validateNegativeUserIds(Long userId, Long targetUserId) {
-        Stream.of(userId, targetUserId)
-                .filter(id -> id < 0)
-                .findAny()
-                .ifPresent(id -> {
-                    throw new UnauthorizedChatAccessException();
-                });
+        validatePositiveUserId(userId);
+        validatePositiveUserId(targetUserId);
+    }
+
+    private void validatePositiveUserId(Long userId) {
+        if (userId < 0) {
+            throw new UnauthorizedChatAccessException();
+        }
     }
 
     private ChatRoom findExistingRoomOrCreate(Long userId, Long targetUserId) {
-        return chatRepository.findRoomByParticipants(userId, targetUserId)
-                .orElseGet(() -> createNewOneToOneRoom(userId, targetUserId));
+        ChatRoom existingRoom = chatRepository.findRoomByParticipants(userId, targetUserId).orElse(null);
+        return getExistingOrNewRoom(existingRoom, userId, targetUserId);
+    }
+
+    private ChatRoom getExistingOrNewRoom(ChatRoom existingRoom, Long userId, Long targetUserId) {
+        if (existingRoom != null) {
+            return existingRoom;
+        }
+        return createNewOneToOneRoom(userId, targetUserId);
     }
 
     private ChatRoom createNewOneToOneRoom(Long user1, Long user2) {
@@ -120,11 +131,9 @@ public class ChatService {
     }
 
     private void validateMinimumParticipants(Set<Long> participants) {
-        Optional.of(participants.size())
-                .filter(size -> size < 0)
-                .ifPresent(size -> {
-                    throw new IllegalArgumentException("그룹 채팅 참여자 수가 올바르지 않습니다.");
-                });
+        if (participants.size() < 1) {
+            throw new IllegalArgumentException("그룹 채팅 참여자 수가 올바르지 않습니다.");
+        }
     }
 
     private Set<Long> buildParticipantSet(Set<Long> participants, Long creatorId) {
@@ -139,7 +148,6 @@ public class ChatService {
 
     private void createKickNotification(String roomId, Long managerId, Long kickedUserId) {
         String content = "사용자가 채팅방에서 추방되었습니다.";
-
         ChatMessage notification = buildSystemMessage(roomId, managerId, "시스템", content, MessageType.LEAVE);
         chatRepository.saveMessage(notification);
     }
@@ -165,20 +173,34 @@ public class ChatService {
 
     private List<ChatMessage> retrieveMessagesFromCacheOrDatabase(String roomId) {
         List<ChatMessage> cachedMessages = chatRepository.findMessagesByRoomId(roomId);
+        return getCachedOrRestoredMessages(cachedMessages, roomId);
+    }
 
-        return Optional.of(cachedMessages)
-                .filter(messages -> !messages.isEmpty())
-                .orElseGet(() -> chatSyncService.restoreMessagesFromDatabase(roomId));
+    private List<ChatMessage> getCachedOrRestoredMessages(List<ChatMessage> cachedMessages, String roomId) {
+        if (!cachedMessages.isEmpty()) {
+            return cachedMessages;
+        }
+        return chatSyncService.restoreMessagesFromDatabase(roomId);
     }
 
     private ChatRoom findRoomByIdOrRestore(String roomId) {
-        return chatRepository.findRoomById(roomId)
-                .orElseGet(() -> restoreRoomFromDatabase(roomId));
+        ChatRoom room = chatRepository.findRoomById(roomId).orElse(null);
+        return getRoomOrRestore(room, roomId);
+    }
+
+    private ChatRoom getRoomOrRestore(ChatRoom room, String roomId) {
+        if (room != null) {
+            return room;
+        }
+        return restoreRoomFromDatabase(roomId);
     }
 
     private ChatRoom restoreRoomFromDatabase(String roomId) {
-        return Optional.ofNullable(chatSyncService.restoreGroupChatRoom(roomId))
-                .orElseThrow(ChatRoomNotFoundException::new);
+        ChatRoom restoredRoom = chatSyncService.restoreGroupChatRoom(roomId);
+        if (restoredRoom == null) {
+            throw new ChatRoomNotFoundException();
+        }
+        return restoredRoom;
     }
 
     private void processNewMessages(List<ChatMessage> newMessages) {
@@ -186,49 +208,43 @@ public class ChatService {
     }
 
     private void attemptRoomRecreation(String roomId, Long userId, List<ChatMessage> localMessages) {
-        Optional.of(roomId)
-                .map(id -> tryUpdateExistingRoom(id, userId, localMessages))
-                .orElseGet(() -> recreateFromMessages(roomId, userId, localMessages));
+        boolean roomRecreated = tryUpdateExistingRoom(roomId, userId, localMessages);
+        if (!roomRecreated) {
+            recreateFromMessages(roomId, userId, localMessages);
+        }
     }
 
-    private Boolean tryUpdateExistingRoom(String roomId, Long userId, List<ChatMessage> localMessages) {
+    private boolean tryUpdateExistingRoom(String roomId, Long userId, List<ChatMessage> localMessages) {
         try {
             updateExistingRoomParticipants(roomId, userId);
             syncMessages(roomId, userId, localMessages);
             return true;
         } catch (ChatRoomNotFoundException e) {
-            recreateFromMessages(roomId, userId, localMessages);
             return false;
         }
     }
 
     private void updateExistingRoomParticipants(String roomId, Long userId) {
         ChatRoom room = getChatRoomById(roomId);
-
-        Optional.of(userId)
-                .filter(id -> !room.getParticipants().contains(id))
-                .ifPresent(id -> {
-                    room.getParticipants().add(id);
-                    chatRepository.saveRoom(room);
-                });
+        boolean shouldAddUser = !room.getParticipants().contains(userId);
+        if (shouldAddUser) {
+            room.getParticipants().add(userId);
+            chatRepository.saveRoom(room);
+        }
     }
 
-    private Boolean recreateFromMessages(String roomId, Long userId, List<ChatMessage> clientMessages) {
+    private void recreateFromMessages(String roomId, Long userId, List<ChatMessage> clientMessages) {
         validateNonEmptyMessages(clientMessages);
 
         Set<Long> participants = extractParticipantsFromMessages(userId, clientMessages);
         createRoomWithSpecificId(roomId, participants);
         saveEnrichedMessages(clientMessages);
-
-        return true;
     }
 
     private void validateNonEmptyMessages(List<ChatMessage> messages) {
-        Optional.of(messages)
-                .filter(List::isEmpty)
-                .ifPresent(emptyList -> {
-                    throw new IllegalArgumentException("메시지가 없어 채팅방을 재생성할 수 없습니다.");
-                });
+        if (messages.isEmpty()) {
+            throw new IllegalArgumentException("메시지가 없어 채팅방을 재생성할 수 없습니다.");
+        }
     }
 
     private Set<Long> extractParticipantsFromMessages(Long userId, List<ChatMessage> messages) {
@@ -267,38 +283,30 @@ public class ChatService {
     }
 
     private void setMessageIdIfMissing(ChatMessage message) {
-        Optional.ofNullable(message.getMessageId())
-                .orElseGet(() -> {
-                    String newId = UUID.randomUUID().toString();
-                    message.setMessageId(newId);
-                    return newId;
-                });
+        if (message.getMessageId() == null) {
+            String newId = UUID.randomUUID().toString();
+            message.setMessageId(newId);
+        }
     }
 
     private void setTimestampIfMissing(ChatMessage message) {
-        Optional.ofNullable(message.getTimestamp())
-                .orElseGet(() -> {
-                    LocalDateTime now = LocalDateTime.now();
-                    message.setTimestamp(now);
-                    return now;
-                });
+        if (message.getTimestamp() == null) {
+            LocalDateTime now = LocalDateTime.now();
+            message.setTimestamp(now);
+        }
     }
 
     private void setTypeIfMissing(ChatMessage message) {
-        Optional.ofNullable(message.getType())
-                .orElseGet(() -> {
-                    message.setType(MessageType.CHAT);
-                    return MessageType.CHAT;
-                });
+        if (message.getType() == null) {
+            message.setType(MessageType.CHAT);
+        }
     }
 
     private void setSenderNickNameIfMissing(ChatMessage message) {
-        Optional.ofNullable(message.getSenderNickName())
-                .orElseGet(() -> {
-                    String defaultName = "사용자" + message.getSenderId();
-                    message.setSenderNickName(defaultName);
-                    return defaultName;
-                });
+        if (message.getSenderNickName() == null) {
+            String defaultName = "사용자" + message.getSenderId();
+            message.setSenderNickName(defaultName);
+        }
     }
 
     private List<ChatRoom> filterNonKickedRooms(List<ChatRoom> rooms, Long userId) {
