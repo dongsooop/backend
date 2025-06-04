@@ -38,7 +38,12 @@ public class ScheduleController {
     @PostMapping("/member")
     public ResponseEntity<Void> createMemberSchedule(@RequestBody @Valid CreateMemberScheduleRequest request) {
         MemberSchedule schedule = scheduleService.createMemberSchedule(request);
-        URI uri = URI.create("/schedule/member/" + schedule.getId().toString());
+        
+        Long memberId = schedule.getMember()
+                .getId();
+        YearMonth startAtYearMonth = YearMonth.from(request.getStartAt());
+
+        URI uri = URI.create("/schedule/member/" + memberId + "/year-month/" + startAtYearMonth);
 
         return ResponseEntity.created(uri)
                 .build();
