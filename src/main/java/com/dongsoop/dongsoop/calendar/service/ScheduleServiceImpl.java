@@ -36,7 +36,7 @@ public class ScheduleServiceImpl implements ScheduleService {
         MemberSchedule schedule = createMemberScheduleRequest.toEntity();
         Member member = memberService.getMemberReferenceByContext();
         schedule.setMember(member);
-        
+
         return memberScheduleRepository.save(schedule);
     }
 
@@ -70,6 +70,14 @@ public class ScheduleServiceImpl implements ScheduleService {
     }
 
     public void deleteMemberSchedule(Long scheduleId) {
+        MemberSchedule schedule = memberScheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new MemberScheduleNotFoundException(scheduleId));
+
+        Long scheduleOwnerId = schedule.getMember()
+                .getId();
+
+        validateScheduleOwner(scheduleOwnerId, scheduleId);
+
         memberScheduleRepository.deleteById(scheduleId);
     }
 
