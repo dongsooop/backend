@@ -48,17 +48,17 @@ public class ScheduleServiceImpl implements ScheduleService {
         LocalDateTime startAt = startMonth.atStartOfDay();
         LocalDateTime endAt = endMonth.atStartOfDay();
 
-        List<OfficialSchedule> officialSchedule = officialScheduleRepositoryCustom.findOfficialScheduleByDuration(
+        List<OfficialSchedule> officialScheduleList = officialScheduleRepositoryCustom.findOfficialScheduleByDuration(
                 startMonth, endMonth);
 
-        List<MemberSchedule> memberSchedule = memberScheduleRepositoryCustom.findMemberScheduleByDuration(
+        List<MemberSchedule> memberScheduleList = memberScheduleRepositoryCustom.findMemberScheduleByDuration(
                 memberId, startAt, endAt);
 
-        List<ScheduleDetails> officialScheduleDetails = officialSchedule.stream()
+        List<ScheduleDetails> officialScheduleDetails = officialScheduleList.stream()
                 .map(OfficialSchedule::toDetails)
                 .toList();
 
-        List<ScheduleDetails> memberScheduleDetails = memberSchedule.stream()
+        List<ScheduleDetails> memberScheduleDetails = memberScheduleList.stream()
                 .map(MemberSchedule::toDetails)
                 .toList();
 
