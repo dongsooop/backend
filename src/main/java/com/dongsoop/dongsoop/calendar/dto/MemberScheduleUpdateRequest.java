@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.calendar.dto;
 
-import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,17 +11,13 @@ import org.hibernate.validator.constraints.Length;
 @AllArgsConstructor
 public class MemberScheduleUpdateRequest {
 
-    @NotNull
     @Length(min = 1, max = 60)
     private String title;
 
-    @NotNull
     @Length(max = 20)
     private String location;
 
-    @NotNull
     private LocalDateTime startAt;
 
-    @NotNull
     private LocalDateTime endAt;
 }
