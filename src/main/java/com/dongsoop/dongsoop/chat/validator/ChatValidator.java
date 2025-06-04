@@ -6,17 +6,14 @@ import com.dongsoop.dongsoop.chat.entity.MessageType;
 import com.dongsoop.dongsoop.chat.repository.ChatRepository;
 import com.dongsoop.dongsoop.chat.service.ChatSyncService;
 import com.dongsoop.dongsoop.exception.domain.websocket.*;
-import com.dongsoop.dongsoop.member.service.MemberService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Component
@@ -27,8 +24,7 @@ public class ChatValidator {
     private final ChatSyncService chatSyncService;
 
     public ChatValidator(@Qualifier("redisChatRepository") ChatRepository chatRepository,
-                         ChatSyncService chatSyncService,
-                         MemberService memberService) {
+                         ChatSyncService chatSyncService) {
         this.chatRepository = chatRepository;
         this.chatSyncService = chatSyncService;
     }
@@ -39,11 +35,7 @@ public class ChatValidator {
     }
 
     public void validateSelfChat(Long user1, Long user2) {
-        Optional.of(user1.equals(user2))
-                .filter(Boolean::booleanValue)
-                .ifPresent(ignored -> {
-                    throw new SelfChatException();
-                });
+        checkSelfChatAttempt(user1, user2);
     }
 
     public ChatMessage validateAndEnrichMessage(ChatMessage message) {
@@ -58,11 +50,8 @@ public class ChatValidator {
     }
 
     public void validateManagerPermission(ChatRoom room, Long userId) {
-        Optional.ofNullable(room.getManagerId())
-                .filter(managerId -> !managerId.equals(userId))
-                .ifPresent(ignored -> {
-                    throw new UnauthorizedManagerActionException();
-                });
+        Long managerId = room.getManagerId();
+        checkManagerPermission(managerId, userId);
     }
 
     public void validateKickableUser(ChatRoom room, Long userToKick) {
@@ -71,41 +60,55 @@ public class ChatValidator {
     }
 
     private ChatRoom findRoomOrRestore(String roomId) {
-        return chatRepository.findRoomById(roomId)
-                .orElseGet(() -> restoreRoomFromDatabase(roomId));
+        ChatRoom room = chatRepository.findRoomById(roomId).orElse(null);
+        return getValidRoom(room, roomId);
+    }
+
+    private ChatRoom getValidRoom(ChatRoom room, String roomId) {
+        if (room != null) {
+            return room;
+        }
+        return restoreRoomFromDatabase(roomId);
     }
 
     private ChatRoom restoreRoomFromDatabase(String roomId) {
-        return Optional.ofNullable(chatSyncService.restoreGroupChatRoom(roomId))
-                .orElseThrow(ChatRoomNotFoundException::new);
+        ChatRoom restoredRoom = chatSyncService.restoreGroupChatRoom(roomId);
+        validateRoomNotNull(restoredRoom);
+        return restoredRoom;
+    }
+
+    private void validateRoomNotNull(ChatRoom room) {
+        if (room == null) {
+            throw new ChatRoomNotFoundException();
+        }
+    }
+
+    private void checkSelfChatAttempt(Long user1, Long user2) {
+        if (user1.equals(user2)) {
+            throw new SelfChatException();
+        }
     }
 
     private void processUserAccess(ChatRoom room, Long userId) {
-        handleAnonymousUser(userId);
         handleKickedUser(room, userId);
         handleParticipantAddition(room, userId);
     }
 
-    private void handleAnonymousUser(Long userId) {
-        Optional.of(ANONYMOUS_USER_ID.equals(userId))
-                .filter(Boolean::booleanValue)
-                .ifPresent(ignored -> {
-                });
-    }
-
     private void handleKickedUser(ChatRoom room, Long userId) {
-        Optional.of(room.isKicked(userId))
-                .filter(Boolean::booleanValue)
-                .ifPresent(ignored -> {
-                    throw new UserKickedException(room.getRoomId());
-                });
+        if (room.isKicked(userId)) {
+            throw new UserKickedException(room.getRoomId());
+        }
     }
 
     private void handleParticipantAddition(ChatRoom room, Long userId) {
-        Optional.of(userId)
-                .filter(id -> !ANONYMOUS_USER_ID.equals(id))
-                .filter(id -> !room.getParticipants().contains(id))
-                .ifPresent(id -> addUserToRoom(room, id));
+        boolean shouldAddUser = shouldAddUserToRoom(userId, room);
+        if (shouldAddUser) {
+            addUserToRoom(room, userId);
+        }
+    }
+
+    private boolean shouldAddUserToRoom(Long userId, ChatRoom room) {
+        return !ANONYMOUS_USER_ID.equals(userId) && !room.getParticipants().contains(userId);
     }
 
     private void addUserToRoom(ChatRoom room, Long userId) {
@@ -114,14 +117,14 @@ public class ChatValidator {
     }
 
     private void validateMessageRequirements(ChatMessage message) {
-        Optional.ofNullable(message)
-                .filter(this::hasRequiredFields)
-                .orElseThrow(InvalidChatRequestException::new);
+        boolean hasRequiredFields = hasRequiredFields(message);
+        if (!hasRequiredFields) {
+            throw new InvalidChatRequestException();
+        }
     }
 
     private boolean hasRequiredFields(ChatMessage message) {
-        return StringUtils.hasText(message.getRoomId()) &&
-                message.getSenderId() != null;
+        return StringUtils.hasText(message.getRoomId()) && message.getSenderId() != null;
     }
 
     private ChatMessage enrichMessageData(ChatMessage message) {
@@ -133,38 +136,30 @@ public class ChatValidator {
     }
 
     private void setMessageIdIfAbsent(ChatMessage message) {
-        Optional.ofNullable(message.getMessageId())
-                .orElseGet(() -> {
-                    String newId = UUID.randomUUID().toString();
-                    message.setMessageId(newId);
-                    return newId;
-                });
+        if (message.getMessageId() == null) {
+            String newId = UUID.randomUUID().toString();
+            message.setMessageId(newId);
+        }
     }
 
     private void setTimestampIfAbsent(ChatMessage message) {
-        Optional.ofNullable(message.getTimestamp())
-                .orElseGet(() -> {
-                    LocalDateTime now = LocalDateTime.now();
-                    message.setTimestamp(now);
-                    return now;
-                });
+        if (message.getTimestamp() == null) {
+            LocalDateTime now = LocalDateTime.now();
+            message.setTimestamp(now);
+        }
     }
 
     private void setMessageTypeIfAbsent(ChatMessage message) {
-        Optional.ofNullable(message.getType())
-                .orElseGet(() -> {
-                    message.setType(MessageType.CHAT);
-                    return MessageType.CHAT;
-                });
+        if (message.getType() == null) {
+            message.setType(MessageType.CHAT);
+        }
     }
 
     private void setSenderNickNameIfAbsent(ChatMessage message) {
-        Optional.ofNullable(message.getSenderNickName())
-                .orElseGet(() -> {
-                    String defaultName = "사용자" + message.getSenderId();
-                    message.setSenderNickName(defaultName);
-                    return defaultName;
-                });
+        if (message.getSenderNickName() == null) {
+            String defaultName = "사용자" + message.getSenderId();
+            message.setSenderNickName(defaultName);
+        }
     }
 
     private Set<String> extractMessageIds(List<ChatMessage> messages) {
@@ -174,26 +169,32 @@ public class ChatValidator {
     }
 
     private List<ChatMessage> filterNewMessages(List<ChatMessage> clientMessages, Set<String> existingIds) {
-        Predicate<ChatMessage> isNewMessage = msg -> !existingIds.contains(msg.getMessageId());
-
         return clientMessages.stream()
-                .filter(isNewMessage)
+                .filter(message -> isNewMessage(message, existingIds))
                 .toList();
     }
 
+    private boolean isNewMessage(ChatMessage message, Set<String> existingIds) {
+        return !existingIds.contains(message.getMessageId());
+    }
+
+    private void checkManagerPermission(Long managerId, Long userId) {
+        if (managerId != null && !managerId.equals(userId)) {
+            throw new UnauthorizedManagerActionException();
+        }
+    }
+
     private void validateUserExistsInRoom(ChatRoom room, Long userToKick) {
-        Optional.of(!room.getParticipants().contains(userToKick))
-                .filter(Boolean::booleanValue)
-                .ifPresent(ignored -> {
-                    throw new UserNotInRoomException();
-                });
+        boolean userNotInRoom = !room.getParticipants().contains(userToKick);
+        if (userNotInRoom) {
+            throw new UserNotInRoomException();
+        }
     }
 
     private void validateNotKickingManager(ChatRoom room, Long userToKick) {
-        Optional.ofNullable(room.getManagerId())
-                .filter(managerId -> managerId.equals(userToKick))
-                .ifPresent(ignored -> {
-                    throw new ManagerKickAttemptException();
-                });
+        Long managerId = room.getManagerId();
+        if (managerId != null && managerId.equals(userToKick)) {
+            throw new ManagerKickAttemptException();
+        }
     }
 }
