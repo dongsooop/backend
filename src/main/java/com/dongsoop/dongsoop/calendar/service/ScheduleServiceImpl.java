@@ -90,7 +90,7 @@ public class ScheduleServiceImpl implements ScheduleService {
                 .getId();
 
         if (!scheduleOwnerId.equals(requestMemberId)) {
-            throw new NotScheduleOwnerException(requestMemberId, scheduleId);
+            throw new NotScheduleOwnerException(requestMemberId, scheduleOwnerId, scheduleId);
         }
     }
 }
