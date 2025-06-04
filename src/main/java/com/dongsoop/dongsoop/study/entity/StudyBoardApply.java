@@ -15,15 +15,15 @@ import lombok.experimental.SuperBuilder;
 @Entity
 @SuperBuilder
 @NoArgsConstructor
-public class StudyBoardApplication {
+public class StudyBoardApply {
 
     @EmbeddedId
-    private StudyBoardApplicationKey id;
+    private StudyBoardApplyKey id;
 
     @Embeddable
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class StudyBoardApplicationKey {
+    public static class StudyBoardApplyKey {
 
         @ManyToOne(fetch = FetchType.LAZY)
         @JoinColumn(nullable = false, name = "study_board_id", updatable = false)
@@ -42,7 +42,7 @@ public class StudyBoardApplication {
                 return false;
             }
 
-            StudyBoardApplicationKey that = (StudyBoardApplicationKey) o;
+            StudyBoardApplyKey that = (StudyBoardApplyKey) o;
             return this.studyBoard.equalsId(that.studyBoard)
                     && Objects.equals(this.member.getId(), that.member.getId());
         }

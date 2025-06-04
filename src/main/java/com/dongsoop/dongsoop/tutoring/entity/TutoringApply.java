@@ -17,15 +17,15 @@ import org.hibernate.annotations.SQLRestriction;
 @SuperBuilder
 @NoArgsConstructor
 @SQLRestriction("is_deleted = false")
-public class TutoringApplication extends BaseEntity {
+public class TutoringApply extends BaseEntity {
 
     @EmbeddedId
-    private TutoringApplicationKey id;
+    private TutoringApplyKey id;
 
     @Embeddable
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class TutoringApplicationKey {
+    public static class TutoringApplyKey {
 
         @ManyToOne(fetch = FetchType.LAZY)
         @JoinColumn(nullable = false, name = "tutoring_board_id", updatable = false)
