@@ -28,7 +28,7 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     private final MemberScheduleRepositoryCustom memberScheduleRepositoryCustom;
 
-    private final OfficialScheduleRepositoryCustom commonScheduleRepositoryCustom;
+    private final OfficialScheduleRepositoryCustom officialScheduleRepositoryCustom;
 
     private final MemberService memberService;
 
@@ -48,7 +48,7 @@ public class ScheduleServiceImpl implements ScheduleService {
         LocalDateTime startAt = startMonth.atStartOfDay();
         LocalDateTime endAt = endMonth.atStartOfDay();
 
-        List<OfficialSchedule> officialSchedule = commonScheduleRepositoryCustom.findOfficialScheduleByDuration(
+        List<OfficialSchedule> officialSchedule = officialScheduleRepositoryCustom.findOfficialScheduleByDuration(
                 startMonth, endMonth);
 
         List<MemberSchedule> memberSchedule = memberScheduleRepositoryCustom.findMemberScheduleByDuration(
