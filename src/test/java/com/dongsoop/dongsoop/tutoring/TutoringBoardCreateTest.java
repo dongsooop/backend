@@ -50,14 +50,14 @@ class TutoringBoardCreateTest {
 
     @BeforeEach
     void setUp() {
-        request = CreateTutoringBoardRequest.builder()
-                .title(VALID_TITLE)
-                .content(VALID_CONTENT)
-                .tags(VALID_TAGS)
-                .startAt(VALID_START_AT)
-                .endAt(VALID_END_AT)
-                .departmentTypeList(List.of(VALID_DEPARTMENT_TYPE))
-                .build();
+        request = new CreateTutoringBoardRequest(
+                VALID_TITLE,
+                VALID_CONTENT,
+                VALID_TAGS,
+                VALID_START_AT,
+                VALID_END_AT,
+                List.of(VALID_DEPARTMENT_TYPE)
+        );
     }
 
     @Test
