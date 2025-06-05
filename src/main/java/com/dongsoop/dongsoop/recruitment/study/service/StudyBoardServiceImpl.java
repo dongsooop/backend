@@ -38,7 +38,7 @@ public class StudyBoardServiceImpl implements StudyBoardService {
     @Transactional
     public StudyBoard create(CreateStudyBoardRequest request) {
         StudyBoard studyBoardToSave = transformToStudyBoard(request);
-        List<Department> departmentList = getDepartmentReferenceList(request.getDepartmentTypeList());
+        List<Department> departmentList = getDepartmentReferenceList(request.departmentTypeList());
 
         StudyBoard studyBoard = studyBoardRepository.save(studyBoardToSave);
         List<StudyBoardDepartment> studyBoardDepartmentList = departmentList.stream()
@@ -52,11 +52,11 @@ public class StudyBoardServiceImpl implements StudyBoardService {
         return studyBoard;
     }
 
-    public List<StudyBoardOverview> getStudyBoardByPage(DepartmentType departmentType, Pageable pageable) {
+    public List<StudyBoardOverview> getBoardByPage(DepartmentType departmentType, Pageable pageable) {
         return studyBoardRepositoryCustom.findStudyBoardOverviewsByPage(departmentType, pageable);
     }
 
-    public StudyBoardDetails getStudyBoardDetails(Long studyBoardId) {
+    public StudyBoardDetails getBoardDetailsById(Long studyBoardId) {
         return studyBoardRepositoryCustom.findStudyBoardDetails(studyBoardId)
                 .orElseThrow(() -> new StudyBoardNotFound(studyBoardId));
     }
@@ -65,11 +65,11 @@ public class StudyBoardServiceImpl implements StudyBoardService {
         Member member = memberService.getMemberReferenceByContext();
 
         return StudyBoard.builder()
-                .title(request.getTitle())
-                .content(request.getContent())
-                .startAt(request.getStartAt())
-                .endAt(request.getEndAt())
-                .tags(request.getTags())
+                .title(request.title())
+                .content(request.content())
+                .startAt(request.startAt())
+                .endAt(request.endAt())
+                .tags(request.tags())
                 .author(member)
                 .build();
     }

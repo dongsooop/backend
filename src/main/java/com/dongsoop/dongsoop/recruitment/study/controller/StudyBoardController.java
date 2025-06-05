@@ -28,7 +28,7 @@ public class StudyBoardController {
 
     @GetMapping("/{studyBoardId}")
     public ResponseEntity<StudyBoardDetails> getStudyBoardDetails(@PathVariable Long studyBoardId) {
-        StudyBoardDetails studyBoardDetails = studyBoardService.getStudyBoardDetails(studyBoardId);
+        StudyBoardDetails studyBoardDetails = studyBoardService.getBoardDetailsById(studyBoardId);
 
         return ResponseEntity.ok(studyBoardDetails);
     }
@@ -47,7 +47,7 @@ public class StudyBoardController {
     public ResponseEntity<List<StudyBoardOverview>> getStudyBoardList(
             @PathVariable("departmentType") DepartmentType departmentType,
             Pageable pageable) {
-        List<StudyBoardOverview> studyBoardOverviews = studyBoardService.getStudyBoardByPage(departmentType, pageable);
+        List<StudyBoardOverview> studyBoardOverviews = studyBoardService.getBoardByPage(departmentType, pageable);
 
         return ResponseEntity.ok(studyBoardOverviews);
     }
