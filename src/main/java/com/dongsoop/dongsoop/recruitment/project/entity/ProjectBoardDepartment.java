@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.recruitment.project.entity;
 
 import com.dongsoop.dongsoop.department.entity.Department;
+import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -19,6 +20,16 @@ public class ProjectBoardDepartment {
 
     @EmbeddedId
     private ProjectBoardDepartmentId id;
+
+    public boolean isSameDepartmentType(DepartmentType that) {
+        DepartmentType thisDepartmentType = this.id.department.getId();
+
+        return thisDepartmentType.equals(that);
+    }
+
+    public Department getDepartment() {
+        return this.id.department;
+    }
 
     @Embeddable
     @NoArgsConstructor
