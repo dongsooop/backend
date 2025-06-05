@@ -10,9 +10,9 @@ import org.springframework.data.domain.Pageable;
 
 public interface ProjectBoardService {
 
+    List<ProjectBoardOverview> getBoardByPage(DepartmentType departmentType, Pageable pageable);
+
     ProjectBoard create(CreateProjectBoardRequest request);
 
-    List<ProjectBoardOverview> getProjectBoardByPage(DepartmentType departmentType, Pageable pageable);
-
-    ProjectBoardDetails getProjectBoardDetails(Long projectBoardId);
+    ProjectBoardDetails getBoardDetailsById(Long boardId);
 }

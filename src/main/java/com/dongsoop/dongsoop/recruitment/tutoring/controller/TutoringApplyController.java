@@ -18,11 +18,10 @@ public class TutoringApplyController {
     private final TutoringApplyService tutoringApplyService;
 
     @PostMapping
-    public ResponseEntity<Void> applyTutoringBoard(@RequestBody ApplyTutoringBoardRequest applyTutoringBoardRequest) {
-        Long tutoringBoardId = applyTutoringBoardRequest.getTutoringBoardId();
-        tutoringApplyService.apply(tutoringBoardId);
+    public ResponseEntity<Void> applyTutoringBoard(@RequestBody ApplyTutoringBoardRequest request) {
+        tutoringApplyService.apply(request);
 
-        URI uri = URI.create("/tutoring-board/" + tutoringBoardId);
+        URI uri = URI.create("/tutoring-board/" + request.getBoardId());
 
         return ResponseEntity.created(uri)
                 .build();

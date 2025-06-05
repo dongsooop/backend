@@ -38,7 +38,7 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
     @Transactional
     public ProjectBoard create(CreateProjectBoardRequest request) {
         ProjectBoard projectBoardToSave = transformToProjectBoard(request);
-        List<Department> departmentList = getDepartmentReferenceList(request.getDepartmentTypeList());
+        List<Department> departmentList = getDepartmentReferenceList(request.departmentTypeList());
 
         ProjectBoard projectBoard = projectBoardRepository.save(projectBoardToSave);
         List<ProjectBoardDepartment> projectBoardDepartmentList = departmentList.stream()
@@ -53,11 +53,11 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
         return projectBoard;
     }
 
-    public List<ProjectBoardOverview> getProjectBoardByPage(DepartmentType departmentType, Pageable pageable) {
+    public List<ProjectBoardOverview> getBoardByPage(DepartmentType departmentType, Pageable pageable) {
         return projectBoardRepositoryCustom.findProjectBoardOverviewsByPage(departmentType, pageable);
     }
 
-    public ProjectBoardDetails getProjectBoardDetails(Long projectBoardId) {
+    public ProjectBoardDetails getBoardDetailsById(Long projectBoardId) {
         return projectBoardRepositoryCustom.findProjectBoardDetails(projectBoardId)
                 .orElseThrow(() -> new ProjectBoardNotFound(projectBoardId));
     }
@@ -66,11 +66,11 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
         Member member = memberService.getMemberReferenceByContext();
 
         return ProjectBoard.builder()
-                .title(request.getTitle())
-                .content(request.getContent())
-                .startAt(request.getStartAt())
-                .endAt(request.getEndAt())
-                .tags(request.getTags())
+                .title(request.title())
+                .content(request.content())
+                .startAt(request.startAt())
+                .endAt(request.endAt())
+                .tags(request.tags())
                 .author(member)
                 .build();
     }

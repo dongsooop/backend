@@ -2,12 +2,14 @@ package com.dongsoop.dongsoop.recruitment.tutoring.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 @Getter
-@NoArgsConstructor
 @AllArgsConstructor
 public class ApplyTutoringBoardRequest {
 
-    private Long tutoringBoardId;
+    private Long boardId;
+
+    private String introduction;
+
+    private String motivation;
 }

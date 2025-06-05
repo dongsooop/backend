@@ -11,37 +11,32 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.List;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
 @MaxDuration // 최대 4주 (28일)
 @MinDuration // 최소 하루
 @EndAtAfterStartAt
-public class CreateStudyBoardRequest {
+public record CreateStudyBoardRequest(
 
-    @NotBlank
-    private String title;
+        @NotBlank
+        String title,
 
-    @NotBlank
-    private String content;
+        @NotBlank
+        String content,
 
-    @NotBlank
-    private String tags;
+        @NotBlank
+        String tags,
 
-    @NotNull
-    @MaxDate(month = 3)
-    @TodayOrFuture
-    private LocalDateTime startAt;
+        @NotNull
+        @MaxDate(month = 3)
+        @TodayOrFuture
+        LocalDateTime startAt,
 
-    @NotNull
-    @TodayOrFuture
-    private LocalDateTime endAt;
+        @NotNull
+        @TodayOrFuture
+        LocalDateTime endAt,
 
-    @NotNull
-    @Size(min = 1)
-    private List<DepartmentType> departmentTypeList;
+        @NotNull
+        @Size(min = 1)
+        List<DepartmentType> departmentTypeList
+) {
 }

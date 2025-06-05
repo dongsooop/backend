@@ -31,7 +31,7 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
 
     private final MemberService memberService;
 
-    public List<TutoringBoardOverview> getTutoringBoardByPage(DepartmentType departmentType, Pageable pageable) {
+    public List<TutoringBoardOverview> getBoardByPage(DepartmentType departmentType, Pageable pageable) {
         Optional<Department> optionalRecruitmentDepartment = departmentRepository.findById(departmentType);
         Department recruitmentDepartment = optionalRecruitmentDepartment.orElseThrow(
                 () -> new DepartmentNotFoundException(departmentType));
@@ -44,7 +44,7 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
         return tutoringBoardRepository.save(tutoringBoard);
     }
 
-    public TutoringBoardDetails getTutoringBoardDetailsById(Long tutoringBoardId) {
+    public TutoringBoardDetails getBoardDetailsById(Long tutoringBoardId) {
         return tutoringBoardRepositoryCustom.findInformationById(tutoringBoardId)
                 .orElseThrow(() -> new TutoringBoardNotFound(tutoringBoardId));
     }
@@ -52,17 +52,17 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
     private TutoringBoard transformToTutoringBoard(CreateTutoringBoardRequest request) {
         Member memberReference = memberService.getMemberReferenceByContext();
 
-        List<DepartmentType> departmentTypeList = request.getDepartmentTypeList();
+        List<DepartmentType> departmentTypeList = request.departmentTypeList();
         Department departmentReference = departmentRepository.getReferenceById(departmentTypeList.get(0));
 
         return TutoringBoard.builder()
-                .title(request.getTitle())
-                .content(request.getContent())
+                .title(request.title())
+                .content(request.content())
                 .author(memberReference)
-                .tags(request.getTags())
+                .tags(request.tags())
                 .department(departmentReference)
-                .startAt(request.getStartAt())
-                .endAt(request.getEndAt())
+                .startAt(request.startAt())
+                .endAt(request.endAt())
                 .build();
     }
 }

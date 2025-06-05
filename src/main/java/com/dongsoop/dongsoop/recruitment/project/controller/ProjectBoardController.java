@@ -28,7 +28,7 @@ public class ProjectBoardController {
 
     @GetMapping("/{projectBoardId}")
     public ResponseEntity<ProjectBoardDetails> getProjectBoardDetails(@PathVariable Long projectBoardId) {
-        ProjectBoardDetails projectBoardDetails = projectBoardService.getProjectBoardDetails(projectBoardId);
+        ProjectBoardDetails projectBoardDetails = projectBoardService.getBoardDetailsById(projectBoardId);
 
         return ResponseEntity.ok(projectBoardDetails);
     }
@@ -47,7 +47,7 @@ public class ProjectBoardController {
     public ResponseEntity<List<ProjectBoardOverview>> getProjectBoardList(
             @PathVariable("departmentType") DepartmentType departmentType,
             Pageable pageable) {
-        List<ProjectBoardOverview> projectBoardOverviews = projectBoardService.getProjectBoardByPage(departmentType,
+        List<ProjectBoardOverview> projectBoardOverviews = projectBoardService.getBoardByPage(departmentType,
                 pageable);
 
         return ResponseEntity.ok(projectBoardOverviews);
