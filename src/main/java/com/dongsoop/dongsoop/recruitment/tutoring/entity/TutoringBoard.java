@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.recruitment.tutoring.entity;
 
 import com.dongsoop.dongsoop.board.RecruitmentBoard;
 import com.dongsoop.dongsoop.department.entity.Department;
+import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -36,5 +37,16 @@ public class TutoringBoard extends RecruitmentBoard {
 
     public boolean equalsId(TutoringBoard that) {
         return Objects.equals(this.id, that.id);
+    }
+
+    public boolean isSameDepartment(Department that) {
+        DepartmentType thisDepartmentType = this.department.getId();
+        DepartmentType thatDepartmentType = that.getId();
+
+        return thisDepartmentType.equals(thatDepartmentType);
+    }
+
+    public Department getDepartment() {
+        return this.department;
     }
 }

@@ -1,5 +1,8 @@
 package com.dongsoop.dongsoop.recruitment.tutoring.service;
 
+import com.dongsoop.dongsoop.department.entity.Department;
+import com.dongsoop.dongsoop.exception.domain.tutoring.TutoringBoardDepartmentMismatchException;
+import com.dongsoop.dongsoop.exception.domain.tutoring.TutoringBoardNotFound;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.ApplyTutoringBoardRequest;
@@ -23,14 +26,25 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
 
     public void apply(ApplyTutoringBoardRequest request) {
         Member member = memberService.getMemberReferenceByContext();
-        TutoringBoard referenceById = tutoringBoardRepository.getReferenceById(request.boardId());
+        TutoringBoard tutoringBoard = tutoringBoardRepository.findById(request.boardId())
+                .orElseThrow(() -> new TutoringBoardNotFound(request.boardId()));
 
-        TutoringApplyKey key = new TutoringApplyKey(referenceById, member);
+        validateDepartment(tutoringBoard, member);
 
+        TutoringApplyKey key = new TutoringApplyKey(tutoringBoard, member);
         TutoringApply tutoringApply = TutoringApply.builder()
                 .id(key)
                 .build();
 
         tutoringApplyRepository.save(tutoringApply);
+    }
+
+    private void validateDepartment(TutoringBoard tutoringBoard, Member member) {
+        Department requesterDepartment = member.getDepartment();
+
+        if (!tutoringBoard.isSameDepartment(requesterDepartment)) {
+            Department boardDepartment = tutoringBoard.getDepartment();
+            throw new TutoringBoardDepartmentMismatchException(boardDepartment.getId(), requesterDepartment.getId());
+        }
     }
 }
