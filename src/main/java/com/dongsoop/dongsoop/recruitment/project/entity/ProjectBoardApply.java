@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.recruitment.project.entity;
 
 import com.dongsoop.dongsoop.member.entity.Member;
+import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -19,6 +20,12 @@ public class ProjectBoardApply {
 
     @EmbeddedId
     private ProjectBoardApplyKey id;
+
+    @Column(name = "introduction", length = 500)
+    private String introduction;
+
+    @Column(name = "motivation", length = 500)
+    private String motivation;
 
     @Embeddable
     @NoArgsConstructor
