@@ -1,15 +1,17 @@
 package com.dongsoop.dongsoop.recruitment.tutoring.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import jakarta.validation.constraints.NotNull;
+import org.hibernate.validator.constraints.Length;
 
-@Getter
-@AllArgsConstructor
-public class ApplyTutoringBoardRequest {
+public record ApplyTutoringBoardRequest(
 
-    private Long boardId;
+        @NotNull
+        Long boardId,
 
-    private String introduction;
+        @Length(max = 500)
+        String introduction,
 
-    private String motivation;
+        @Length(max = 500)
+        String motivation
+) {
 }

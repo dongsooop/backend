@@ -21,7 +21,7 @@ public class TutoringApplyController {
     public ResponseEntity<Void> applyTutoringBoard(@RequestBody ApplyTutoringBoardRequest request) {
         tutoringApplyService.apply(request);
 
-        URI uri = URI.create("/tutoring-board/" + request.getBoardId());
+        URI uri = URI.create("/tutoring-board/" + request.boardId());
 
         return ResponseEntity.created(uri)
                 .build();

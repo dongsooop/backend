@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.recruitment.tutoring.entity;
 
 import com.dongsoop.dongsoop.common.BaseEntity;
 import com.dongsoop.dongsoop.member.entity.Member;
+import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -22,6 +23,12 @@ public class TutoringApply extends BaseEntity {
 
     @EmbeddedId
     private TutoringApplyKey id;
+
+    @Column(name = "introduction", length = 500)
+    private String introduction;
+
+    @Column(name = "motivation", length = 500)
+    private String motivation;
 
     @Embeddable
     @NoArgsConstructor
