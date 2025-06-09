@@ -1,11 +1,10 @@
 package com.dongsoop.dongsoop.chat.entity;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Getter
 @Setter
@@ -29,6 +28,8 @@ public class ChatRoom {
 
     @Builder.Default
     private Set<Long> kickedUsers = new HashSet<>();
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Map<Long, String> participantNicknames;
 
     public static ChatRoom create(Long user1, Long user2) {
         return ChatRoom.builder()
@@ -113,5 +114,21 @@ public class ChatRoom {
             kickedUsers = new HashSet<>();
         }
         return kickedUsers;
+    }
+
+    public void setParticipantNicknames(Map<Long, String> nicknames) {
+        this.participantNicknames = nicknames;
+    }
+
+    public String getParticipantNickname(Long userId) {
+        return Optional.ofNullable(participantNicknames)
+                .map(nicknames -> nicknames.get(userId))
+                .orElse(null);
+    }
+
+    public boolean isManager(Long userId) {
+        return Optional.ofNullable(managerId)
+                .map(id -> id.equals(userId))
+                .orElse(false);
     }
 }
