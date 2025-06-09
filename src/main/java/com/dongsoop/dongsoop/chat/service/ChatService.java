@@ -52,12 +52,14 @@ public class ChatService {
         return chatRepository.saveRoom(room);
     }
 
-    public ChatRoom kickUserFromRoom(String roomId, Long requesterId, Long userToKick, String userToKickNickname) {
+    public ChatRoom kickUserFromRoom(String roomId, Long requesterId, Long userToKick) {
         ChatRoom room = getChatRoomById(roomId);
         chatValidator.validateManagerPermission(room, requesterId);
         chatValidator.validateKickableUser(room, userToKick);
 
         executeUserKick(room, userToKick);
+
+        String userToKickNickname = memberService.getNicknameById(userToKick);
         createKickNotificationWithNickname(roomId, requesterId, userToKickNickname);
 
         return chatRepository.saveRoom(room);
@@ -150,7 +152,7 @@ public class ChatService {
         room.kickUser(userToKick);
     }
 
-    private void createKickNotificationWithNickname(String roomId, Long managerId, String kickedUserNickname) {  // 새 메서드
+    private void createKickNotificationWithNickname(String roomId, Long managerId, String kickedUserNickname) {
         String managerNickname = getUserNicknameById(managerId);
         String content = kickedUserNickname + "님이 채팅방에서 추방되었습니다.";
         ChatMessage notification = buildSystemMessage(roomId, managerId, managerNickname, content, MessageType.LEAVE);
@@ -165,7 +167,7 @@ public class ChatService {
         return enterMessage;
     }
 
-    private ChatMessage buildSystemMessage(String roomId, Long senderId, String senderNickname, String content, MessageType type) {  // 수정
+    private ChatMessage buildSystemMessage(String roomId, Long senderId, String senderNickname, String content, MessageType type) {
         return ChatMessage.builder()
                 .messageId(UUID.randomUUID().toString())
                 .roomId(roomId)
@@ -312,7 +314,7 @@ public class ChatService {
         }
     }
 
-    private void setSenderNickNameIfMissing(ChatMessage message) {  // 수정
+    private void setSenderNickNameIfMissing(ChatMessage message) {
         if (message.getSenderNickName() == null) {
             String nickname = getUserNicknameById(message.getSenderId());
             message.setSenderNickName(nickname);
