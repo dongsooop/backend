@@ -8,9 +8,9 @@ import com.dongsoop.dongsoop.exception.domain.project.ProjectBoardNotFound;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.project.dto.ApplyProjectBoardRequest;
+import com.dongsoop.dongsoop.recruitment.project.entity.ProjectApply;
+import com.dongsoop.dongsoop.recruitment.project.entity.ProjectApply.ProjectApplyKey;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoard;
-import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardApply;
-import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardApply.ProjectBoardApplyKey;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectApplyRepository;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardDepartmentRepository;
@@ -44,8 +44,8 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
 
         validateDepartment(boardDepartmentList, member);
 
-        ProjectBoardApplyKey key = new ProjectBoardApplyKey(projectBoard, member);
-        ProjectBoardApply boardApply = ProjectBoardApply.builder()
+        ProjectApplyKey key = new ProjectApplyKey(projectBoard, member);
+        ProjectApply boardApply = ProjectApply.builder()
                 .id(key)
                 .introduction(request.introduction())
                 .motivation(request.motivation())

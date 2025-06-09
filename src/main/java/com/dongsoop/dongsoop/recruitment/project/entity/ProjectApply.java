@@ -16,10 +16,10 @@ import lombok.experimental.SuperBuilder;
 @Entity
 @SuperBuilder
 @NoArgsConstructor
-public class ProjectBoardApply {
+public class ProjectApply {
 
     @EmbeddedId
-    private ProjectBoardApplyKey id;
+    private ProjectApplyKey id;
 
     @Column(name = "introduction", length = 500)
     private String introduction;
@@ -30,7 +30,7 @@ public class ProjectBoardApply {
     @Embeddable
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class ProjectBoardApplyKey {
+    public static class ProjectApplyKey {
 
         @ManyToOne(fetch = FetchType.LAZY)
         @JoinColumn(nullable = false, name = "project_board_id", updatable = false)
@@ -49,7 +49,7 @@ public class ProjectBoardApply {
                 return false;
             }
 
-            ProjectBoardApplyKey that = (ProjectBoardApplyKey) o;
+            ProjectApplyKey that = (ProjectApplyKey) o;
             return this.projectBoard.equalsId(that.projectBoard)
                     && Objects.equals(this.member.getId(), that.member.getId());
         }

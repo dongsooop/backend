@@ -4,8 +4,8 @@ import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardDetails;
 import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardOverview;
+import com.dongsoop.dongsoop.recruitment.project.entity.QProjectApply;
 import com.dongsoop.dongsoop.recruitment.project.entity.QProjectBoard;
-import com.dongsoop.dongsoop.recruitment.project.entity.QProjectBoardApply;
 import com.dongsoop.dongsoop.recruitment.project.entity.QProjectBoardDepartment;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -26,7 +26,7 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
 
     private static final QProjectBoardDepartment projectBoardDepartment = QProjectBoardDepartment.projectBoardDepartment;
 
-    private static final QProjectBoardApply projectBoardApplication = QProjectBoardApply.projectBoardApply;
+    private static final QProjectApply projectApply = QProjectApply.projectApply;
 
     private final JPAQueryFactory queryFactory;
 
@@ -37,15 +37,15 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
         return queryFactory
                 .select(Projections.constructor(ProjectBoardOverview.class,
                         projectBoard.id,
-                        projectBoardApplication.id.member.countDistinct().intValue(),
+                        projectApply.id.member.countDistinct().intValue(),
                         projectBoard.startAt,
                         projectBoard.endAt,
                         projectBoard.title,
                         projectBoard.content,
                         projectBoard.tags))
                 .from(projectBoard)
-                .leftJoin(projectBoardApplication)
-                .on(hasMatchingProjectBoardId(projectBoardApplication.id.projectBoard.id))
+                .leftJoin(projectApply)
+                .on(hasMatchingProjectBoardId(projectApply.id.projectBoard.id))
                 .leftJoin(projectBoardDepartment)
                 .on(hasMatchingProjectBoardId(projectBoardDepartment.id.projectBoard.id))
                 .where(equalDepartmentType(departmentType))
@@ -69,10 +69,10 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                         projectBoard.author.nickname,
                         projectBoard.createdAt,
                         projectBoard.updatedAt,
-                        projectBoardApplication.id.member.count().intValue()))
+                        projectApply.id.member.count().intValue()))
                 .from(projectBoard)
-                .leftJoin(projectBoardApplication)
-                .on(hasMatchingProjectBoardId(projectBoardApplication.id.projectBoard.id))
+                .leftJoin(projectApply)
+                .on(hasMatchingProjectBoardId(projectApply.id.projectBoard.id))
                 .leftJoin(projectBoardDepartment)
                 .on(hasMatchingProjectBoardId(projectBoardDepartment.id.projectBoard.id))
                 .groupBy(

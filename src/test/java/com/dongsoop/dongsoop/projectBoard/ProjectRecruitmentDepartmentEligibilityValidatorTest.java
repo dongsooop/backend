@@ -14,8 +14,8 @@ import com.dongsoop.dongsoop.exception.domain.project.ProjectBoardDepartmentMism
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.project.dto.ApplyProjectBoardRequest;
+import com.dongsoop.dongsoop.recruitment.project.entity.ProjectApply;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoard;
-import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardApply;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment.ProjectBoardDepartmentId;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectApplyRepository;
@@ -113,7 +113,7 @@ class ProjectRecruitmentDepartmentEligibilityValidatorTest {
         // when, then
         assertDoesNotThrow(() -> projectApplyService.apply(request));
         verify(projectApplyRepository, times(1))
-                .save(any(ProjectBoardApply.class));
+                .save(any(ProjectApply.class));
     }
 
     /**
