@@ -6,6 +6,7 @@ import com.dongsoop.dongsoop.chat.entity.MessageType;
 import com.dongsoop.dongsoop.chat.repository.ChatRepository;
 import com.dongsoop.dongsoop.chat.service.ChatSyncService;
 import com.dongsoop.dongsoop.exception.domain.websocket.*;
+import com.dongsoop.dongsoop.member.service.MemberService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -22,11 +23,14 @@ public class ChatValidator {
 
     private final ChatRepository chatRepository;
     private final ChatSyncService chatSyncService;
+    private final MemberService memberService;
 
     public ChatValidator(@Qualifier("redisChatRepository") ChatRepository chatRepository,
-                         ChatSyncService chatSyncService) {
+                         ChatSyncService chatSyncService,
+                         MemberService memberService) {
         this.chatRepository = chatRepository;
         this.chatSyncService = chatSyncService;
+        this.memberService = memberService;
     }
 
     public void validateUserForRoom(String roomId, Long userId) {
@@ -155,11 +159,15 @@ public class ChatValidator {
         }
     }
 
-    private void setSenderNickNameIfAbsent(ChatMessage message) {
+    private void setSenderNickNameIfAbsent(ChatMessage message) {  // 수정
         if (message.getSenderNickName() == null) {
-            String defaultName = "사용자" + message.getSenderId();
-            message.setSenderNickName(defaultName);
+            String nickname = getUserNicknameById(message.getSenderId());
+            message.setSenderNickName(nickname);
         }
+    }
+
+    private String getUserNicknameById(Long userId) {  // 새 메서드
+        return memberService.getNicknameById(userId);
     }
 
     private Set<String> extractMessageIds(List<ChatMessage> messages) {
