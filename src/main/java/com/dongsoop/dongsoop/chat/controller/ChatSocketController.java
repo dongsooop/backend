@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.chat.controller;
 
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.service.ChatService;
+import com.dongsoop.dongsoop.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -16,6 +17,7 @@ import java.security.Principal;
 public class ChatSocketController {
 
     private final ChatService chatService;
+    private final MemberService memberService;  // 추가
 
     @MessageMapping("/message/{roomId}")
     @SendTo("/topic/chat/room/{roomId}")
@@ -23,8 +25,14 @@ public class ChatSocketController {
             @Payload ChatMessage message,
             @DestinationVariable("roomId") String roomId,
             Principal principal) {
-        message.setSenderId(Long.parseLong(principal.getName()));
+
+        Long userId = extractUserIdFromPrincipal(principal);
+        String userNickname = getUserNicknameById(userId);
+
+        message.setSenderId(userId);
+        message.setSenderNickName(userNickname);
         message.setRoomId(roomId);
+
         return chatService.processMessage(message);
     }
 
@@ -33,6 +41,16 @@ public class ChatSocketController {
     public ChatMessage enterChatRoom(
             @DestinationVariable("roomId") String roomId,
             Principal principal) {
-        return chatService.createEnterMessage(roomId, Long.parseLong(principal.getName()));
+
+        Long userId = extractUserIdFromPrincipal(principal);
+        return chatService.createEnterMessage(roomId, userId);
+    }
+
+    private Long extractUserIdFromPrincipal(Principal principal) {
+        return Long.parseLong(principal.getName());
+    }
+
+    private String getUserNicknameById(Long userId) {
+        return memberService.getNicknameById(userId);
     }
 }
