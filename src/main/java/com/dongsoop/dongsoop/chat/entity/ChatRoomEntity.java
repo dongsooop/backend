@@ -20,6 +20,9 @@ public class ChatRoomEntity {
     @Id
     private String roomId;
 
+    @Column(length = 100)
+    private String title;
+
     @Column(nullable = false)
     private boolean isGroupChat;
 
@@ -38,6 +41,7 @@ public class ChatRoomEntity {
     public ChatRoom toChatRoom() {
         return ChatRoom.builder()
                 .roomId(this.roomId)
+                .title(this.title)
                 .participants(participants)
                 .managerId(this.managerId)
                 .isGroupChat(this.isGroupChat)

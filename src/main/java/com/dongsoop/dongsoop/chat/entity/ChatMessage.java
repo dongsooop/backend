@@ -1,13 +1,11 @@
 package com.dongsoop.dongsoop.chat.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -15,6 +13,7 @@ public class ChatMessage {
     private String messageId;
     private String roomId;
     private Long senderId;
+    private String senderNickName;
     private String content;
     private LocalDateTime timestamp;
     private MessageType type;

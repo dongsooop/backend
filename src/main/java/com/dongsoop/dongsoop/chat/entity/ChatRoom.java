@@ -1,94 +1,114 @@
 package com.dongsoop.dongsoop.chat.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatRoom {
     private static final int BACKUP_DAYS_THRESHOLD = 25;
+    private static final String DEFAULT_GROUP_TITLE = "그룹 채팅";
 
     private String roomId;
-    private Set<Long> participants;
+    private String title;
+
+    @Builder.Default
+    private Set<Long> participants = new HashSet<>();
+
     private Long managerId;
     private boolean isGroupChat;
     private LocalDateTime createdAt;
     private LocalDateTime lastActivityAt;
-    private Set<Long> kickedUsers;
+
+    @Builder.Default
+    private Set<Long> kickedUsers = new HashSet<>();
 
     public static ChatRoom create(Long user1, Long user2) {
-        String roomId = UUID.randomUUID().toString();
-        Set<Long> participants = new HashSet<>();
-        participants.add(user1);
-        participants.add(user2);
-        LocalDateTime now = LocalDateTime.now();
-
         return ChatRoom.builder()
-                .roomId(roomId)
-                .participants(participants)
-                .createdAt(now)
-                .lastActivityAt(now)
+                .roomId(generateRandomRoomId())
+                .participants(createParticipantSet(user1, user2))
+                .createdAt(getCurrentTime())
+                .lastActivityAt(getCurrentTime())
                 .kickedUsers(new HashSet<>())
                 .build();
     }
 
-    public static ChatRoom createWithParticipants(Set<Long> participants, Long creatorId) {
-        String roomId = UUID.randomUUID().toString();
-        LocalDateTime now = LocalDateTime.now();
-
+    public static ChatRoom createWithParticipantsAndTitle(Set<Long> participants, Long creatorId, String title) {
         return ChatRoom.builder()
-                .roomId(roomId)
+                .roomId(generateRandomRoomId())
+                .title(title)
                 .participants(new HashSet<>(participants))
                 .managerId(creatorId)
                 .isGroupChat(true)
-                .createdAt(now)
-                .lastActivityAt(now)
+                .createdAt(getCurrentTime())
+                .lastActivityAt(getCurrentTime())
                 .kickedUsers(new HashSet<>())
                 .build();
     }
 
+    private static String generateRandomRoomId() {
+        return UUID.randomUUID().toString();
+    }
+
+    private static Set<Long> createParticipantSet(Long user1, Long user2) {
+        Set<Long> participants = new HashSet<>();
+        participants.add(user1);
+        participants.add(user2);
+        return participants;
+    }
+
+    private static LocalDateTime getCurrentTime() {
+        return LocalDateTime.now();
+    }
+
     public ChatRoomEntity toChatRoomEntity() {
-        LocalDateTime effectiveCreatedAt = Optional.ofNullable(this.createdAt)
-                .orElseGet(() -> LocalDateTime.now().minusDays(BACKUP_DAYS_THRESHOLD));
-
-        LocalDateTime effectiveLastActivityAt = Optional.ofNullable(this.lastActivityAt)
-                .orElseGet(LocalDateTime::now);
-
         return ChatRoomEntity.builder()
                 .roomId(this.roomId)
+                .title(this.title)
                 .isGroupChat(this.isGroupChat)
                 .managerId(this.managerId)
                 .participants(new HashSet<>(this.participants))
-                .createdAt(effectiveCreatedAt)
-                .lastActivityAt(effectiveLastActivityAt)
+                .createdAt(getEffectiveCreatedAt())
+                .lastActivityAt(getEffectiveLastActivityAt())
                 .build();
     }
 
     public void updateActivity() {
-        this.lastActivityAt = LocalDateTime.now();
+        this.lastActivityAt = getCurrentTime();
     }
 
     public void kickUser(Long userId) {
         participants.remove(userId);
-        getKickedUsersSet().add(userId);
+        ensureKickedUsersSet().add(userId);
         updateActivity();
     }
 
     public boolean isKicked(Long userId) {
-        return getKickedUsersSet().contains(userId);
+        return ensureKickedUsersSet().contains(userId);
     }
 
-    private Set<Long> getKickedUsersSet() {
+    private LocalDateTime getEffectiveCreatedAt() {
+        if (this.createdAt != null) {
+            return this.createdAt;
+        }
+        return getCurrentTime().minusDays(BACKUP_DAYS_THRESHOLD);
+    }
+
+    private LocalDateTime getEffectiveLastActivityAt() {
+        if (this.lastActivityAt != null) {
+            return this.lastActivityAt;
+        }
+        return LocalDateTime.now();
+    }
+
+    private Set<Long> ensureKickedUsersSet() {
         if (kickedUsers == null) {
             kickedUsers = new HashSet<>();
         }

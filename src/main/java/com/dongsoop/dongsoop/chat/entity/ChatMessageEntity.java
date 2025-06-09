@@ -3,12 +3,14 @@ package com.dongsoop.dongsoop.chat.entity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "chat_messages")
+@Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,6 +23,9 @@ public class ChatMessageEntity {
 
     @Column(nullable = false)
     private Long senderId;
+
+    @Column(nullable = false)
+    private String senderNickName;
 
     @Column(nullable = false, length = 1000)
     private String content;
@@ -36,6 +41,7 @@ public class ChatMessageEntity {
                 .messageId(this.messageId)
                 .roomId(this.roomId)
                 .senderId(this.senderId)
+                .senderNickName(this.senderNickName)
                 .content(this.content)
                 .timestamp(this.timestamp)
                 .type(this.type)
