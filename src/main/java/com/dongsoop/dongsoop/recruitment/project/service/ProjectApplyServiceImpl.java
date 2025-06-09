@@ -13,6 +13,7 @@ import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardApply;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardApply.ProjectBoardApplyKey;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectApplyRepository;
+import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -28,12 +29,14 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
 
     private final ProjectBoardRepository projectBoardRepository;
 
+    private final ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
+
     public void apply(ApplyProjectBoardRequest request) {
         Member member = memberService.getMemberReferenceByContext();
         ProjectBoard projectBoard = projectBoardRepository.findById(request.boardId())
                 .orElseThrow(() -> new ProjectBoardNotFound(request.boardId()));
 
-        List<ProjectBoardDepartment> boardDepartmentList = projectBoardRepository.findByProjectBoardId(
+        List<ProjectBoardDepartment> boardDepartmentList = projectBoardDepartmentRepository.findByProjectBoardId(
                 request.boardId());
         if (boardDepartmentList.isEmpty()) {
             throw new ProjectBoardDepartmentNotAssignedException(request.boardId());
