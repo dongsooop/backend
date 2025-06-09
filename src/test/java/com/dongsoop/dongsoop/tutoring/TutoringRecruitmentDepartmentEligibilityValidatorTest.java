@@ -1,7 +1,11 @@
 package com.dongsoop.dongsoop.tutoring;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.department.entity.Department;
@@ -10,7 +14,9 @@ import com.dongsoop.dongsoop.exception.domain.tutoring.TutoringBoardDepartmentMi
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.ApplyTutoringBoardRequest;
+import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringApply;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringBoard;
+import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringApplyRepository;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepository;
 import com.dongsoop.dongsoop.recruitment.tutoring.service.TutoringApplyServiceImpl;
 import java.util.Optional;
@@ -29,6 +35,9 @@ class TutoringRecruitmentDepartmentEligibilityValidatorTest {
 
     @Mock
     private TutoringBoardRepository tutoringBoardRepository;
+
+    @Mock
+    private TutoringApplyRepository tutoringApplyRepository;
 
     @Mock
     private MemberService memberService;
@@ -60,5 +69,35 @@ class TutoringRecruitmentDepartmentEligibilityValidatorTest {
 
         // when, then
         assertThrows(TutoringBoardDepartmentMismatchException.class, () -> tutoringApplyService.apply(request));
+    }
+
+    @Test
+    @DisplayName("게시판 학과와 회원 학과 일치 시 저장 및 예외없이 응답된다")
+    void should_Response_Created_If_Member_Department_match_Board() {
+        // given
+        Long boardId = 1L;
+        Department department = new Department(DepartmentType.DEPT_2001, null, null);
+
+        // Security Context 조회 시 학과가 DEPT_3001인 회원이 조회됨
+        Member member = Member.builder()
+                .department(department)
+                .build();
+        when(memberService.getMemberReferenceByContext())
+                .thenReturn(member);
+
+        // 게시판 조회 시 Id가 1인 게시판 조회
+        TutoringBoard tutoringBoard = TutoringBoard.builder()
+                .id(boardId)
+                .department(department)
+                .build();
+        when(tutoringBoardRepository.findById(eq(boardId)))
+                .thenReturn(Optional.of(tutoringBoard));
+
+        ApplyTutoringBoardRequest request = new ApplyTutoringBoardRequest(boardId, "소개글", "지원동기");
+
+        // when, then
+        assertDoesNotThrow(() -> tutoringApplyService.apply(request));
+        verify(tutoringApplyRepository, times(1))
+                .save(any(TutoringApply.class));
     }
 }
