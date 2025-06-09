@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.exception.domain.project.ProjectBoardDepartmentMismatchException;
 import com.dongsoop.dongsoop.exception.domain.project.ProjectBoardDepartmentNotAssignedException;
+import com.dongsoop.dongsoop.exception.domain.project.ProjectBoardNotFound;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.project.dto.ApplyProjectBoardRequest;
@@ -29,7 +30,8 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
 
     public void apply(ApplyProjectBoardRequest request) {
         Member member = memberService.getMemberReferenceByContext();
-        ProjectBoard projectBoard = projectBoardRepository.getReferenceById(request.boardId());
+        ProjectBoard projectBoard = projectBoardRepository.findById(request.boardId())
+                .orElseThrow(() -> new ProjectBoardNotFound(request.boardId()));
 
         List<ProjectBoardDepartment> boardDepartmentList = projectBoardRepository.findByProjectBoardId(
                 request.boardId());
