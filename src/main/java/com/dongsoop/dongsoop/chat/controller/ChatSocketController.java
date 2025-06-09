@@ -17,7 +17,7 @@ import java.security.Principal;
 public class ChatSocketController {
 
     private final ChatService chatService;
-    private final MemberService memberService;  // 추가
+    private final MemberService memberService;
 
     @MessageMapping("/message/{roomId}")
     @SendTo("/topic/chat/room/{roomId}")
