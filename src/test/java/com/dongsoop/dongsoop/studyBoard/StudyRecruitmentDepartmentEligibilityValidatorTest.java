@@ -1,7 +1,11 @@
 package com.dongsoop.dongsoop.studyBoard;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.department.entity.Department;
@@ -11,8 +15,10 @@ import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.study.dto.ApplyStudyBoardRequest;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoard;
+import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardApply;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardDepartment.StudyBoardDepartmentId;
+import com.dongsoop.dongsoop.recruitment.study.repository.StudyApplyRepository;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepository;
 import com.dongsoop.dongsoop.recruitment.study.service.StudyApplyServiceImpl;
@@ -33,6 +39,9 @@ class StudyRecruitmentDepartmentEligibilityValidatorTest {
 
     @Mock
     private StudyBoardRepository studyBoardRepository;
+
+    @Mock
+    private StudyApplyRepository studyApplyRepository;
 
     @Mock
     private StudyBoardDepartmentRepository studyBoardDepartmentRepository;
@@ -73,6 +82,40 @@ class StudyRecruitmentDepartmentEligibilityValidatorTest {
         assertThrows(StudyBoardDepartmentMismatchException.class, () -> {
             studyApplyService.apply(request);
         });
+    }
+
+    @Test
+    @DisplayName("게시판 학과와 회원 학과 일치 시 저장 및 예외없이 응답된다")
+    void should_Response_Created_If_Member_Department_match_Board() {
+        // given
+        Long boardId = 1L;
+        Department department = new Department(DepartmentType.DEPT_2001, null, null);
+
+        // Security Context 조회 시 학과가 DEPT_3001인 회원이 조회됨
+        Member member = Member.builder()
+                .department(department)
+                .build();
+        when(memberService.getMemberReferenceByContext())
+                .thenReturn(member);
+
+        // 게시판 조회 시 Id가 1인 게시판 조회
+        StudyBoard studyBoard = StudyBoard.builder()
+                .id(boardId)
+                .build();
+        when(studyBoardRepository.findById(eq(boardId)))
+                .thenReturn(Optional.of(studyBoard));
+
+        // Id가 1인 게시판의 학과 조회 시 DEPT_2001인 학과가 등록되어 있음
+        StudyBoardDepartment studyBoardDepartment = getStudyBoardDepartment(department, studyBoard);
+        when(studyBoardDepartmentRepository.findByStudyBoardId(boardId))
+                .thenReturn(List.of(studyBoardDepartment));
+
+        ApplyStudyBoardRequest request = new ApplyStudyBoardRequest(boardId, "소개글", "지원동기");
+
+        // when, then
+        assertDoesNotThrow(() -> studyApplyService.apply(request));
+        verify(studyApplyRepository, times(1))
+                .save(any(StudyBoardApply.class));
     }
 
     /**
