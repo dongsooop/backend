@@ -64,14 +64,12 @@ public class ChatController {
         Long currentUserId = getCurrentUserId();
         chatService.enterChatRoom(roomId, currentUserId);
 
-        List<ChatMessage> messages = chatService.getChatHistory(roomId, currentUserId);
+        ChatRoom room = chatService.getChatRoomById(roomId);
 
-        Map<Long, String> participants = messages.stream()
-                .filter(msg -> msg.getSenderId() != null && !"시스템".equals(msg.getSenderNickName()))
+        Map<Long, String> participants = room.getParticipants().stream()
                 .collect(Collectors.toMap(
-                        ChatMessage::getSenderId,
-                        ChatMessage::getSenderNickName,
-                        (existing, replacement) -> existing
+                        participantId -> participantId,
+                        memberService::getNicknameById
                 ));
 
         return ResponseEntity.ok(participants);
@@ -114,9 +112,10 @@ public class ChatController {
         String userToKickNickname = kickUserRequest.getUserId();
         Long userToKickId = memberService.getLoginAuthenticateByNickname(userToKickNickname).getId();
 
-        ChatRoom updatedRoom = chatService.kickUserFromRoom(roomId, currentUserId, userToKickId, userToKickNickname);
+        ChatRoom updatedRoom = chatService.kickUserFromRoom(roomId, currentUserId, userToKickId);
         return ResponseEntity.ok(updatedRoom);
     }
+
 
     private Long getCurrentUserId() {
         Member member = memberService.getMemberReferenceByContext();
