@@ -7,6 +7,7 @@ import com.dongsoop.dongsoop.chat.repository.ChatRepository;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.exception.domain.websocket.ChatRoomNotFoundException;
 import com.dongsoop.dongsoop.exception.domain.websocket.UnauthorizedChatAccessException;
+import com.dongsoop.dongsoop.member.service.MemberService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -23,14 +24,17 @@ public class ChatService {
     private final ChatRepository chatRepository;
     private final ChatValidator chatValidator;
     private final ChatSyncService chatSyncService;
+    private final MemberService memberService;
 
     public ChatService(@Qualifier("redisChatRepository") ChatRepository chatRepository,
                        ChatValidator chatValidator,
-                       ChatSyncService chatSyncService
+                       ChatSyncService chatSyncService,
+                       MemberService memberService
     ) {
         this.chatRepository = chatRepository;
         this.chatValidator = chatValidator;
         this.chatSyncService = chatSyncService;
+        this.memberService = memberService;
     }
 
     public ChatRoom createOneToOneChatRoom(Long userId, Long targetUserId) {
@@ -48,13 +52,13 @@ public class ChatService {
         return chatRepository.saveRoom(room);
     }
 
-    public ChatRoom kickUserFromRoom(String roomId, Long requesterId, Long userToKick) {
+    public ChatRoom kickUserFromRoom(String roomId, Long requesterId, Long userToKick, String userToKickNickname) {
         ChatRoom room = getChatRoomById(roomId);
         chatValidator.validateManagerPermission(room, requesterId);
         chatValidator.validateKickableUser(room, userToKick);
 
         executeUserKick(room, userToKick);
-        createKickNotification(roomId, requesterId, userToKick);
+        createKickNotificationWithNickname(roomId, requesterId, userToKickNickname);
 
         return chatRepository.saveRoom(room);
     }
@@ -146,29 +150,35 @@ public class ChatService {
         room.kickUser(userToKick);
     }
 
-    private void createKickNotification(String roomId, Long managerId, Long kickedUserId) {
-        String content = "사용자가 채팅방에서 추방되었습니다.";
-        ChatMessage notification = buildSystemMessage(roomId, managerId, "시스템", content, MessageType.LEAVE);
+    private void createKickNotificationWithNickname(String roomId, Long managerId, String kickedUserNickname) {  // 새 메서드
+        String managerNickname = getUserNicknameById(managerId);
+        String content = kickedUserNickname + "님이 채팅방에서 추방되었습니다.";
+        ChatMessage notification = buildSystemMessage(roomId, managerId, managerNickname, content, MessageType.LEAVE);
         chatRepository.saveMessage(notification);
     }
 
     private ChatMessage buildAndSaveEnterMessage(String roomId, Long userId) {
-        String content = "사용자가 입장하셨습니다.";
-        ChatMessage enterMessage = buildSystemMessage(roomId, userId, "시스템", content, MessageType.ENTER);
+        String userNickname = getUserNicknameById(userId);
+        String content = userNickname + "님이 입장하셨습니다.";
+        ChatMessage enterMessage = buildSystemMessage(roomId, userId, userNickname, content, MessageType.ENTER);
         chatRepository.saveMessage(enterMessage);
         return enterMessage;
     }
 
-    private ChatMessage buildSystemMessage(String roomId, Long senderId, String senderNickName, String content, MessageType type) {
+    private ChatMessage buildSystemMessage(String roomId, Long senderId, String senderNickname, String content, MessageType type) {  // 수정
         return ChatMessage.builder()
                 .messageId(UUID.randomUUID().toString())
                 .roomId(roomId)
                 .senderId(senderId)
-                .senderNickName(senderNickName)
+                .senderNickName(senderNickname)
                 .content(content)
                 .timestamp(LocalDateTime.now())
                 .type(type)
                 .build();
+    }
+
+    private String getUserNicknameById(Long userId) {
+        return memberService.getNicknameById(userId);
     }
 
     private List<ChatMessage> retrieveMessagesFromCacheOrDatabase(String roomId) {
@@ -302,10 +312,10 @@ public class ChatService {
         }
     }
 
-    private void setSenderNickNameIfMissing(ChatMessage message) {
+    private void setSenderNickNameIfMissing(ChatMessage message) {  // 수정
         if (message.getSenderNickName() == null) {
-            String defaultName = "사용자" + message.getSenderId();
-            message.setSenderNickName(defaultName);
+            String nickname = getUserNicknameById(message.getSenderId());
+            message.setSenderNickName(nickname);
         }
     }
 
