@@ -8,9 +8,9 @@ import com.dongsoop.dongsoop.exception.domain.study.StudyBoardNotFound;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.study.dto.ApplyStudyBoardRequest;
+import com.dongsoop.dongsoop.recruitment.study.entity.StudyApply;
+import com.dongsoop.dongsoop.recruitment.study.entity.StudyApply.StudyApplyKey;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoard;
-import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardApply;
-import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardApply.StudyBoardApplyKey;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyApplyRepository;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardDepartmentRepository;
@@ -44,8 +44,8 @@ public class StudyApplyServiceImpl implements StudyApplyService {
 
         validateDepartment(studyBoardDepartmentList, member);
 
-        StudyBoardApplyKey key = new StudyBoardApplyKey(studyBoard, member);
-        StudyBoardApply studyApplication = StudyBoardApply.builder()
+        StudyApplyKey key = new StudyApplyKey(studyBoard, member);
+        StudyApply studyApplication = StudyApply.builder()
                 .id(key)
                 .introduction(request.introduction())
                 .motivation(request.motivation())

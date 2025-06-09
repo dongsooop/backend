@@ -4,8 +4,8 @@ import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardDetails;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardOverview;
+import com.dongsoop.dongsoop.recruitment.study.entity.QStudyApply;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyBoard;
-import com.dongsoop.dongsoop.recruitment.study.entity.QStudyBoardApply;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyBoardDepartment;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -26,7 +26,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
 
     private static final QStudyBoardDepartment studyBoardDepartment = QStudyBoardDepartment.studyBoardDepartment;
 
-    private static final QStudyBoardApply studyBoardApplication = QStudyBoardApply.studyBoardApply;
+    private static final QStudyApply studyApply = QStudyApply.studyApply;
 
     private final JPAQueryFactory queryFactory;
 
@@ -36,15 +36,15 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
         return queryFactory
                 .select(Projections.constructor(StudyBoardOverview.class,
                         studyBoard.id,
-                        studyBoardApplication.id.member.countDistinct().intValue(),
+                        studyApply.id.member.countDistinct().intValue(),
                         studyBoard.startAt,
                         studyBoard.endAt,
                         studyBoard.title,
                         studyBoard.content,
                         studyBoard.tags))
                 .from(studyBoard)
-                .leftJoin(studyBoardApplication)
-                .on(hasMatchingStudyBoardId(studyBoardApplication.id.studyBoard.id))
+                .leftJoin(studyApply)
+                .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
                 .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
                 .where(equalDepartmentType(departmentType))
@@ -68,10 +68,10 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                         studyBoard.author.nickname,
                         studyBoard.createdAt,
                         studyBoard.updatedAt,
-                        studyBoardApplication.id.member.count().intValue()))
+                        studyApply.id.member.count().intValue()))
                 .from(studyBoard)
-                .leftJoin(studyBoardApplication)
-                .on(hasMatchingStudyBoardId(studyBoardApplication.id.studyBoard.id))
+                .leftJoin(studyApply)
+                .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
                 .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
                 .groupBy(

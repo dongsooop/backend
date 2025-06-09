@@ -16,10 +16,10 @@ import lombok.experimental.SuperBuilder;
 @Entity
 @SuperBuilder
 @NoArgsConstructor
-public class StudyBoardApply {
+public class StudyApply {
 
     @EmbeddedId
-    private StudyBoardApplyKey id;
+    private StudyApplyKey id;
 
     @Column(name = "introduction", length = 500)
     private String introduction;
@@ -30,7 +30,7 @@ public class StudyBoardApply {
     @Embeddable
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class StudyBoardApplyKey {
+    public static class StudyApplyKey {
 
         @ManyToOne(fetch = FetchType.LAZY)
         @JoinColumn(nullable = false, name = "study_board_id", updatable = false)
@@ -49,7 +49,7 @@ public class StudyBoardApply {
                 return false;
             }
 
-            StudyBoardApplyKey that = (StudyBoardApplyKey) o;
+            StudyApplyKey that = (StudyApplyKey) o;
             return this.studyBoard.equalsId(that.studyBoard)
                     && Objects.equals(this.member.getId(), that.member.getId());
         }
