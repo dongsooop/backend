@@ -1,0 +1,64 @@
+package com.dongsoop.dongsoop.tutoring;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+
+import com.dongsoop.dongsoop.department.entity.Department;
+import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.exception.domain.tutoring.TutoringBoardDepartmentMismatchException;
+import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.recruitment.tutoring.dto.ApplyTutoringBoardRequest;
+import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringBoard;
+import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepository;
+import com.dongsoop.dongsoop.recruitment.tutoring.service.TutoringApplyServiceImpl;
+import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
+class TutoringRecruitmentDepartmentEligibilityValidatorTest {
+
+    @InjectMocks
+    private TutoringApplyServiceImpl tutoringApplyService;
+
+    @Mock
+    private TutoringBoardRepository tutoringBoardRepository;
+
+    @Mock
+    private MemberService memberService;
+
+    @Test
+    @DisplayName("게시판 학과와 회원 학과 불일치 시 TutoringBoardDepartmentMismatchException 발생")
+    void should_Throw_Exception_If_MemberDepartment_Mismatch_Board() {
+        // given
+        Long boardId = 1L;
+        Department boardDepartment = new Department(DepartmentType.DEPT_2001, null, null); // 게시판 요구 학과
+        Department memberDepartment = new Department(DepartmentType.DEPT_3001, null, null); // 사용자 학과
+
+        // Security Context 조회 시 학과가 DEPT_3001인 회원이 조회됨
+        Member member = Member.builder()
+                .department(memberDepartment)
+                .build();
+        when(memberService.getMemberReferenceByContext())
+                .thenReturn(member);
+
+        // 게시판 조회 시 Id가 1인 게시판 조회
+        TutoringBoard tutoringBoard = TutoringBoard.builder()
+                .id(boardId)
+                .department(boardDepartment)
+                .build();
+        when(tutoringBoardRepository.findById(eq(boardId)))
+                .thenReturn(Optional.of(tutoringBoard));
+
+        ApplyTutoringBoardRequest request = new ApplyTutoringBoardRequest(boardId, "소개글", "지원동기");
+
+        // when, then
+        assertThrows(TutoringBoardDepartmentMismatchException.class, () -> tutoringApplyService.apply(request));
+    }
+}
