@@ -109,10 +109,7 @@ public class ChatController {
             @PathVariable("roomId") String roomId,
             @RequestBody KickUserRequest kickUserRequest) {
         Long currentUserId = getCurrentUserId();
-
-        String userToKickNickname = kickUserRequest.getUserId();
-        LoginAuthenticate userToKickAuth = memberService.getLoginAuthenticateByNickname(userToKickNickname);
-        Long userToKickId = userToKickAuth.getId();
+        Long userToKickId = kickUserRequest.getUserId();
 
         ChatRoom updatedRoom = chatService.kickUserFromRoom(roomId, currentUserId, userToKickId);
         return ResponseEntity.ok(updatedRoom);
