@@ -12,7 +12,7 @@ public class TokenMalformedException extends CustomException {
     }
 
     public TokenMalformedException(Exception e) {
-        super("토큰이 올바르지 않습니다:", HTTP_STATUS, e);
+        super("토큰이 올바르지 않습니다.", HTTP_STATUS, e);
     }
 
 }
