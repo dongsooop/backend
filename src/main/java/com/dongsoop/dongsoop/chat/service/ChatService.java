@@ -139,13 +139,13 @@ public class ChatService {
     }
 
     private void createKickNotification(String roomId, Long kickedUserId) {
-        String content = "사용자 " + kickedUserId + "님이 채팅방에서 추방되었습니다.";
+        String content = kickedUserId.toString();
         ChatMessage notification = buildSystemMessage(roomId, kickedUserId, content, MessageType.LEAVE);
         chatRepository.saveMessage(notification);
     }
 
     private ChatMessage buildAndSaveEnterMessage(String roomId, Long userId) {
-        String content = "사용자 " + userId + "님이 입장하셨습니다.";
+        String content = userId.toString();
         ChatMessage enterMessage = buildSystemMessage(roomId, userId, content, MessageType.ENTER);
         chatRepository.saveMessage(enterMessage);
         return enterMessage;
