@@ -1,7 +1,7 @@
 package com.dongsoop.dongsoop.recruitment.tutoring.repository;
 
 import com.dongsoop.dongsoop.common.PageableUtil;
-import com.dongsoop.dongsoop.department.entity.Department;
+import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardDetails;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardOverview;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.QTutoringApply;
@@ -26,8 +26,8 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
 
     private final PageableUtil pageableUtil;
 
-    public List<TutoringBoardOverview> findTutoringBoardOverviewsByPage(Department recruitmentDepartment,
-                                                                        Pageable pageable) {
+    public List<TutoringBoardOverview> findTutoringBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
+                                                                                         Pageable pageable) {
         return queryFactory.select(Projections.constructor(TutoringBoardOverview.class,
                         tutoringBoard.id,
                         tutoringApplication.id.member.count().intValue(),
@@ -35,11 +35,12 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                         tutoringBoard.endAt,
                         tutoringBoard.title,
                         tutoringBoard.content,
-                        tutoringBoard.tags))
+                        tutoringBoard.tags,
+                        tutoringBoard.department.id))
                 .from(tutoringBoard)
                 .leftJoin(tutoringApplication)
                 .on(tutoringApplication.id.tutoringBoard.id.eq(tutoringBoard.id))
-                .where(tutoringBoard.department.eq(recruitmentDepartment))
+                .where(tutoringBoard.department.id.eq(departmentType))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(tutoringBoard.id)
@@ -68,5 +69,25 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                         .where(tutoringBoard.id.eq(tutoringBoardId))
                         .groupBy(tutoringBoard.id, tutoringBoard.author.nickname)
                         .fetchOne());
+    }
+
+    public List<TutoringBoardOverview> findTutoringBoardOverviewsByPage(Pageable pageable) {
+        return queryFactory.select(Projections.constructor(TutoringBoardOverview.class,
+                        tutoringBoard.id,
+                        tutoringApplication.id.member.count().intValue(),
+                        tutoringBoard.startAt,
+                        tutoringBoard.endAt,
+                        tutoringBoard.title,
+                        tutoringBoard.content,
+                        tutoringBoard.tags,
+                        tutoringBoard.department.id))
+                .from(tutoringBoard)
+                .leftJoin(tutoringApplication)
+                .on(tutoringApplication.id.tutoringBoard.id.eq(tutoringBoard.id))
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .groupBy(tutoringBoard.id)
+                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), tutoringBoard))
+                .fetch();
     }
 }

@@ -10,7 +10,9 @@ import org.springframework.data.domain.Pageable;
 
 public interface TutoringBoardService {
 
-    List<TutoringBoardOverview> getBoardByPage(DepartmentType departmentType, Pageable pageable);
+    List<TutoringBoardOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType, Pageable pageable);
+
+    List<TutoringBoardOverview> getBoardByPage(Pageable pageable);
 
     TutoringBoard create(CreateTutoringBoardRequest request);
 

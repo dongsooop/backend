@@ -27,10 +27,17 @@ public class TutoringBoardController {
     private final TutoringBoardService tutoringBoardService;
 
     @GetMapping("/department/{departmentType}")
-    public ResponseEntity<List<TutoringBoardOverview>> getTutoringBoardOverviews(
+    public ResponseEntity<List<TutoringBoardOverview>> getTutoringBoardOverviewsByDepartment(
             @PathVariable("departmentType") DepartmentType departmentType, Pageable pageable) {
-        List<TutoringBoardOverview> tutoringBoardList = tutoringBoardService.getBoardByPage(departmentType,
+        List<TutoringBoardOverview> tutoringBoardList = tutoringBoardService.getBoardByPageAndDepartmentType(
+                departmentType,
                 pageable);
+        return ResponseEntity.ok(tutoringBoardList);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<TutoringBoardOverview>> getTutoringBoardOverviews(Pageable pageable) {
+        List<TutoringBoardOverview> tutoringBoardList = tutoringBoardService.getBoardByPage(pageable);
         return ResponseEntity.ok(tutoringBoardList);
     }
 
