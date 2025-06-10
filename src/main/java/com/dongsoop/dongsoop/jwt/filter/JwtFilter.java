@@ -93,6 +93,6 @@ public class JwtFilter extends OncePerRequestFilter {
             Exception exception
     ) {
         log.error("JWT Filter processing failed: {}", exception.getMessage(), exception);
-        exceptionResolver.resolveException(request, response, null, exception);
+        exceptionResolver.resolveException(request, response, this, exception);
     }
 }
