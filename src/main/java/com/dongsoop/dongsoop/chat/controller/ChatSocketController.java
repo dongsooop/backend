@@ -2,7 +2,6 @@ package com.dongsoop.dongsoop.chat.controller;
 
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.service.ChatService;
-import com.dongsoop.dongsoop.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -17,7 +16,6 @@ import java.security.Principal;
 public class ChatSocketController {
 
     private final ChatService chatService;
-    private final MemberService memberService;
 
     @MessageMapping("/message/{roomId}")
     @SendTo("/topic/chat/room/{roomId}")
@@ -27,10 +25,8 @@ public class ChatSocketController {
             Principal principal) {
 
         Long userId = extractUserIdFromPrincipal(principal);
-        String userNickname = getUserNicknameById(userId);
 
         message.setSenderId(userId);
-        message.setSenderNickName(userNickname);
         message.setRoomId(roomId);
 
         return chatService.processMessage(message);
@@ -48,9 +44,5 @@ public class ChatSocketController {
 
     private Long extractUserIdFromPrincipal(Principal principal) {
         return Long.parseLong(principal.getName());
-    }
-
-    private String getUserNicknameById(Long userId) {
-        return memberService.getNicknameById(userId);
     }
 }
