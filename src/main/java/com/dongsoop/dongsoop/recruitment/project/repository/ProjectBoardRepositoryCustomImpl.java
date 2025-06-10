@@ -46,13 +46,7 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                 .limit(pageable.getPageSize())
                 .groupBy(projectBoard.id)
                 .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), projectBoard))
-                .having(
-                        Expressions.numberTemplate(
-                                        Integer.class,
-                                        "SUM(CASE WHEN {0} = {1} THEN 1 ELSE 0 END)",
-                                        projectBoardDepartment.id.department.id,
-                                        Expressions.constant(departmentType))
-                                .gt(0))
+                .having(equalDepartmentType(departmentType))
                 .fetch();
     }
 
@@ -121,5 +115,14 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                 projectBoard.tags,
                 Expressions.stringTemplate("string_agg({0}, ',')",
                         projectBoardDepartment.id.department.id));
+    }
+
+    private BooleanExpression equalDepartmentType(DepartmentType departmentType) {
+        return Expressions.numberTemplate(
+                        Integer.class,
+                        "SUM(CASE WHEN {0} = {1} THEN 1 ELSE 0 END)",
+                        projectBoardDepartment.id.department.id,
+                        Expressions.constant(departmentType))
+                .gt(0);
     }
 }
