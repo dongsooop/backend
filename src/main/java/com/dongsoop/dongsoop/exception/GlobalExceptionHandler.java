@@ -15,36 +15,44 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<ProblemDetail> handleGlobalException(CustomException exception) {
-        ErrorResponse error = ErrorResponse.create(exception, exception.getHttpStatus(), exception.getMessage());
-        ProblemDetail problemDetail = error.getBody();
-
-        // 예외 발생 시간
-        problemDetail.setProperty("timestamp", exception.getTimestamp());
-
-        return ResponseEntity.status(exception.getHttpStatus())
-                .body(error.getBody());
+        return createExceptionResponse(exception, exception.getHttpStatus());
     }
 
     // 인증 실패 (401 Unauthorized)
     @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ProblemDetail> handleAuthenticationException(
-            org.springframework.security.core.AuthenticationException exception) {
-        ErrorResponse error = ErrorResponse.create(exception, HttpStatus.UNAUTHORIZED, exception.getMessage());
-        ProblemDetail problemDetail = error.getBody();
-        problemDetail.setProperty("timestamp", LocalDateTime.now());
-
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(problemDetail);
+    public ResponseEntity<ProblemDetail> handleAuthenticationException(AuthenticationException exception) {
+        return createExceptionResponse(exception, HttpStatus.UNAUTHORIZED);
     }
 
     // 권한 없음 (403 Forbidden)
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ProblemDetail> handleAccessDeniedException(AccessDeniedException exception) {
-        ErrorResponse error = ErrorResponse.create(exception, HttpStatus.FORBIDDEN, exception.getMessage());
+        return createExceptionResponse(exception, HttpStatus.FORBIDDEN);
+    }
+
+    // 정의되지 않은 예외처리
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ProblemDetail> handleException(Exception exception) {
+        return createInternalServerErrorResponse(exception);
+    }
+
+    private ResponseEntity<ProblemDetail> createExceptionResponse(Exception exception, HttpStatus httpStatus) {
+        ErrorResponse error = ErrorResponse.create(exception, httpStatus, exception.getMessage());
         ProblemDetail problemDetail = error.getBody();
         problemDetail.setProperty("timestamp", LocalDateTime.now());
 
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        return ResponseEntity.status(httpStatus)
+                .body(problemDetail);
+    }
+
+    private ResponseEntity<ProblemDetail> createInternalServerErrorResponse(Exception exception) {
+        HttpStatus httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+
+        ErrorResponse error = ErrorResponse.create(exception, httpStatus, "알 수 없는 서버 오류가 발생했습니다.");
+        ProblemDetail problemDetail = error.getBody();
+        problemDetail.setProperty("timestamp", LocalDateTime.now());
+
+        return ResponseEntity.status(httpStatus)
                 .body(problemDetail);
     }
 }
