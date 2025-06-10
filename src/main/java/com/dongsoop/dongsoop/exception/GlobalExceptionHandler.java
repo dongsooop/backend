@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(CustomException.class)
-    public ResponseEntity<ProblemDetail> handleGlobalException(CustomException exception) {
+    public ResponseEntity<ProblemDetail> handleCustomException(CustomException exception) {
         return createExceptionResponse(exception, exception.getHttpStatus());
     }
 
@@ -32,7 +32,7 @@ public class GlobalExceptionHandler {
 
     // 정의되지 않은 예외처리
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ProblemDetail> handleException(Exception exception) {
+    public ResponseEntity<ProblemDetail> handleGlobalException(Exception exception) {
         return createInternalServerErrorResponse(exception);
     }
 
