@@ -10,10 +10,10 @@ import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
-import com.dongsoop.dongsoop.tutoring.dto.CreateTutoringBoardRequest;
-import com.dongsoop.dongsoop.tutoring.entity.TutoringBoard;
-import com.dongsoop.dongsoop.tutoring.repository.TutoringBoardRepository;
-import com.dongsoop.dongsoop.tutoring.service.TutoringBoardServiceImpl;
+import com.dongsoop.dongsoop.recruitment.tutoring.dto.CreateTutoringBoardRequest;
+import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringBoard;
+import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepository;
+import com.dongsoop.dongsoop.recruitment.tutoring.service.TutoringBoardServiceImpl;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,14 +50,14 @@ class TutoringBoardCreateTest {
 
     @BeforeEach
     void setUp() {
-        request = CreateTutoringBoardRequest.builder()
-                .title(VALID_TITLE)
-                .content(VALID_CONTENT)
-                .tags(VALID_TAGS)
-                .startAt(VALID_START_AT)
-                .endAt(VALID_END_AT)
-                .departmentTypeList(List.of(VALID_DEPARTMENT_TYPE))
-                .build();
+        request = new CreateTutoringBoardRequest(
+                VALID_TITLE,
+                VALID_CONTENT,
+                VALID_TAGS,
+                VALID_START_AT,
+                VALID_END_AT,
+                List.of(VALID_DEPARTMENT_TYPE)
+        );
     }
 
     @Test

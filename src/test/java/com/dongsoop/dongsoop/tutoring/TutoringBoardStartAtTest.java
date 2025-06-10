@@ -10,10 +10,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
-import com.dongsoop.dongsoop.tutoring.controller.TutoringBoardController;
-import com.dongsoop.dongsoop.tutoring.dto.CreateTutoringBoardRequest;
-import com.dongsoop.dongsoop.tutoring.entity.TutoringBoard;
-import com.dongsoop.dongsoop.tutoring.service.TutoringBoardServiceImpl;
+import com.dongsoop.dongsoop.recruitment.tutoring.controller.TutoringBoardController;
+import com.dongsoop.dongsoop.recruitment.tutoring.dto.CreateTutoringBoardRequest;
+import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringBoard;
+import com.dongsoop.dongsoop.recruitment.tutoring.service.TutoringBoardServiceImpl;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import org.json.JSONArray;
