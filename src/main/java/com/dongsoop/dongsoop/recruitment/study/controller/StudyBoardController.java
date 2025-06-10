@@ -44,10 +44,18 @@ public class StudyBoardController {
     }
 
     @GetMapping("/department/{departmentType}")
-    public ResponseEntity<List<StudyBoardOverview>> getStudyBoardList(
+    public ResponseEntity<List<StudyBoardOverview>> getStudyBoardListByDepartmentType(
             @PathVariable("departmentType") DepartmentType departmentType,
             Pageable pageable) {
-        List<StudyBoardOverview> studyBoardOverviews = studyBoardService.getBoardByPage(departmentType, pageable);
+        List<StudyBoardOverview> studyBoardOverviews = studyBoardService.getBoardByPageAndDepartmentType(departmentType,
+                pageable);
+
+        return ResponseEntity.ok(studyBoardOverviews);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<StudyBoardOverview>> getStudyBoardList(Pageable pageable) {
+        List<StudyBoardOverview> studyBoardOverviews = studyBoardService.getBoardByPage(pageable);
 
         return ResponseEntity.ok(studyBoardOverviews);
     }
