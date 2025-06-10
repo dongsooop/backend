@@ -6,7 +6,6 @@ import com.dongsoop.dongsoop.chat.entity.MessageType;
 import com.dongsoop.dongsoop.chat.repository.ChatRepository;
 import com.dongsoop.dongsoop.chat.service.ChatSyncService;
 import com.dongsoop.dongsoop.exception.domain.websocket.*;
-import com.dongsoop.dongsoop.member.service.MemberService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -23,14 +22,12 @@ public class ChatValidator {
 
     private final ChatRepository chatRepository;
     private final ChatSyncService chatSyncService;
-    private final MemberService memberService;
 
     public ChatValidator(@Qualifier("redisChatRepository") ChatRepository chatRepository,
-                         ChatSyncService chatSyncService,
-                         MemberService memberService) {
+                         ChatSyncService chatSyncService
+    ) {
         this.chatRepository = chatRepository;
         this.chatSyncService = chatSyncService;
-        this.memberService = memberService;
     }
 
     public void validateUserForRoom(String roomId, Long userId) {
@@ -53,9 +50,15 @@ public class ChatValidator {
         return filterNewMessages(clientMessages, existingIds);
     }
 
-    public void validateManagerPermission(ChatRoom room, Long userId) {
+    public void validateManagerPermission(ChatRoom room, Long requesterId) {
+        if (!room.isGroupChat()) {
+            throw new IllegalArgumentException("1:1 채팅방에서는 강퇴할 수 없습니다.");
+        }
+
         Long managerId = room.getManagerId();
-        checkManagerPermission(managerId, userId);
+        if (managerId == null || !managerId.equals(requesterId)) {
+            throw new UnauthorizedManagerActionException();
+        }
     }
 
     public void validateKickableUser(ChatRoom room, Long userToKick) {
@@ -135,21 +138,18 @@ public class ChatValidator {
         setMessageIdIfAbsent(message);
         setTimestampIfAbsent(message);
         setMessageTypeIfAbsent(message);
-        setSenderNickNameIfAbsent(message);
         return message;
     }
 
     private void setMessageIdIfAbsent(ChatMessage message) {
         if (message.getMessageId() == null) {
-            String newId = UUID.randomUUID().toString();
-            message.setMessageId(newId);
+            message.setMessageId(UUID.randomUUID().toString());
         }
     }
 
     private void setTimestampIfAbsent(ChatMessage message) {
         if (message.getTimestamp() == null) {
-            LocalDateTime now = LocalDateTime.now();
-            message.setTimestamp(now);
+            message.setTimestamp(LocalDateTime.now());
         }
     }
 
@@ -157,17 +157,6 @@ public class ChatValidator {
         if (message.getType() == null) {
             message.setType(MessageType.CHAT);
         }
-    }
-
-    private void setSenderNickNameIfAbsent(ChatMessage message) {  // 수정
-        if (message.getSenderNickName() == null) {
-            String nickname = getUserNicknameById(message.getSenderId());
-            message.setSenderNickName(nickname);
-        }
-    }
-
-    private String getUserNicknameById(Long userId) {  // 새 메서드
-        return memberService.getNicknameById(userId);
     }
 
     private Set<String> extractMessageIds(List<ChatMessage> messages) {
@@ -184,12 +173,6 @@ public class ChatValidator {
 
     private boolean isNewMessage(ChatMessage message, Set<String> existingIds) {
         return !existingIds.contains(message.getMessageId());
-    }
-
-    private void checkManagerPermission(Long managerId, Long userId) {
-        if (managerId != null && !managerId.equals(userId)) {
-            throw new UnauthorizedManagerActionException();
-        }
     }
 
     private void validateUserExistsInRoom(ChatRoom room, Long userToKick) {

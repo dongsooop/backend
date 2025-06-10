@@ -10,7 +10,6 @@ import java.util.function.Predicate;
 
 @Repository
 public class InMemoryChatRepository implements ChatRepository {
-    private static final int ONE_TO_ONE_PARTICIPANT_COUNT = 2;
 
     private final Map<String, ChatRoom> rooms = new ConcurrentHashMap<>();
     private final Map<String, List<ChatMessage>> messages = new ConcurrentHashMap<>();
@@ -65,8 +64,9 @@ public class InMemoryChatRepository implements ChatRepository {
     }
 
     private Predicate<ChatRoom> createOneToOneRoomFilter() {
-        return room -> room.getParticipants().size() == ONE_TO_ONE_PARTICIPANT_COUNT;
+        return room -> !room.isGroupChat();
     }
+
 
     private Predicate<ChatRoom> createParticipantMatchFilter(Long user1, Long user2) {
         return room -> {

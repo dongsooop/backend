@@ -16,7 +16,6 @@ import java.util.function.Predicate;
 @RequiredArgsConstructor
 public class ChatBackupService {
     private static final int BACKUP_DAYS_THRESHOLD = 25;
-    private static final int MIN_GROUP_SIZE = 2;
 
     private final RedisChatRepository redisChatRepository;
     private final ChatRoomJpaRepository chatRoomJpaRepository;
@@ -45,7 +44,7 @@ public class ChatBackupService {
     }
 
     private Predicate<ChatRoom> createGroupRoomFilter() {
-        return room -> room.getParticipants().size() >= MIN_GROUP_SIZE;
+        return ChatRoom::isGroupChat;
     }
 
     private Predicate<ChatRoom> createNotBackedUpFilter() {
@@ -54,7 +53,6 @@ public class ChatBackupService {
 
     private void backupGroupRoom(ChatRoom room) {
         Optional.of(room)
-                .filter(ChatRoom::isGroupChat)
                 .map(ChatRoom::toChatRoomEntity)
                 .ifPresent(chatRoomJpaRepository::save);
     }
