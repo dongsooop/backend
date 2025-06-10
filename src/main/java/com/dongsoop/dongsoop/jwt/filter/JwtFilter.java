@@ -1,6 +1,12 @@
 package com.dongsoop.dongsoop.jwt.filter;
 
+import com.dongsoop.dongsoop.exception.CustomException;
+import com.dongsoop.dongsoop.exception.domain.jwt.TokenExpiredException;
+import com.dongsoop.dongsoop.exception.domain.jwt.TokenMalformedException;
 import com.dongsoop.dongsoop.exception.domain.jwt.TokenNotFoundException;
+import com.dongsoop.dongsoop.exception.domain.jwt.TokenRoleNotAvailableException;
+import com.dongsoop.dongsoop.exception.domain.jwt.TokenSignatureException;
+import com.dongsoop.dongsoop.exception.domain.jwt.TokenUnsupportedException;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import jakarta.servlet.FilterChain;
@@ -52,8 +58,16 @@ public class JwtFilter extends OncePerRequestFilter {
             String token = extractTokenFromHeader(request);
             validateAndSetAuthentication(token);
             filterChain.doFilter(request, response);
+        } catch (TokenMalformedException | TokenNotFoundException | TokenExpiredException |
+                 TokenSignatureException | TokenRoleNotAvailableException | TokenUnsupportedException exception) {
+            log.error("JWT Filter processing failed with JWT exception: {}", exception.getMessage(), exception);
+            exceptionResolver.resolveException(request, response, null, exception);
+        } catch (CustomException exception) {
+            log.error("JWT Filter processing failed with custom exception: {}", exception.getMessage(), exception);
+            exceptionResolver.resolveException(request, response, null, exception);
         } catch (Exception exception) {
-            handleFilterException(request, response, exception); // 예외 발생 시 MVC 레이어로 예외 처리 위임
+            log.error("JWT Filter processing failed with unknown exception: {}", exception.getMessage(), exception);
+            exceptionResolver.resolveException(request, response, null, exception);
         }
     }
 
@@ -85,14 +99,5 @@ public class JwtFilter extends OncePerRequestFilter {
         context.setAuthentication(auth);
 
         log.info("SecurityContextHolder에 인증 정보 저장 : {}", context.getAuthentication());
-    }
-
-    private void handleFilterException(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            Exception exception
-    ) {
-        log.error("JWT Filter processing failed: {}", exception.getMessage(), exception);
-        exceptionResolver.resolveException(request, response, null, exception);
     }
 }
