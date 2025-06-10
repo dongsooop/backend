@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.chat.entity;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -30,10 +31,14 @@ public class ChatRoom {
     @Builder.Default
     private Set<Long> kickedUsers = new HashSet<>();
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+
     public static ChatRoom create(Long user1, Long user2) {
         return ChatRoom.builder()
                 .roomId(generateRandomRoomId())
                 .participants(createParticipantSet(user1, user2))
+                .isGroupChat(false)
+                .managerId(null)
                 .createdAt(getCurrentTime())
                 .lastActivityAt(getCurrentTime())
                 .kickedUsers(new HashSet<>())
@@ -41,10 +46,13 @@ public class ChatRoom {
     }
 
     public static ChatRoom createWithParticipantsAndTitle(Set<Long> participants, Long creatorId, String title) {
+        Set<Long> allParticipants = new HashSet<>(participants);
+        allParticipants.add(creatorId);
+
         return ChatRoom.builder()
                 .roomId(generateRandomRoomId())
                 .title(title)
-                .participants(new HashSet<>(participants))
+                .participants(allParticipants)
                 .managerId(creatorId)
                 .isGroupChat(true)
                 .createdAt(getCurrentTime())
@@ -95,15 +103,15 @@ public class ChatRoom {
     }
 
     private LocalDateTime getEffectiveCreatedAt() {
-        if (this.createdAt != null) {
-            return this.createdAt;
+        if (createdAt != null) {
+            return createdAt;
         }
         return getCurrentTime().minusDays(BACKUP_DAYS_THRESHOLD);
     }
 
     private LocalDateTime getEffectiveLastActivityAt() {
-        if (this.lastActivityAt != null) {
-            return this.lastActivityAt;
+        if (lastActivityAt != null) {
+            return lastActivityAt;
         }
         return LocalDateTime.now();
     }

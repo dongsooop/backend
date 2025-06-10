@@ -23,8 +23,12 @@ public class ChatSocketController {
             @Payload ChatMessage message,
             @DestinationVariable("roomId") String roomId,
             Principal principal) {
-        message.setSenderId(Long.parseLong(principal.getName()));
+
+        Long userId = extractUserIdFromPrincipal(principal);
+
+        message.setSenderId(userId);
         message.setRoomId(roomId);
+
         return chatService.processMessage(message);
     }
 
@@ -33,6 +37,12 @@ public class ChatSocketController {
     public ChatMessage enterChatRoom(
             @DestinationVariable("roomId") String roomId,
             Principal principal) {
-        return chatService.createEnterMessage(roomId, Long.parseLong(principal.getName()));
+
+        Long userId = extractUserIdFromPrincipal(principal);
+        return chatService.createEnterMessage(roomId, userId);
+    }
+
+    private Long extractUserIdFromPrincipal(Principal principal) {
+        return Long.parseLong(principal.getName());
     }
 }

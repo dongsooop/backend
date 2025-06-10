@@ -24,7 +24,8 @@ public class ChatValidator {
     private final ChatSyncService chatSyncService;
 
     public ChatValidator(@Qualifier("redisChatRepository") ChatRepository chatRepository,
-                         ChatSyncService chatSyncService) {
+                         ChatSyncService chatSyncService
+    ) {
         this.chatRepository = chatRepository;
         this.chatSyncService = chatSyncService;
     }
@@ -49,9 +50,15 @@ public class ChatValidator {
         return filterNewMessages(clientMessages, existingIds);
     }
 
-    public void validateManagerPermission(ChatRoom room, Long userId) {
+    public void validateManagerPermission(ChatRoom room, Long requesterId) {
+        if (!room.isGroupChat()) {
+            throw new IllegalArgumentException("1:1 채팅방에서는 강퇴할 수 없습니다.");
+        }
+
         Long managerId = room.getManagerId();
-        checkManagerPermission(managerId, userId);
+        if (managerId == null || !managerId.equals(requesterId)) {
+            throw new UnauthorizedManagerActionException();
+        }
     }
 
     public void validateKickableUser(ChatRoom room, Long userToKick) {
@@ -131,34 +138,24 @@ public class ChatValidator {
         setMessageIdIfAbsent(message);
         setTimestampIfAbsent(message);
         setMessageTypeIfAbsent(message);
-        setSenderNickNameIfAbsent(message);
         return message;
     }
 
     private void setMessageIdIfAbsent(ChatMessage message) {
         if (message.getMessageId() == null) {
-            String newId = UUID.randomUUID().toString();
-            message.setMessageId(newId);
+            message.setMessageId(UUID.randomUUID().toString());
         }
     }
 
     private void setTimestampIfAbsent(ChatMessage message) {
         if (message.getTimestamp() == null) {
-            LocalDateTime now = LocalDateTime.now();
-            message.setTimestamp(now);
+            message.setTimestamp(LocalDateTime.now());
         }
     }
 
     private void setMessageTypeIfAbsent(ChatMessage message) {
         if (message.getType() == null) {
             message.setType(MessageType.CHAT);
-        }
-    }
-
-    private void setSenderNickNameIfAbsent(ChatMessage message) {
-        if (message.getSenderNickName() == null) {
-            String defaultName = "사용자" + message.getSenderId();
-            message.setSenderNickName(defaultName);
         }
     }
 
@@ -176,12 +173,6 @@ public class ChatValidator {
 
     private boolean isNewMessage(ChatMessage message, Set<String> existingIds) {
         return !existingIds.contains(message.getMessageId());
-    }
-
-    private void checkManagerPermission(Long managerId, Long userId) {
-        if (managerId != null && !managerId.equals(userId)) {
-            throw new UnauthorizedManagerActionException();
-        }
     }
 
     private void validateUserExistsInRoom(ChatRoom room, Long userToKick) {

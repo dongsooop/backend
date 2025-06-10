@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -58,6 +59,22 @@ public class ChatController {
         return ResponseEntity.ok(messages);
     }
 
+    @GetMapping("/room/{roomId}/participants")
+    public ResponseEntity<Map<Long, String>> getRoomParticipants(@PathVariable("roomId") String roomId) {
+        Long currentUserId = getCurrentUserId();
+        chatService.enterChatRoom(roomId, currentUserId);
+
+        ChatRoom room = chatService.getChatRoomById(roomId);
+
+        Map<Long, String> participants = room.getParticipants().stream()
+                .collect(Collectors.toMap(
+                        participantId -> participantId,
+                        memberService::getNicknameById
+                ));
+
+        return ResponseEntity.ok(participants);
+    }
+
     @PostMapping("/room/{roomId}/sync")
     public ResponseEntity<List<ChatMessage>> syncMessages(
             @PathVariable("roomId") String roomId,
@@ -92,8 +109,7 @@ public class ChatController {
             @PathVariable("roomId") String roomId,
             @RequestBody KickUserRequest kickUserRequest) {
         Long currentUserId = getCurrentUserId();
-        String userToKickNickname = kickUserRequest.getUserId();
-        Long userToKickId = memberService.getLoginAuthenticateByNickname(userToKickNickname).getId();
+        Long userToKickId = kickUserRequest.getUserId();
 
         ChatRoom updatedRoom = chatService.kickUserFromRoom(roomId, currentUserId, userToKickId);
         return ResponseEntity.ok(updatedRoom);

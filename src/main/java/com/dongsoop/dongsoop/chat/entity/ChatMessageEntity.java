@@ -24,9 +24,6 @@ public class ChatMessageEntity {
     @Column(nullable = false)
     private Long senderId;
 
-    @Column(nullable = false)
-    private String senderNickName;
-
     @Column(nullable = false, length = 1000)
     private String content;
 
@@ -41,7 +38,6 @@ public class ChatMessageEntity {
                 .messageId(this.messageId)
                 .roomId(this.roomId)
                 .senderId(this.senderId)
-                .senderNickName(this.senderNickName)
                 .content(this.content)
                 .timestamp(this.timestamp)
                 .type(this.type)

@@ -16,7 +16,6 @@ public class RedisChatRepository implements ChatRepository {
     private static final String ROOM_KEY_PREFIX = "chat:room:";
     private static final String MESSAGE_KEY_PREFIX = "chat:message:";
     private static final String MESSAGE_LIST_PREFIX = "chat:messages:";
-    private static final int ONE_TO_ONE_PARTICIPANT_COUNT = 2;
 
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -114,7 +113,7 @@ public class RedisChatRepository implements ChatRepository {
     private Predicate<ChatRoom> createOneToOneParticipantFilter(Long user1, Long user2) {
         return room -> {
             Set<Long> participants = room.getParticipants();
-            return participants.size() == ONE_TO_ONE_PARTICIPANT_COUNT &&
+            return !room.isGroupChat() &&
                     participants.contains(user1) &&
                     participants.contains(user2);
         };
