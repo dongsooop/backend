@@ -7,7 +7,6 @@ import com.dongsoop.dongsoop.chat.repository.ChatRepository;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.exception.domain.websocket.ChatRoomNotFoundException;
 import com.dongsoop.dongsoop.exception.domain.websocket.UnauthorizedChatAccessException;
-import com.dongsoop.dongsoop.member.service.MemberService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -24,17 +23,14 @@ public class ChatService {
     private final ChatRepository chatRepository;
     private final ChatValidator chatValidator;
     private final ChatSyncService chatSyncService;
-    private final MemberService memberService;
 
     public ChatService(@Qualifier("redisChatRepository") ChatRepository chatRepository,
                        ChatValidator chatValidator,
-                       ChatSyncService chatSyncService,
-                       MemberService memberService
+                       ChatSyncService chatSyncService
     ) {
         this.chatRepository = chatRepository;
         this.chatValidator = chatValidator;
         this.chatSyncService = chatSyncService;
-        this.memberService = memberService;
     }
 
     public ChatRoom createOneToOneChatRoom(Long userId, Long targetUserId) {
@@ -46,21 +42,17 @@ public class ChatService {
 
     public ChatRoom createGroupChatRoom(Long creatorId, Set<Long> participants, String title) {
         validateMinimumParticipants(participants);
-
-        Set<Long> allParticipants = buildParticipantSet(participants, creatorId);
-        ChatRoom room = ChatRoom.createWithParticipantsAndTitle(allParticipants, creatorId, title);
+        ChatRoom room = ChatRoom.createWithParticipantsAndTitle(participants, creatorId, title);
         return chatRepository.saveRoom(room);
     }
 
-    public ChatRoom kickUserFromRoom(String roomId, Long requesterId, Long userToKick) {
+    public ChatRoom kickUserFromRoom(String roomId, Long requesterId, Long userToKickId) {
         ChatRoom room = getChatRoomById(roomId);
+
         chatValidator.validateManagerPermission(room, requesterId);
-        chatValidator.validateKickableUser(room, userToKick);
-
-        executeUserKick(room, userToKick);
-
-        String userToKickNickname = memberService.getNicknameById(userToKick);
-        createKickNotificationWithNickname(roomId, requesterId, userToKickNickname);
+        chatValidator.validateKickableUser(room, userToKickId);
+        executeUserKick(room, userToKickId);
+        createKickNotification(roomId, userToKickId);
 
         return chatRepository.saveRoom(room);
     }
@@ -142,45 +134,32 @@ public class ChatService {
         }
     }
 
-    private Set<Long> buildParticipantSet(Set<Long> participants, Long creatorId) {
-        Set<Long> allParticipants = new HashSet<>(participants);
-        allParticipants.add(creatorId);
-        return allParticipants;
+    private void executeUserKick(ChatRoom room, Long userToKickId) {
+        room.kickUser(userToKickId);
     }
 
-    private void executeUserKick(ChatRoom room, Long userToKick) {
-        room.kickUser(userToKick);
-    }
-
-    private void createKickNotificationWithNickname(String roomId, Long managerId, String kickedUserNickname) {
-        String managerNickname = getUserNicknameById(managerId);
-        String content = kickedUserNickname + "님이 채팅방에서 추방되었습니다.";
-        ChatMessage notification = buildSystemMessage(roomId, managerId, managerNickname, content, MessageType.LEAVE);
+    private void createKickNotification(String roomId, Long kickedUserId) {
+        String content = "사용자 " + kickedUserId + "님이 채팅방에서 추방되었습니다.";
+        ChatMessage notification = buildSystemMessage(roomId, kickedUserId, content, MessageType.LEAVE);
         chatRepository.saveMessage(notification);
     }
 
     private ChatMessage buildAndSaveEnterMessage(String roomId, Long userId) {
-        String userNickname = getUserNicknameById(userId);
-        String content = userNickname + "님이 입장하셨습니다.";
-        ChatMessage enterMessage = buildSystemMessage(roomId, userId, userNickname, content, MessageType.ENTER);
+        String content = "사용자 " + userId + "님이 입장하셨습니다.";
+        ChatMessage enterMessage = buildSystemMessage(roomId, userId, content, MessageType.ENTER);
         chatRepository.saveMessage(enterMessage);
         return enterMessage;
     }
 
-    private ChatMessage buildSystemMessage(String roomId, Long senderId, String senderNickname, String content, MessageType type) {
+    private ChatMessage buildSystemMessage(String roomId, Long senderId, String content, MessageType type) {
         return ChatMessage.builder()
                 .messageId(UUID.randomUUID().toString())
                 .roomId(roomId)
                 .senderId(senderId)
-                .senderNickName(senderNickname)
                 .content(content)
                 .timestamp(LocalDateTime.now())
                 .type(type)
                 .build();
-    }
-
-    private String getUserNicknameById(Long userId) {
-        return memberService.getNicknameById(userId);
     }
 
     private List<ChatMessage> retrieveMessagesFromCacheOrDatabase(String roomId) {
@@ -271,11 +250,20 @@ public class ChatService {
     }
 
     private void createRoomWithSpecificId(String roomId, Set<Long> participants) {
+        boolean isGroupChat = participants.size() > 2;
+        Long managerId = null;
+
+        if (isGroupChat) {
+            managerId = participants.iterator().next();
+        }
+
         ChatRoom newRoom = ChatRoom.builder()
                 .roomId(roomId)
                 .participants(participants)
                 .createdAt(LocalDateTime.now())
                 .lastActivityAt(LocalDateTime.now())
+                .isGroupChat(isGroupChat)
+                .managerId(managerId)
                 .build();
 
         chatRepository.saveRoom(newRoom);
@@ -291,33 +279,23 @@ public class ChatService {
         setMessageIdIfMissing(message);
         setTimestampIfMissing(message);
         setTypeIfMissing(message);
-        setSenderNickNameIfMissing(message);
     }
 
     private void setMessageIdIfMissing(ChatMessage message) {
         if (message.getMessageId() == null) {
-            String newId = UUID.randomUUID().toString();
-            message.setMessageId(newId);
+            message.setMessageId(UUID.randomUUID().toString());
         }
     }
 
     private void setTimestampIfMissing(ChatMessage message) {
         if (message.getTimestamp() == null) {
-            LocalDateTime now = LocalDateTime.now();
-            message.setTimestamp(now);
+            message.setTimestamp(LocalDateTime.now());
         }
     }
 
     private void setTypeIfMissing(ChatMessage message) {
         if (message.getType() == null) {
             message.setType(MessageType.CHAT);
-        }
-    }
-
-    private void setSenderNickNameIfMissing(ChatMessage message) {
-        if (message.getSenderNickName() == null) {
-            String nickname = getUserNicknameById(message.getSenderId());
-            message.setSenderNickName(nickname);
         }
     }
 
