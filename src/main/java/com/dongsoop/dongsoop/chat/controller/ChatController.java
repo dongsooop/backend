@@ -6,14 +6,12 @@ import com.dongsoop.dongsoop.chat.dto.KickUserRequest;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatService;
-import com.dongsoop.dongsoop.member.dto.LoginAuthenticate;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,7 +27,7 @@ public class ChatController {
     @PostMapping("/room")
     public ResponseEntity<ChatRoom> createRoom(@RequestBody CreateRoomRequest request) {
         Long currentUserId = getCurrentUserId();
-        Long targetUserId = resolveTargetUserId(request.getTargetUserId());
+        Long targetUserId = request.getTargetUserId();
 
         ChatRoom createdRoom = chatService.createOneToOneChatRoom(currentUserId, targetUserId);
         return ResponseEntity.ok(createdRoom);
@@ -70,7 +68,7 @@ public class ChatController {
     @PostMapping("/room/group")
     public ResponseEntity<ChatRoom> createGroupRoom(@RequestBody CreateGroupRoomRequest request) {
         Long currentUserId = getCurrentUserId();
-        Set<Long> participantIds = convertNicknamesToIds(request.getParticipants());
+        Set<Long> participantIds = request.getParticipants(); // 직접 사용
 
         ChatRoom groupRoom = chatService.createGroupChatRoom(currentUserId, participantIds, request.getTitle());
         return ResponseEntity.ok(groupRoom);
@@ -99,41 +97,11 @@ public class ChatController {
         return member.getId();
     }
 
-    private Long resolveTargetUserId(String targetUserNickname) {
-        LoginAuthenticate targetUserAuth = memberService.getLoginAuthenticateByNickname(targetUserNickname);
-        return targetUserAuth.getId();
-    }
-
     private Map<Long, String> buildParticipantsMap(ChatRoom room) {
         return room.getParticipants().stream()
                 .collect(Collectors.toMap(
                         participantId -> participantId,
                         memberService::getNicknameById
                 ));
-    }
-
-    private Set<Long> convertNicknamesToIds(Set<String> nicknames) {
-        Set<String> safeNicknames = getSafeNicknames(nicknames);
-        return safeNicknames.stream()
-                .map(this::convertNicknameToId)
-                .collect(Collectors.toSet());
-    }
-
-    private Set<String> getSafeNicknames(Set<String> nicknames) {
-        boolean nicknamesAreNull = nicknames == null;
-
-        return handleNullNicknames(nicknamesAreNull, nicknames);
-    }
-
-    private Set<String> handleNullNicknames(boolean nicknamesAreNull, Set<String> nicknames) {
-        if (nicknamesAreNull) {
-            return Collections.emptySet();
-        }
-        return nicknames;
-    }
-
-    private Long convertNicknameToId(String nickname) {
-        LoginAuthenticate userAuth = memberService.getLoginAuthenticateByNickname(nickname);
-        return userAuth.getId();
     }
 }
