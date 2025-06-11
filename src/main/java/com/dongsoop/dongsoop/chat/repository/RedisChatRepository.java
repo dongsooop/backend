@@ -38,9 +38,12 @@ public class RedisChatRepository implements ChatRepository {
 
     @Override
     public Optional<ChatRoom> findRoomByParticipants(Long user1, Long user2) {
-        return findRoomsWithFilter(createOneToOneParticipantFilter(user1, user2))
-                .stream()
-                .findFirst();
+        return findRoomsWithFilter(room -> {
+            Set<Long> participants = room.getParticipants();
+            return !room.isGroupChat() &&
+                    participants.contains(user1) &&
+                    participants.contains(user2);
+        }).stream().findFirst();
     }
 
     @Override
@@ -56,16 +59,37 @@ public class RedisChatRepository implements ChatRepository {
     public List<ChatMessage> findMessagesByRoomId(String roomId) {
         String listKey = buildMessageListKey(roomId);
         List<Object> objects = redisTemplate.opsForList().range(listKey, 0, -1);
-        return convertObjectsToMessages(objects);
+
+        return Optional.ofNullable(objects)
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(obj -> (ChatMessage) obj)
+                .toList();
     }
 
     @Override
     public List<ChatRoom> findRoomsByUserId(Long userId) {
-        return findRoomsWithFilter(createUserParticipationFilter(userId));
+        return findRoomsWithFilter(room -> room.getParticipants().contains(userId));
     }
 
-    public List<ChatRoom> findRoomsCreatedBefore(LocalDateTime cutoffTime) {
-        return findRoomsWithFilter(createCreatedBeforeFilter(cutoffTime));
+    public List<ChatRoom> findRoomsWithLastActivityBefore(LocalDateTime cutoffTime) {
+        return findRoomsWithFilter(room -> {
+            LocalDateTime lastActivityAt = room.getLastActivityAt();
+            return lastActivityAt == null || lastActivityAt.isBefore(cutoffTime);
+        });
+    }
+
+    public void deleteRoom(String roomId) {
+        String roomKey = buildRoomKey(roomId);
+        String messageListKey = buildMessageListKey(roomId);
+
+        redisTemplate.delete(roomKey);
+        redisTemplate.delete(messageListKey);
+
+        Set<String> messageKeys = redisTemplate.keys(MESSAGE_KEY_PREFIX + roomId + ":*");
+        if (messageKeys != null && !messageKeys.isEmpty()) {
+            redisTemplate.delete(messageKeys);
+        }
     }
 
     private String buildRoomKey(String roomId) {
@@ -90,14 +114,6 @@ public class RedisChatRepository implements ChatRepository {
         redisTemplate.expire(listKey, CHAT_TTL, TimeUnit.DAYS);
     }
 
-    private List<ChatMessage> convertObjectsToMessages(List<Object> objects) {
-        return Optional.ofNullable(objects)
-                .orElse(Collections.emptyList())
-                .stream()
-                .map(obj -> (ChatMessage) obj)
-                .toList();
-    }
-
     private List<ChatRoom> findRoomsWithFilter(Predicate<ChatRoom> filter) {
         Set<String> keys = redisTemplate.keys(ROOM_KEY_PREFIX + "*");
 
@@ -108,25 +124,5 @@ public class RedisChatRepository implements ChatRepository {
                 .filter(Objects::nonNull)
                 .filter(filter)
                 .toList();
-    }
-
-    private Predicate<ChatRoom> createOneToOneParticipantFilter(Long user1, Long user2) {
-        return room -> {
-            Set<Long> participants = room.getParticipants();
-            return !room.isGroupChat() &&
-                    participants.contains(user1) &&
-                    participants.contains(user2);
-        };
-    }
-
-    private Predicate<ChatRoom> createUserParticipationFilter(Long userId) {
-        return room -> room.getParticipants().contains(userId);
-    }
-
-    private Predicate<ChatRoom> createCreatedBeforeFilter(LocalDateTime cutoffTime) {
-        return room -> {
-            LocalDateTime createdAt = room.getCreatedAt();
-            return createdAt == null || createdAt.isBefore(cutoffTime);
-        };
     }
 }
