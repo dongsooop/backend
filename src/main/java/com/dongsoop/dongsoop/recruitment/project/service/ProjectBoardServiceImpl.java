@@ -53,8 +53,13 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
         return projectBoard;
     }
 
-    public List<ProjectBoardOverview> getBoardByPage(DepartmentType departmentType, Pageable pageable) {
-        return projectBoardRepositoryCustom.findProjectBoardOverviewsByPage(departmentType, pageable);
+    public List<ProjectBoardOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType,
+                                                                      Pageable pageable) {
+        return projectBoardRepositoryCustom.findProjectBoardOverviewsByPageAndDepartmentType(departmentType, pageable);
+    }
+
+    public List<ProjectBoardOverview> getBoardByPage(Pageable pageable) {
+        return projectBoardRepositoryCustom.findProjectBoardOverviewsByPage(pageable);
     }
 
     public ProjectBoardDetails getBoardDetailsById(Long projectBoardId) {
