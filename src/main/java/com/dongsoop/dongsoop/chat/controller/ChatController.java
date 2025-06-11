@@ -3,7 +3,6 @@ package com.dongsoop.dongsoop.chat.controller;
 import com.dongsoop.dongsoop.chat.dto.CreateGroupRoomRequest;
 import com.dongsoop.dongsoop.chat.dto.CreateRoomRequest;
 import com.dongsoop.dongsoop.chat.dto.KickUserRequest;
-import com.dongsoop.dongsoop.chat.dto.MessageSyncRequest;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatService;
@@ -30,9 +29,7 @@ public class ChatController {
     @PostMapping("/room")
     public ResponseEntity<ChatRoom> createRoom(@RequestBody CreateRoomRequest request) {
         Long currentUserId = getCurrentUserId();
-
-        LoginAuthenticate targetUserAuth = memberService.getLoginAuthenticateByNickname(request.getTargetUserId());
-        Long targetUserId = targetUserAuth.getId();
+        Long targetUserId = resolveTargetUserId(request.getTargetUserId());
 
         ChatRoom createdRoom = chatService.createOneToOneChatRoom(currentUserId, targetUserId);
         return ResponseEntity.ok(createdRoom);
@@ -65,34 +62,9 @@ public class ChatController {
         chatService.enterChatRoom(roomId, currentUserId);
 
         ChatRoom room = chatService.getChatRoomById(roomId);
-
-        Map<Long, String> participants = room.getParticipants().stream()
-                .collect(Collectors.toMap(
-                        participantId -> participantId,
-                        memberService::getNicknameById
-                ));
+        Map<Long, String> participants = buildParticipantsMap(room);
 
         return ResponseEntity.ok(participants);
-    }
-
-    @PostMapping("/room/{roomId}/sync")
-    public ResponseEntity<List<ChatMessage>> syncMessages(
-            @PathVariable("roomId") String roomId,
-            @RequestBody MessageSyncRequest request) {
-        Long currentUserId = getCurrentUserId();
-        List<ChatMessage> syncedMessages = chatService.syncMessages(roomId, currentUserId, request.getMessages());
-        return ResponseEntity.ok(syncedMessages);
-    }
-
-    @PostMapping("/room/{roomId}/recreate")
-    public ResponseEntity<ChatRoom> recreateRoom(
-            @PathVariable("roomId") String roomId,
-            @RequestBody MessageSyncRequest request) {
-        Long currentUserId = getCurrentUserId();
-        chatService.recreateRoomIfNeeded(roomId, currentUserId, request.getMessages());
-
-        ChatRoom recreatedRoom = chatService.getChatRoomById(roomId);
-        return ResponseEntity.ok(recreatedRoom);
     }
 
     @PostMapping("/room/group")
@@ -115,9 +87,29 @@ public class ChatController {
         return ResponseEntity.ok(updatedRoom);
     }
 
+    @PostMapping("/room/{roomId}/leave")
+    public ResponseEntity<Void> leaveRoom(@PathVariable("roomId") String roomId) {
+        Long currentUserId = getCurrentUserId();
+        chatService.leaveChatRoom(roomId, currentUserId);
+        return ResponseEntity.ok().build();
+    }
+
     private Long getCurrentUserId() {
         Member member = memberService.getMemberReferenceByContext();
         return member.getId();
+    }
+
+    private Long resolveTargetUserId(String targetUserNickname) {
+        LoginAuthenticate targetUserAuth = memberService.getLoginAuthenticateByNickname(targetUserNickname);
+        return targetUserAuth.getId();
+    }
+
+    private Map<Long, String> buildParticipantsMap(ChatRoom room) {
+        return room.getParticipants().stream()
+                .collect(Collectors.toMap(
+                        participantId -> participantId,
+                        memberService::getNicknameById
+                ));
     }
 
     private Set<Long> convertNicknamesToIds(Set<String> nicknames) {
@@ -128,7 +120,13 @@ public class ChatController {
     }
 
     private Set<String> getSafeNicknames(Set<String> nicknames) {
-        if (nicknames == null) {
+        boolean nicknamesAreNull = nicknames == null;
+
+        return handleNullNicknames(nicknamesAreNull, nicknames);
+    }
+
+    private Set<String> handleNullNicknames(boolean nicknamesAreNull, Set<String> nicknames) {
+        if (nicknamesAreNull) {
             return Collections.emptySet();
         }
         return nicknames;
