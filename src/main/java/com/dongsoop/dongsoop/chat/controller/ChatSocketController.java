@@ -25,11 +25,7 @@ public class ChatSocketController {
             Principal principal) {
 
         Long userId = extractUserIdFromPrincipal(principal);
-
-        message.setSenderId(userId);
-        message.setRoomId(roomId);
-
-        return chatService.processMessage(message);
+        return chatService.processWebSocketMessage(message, userId, roomId);
     }
 
     @MessageMapping("/enter/{roomId}")
@@ -39,7 +35,7 @@ public class ChatSocketController {
             Principal principal) {
 
         Long userId = extractUserIdFromPrincipal(principal);
-        return chatService.createEnterMessage(roomId, userId);
+        return chatService.processWebSocketEnter(roomId, userId);
     }
 
     private Long extractUserIdFromPrincipal(Principal principal) {
