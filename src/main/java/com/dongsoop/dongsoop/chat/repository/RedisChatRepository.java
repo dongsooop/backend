@@ -6,15 +6,16 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Repository
 public class RedisChatRepository implements ChatRepository {
-    private static final long CHAT_TTL = 30; // 30일 TTL
+    private static final long CHAT_TTL = 30;
     private static final String ROOM_KEY_PREFIX = "chat:room:";
     private static final String MESSAGE_KEY_PREFIX = "chat:message:";
-    private static final String MESSAGE_LIST_PREFIX = "chat:messages:";
+    private static final String MESSAGE_ZSET_PREFIX = "chat:messages:sorted:";
     private static final String USER_ROOM_INDEX_PREFIX = "user:rooms:";
 
     private final RedisTemplate<String, Object> redisTemplate;
@@ -44,49 +45,34 @@ public class RedisChatRepository implements ChatRepository {
 
     @Override
     public void saveMessage(ChatMessage message) {
-        String messageKey = buildMessageKey(message.getRoomId(), message.getMessageId());
-        String listKey = buildMessageListKey(message.getRoomId());
-
-        saveWithTTL(messageKey, message);
-        addMessageToList(listKey, message);
+        saveMessageToIndividualKey(message);
+        addMessageToSortedSet(message);
     }
 
     @Override
     public List<ChatMessage> findMessagesByRoomId(String roomId) {
-        String listKey = buildMessageListKey(roomId);
-        List<Object> objects = redisTemplate.opsForList().range(listKey, 0, -1);
+        String zsetKey = buildMessageZSetKey(roomId);
+        Set<Object> messageIds = redisTemplate.opsForZSet().range(zsetKey, 0, -1);
 
-        return Optional.ofNullable(objects)
-                .orElse(Collections.emptyList())
-                .stream()
-                .map(obj -> (ChatMessage) obj)
-                .toList();
+        return loadMessagesFromIds(roomId, messageIds);
     }
 
     public List<ChatMessage> findMessagesByRoomIdAfterTime(String roomId, LocalDateTime afterTime) {
-        String listKey = buildMessageListKey(roomId);
-        List<Object> objects = redisTemplate.opsForList().range(listKey, 0, -1);
+        String zsetKey = buildMessageZSetKey(roomId);
+        double afterTimestamp = convertToTimestamp(afterTime);
 
-        return Optional.ofNullable(objects)
-                .orElse(Collections.emptyList())
-                .stream()
-                .map(obj -> (ChatMessage) obj)
-                .filter(message -> isMessageAfterTime(message, afterTime))
-                .toList();
+        Set<Object> messageIds = redisTemplate.opsForZSet()
+                .rangeByScore(zsetKey, afterTimestamp, Double.MAX_VALUE);
+
+        return loadMessagesFromIds(roomId, messageIds);
     }
 
     public List<ChatMessage> findMessagesByRoomIdAfterId(String roomId, String lastMessageId) {
-        String listKey = buildMessageListKey(roomId);
-        List<Object> objects = redisTemplate.opsForList().range(listKey, 0, -1);
+        String zsetKey = buildMessageZSetKey(roomId);
 
-        List<ChatMessage> messages = Optional.ofNullable(objects)
-                .orElse(Collections.emptyList())
-                .stream()
-                .map(obj -> (ChatMessage) obj)
-                .toList();
+        Long lastIndex = findMessageRankInSortedSet(zsetKey, lastMessageId);
 
-        int lastIndex = findMessageIndex(messages, lastMessageId);
-        return getMessagesAfterIndex(messages, lastIndex);
+        return retrieveMessagesAfterIndex(roomId, zsetKey, lastIndex);
     }
 
     @Override
@@ -116,25 +102,53 @@ public class RedisChatRepository implements ChatRepository {
                 });
     }
 
-    private boolean isMessageAfterTime(ChatMessage message, LocalDateTime afterTime) {
-        LocalDateTime messageTime = message.getTimestamp();
-        return messageTime != null && messageTime.isAfter(afterTime);
+    private void saveMessageToIndividualKey(ChatMessage message) {
+        String messageKey = buildMessageKey(message.getRoomId(), message.getMessageId());
+        saveWithTTL(messageKey, message);
     }
 
-    private int findMessageIndex(List<ChatMessage> messages, String messageId) {
-        for (int i = 0; i < messages.size(); i++) {
-            if (messageId.equals(messages.get(i).getMessageId())) {
-                return i;
-            }
-        }
-        return -1;
+    private void addMessageToSortedSet(ChatMessage message) {
+        String zsetKey = buildMessageZSetKey(message.getRoomId());
+        double timestamp = convertToTimestamp(message.getTimestamp());
+
+        redisTemplate.opsForZSet().add(zsetKey, message.getMessageId(), timestamp);
+        redisTemplate.expire(zsetKey, CHAT_TTL, TimeUnit.DAYS);
     }
 
-    private List<ChatMessage> getMessagesAfterIndex(List<ChatMessage> messages, int lastIndex) {
-        if (lastIndex >= 0 && lastIndex < messages.size() - 1) {
-            return messages.subList(lastIndex + 1, messages.size());
-        }
-        return Collections.emptyList();
+    private List<ChatMessage> loadMessagesFromIds(String roomId, Set<Object> messageIds) {
+        return Optional.ofNullable(messageIds)
+                .orElse(Collections.emptySet())
+                .stream()
+                .map(messageIdObj -> loadSingleMessage(roomId, messageIdObj.toString()))
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private ChatMessage loadSingleMessage(String roomId, String messageId) {
+        String messageKey = buildMessageKey(roomId, messageId);
+        return (ChatMessage) redisTemplate.opsForValue().get(messageKey);
+    }
+
+    private Long findMessageRankInSortedSet(String zsetKey, String messageId) {
+        return redisTemplate.opsForZSet().rank(zsetKey, messageId);
+    }
+
+    private List<ChatMessage> retrieveMessagesAfterIndex(String roomId, String zsetKey, Long lastIndex) {
+        return Optional.ofNullable(lastIndex)
+                .map(index -> retrieveMessagesFromRange(roomId, zsetKey, index + 1))
+                .orElse(Collections.emptyList());
+    }
+
+    private List<ChatMessage> retrieveMessagesFromRange(String roomId, String zsetKey, long startIndex) {
+        Set<Object> messageIds = redisTemplate.opsForZSet().range(zsetKey, startIndex, -1);
+        return loadMessagesFromIds(roomId, messageIds);
+    }
+
+    private double convertToTimestamp(LocalDateTime dateTime) {
+        return Optional.ofNullable(dateTime)
+                .map(dt -> dt.toEpochSecond(ZoneOffset.UTC))
+                .map(Long::doubleValue)
+                .orElse(0.0);
     }
 
     private Optional<ChatRoom> findDirectRoomByParticipants(Long user1, Long user2) {
@@ -185,32 +199,46 @@ public class RedisChatRepository implements ChatRepository {
     }
 
     private void indexRoomForUsers(ChatRoom room) {
-        room.getParticipants().forEach(userId -> {
-            String userIndexKey = buildUserRoomIndexKey(userId);
-            redisTemplate.opsForSet().add(userIndexKey, room.getRoomId());
-            redisTemplate.expire(userIndexKey, CHAT_TTL, TimeUnit.DAYS);
-        });
+        room.getParticipants().forEach(userId -> indexRoomForSingleUser(room.getRoomId(), userId));
+    }
+
+    private void indexRoomForSingleUser(String roomId, Long userId) {
+        String userIndexKey = buildUserRoomIndexKey(userId);
+        redisTemplate.opsForSet().add(userIndexKey, roomId);
+        redisTemplate.expire(userIndexKey, CHAT_TTL, TimeUnit.DAYS);
     }
 
     private void removeRoomIndexes(ChatRoom room) {
-        room.getParticipants().forEach(userId -> {
-            String userIndexKey = buildUserRoomIndexKey(userId);
-            redisTemplate.opsForSet().remove(userIndexKey, room.getRoomId());
-        });
+        room.getParticipants().forEach(userId -> removeRoomIndexForSingleUser(room.getRoomId(), userId));
+    }
+
+    private void removeRoomIndexForSingleUser(String roomId, Long userId) {
+        String userIndexKey = buildUserRoomIndexKey(userId);
+        redisTemplate.opsForSet().remove(userIndexKey, roomId);
     }
 
     private void deleteRoomData(String roomId) {
-        String roomKey = buildRoomKey(roomId);
-        String messageListKey = buildMessageListKey(roomId);
-
-        redisTemplate.delete(roomKey);
-        redisTemplate.delete(messageListKey);
-
+        deleteRoomKey(roomId);
+        deleteMessageZSet(roomId);
         deleteRoomMessages(roomId);
+    }
+
+    private void deleteRoomKey(String roomId) {
+        String roomKey = buildRoomKey(roomId);
+        redisTemplate.delete(roomKey);
+    }
+
+    private void deleteMessageZSet(String roomId) {
+        String messageZSetKey = buildMessageZSetKey(roomId);
+        redisTemplate.delete(messageZSetKey);
     }
 
     private void deleteRoomMessages(String roomId) {
         Set<String> messageKeys = redisTemplate.keys(MESSAGE_KEY_PREFIX + roomId + ":*");
+        deleteMessageKeysIfExists(messageKeys);
+    }
+
+    private void deleteMessageKeysIfExists(Set<String> messageKeys) {
         Optional.ofNullable(messageKeys)
                 .filter(keys -> !keys.isEmpty())
                 .ifPresent(redisTemplate::delete);
@@ -224,8 +252,8 @@ public class RedisChatRepository implements ChatRepository {
         return MESSAGE_KEY_PREFIX + roomId + ":" + messageId;
     }
 
-    private String buildMessageListKey(String roomId) {
-        return MESSAGE_LIST_PREFIX + roomId;
+    private String buildMessageZSetKey(String roomId) {
+        return MESSAGE_ZSET_PREFIX + roomId;
     }
 
     private String buildUserRoomIndexKey(Long userId) {
@@ -235,10 +263,5 @@ public class RedisChatRepository implements ChatRepository {
     private void saveWithTTL(String key, Object value) {
         redisTemplate.opsForValue().set(key, value);
         redisTemplate.expire(key, CHAT_TTL, TimeUnit.DAYS);
-    }
-
-    private void addMessageToList(String listKey, ChatMessage message) {
-        redisTemplate.opsForList().rightPush(listKey, message);
-        redisTemplate.expire(listKey, CHAT_TTL, TimeUnit.DAYS);
     }
 }
