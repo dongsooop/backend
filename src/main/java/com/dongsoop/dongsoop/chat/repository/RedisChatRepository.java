@@ -63,6 +63,32 @@ public class RedisChatRepository implements ChatRepository {
                 .toList();
     }
 
+    public List<ChatMessage> findMessagesByRoomIdAfterTime(String roomId, LocalDateTime afterTime) {
+        String listKey = buildMessageListKey(roomId);
+        List<Object> objects = redisTemplate.opsForList().range(listKey, 0, -1);
+
+        return Optional.ofNullable(objects)
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(obj -> (ChatMessage) obj)
+                .filter(message -> isMessageAfterTime(message, afterTime))
+                .toList();
+    }
+
+    public List<ChatMessage> findMessagesByRoomIdAfterId(String roomId, String lastMessageId) {
+        String listKey = buildMessageListKey(roomId);
+        List<Object> objects = redisTemplate.opsForList().range(listKey, 0, -1);
+
+        List<ChatMessage> messages = Optional.ofNullable(objects)
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(obj -> (ChatMessage) obj)
+                .toList();
+
+        int lastIndex = findMessageIndex(messages, lastMessageId);
+        return getMessagesAfterIndex(messages, lastIndex);
+    }
+
     @Override
     public List<ChatRoom> findRoomsByUserId(Long userId) {
         return findRoomsByUserIdDirect(userId);
@@ -88,6 +114,27 @@ public class RedisChatRepository implements ChatRepository {
                     removeRoomIndexes(r);
                     deleteRoomData(roomId);
                 });
+    }
+
+    private boolean isMessageAfterTime(ChatMessage message, LocalDateTime afterTime) {
+        LocalDateTime messageTime = message.getTimestamp();
+        return messageTime != null && messageTime.isAfter(afterTime);
+    }
+
+    private int findMessageIndex(List<ChatMessage> messages, String messageId) {
+        for (int i = 0; i < messages.size(); i++) {
+            if (messageId.equals(messages.get(i).getMessageId())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private List<ChatMessage> getMessagesAfterIndex(List<ChatMessage> messages, int lastIndex) {
+        if (lastIndex >= 0 && lastIndex < messages.size() - 1) {
+            return messages.subList(lastIndex + 1, messages.size());
+        }
+        return Collections.emptyList();
     }
 
     private Optional<ChatRoom> findDirectRoomByParticipants(Long user1, Long user2) {
