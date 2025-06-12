@@ -21,14 +21,17 @@ import java.util.UUID;
 @Service
 public class ChatService {
     private final ChatRepository chatRepository;
+    private final RedisChatRepository redisChatRepository;
     private final ChatValidator chatValidator;
     private final ChatSyncService chatSyncService;
 
     public ChatService(@Qualifier("redisChatRepository") ChatRepository chatRepository,
+                       RedisChatRepository redisChatRepository,
                        ChatValidator chatValidator,
                        ChatSyncService chatSyncService
     ) {
         this.chatRepository = chatRepository;
+        this.redisChatRepository = redisChatRepository;
         this.chatValidator = chatValidator;
         this.chatSyncService = chatSyncService;
     }
@@ -38,20 +41,11 @@ public class ChatService {
         validatePositiveUserId(userId);
         validatePositiveUserId(targetUserId);
 
-        ChatRoom existingRoom = chatRepository.findRoomByParticipants(userId, targetUserId).orElse(null);
-
-        if (existingRoom != null) {
-            return existingRoom;
-        }
-
-        ChatRoom room = ChatRoom.create(userId, targetUserId);
-        return chatRepository.saveRoom(room);
+        return findExistingRoomOrCreate(userId, targetUserId);
     }
 
     public ChatRoom createGroupChatRoom(Long creatorId, Set<Long> participants, String title) {
-        if (participants.isEmpty()) {
-            throw new IllegalArgumentException("그룹 채팅 참여자 수가 올바르지 않습니다.");
-        }
+        validateParticipantsNotEmpty(participants);
 
         ChatRoom room = ChatRoom.createWithParticipantsAndTitle(participants, creatorId, title);
         return chatRepository.saveRoom(room);
@@ -63,8 +57,7 @@ public class ChatService {
         chatValidator.validateManagerPermission(room, requesterId);
         chatValidator.validateKickableUser(room, userToKickId);
 
-        room.kickUser(userToKickId);
-        createAndSaveSystemMessage(roomId, userToKickId, MessageType.LEAVE);
+        processUserKick(room, roomId, userToKickId);
 
         return chatRepository.saveRoom(room);
     }
@@ -96,15 +89,12 @@ public class ChatService {
         ChatRoom room = getChatRoomById(roomId);
         LocalDateTime joinTime = room.getJoinTime(userId);
 
-        return Optional.ofNullable(joinTime)
-                .map(time -> ((RedisChatRepository) chatRepository).findMessagesByRoomIdAfterTime(roomId, time))
-                .orElse(List.of());
+        return findMessagesSinceJoinTime(roomId, joinTime);
     }
 
     public List<ChatMessage> getMessagesAfter(String roomId, Long userId, String lastMessageId) {
         chatValidator.validateUserForRoom(roomId, userId);
-
-        return ((RedisChatRepository) chatRepository).findMessagesByRoomIdAfterId(roomId, lastMessageId);
+        return redisChatRepository.findMessagesByRoomIdAfterId(roomId, lastMessageId);
     }
 
     public ChatRoom getChatRoomById(String roomId) {
@@ -113,22 +103,16 @@ public class ChatService {
 
     public List<ChatRoom> getRoomsForUserId(Long userId) {
         List<ChatRoom> allRooms = chatRepository.findRoomsByUserId(userId);
-        return allRooms.stream()
-                .filter(room -> !room.isKicked(userId))
-                .toList();
+        return filterNotKickedRooms(allRooms, userId);
     }
 
     public void leaveChatRoom(String roomId, Long userId) {
         ChatRoom room = getChatRoomById(roomId);
 
-        room.kickUser(userId);
-        createAndSaveSystemMessage(roomId, userId, MessageType.LEAVE);
-
+        processUserLeave(room, roomId, userId);
         chatRepository.saveRoom(room);
 
-        if (room.getParticipants().isEmpty()) {
-            deleteRoom(roomId);
-        }
+        deleteRoomIfEmpty(room);
     }
 
     public ChatMessage processWebSocketMessage(ChatMessage message, Long userId, String roomId) {
@@ -140,10 +124,56 @@ public class ChatService {
         return createEnterMessage(roomId, userId);
     }
 
+    private ChatRoom findExistingRoomOrCreate(Long userId, Long targetUserId) {
+        ChatRoom existingRoom = chatRepository.findRoomByParticipants(userId, targetUserId).orElse(null);
+
+        return Optional.ofNullable(existingRoom)
+                .orElseGet(() -> createNewOneToOneRoom(userId, targetUserId));
+    }
+
+    private ChatRoom createNewOneToOneRoom(Long userId, Long targetUserId) {
+        ChatRoom room = ChatRoom.create(userId, targetUserId);
+        return chatRepository.saveRoom(room);
+    }
+
+    private void validateParticipantsNotEmpty(Set<Long> participants) {
+        Optional.of(participants)
+                .filter(p -> !p.isEmpty())
+                .orElseThrow(() -> new IllegalArgumentException("그룹 채팅 참여자 수가 올바르지 않습니다."));
+    }
+
+    private void processUserKick(ChatRoom room, String roomId, Long userToKickId) {
+        room.kickUser(userToKickId);
+        createAndSaveSystemMessage(roomId, userToKickId, MessageType.LEAVE);
+    }
+
+    private List<ChatMessage> findMessagesSinceJoinTime(String roomId, LocalDateTime joinTime) {
+        return Optional.ofNullable(joinTime)
+                .map(time -> redisChatRepository.findMessagesByRoomIdAfterTime(roomId, time))
+                .orElse(List.of());
+    }
+
+    private List<ChatRoom> filterNotKickedRooms(List<ChatRoom> allRooms, Long userId) {
+        return allRooms.stream()
+                .filter(room -> !room.isKicked(userId))
+                .toList();
+    }
+
+    private void processUserLeave(ChatRoom room, String roomId, Long userId) {
+        room.kickUser(userId);
+        createAndSaveSystemMessage(roomId, userId, MessageType.LEAVE);
+    }
+
+    private void deleteRoomIfEmpty(ChatRoom room) {
+        Optional.of(room)
+                .filter(r -> r.getParticipants().isEmpty())
+                .ifPresent(r -> deleteRoom(r.getRoomId()));
+    }
+
     private void validatePositiveUserId(Long userId) {
-        if (userId < 0) {
-            throw new UnauthorizedChatAccessException();
-        }
+        Optional.of(userId)
+                .filter(id -> id >= 0)
+                .orElseThrow(UnauthorizedChatAccessException::new);
     }
 
     private ChatMessage createAndSaveSystemMessage(String roomId, Long userId, MessageType type) {
@@ -188,8 +218,6 @@ public class ChatService {
     }
 
     private void deleteRoom(String roomId) {
-        if (chatRepository instanceof RedisChatRepository) {
-            ((RedisChatRepository) chatRepository).deleteRoom(roomId);
-        }
+        redisChatRepository.deleteRoom(roomId);
     }
 }
