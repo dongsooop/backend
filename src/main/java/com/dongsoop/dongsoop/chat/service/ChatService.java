@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -87,6 +88,23 @@ public class ChatService {
     public List<ChatMessage> getChatHistory(String roomId, Long userId) {
         chatValidator.validateUserForRoom(roomId, userId);
         return chatRepository.findMessagesByRoomId(roomId);
+    }
+
+    public List<ChatMessage> getMessagesSinceJoin(String roomId, Long userId) {
+        chatValidator.validateUserForRoom(roomId, userId);
+
+        ChatRoom room = getChatRoomById(roomId);
+        LocalDateTime joinTime = room.getJoinTime(userId);
+
+        return Optional.ofNullable(joinTime)
+                .map(time -> ((RedisChatRepository) chatRepository).findMessagesByRoomIdAfterTime(roomId, time))
+                .orElse(List.of());
+    }
+
+    public List<ChatMessage> getMessagesAfter(String roomId, Long userId, String lastMessageId) {
+        chatValidator.validateUserForRoom(roomId, userId);
+
+        return ((RedisChatRepository) chatRepository).findMessagesByRoomIdAfterId(roomId, lastMessageId);
     }
 
     public ChatRoom getChatRoomById(String roomId) {
@@ -173,9 +191,5 @@ public class ChatService {
         if (chatRepository instanceof RedisChatRepository) {
             ((RedisChatRepository) chatRepository).deleteRoom(roomId);
         }
-    }
-
-    public ChatMessage createLeaveMessage(String roomId, Long userId) {
-        return createAndSaveSystemMessage(roomId, userId, MessageType.LEAVE);
     }
 }
