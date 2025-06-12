@@ -165,7 +165,7 @@ public class ChatValidator {
     private void validateManagerAuthority(ChatRoom room, Long requesterId) {
         Long managerId = room.getManagerId();
         boolean hasNoManager = managerId == null;
-        boolean isNotManager = !Objects.requireNonNull(managerId).equals(requesterId);
+        boolean isNotManager = !Objects.equals(managerId, requesterId);
         validateIfUnauthorizedManager(hasNoManager, isNotManager);
     }
 
