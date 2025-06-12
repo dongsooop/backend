@@ -4,9 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Getter
 @Setter
@@ -31,6 +29,9 @@ public class ChatRoom {
     @Builder.Default
     private Set<Long> kickedUsers = new HashSet<>();
 
+    @Builder.Default
+    private Map<Long, LocalDateTime> participantJoinTimes = new HashMap<>();
+
     @JsonInclude(JsonInclude.Include.NON_NULL)
 
     public static ChatRoom create(Long user1, Long user2) {
@@ -42,6 +43,7 @@ public class ChatRoom {
                 .createdAt(getCurrentTime())
                 .lastActivityAt(getCurrentTime())
                 .kickedUsers(new HashSet<>())
+                .participantJoinTimes(createJoinTimesMap(user1, user2))
                 .build();
     }
 
@@ -58,7 +60,23 @@ public class ChatRoom {
                 .createdAt(getCurrentTime())
                 .lastActivityAt(getCurrentTime())
                 .kickedUsers(new HashSet<>())
+                .participantJoinTimes(createJoinTimesMapForGroup(allParticipants))
                 .build();
+    }
+
+    private static Map<Long, LocalDateTime> createJoinTimesMap(Long user1, Long user2) {
+        Map<Long, LocalDateTime> joinTimes = new HashMap<>();
+        LocalDateTime now = getCurrentTime();
+        joinTimes.put(user1, now);
+        joinTimes.put(user2, now);
+        return joinTimes;
+    }
+
+    private static Map<Long, LocalDateTime> createJoinTimesMapForGroup(Set<Long> participants) {
+        Map<Long, LocalDateTime> joinTimes = new HashMap<>();
+        LocalDateTime now = getCurrentTime();
+        participants.forEach(userId -> joinTimes.put(userId, now));
+        return joinTimes;
     }
 
     private static String generateRandomRoomId() {
@@ -74,6 +92,15 @@ public class ChatRoom {
 
     private static LocalDateTime getCurrentTime() {
         return LocalDateTime.now();
+    }
+
+    public LocalDateTime getJoinTime(Long userId) {
+        return participantJoinTimes.get(userId);
+    }
+
+    public void addNewParticipant(Long userId) {
+        participants.add(userId);
+        participantJoinTimes.put(userId, getCurrentTime());
     }
 
     public ChatRoomEntity toChatRoomEntity() {
@@ -94,6 +121,7 @@ public class ChatRoom {
 
     public void kickUser(Long userId) {
         participants.remove(userId);
+        participantJoinTimes.remove(userId);
         ensureKickedUsersSet().add(userId);
         updateActivity();
     }
