@@ -100,7 +100,7 @@ public class ChatRoom {
 
     public void addNewParticipant(Long userId) {
         participants.add(userId);
-        participantJoinTimes.put(userId, getCurrentTime());
+        participantJoinTimes.putIfAbsent(userId, getCurrentTime());
     }
 
     public ChatRoomEntity toChatRoomEntity() {
