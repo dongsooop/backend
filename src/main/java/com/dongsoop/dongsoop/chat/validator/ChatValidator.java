@@ -12,7 +12,6 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -63,15 +62,13 @@ public class ChatValidator {
 
     private void validateUserNotKicked(ChatRoom room, Long userId) {
         boolean userIsKicked = room.isKicked(userId);
-        validateUserNotKickedCondition(userIsKicked, room.getRoomId());
+        throwExceptionIfUserKicked(userIsKicked, room.getRoomId());
     }
 
-    private void validateUserNotKickedCondition(boolean userIsKicked, String roomId) {
-        Optional.of(userIsKicked)
-                .filter(kicked -> kicked)
-                .ifPresent(kicked -> {
-                    throw new UserKickedException(roomId);
-                });
+    private void throwExceptionIfUserKicked(boolean userIsKicked, String roomId) {
+        if (userIsKicked) {
+            throw new UserKickedException(roomId);
+        }
     }
 
     private void addUserToRoomIfNeeded(ChatRoom room, Long userId) {
@@ -86,30 +83,26 @@ public class ChatValidator {
     }
 
     private void addUserToRoomIfShould(boolean shouldAddUser, ChatRoom room, Long userId) {
-        Optional.of(shouldAddUser)
-                .filter(add -> add)
-                .ifPresent(add -> {
-                    room.getParticipants().add(userId);
-                    chatRepository.saveRoom(room);
-                });
+        if (shouldAddUser) {
+            room.addNewParticipant(userId);
+            chatRepository.saveRoom(room);
+        }
     }
 
     private void validateNotSelfChat(Long user1, Long user2) {
         boolean isSelfChat = user1.equals(user2);
-        validateSelfChatCondition(isSelfChat);
+        throwExceptionIfSelfChat(isSelfChat);
     }
 
-    private void validateSelfChatCondition(boolean isSelfChat) {
-        Optional.of(isSelfChat)
-                .filter(selfChat -> selfChat)
-                .ifPresent(selfChat -> {
-                    throw new SelfChatException();
-                });
+    private void throwExceptionIfSelfChat(boolean isSelfChat) {
+        if (isSelfChat) {
+            throw new SelfChatException();
+        }
     }
 
     private void validateMessageRequirements(ChatMessage message) {
         boolean hasRequiredFields = hasRequiredFields(message);
-        validateMessageRequirementsCondition(hasRequiredFields);
+        throwExceptionIfInvalidMessage(hasRequiredFields);
     }
 
     private boolean hasRequiredFields(ChatMessage message) {
@@ -118,94 +111,88 @@ public class ChatValidator {
         return hasRoomId && hasSenderId;
     }
 
-    private void validateMessageRequirementsCondition(boolean hasRequiredFields) {
+    private void throwExceptionIfInvalidMessage(boolean hasRequiredFields) {
         boolean isInvalid = !hasRequiredFields;
-        Optional.of(isInvalid)
-                .filter(invalid -> invalid)
-                .ifPresent(invalid -> {
-                    throw new InvalidChatRequestException();
-                });
+        if (isInvalid) {
+            throw new InvalidChatRequestException();
+        }
     }
 
     private void enrichMessageId(ChatMessage message) {
-        Optional.ofNullable(message.getMessageId())
-                .or(() -> {
-                    String messageId = UUID.randomUUID().toString();
-                    message.setMessageId(messageId);
-                    return Optional.of(messageId);
-                });
+        boolean messageIdIsNull = message.getMessageId() == null;
+        setMessageIdIfNull(messageIdIsNull, message);
+    }
+
+    private void setMessageIdIfNull(boolean messageIdIsNull, ChatMessage message) {
+        if (messageIdIsNull) {
+            message.setMessageId(UUID.randomUUID().toString());
+        }
     }
 
     private void enrichTimestamp(ChatMessage message) {
-        Optional.ofNullable(message.getTimestamp())
-                .or(() -> {
-                    LocalDateTime timestamp = LocalDateTime.now();
-                    message.setTimestamp(timestamp);
-                    return Optional.of(timestamp);
-                });
+        boolean timestampIsNull = message.getTimestamp() == null;
+        setTimestampIfNull(timestampIsNull, message);
+    }
+
+    private void setTimestampIfNull(boolean timestampIsNull, ChatMessage message) {
+        if (timestampIsNull) {
+            message.setTimestamp(LocalDateTime.now());
+        }
     }
 
     private void enrichMessageType(ChatMessage message) {
-        Optional.ofNullable(message.getType())
-                .or(() -> {
-                    message.setType(MessageType.CHAT);
-                    return Optional.of(MessageType.CHAT);
-                });
+        boolean typeIsNull = message.getType() == null;
+        setTypeIfNull(typeIsNull, message);
+    }
+
+    private void setTypeIfNull(boolean typeIsNull, ChatMessage message) {
+        if (typeIsNull) {
+            message.setType(MessageType.CHAT);
+        }
     }
 
     private void validateIsGroupChat(ChatRoom room) {
         boolean isNotGroupChat = !room.isGroupChat();
-        validateGroupChatCondition(isNotGroupChat);
+        validateIfNotGroupChat(isNotGroupChat);
     }
 
-    private void validateGroupChatCondition(boolean isNotGroupChat) {
-        Optional.of(isNotGroupChat)
-                .filter(notGroupChat -> notGroupChat)
-                .ifPresent(notGroupChat -> {
-                    throw new IllegalArgumentException("1:1 채팅방에서는 강퇴할 수 없습니다.");
-                });
+    private void validateIfNotGroupChat(boolean isNotGroupChat) {
+        if (isNotGroupChat) {
+            throw new IllegalArgumentException("1:1 채팅방에서는 강퇴할 수 없습니다.");
+        }
     }
 
     private void validateManagerAuthority(ChatRoom room, Long requesterId) {
         Long managerId = room.getManagerId();
         boolean hasNoManager = managerId == null;
-        boolean isNotManager = hasNoManager || !managerId.equals(requesterId);
-        validateManagerAuthorityCondition(hasNoManager, isNotManager);
+        boolean isNotManager = !Objects.requireNonNull(managerId).equals(requesterId);
+        validateIfUnauthorizedManager(hasNoManager, isNotManager);
     }
 
-    private void validateManagerAuthorityCondition(boolean hasNoManager, boolean isNotManager) {
+    private void validateIfUnauthorizedManager(boolean hasNoManager, boolean isNotManager) {
         boolean isUnauthorized = hasNoManager || isNotManager;
-        Optional.of(isUnauthorized)
-                .filter(unauthorized -> unauthorized)
-                .ifPresent(unauthorized -> {
-                    throw new UnauthorizedManagerActionException();
-                });
+        if (isUnauthorized) {
+            throw new UnauthorizedManagerActionException();
+        }
     }
 
     private void validateUserExistsInRoom(ChatRoom room, Long userToKick) {
         boolean userNotInRoom = !room.getParticipants().contains(userToKick);
-        validateUserExistsInRoomCondition(userNotInRoom);
+        validateIfUserNotInRoom(userNotInRoom);
     }
 
-    private void validateUserExistsInRoomCondition(boolean userNotInRoom) {
-        Optional.of(userNotInRoom)
-                .filter(notInRoom -> notInRoom)
-                .ifPresent(notInRoom -> {
-                    throw new UserNotInRoomException();
-                });
+    private void validateIfUserNotInRoom(boolean userNotInRoom) {
+        if (userNotInRoom) {
+            throw new UserNotInRoomException();
+        }
     }
 
     private void validateNotKickingManager(ChatRoom room, Long userToKick) {
         Long managerId = room.getManagerId();
         boolean isKickingManager = Objects.equals(managerId, userToKick);
-        validateNotKickingManagerCondition(isKickingManager);
-    }
 
-    private void validateNotKickingManagerCondition(boolean isKickingManager) {
-        Optional.of(isKickingManager)
-                .filter(kickingManager -> kickingManager)
-                .ifPresent(kickingManager -> {
-                    throw new ManagerKickAttemptException();
-                });
+        if (isKickingManager) {
+            throw new ManagerKickAttemptException();
+        }
     }
 }
