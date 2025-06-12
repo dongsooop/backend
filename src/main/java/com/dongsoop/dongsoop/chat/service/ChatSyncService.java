@@ -21,7 +21,7 @@ public class ChatSyncService {
     private final ChatMessageJpaRepository chatMessageJpaRepository;
 
     public ChatRoom findRoomOrRestore(String roomId) {
-        ChatRoom room = findRoomInRedis(roomId);
+        ChatRoom room = redisChatRepository.findRoomById(roomId).orElse(null);
 
         return Optional.ofNullable(room)
                 .orElseGet(() -> restoreRoomFromDatabase(roomId));
@@ -33,46 +33,24 @@ public class ChatSyncService {
                 .orElse(null);
     }
 
-    private ChatRoom findRoomInRedis(String roomId) {
-        return redisChatRepository.findRoomById(roomId).orElse(null);
-    }
-
     private ChatRoom restoreRoomFromDatabase(String roomId) {
         ChatRoom restoredRoom = restoreGroupChatRoom(roomId);
-        validateRoomExists(restoredRoom);
-        return restoredRoom;
-    }
-
-    private void validateRoomExists(ChatRoom room) {
-        Optional.ofNullable(room)
+        
+        return Optional.ofNullable(restoredRoom)
                 .orElseThrow(ChatRoomNotFoundException::new);
     }
 
     private ChatRoom restoreRoomToRedis(ChatRoomEntity entity) {
-        ChatRoom room = convertEntityToRoom(entity);
-        saveRoomToRedis(room);
+        ChatRoom room = entity.toChatRoom();
+        redisChatRepository.saveRoom(room);
         restoreMessagesToRedis(entity.getRoomId());
+
         return room;
     }
 
-    private ChatRoom convertEntityToRoom(ChatRoomEntity entity) {
-        return entity.toChatRoom();
-    }
-
-    private void saveRoomToRedis(ChatRoom room) {
-        redisChatRepository.saveRoom(room);
-    }
-
     private void restoreMessagesToRedis(String roomId) {
-        List<ChatMessageEntity> messageEntities = loadMessageEntitiesFromDatabase(roomId);
-        saveMessagesToRedis(messageEntities);
-    }
+        List<ChatMessageEntity> messageEntities = chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(roomId);
 
-    private List<ChatMessageEntity> loadMessageEntitiesFromDatabase(String roomId) {
-        return chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(roomId);
-    }
-
-    private void saveMessagesToRedis(List<ChatMessageEntity> messageEntities) {
         messageEntities.stream()
                 .map(ChatMessageEntity::toChatMessage)
                 .forEach(redisChatRepository::saveMessage);
