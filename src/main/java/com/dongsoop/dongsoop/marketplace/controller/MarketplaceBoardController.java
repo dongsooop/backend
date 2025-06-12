@@ -4,16 +4,20 @@ import com.dongsoop.dongsoop.marketplace.dto.CreateMarketplaceBoardRequest;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoard;
 import com.dongsoop.dongsoop.marketplace.service.MarketplaceBoardService;
+import jakarta.validation.Valid;
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/marketplace-board")
@@ -30,9 +34,11 @@ public class MarketplaceBoardController {
         return ResponseEntity.ok(marketplaceBoardOverviewList);
     }
 
-    @PostMapping
-    public ResponseEntity<Void> createMarketplaceBoard(@RequestBody CreateMarketplaceBoardRequest request) {
-        MarketplaceBoard board = marketplaceBoardService.create(request);
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> createMarketplaceBoard(
+            @RequestPart("request") @Valid CreateMarketplaceBoardRequest request,
+            @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
+        MarketplaceBoard board = marketplaceBoardService.create(request, image);
 
         URI uri = URI.create("/marketplace-board/" + board.getId());
 
