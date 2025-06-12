@@ -72,7 +72,6 @@ public class RedisChatRepository implements ChatRepository {
 
         Long lastIndex = findMessageRankInSortedSet(zsetKey, lastMessageId);
 
-        // 메시지 ID를 찾을 수 없는 경우 명시적 처리
         validateMessageIdExists(lastIndex, lastMessageId, roomId);
 
         return retrieveMessagesAfterIndex(roomId, zsetKey, lastIndex);
