@@ -54,6 +54,22 @@ public class ChatController {
         return ResponseEntity.ok(messages);
     }
 
+    @GetMapping("/room/{roomId}/messages/since-join")
+    public ResponseEntity<List<ChatMessage>> getMessagesSinceJoin(@PathVariable("roomId") String roomId) {
+        Long currentUserId = getCurrentUserId();
+        List<ChatMessage> messages = chatService.getMessagesSinceJoin(roomId, currentUserId);
+        return ResponseEntity.ok(messages);
+    }
+
+    @GetMapping("/room/{roomId}/messages/after/{lastMessageId}")
+    public ResponseEntity<List<ChatMessage>> getMessagesAfter(
+            @PathVariable("roomId") String roomId,
+            @PathVariable("lastMessageId") String lastMessageId) {
+        Long currentUserId = getCurrentUserId();
+        List<ChatMessage> messages = chatService.getMessagesAfter(roomId, currentUserId, lastMessageId);
+        return ResponseEntity.ok(messages);
+    }
+
     @GetMapping("/room/{roomId}/participants")
     public ResponseEntity<Map<Long, String>> getRoomParticipants(@PathVariable("roomId") String roomId) {
         Long currentUserId = getCurrentUserId();
@@ -68,7 +84,7 @@ public class ChatController {
     @PostMapping("/room/group")
     public ResponseEntity<ChatRoom> createGroupRoom(@RequestBody CreateGroupRoomRequest request) {
         Long currentUserId = getCurrentUserId();
-        Set<Long> participantIds = request.getParticipants(); // 직접 사용
+        Set<Long> participantIds = request.getParticipants();
 
         ChatRoom groupRoom = chatService.createGroupChatRoom(currentUserId, participantIds, request.getTitle());
         return ResponseEntity.ok(groupRoom);
