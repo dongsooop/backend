@@ -72,6 +72,9 @@ public class RedisChatRepository implements ChatRepository {
 
         Long lastIndex = findMessageRankInSortedSet(zsetKey, lastMessageId);
 
+        // 메시지 ID를 찾을 수 없는 경우 명시적 처리
+        validateMessageIdExists(lastIndex, lastMessageId, roomId);
+
         return retrieveMessagesAfterIndex(roomId, zsetKey, lastIndex);
     }
 
@@ -133,6 +136,12 @@ public class RedisChatRepository implements ChatRepository {
         return redisTemplate.opsForZSet().rank(zsetKey, messageId);
     }
 
+    private void validateMessageIdExists(Long lastIndex, String lastMessageId, String roomId) {
+        Optional.ofNullable(lastIndex)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Message ID '" + lastMessageId + "' not found in room '" + roomId + "'"));
+    }
+
     private List<ChatMessage> retrieveMessagesAfterIndex(String roomId, String zsetKey, Long lastIndex) {
         return Optional.ofNullable(lastIndex)
                 .map(index -> retrieveMessagesFromRange(roomId, zsetKey, index + 1))
@@ -146,7 +155,7 @@ public class RedisChatRepository implements ChatRepository {
 
     private double convertToTimestamp(LocalDateTime dateTime) {
         return Optional.ofNullable(dateTime)
-                .map(dt -> dt.toEpochSecond(ZoneOffset.UTC))
+                .map(dt -> dt.toInstant(ZoneOffset.UTC).toEpochMilli())
                 .map(Long::doubleValue)
                 .orElse(0.0);
     }
