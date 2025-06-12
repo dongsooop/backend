@@ -3,12 +3,10 @@ package com.dongsoop.dongsoop.chat.service;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.MessageType;
-import com.dongsoop.dongsoop.chat.repository.ChatRepository;
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.exception.domain.websocket.UnauthorizedChatAccessException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -20,17 +18,14 @@ import java.util.UUID;
 @Slf4j
 @Service
 public class ChatService {
-    private final ChatRepository chatRepository;
     private final RedisChatRepository redisChatRepository;
     private final ChatValidator chatValidator;
     private final ChatSyncService chatSyncService;
 
-    public ChatService(@Qualifier("redisChatRepository") ChatRepository chatRepository,
-                       RedisChatRepository redisChatRepository,
+    public ChatService(RedisChatRepository redisChatRepository,
                        ChatValidator chatValidator,
                        ChatSyncService chatSyncService
     ) {
-        this.chatRepository = chatRepository;
         this.redisChatRepository = redisChatRepository;
         this.chatValidator = chatValidator;
         this.chatSyncService = chatSyncService;
@@ -48,7 +43,7 @@ public class ChatService {
         validateParticipantsNotEmpty(participants);
 
         ChatRoom room = ChatRoom.createWithParticipantsAndTitle(participants, creatorId, title);
-        return chatRepository.saveRoom(room);
+        return redisChatRepository.saveRoom(room);
     }
 
     public ChatRoom kickUserFromRoom(String roomId, Long requesterId, Long userToKickId) {
@@ -59,7 +54,7 @@ public class ChatService {
 
         processUserKick(room, roomId, userToKickId);
 
-        return chatRepository.saveRoom(room);
+        return redisChatRepository.saveRoom(room);
     }
 
     public void enterChatRoom(String roomId, Long userId) {
@@ -68,7 +63,7 @@ public class ChatService {
 
     public ChatMessage processMessage(ChatMessage message) {
         ChatMessage enrichedMessage = chatValidator.validateAndEnrichMessage(message);
-        chatRepository.saveMessage(enrichedMessage);
+        redisChatRepository.saveMessage(enrichedMessage);
         updateRoomActivity(enrichedMessage.getRoomId());
         return enrichedMessage;
     }
@@ -80,7 +75,7 @@ public class ChatService {
 
     public List<ChatMessage> getChatHistory(String roomId, Long userId) {
         chatValidator.validateUserForRoom(roomId, userId);
-        return chatRepository.findMessagesByRoomId(roomId);
+        return redisChatRepository.findMessagesByRoomId(roomId);
     }
 
     public List<ChatMessage> getMessagesSinceJoin(String roomId, Long userId) {
@@ -102,7 +97,7 @@ public class ChatService {
     }
 
     public List<ChatRoom> getRoomsForUserId(Long userId) {
-        List<ChatRoom> allRooms = chatRepository.findRoomsByUserId(userId);
+        List<ChatRoom> allRooms = redisChatRepository.findRoomsByUserId(userId);
         return filterNotKickedRooms(allRooms, userId);
     }
 
@@ -110,7 +105,7 @@ public class ChatService {
         ChatRoom room = getChatRoomById(roomId);
 
         processUserLeave(room, roomId, userId);
-        chatRepository.saveRoom(room);
+        redisChatRepository.saveRoom(room);
 
         deleteRoomIfEmpty(room);
     }
@@ -125,7 +120,7 @@ public class ChatService {
     }
 
     private ChatRoom findExistingRoomOrCreate(Long userId, Long targetUserId) {
-        ChatRoom existingRoom = chatRepository.findRoomByParticipants(userId, targetUserId).orElse(null);
+        ChatRoom existingRoom = redisChatRepository.findRoomByParticipants(userId, targetUserId).orElse(null);
 
         return Optional.ofNullable(existingRoom)
                 .orElseGet(() -> createNewOneToOneRoom(userId, targetUserId));
@@ -133,7 +128,7 @@ public class ChatService {
 
     private ChatRoom createNewOneToOneRoom(Long userId, Long targetUserId) {
         ChatRoom room = ChatRoom.create(userId, targetUserId);
-        return chatRepository.saveRoom(room);
+        return redisChatRepository.saveRoom(room);
     }
 
     private void validateParticipantsNotEmpty(Set<Long> participants) {
@@ -178,7 +173,7 @@ public class ChatService {
 
     private ChatMessage createAndSaveSystemMessage(String roomId, Long userId, MessageType type) {
         ChatMessage message = buildSystemMessage(roomId, userId, type);
-        chatRepository.saveMessage(message);
+        redisChatRepository.saveMessage(message);
         return message;
     }
 
@@ -214,7 +209,7 @@ public class ChatService {
     private void updateRoomActivity(String roomId) {
         ChatRoom room = getChatRoomById(roomId);
         room.updateActivity();
-        chatRepository.saveRoom(room);
+        redisChatRepository.saveRoom(room);
     }
 
     private void deleteRoom(String roomId) {
