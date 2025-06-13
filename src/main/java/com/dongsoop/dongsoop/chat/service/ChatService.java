@@ -1,110 +1,418 @@
 package com.dongsoop.dongsoop.chat.service;
 
-import com.dongsoop.dongsoop.chat.entity.ChatMessage;
-import com.dongsoop.dongsoop.chat.entity.ChatRoom;
-import com.dongsoop.dongsoop.chat.entity.MessageType;
-import com.dongsoop.dongsoop.chat.repository.ChatRepository;
+import com.dongsoop.dongsoop.chat.dto.ReadStatusUpdateRequest;
+import com.dongsoop.dongsoop.chat.entity.*;
+import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
-import com.dongsoop.dongsoop.exception.domain.websocket.ChatRoomNotFoundException;
 import com.dongsoop.dongsoop.exception.domain.websocket.UnauthorizedChatAccessException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
 @Slf4j
 @Service
 public class ChatService {
-    private final ChatRepository chatRepository;
+    private final RedisChatRepository redisChatRepository;
     private final ChatValidator chatValidator;
     private final ChatSyncService chatSyncService;
+    private final ReadStatusService readStatusService;
 
-    public ChatService(@Qualifier("redisChatRepository") ChatRepository chatRepository,
+    public ChatService(RedisChatRepository redisChatRepository,
                        ChatValidator chatValidator,
-                       ChatSyncService chatSyncService
-    ) {
-        this.chatRepository = chatRepository;
+                       ChatSyncService chatSyncService,
+                       ReadStatusService readStatusService) {
+        this.redisChatRepository = redisChatRepository;
         this.chatValidator = chatValidator;
         this.chatSyncService = chatSyncService;
+        this.readStatusService = readStatusService;
+    }
+
+    public ChatRoomInitResponse initializeChatRoomForFirstTime(String roomId, Long userId) {
+        chatValidator.validateUserForRoom(roomId, userId);
+
+        ChatRoom room = getChatRoomById(roomId);
+        LocalDateTime userJoinTime = determineUserJoinTime(room, userId);
+        List<ChatMessage> afterJoinMessages = loadMessagesAfterJoinTime(roomId, userJoinTime);
+
+        readStatusService.initializeUserReadStatus(userId, roomId, userJoinTime);
+
+        return buildChatRoomInitResponse(room, afterJoinMessages, userJoinTime);
+    }
+
+    public IncrementalSyncResponse syncNewMessagesOnly(String roomId, Long userId, String lastMessageId) {
+        chatValidator.validateUserForRoom(roomId, userId);
+
+        List<ChatMessage> newMessages = loadNewMessages(roomId, lastMessageId);
+        int unreadCount = countUnreadMessages(newMessages, userId);
+
+        return IncrementalSyncResponse.create(roomId, newMessages, unreadCount);
+    }
+
+    public void updateReadStatus(String roomId, Long userId, ReadStatusUpdateRequest request) {
+        chatValidator.validateUserForRoom(roomId, userId);
+
+        processReadStatusUpdate(userId, roomId, request);
+    }
+
+    public int getUnreadMessageCount(String roomId, Long userId) {
+        chatValidator.validateUserForRoom(roomId, userId);
+
+        LocalDateTime lastReadTime = readStatusService.getLastReadTimestamp(userId, roomId);
+        return calculateUnreadCount(roomId, userId, lastReadTime);
     }
 
     public ChatRoom createOneToOneChatRoom(Long userId, Long targetUserId) {
-        chatValidator.validateSelfChat(userId, targetUserId);
-        validateNegativeUserIds(userId, targetUserId);
-
+        validateOneToOneChatCreation(userId, targetUserId);
         return findExistingRoomOrCreate(userId, targetUserId);
     }
 
     public ChatRoom createGroupChatRoom(Long creatorId, Set<Long> participants, String title) {
-        validateMinimumParticipants(participants);
+        validateGroupChatCreation(participants);
 
-        Set<Long> allParticipants = buildParticipantSet(participants, creatorId);
-        ChatRoom room = ChatRoom.createWithParticipantsAndTitle(allParticipants, creatorId, title);
-        return chatRepository.saveRoom(room);
-    }
-
-    public ChatRoom kickUserFromRoom(String roomId, Long requesterId, Long userToKick) {
-        ChatRoom room = getChatRoomById(roomId);
-        chatValidator.validateManagerPermission(room, requesterId);
-        chatValidator.validateKickableUser(room, userToKick);
-
-        executeUserKick(room, userToKick);
-        createKickNotification(roomId, requesterId, userToKick);
-
-        return chatRepository.saveRoom(room);
+        ChatRoom room = createGroupRoom(participants, creatorId, title);
+        return saveRoom(room);
     }
 
     public void enterChatRoom(String roomId, Long userId) {
         chatValidator.validateUserForRoom(roomId, userId);
     }
 
+    public void leaveChatRoom(String roomId, Long userId) {
+        ChatRoom room = getChatRoomById(roomId);
+
+        processUserLeaveWithMessage(room, roomId, userId);
+        saveRoom(room);
+        deleteRoomIfEmpty(room);
+    }
+
     public ChatMessage processMessage(ChatMessage message) {
         ChatMessage enrichedMessage = chatValidator.validateAndEnrichMessage(message);
-        chatRepository.saveMessage(enrichedMessage);
+        saveMessage(enrichedMessage);
+        updateRoomActivity(enrichedMessage.getRoomId());
+
         return enrichedMessage;
     }
 
-    public ChatMessage createEnterMessage(String roomId, Long userId) {
-        chatValidator.validateUserForRoom(roomId, userId);
-        return buildAndSaveEnterMessage(roomId, userId);
+    public ChatMessage processWebSocketMessage(ChatMessage message, Long userId, String roomId) {
+        ChatMessage enrichedMessage = enrichMessageWithUserData(message, userId, roomId);
+        return processMessage(enrichedMessage);
     }
 
-    public List<ChatMessage> getChatHistory(String roomId, Long userId) {
+    public ChatMessage processWebSocketEnter(String roomId, Long userId) {
+        return checkFirstTimeEntryAndCreateEnterMessage(roomId, userId);
+    }
+
+    public List<ChatMessage> getChatHistoryForUser(String roomId, Long userId) {
         chatValidator.validateUserForRoom(roomId, userId);
-        return retrieveMessagesFromCacheOrDatabase(roomId);
+
+        ChatRoom room = getChatRoomById(roomId);
+        LocalDateTime userJoinTime = determineUserJoinTime(room, userId);
+
+        return loadMessagesAfterJoinTime(roomId, userJoinTime);
+    }
+
+    public List<ChatMessage> getMessagesAfter(String roomId, Long userId, String messageId) {
+        chatValidator.validateUserForRoom(roomId, userId);
+        return redisChatRepository.findMessagesByRoomIdAfterId(roomId, messageId);
+    }
+
+    public void markAllMessagesAsRead(String roomId, Long userId) {
+        chatValidator.validateUserForRoom(roomId, userId);
+        updateReadTimestamp(userId, roomId, LocalDateTime.now());
+    }
+
+    public List<ChatMessage> syncOfflineMessages(String roomId, Long userId, List<ChatMessage> offlineMessages) {
+        chatValidator.validateUserForRoom(roomId, userId);
+        return processOfflineMessages(roomId, userId, offlineMessages);
     }
 
     public ChatRoom getChatRoomById(String roomId) {
-        return findRoomByIdOrRestore(roomId);
+        return chatSyncService.findRoomOrRestore(roomId);
     }
 
-    public List<ChatMessage> syncMessages(String roomId, Long userId, List<ChatMessage> clientMessages) {
-        chatValidator.validateUserForRoom(roomId, userId);
+    public ChatRoom kickUserFromRoom(String roomId, Long managerId, Long userToKick) {
+        ChatRoom room = getChatRoomById(roomId);
 
-        List<ChatMessage> serverMessages = chatRepository.findMessagesByRoomId(roomId);
-        List<ChatMessage> newMessages = chatValidator.filterDuplicateMessages(serverMessages, clientMessages);
+        chatValidator.validateManagerPermission(room, managerId);
+        chatValidator.validateKickableUser(room, userToKick);
 
-        processNewMessages(newMessages);
-        return chatRepository.findMessagesByRoomId(roomId);
-    }
+        processUserKickWithMessage(room, roomId, userToKick);
 
-    public void recreateRoomIfNeeded(String roomId, Long userId, List<ChatMessage> localMessages) {
-        attemptRoomRecreation(roomId, userId, localMessages);
+        return saveRoom(room);
     }
 
     public List<ChatRoom> getRoomsForUserId(Long userId) {
-        List<ChatRoom> allRooms = chatRepository.findRoomsByUserId(userId);
-        return filterNonKickedRooms(allRooms, userId);
+        List<ChatRoom> allRooms = redisChatRepository.findRoomsByUserId(userId);
+        return filterNotKickedRooms(allRooms, userId);
     }
 
-    private void validateNegativeUserIds(Long userId, Long targetUserId) {
+    private ChatRoomInitResponse buildChatRoomInitResponse(ChatRoom room, List<ChatMessage> messages, LocalDateTime userJoinTime) {
+        return ChatRoomInitResponse.builder()
+                .room(room)
+                .messages(messages)
+                .userJoinTime(userJoinTime)
+                .totalMessageCount(messages.size())
+                .build();
+    }
+
+    private List<ChatMessage> loadMessagesAfterJoinTime(String roomId, LocalDateTime userJoinTime) {
+        return redisChatRepository.findMessagesByRoomIdAfterTime(roomId, userJoinTime);
+    }
+
+    private List<ChatMessage> loadNewMessages(String roomId, String lastMessageId) {
+        if (lastMessageId == null) {
+            return redisChatRepository.findMessagesByRoomId(roomId);
+        }
+        return redisChatRepository.findMessagesByRoomIdAfterId(roomId, lastMessageId);
+    }
+
+    private int countUnreadMessages(List<ChatMessage> messages, Long userId) {
+        return ChatMessage.countUnreadMessages(messages, userId);
+    }
+
+    private void processReadStatusUpdate(Long userId, String roomId, ReadStatusUpdateRequest request) {
+        processReadTimeUpdate(userId, roomId, request.getReadUntilTime());
+        processMessageIdReadUpdate(roomId, userId, request.getLastReadMessageId());
+        processDefaultReadStatus(request, roomId, userId);
+    }
+
+    private void processReadTimeUpdate(Long userId, String roomId, LocalDateTime readUntilTime) {
+        if (readUntilTime != null) {
+            updateReadTimestamp(userId, roomId, readUntilTime);
+        }
+    }
+
+    private void processMessageIdReadUpdate(String roomId, Long userId, String lastReadMessageId) {
+        if (lastReadMessageId != null) {
+            updateReadStatusByMessageId(roomId, userId, lastReadMessageId);
+        }
+    }
+
+    private void processDefaultReadStatus(ReadStatusUpdateRequest request, String roomId, Long userId) {
+        if (hasNoReadStatusRequest(request)) {
+            updateReadTimestamp(userId, roomId, LocalDateTime.now());
+        }
+    }
+
+    private boolean hasNoReadStatusRequest(ReadStatusUpdateRequest request) {
+        return request.getReadUntilTime() == null && request.getLastReadMessageId() == null;
+    }
+
+    private void updateReadTimestamp(Long userId, String roomId, LocalDateTime timestamp) {
+        readStatusService.updateLastReadTimestamp(userId, roomId, timestamp);
+    }
+
+    private void updateReadStatusByMessageId(String roomId, Long userId, String messageId) {
+        List<ChatMessage> messages = redisChatRepository.findMessagesByRoomId(roomId);
+
+        ChatMessage targetMessage = findMessageById(messages, messageId);
+        if (targetMessage != null) {
+            updateReadTimestamp(userId, roomId, targetMessage.getTimestamp());
+        }
+    }
+
+    private ChatMessage findMessageById(List<ChatMessage> messages, String messageId) {
+        return messages.stream()
+                .filter(msg -> msg.getMessageId().equals(messageId))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private int calculateUnreadCount(String roomId, Long userId, LocalDateTime lastReadTime) {
+        if (lastReadTime == null) {
+            return 0;
+        }
+
+        List<ChatMessage> unreadMessages = redisChatRepository.findMessagesByRoomIdAfterTime(roomId, lastReadTime);
+        return ChatMessage.countUnreadMessages(unreadMessages, userId);
+    }
+
+    private void validateOneToOneChatCreation(Long userId, Long targetUserId) {
+        chatValidator.validateSelfChat(userId, targetUserId);
         validatePositiveUserId(userId);
         validatePositiveUserId(targetUserId);
+    }
+
+    private void validateGroupChatCreation(Set<Long> participants) {
+        if (participants.isEmpty()) {
+            throw new IllegalArgumentException("그룹 채팅 참여자 수가 올바르지 않습니다.");
+        }
+    }
+
+    private ChatRoom findExistingRoomOrCreate(Long userId, Long targetUserId) {
+        ChatRoom existingRoom = redisChatRepository.findRoomByParticipants(userId, targetUserId).orElse(null);
+
+        if (existingRoom != null) {
+            return existingRoom;
+        }
+        return createNewOneToOneRoom(userId, targetUserId);
+    }
+
+    private ChatRoom createNewOneToOneRoom(Long userId, Long targetUserId) {
+        ChatRoom room = ChatRoom.create(userId, targetUserId);
+        return saveRoom(room);
+    }
+
+    private ChatRoom createGroupRoom(Set<Long> participants, Long creatorId, String title) {
+        return ChatRoom.createWithParticipantsAndTitle(participants, creatorId, title);
+    }
+
+    private ChatRoom saveRoom(ChatRoom room) {
+        return redisChatRepository.saveRoom(room);
+    }
+
+    private LocalDateTime determineUserJoinTime(ChatRoom room, Long userId) {
+        LocalDateTime existingJoinTime = room.getJoinTime(userId);
+
+        if (existingJoinTime != null) {
+            return existingJoinTime;
+        }
+        return addNewParticipantAndGetJoinTime(room, userId);
+    }
+
+    private LocalDateTime addNewParticipantAndGetJoinTime(ChatRoom room, Long userId) {
+        LocalDateTime joinTime = LocalDateTime.now();
+        room.addNewParticipant(userId);
+        saveRoom(room);
+        return joinTime;
+    }
+
+    private ChatMessage checkFirstTimeEntryAndCreateEnterMessage(String roomId, Long userId) {
+        chatValidator.validateUserForRoom(roomId, userId);
+
+        if (isFirstTimeEntry(roomId, userId)) {
+            return createAndSaveSystemMessage(roomId, userId, MessageType.ENTER);
+        }
+        return null;
+    }
+
+    private boolean isFirstTimeEntry(String roomId, Long userId) {
+        ChatRoom room = getChatRoomById(roomId);
+        LocalDateTime userJoinTime = room.getJoinTime(userId);
+
+        if (userJoinTime == null) {
+            return true;
+        }
+        return !hasUserEnteredBefore(roomId, userId, userJoinTime);
+    }
+
+    private boolean hasUserEnteredBefore(String roomId, Long userId, LocalDateTime joinTime) {
+        List<ChatMessage> enterMessages = redisChatRepository.findMessagesByRoomIdAfterTime(roomId, joinTime)
+                .stream()
+                .filter(msg -> msg.getType() == MessageType.ENTER)
+                .filter(msg -> msg.getSenderId().equals(userId))
+                .toList();
+
+        return !enterMessages.isEmpty();
+    }
+
+    private void processUserLeaveWithMessage(ChatRoom room, String roomId, Long userId) {
+        room.kickUser(userId);
+        createAndSaveSystemMessage(roomId, userId, MessageType.LEAVE);
+    }
+
+    private void processUserKickWithMessage(ChatRoom room, String roomId, Long userToKick) {
+        room.kickUser(userToKick);
+        createAndSaveSystemMessage(roomId, userToKick, MessageType.LEAVE);
+    }
+
+    private List<ChatRoom> filterNotKickedRooms(List<ChatRoom> allRooms, Long userId) {
+        return allRooms.stream()
+                .filter(room -> !room.isKicked(userId))
+                .toList();
+    }
+
+    private void deleteRoomIfEmpty(ChatRoom room) {
+        if (room.getParticipants().isEmpty()) {
+            deleteRoom(room.getRoomId());
+        }
+    }
+
+    private void deleteRoom(String roomId) {
+        redisChatRepository.deleteRoom(roomId);
+    }
+
+    private void saveMessage(ChatMessage message) {
+        redisChatRepository.saveMessage(message);
+    }
+
+    private ChatMessage createAndSaveSystemMessage(String roomId, Long userId, MessageType type) {
+        ChatMessage message = buildSystemMessage(roomId, userId, type);
+        saveMessage(message);
+        return message;
+    }
+
+    private ChatMessage buildSystemMessage(String roomId, Long userId, MessageType type) {
+        return ChatMessage.builder()
+                .messageId(generateUniqueMessageId())
+                .roomId(roomId)
+                .senderId(userId)
+                .content(createSystemMessageContent(userId))
+                .timestamp(getCurrentTimestamp())
+                .type(type)
+                .build();
+    }
+
+    private ChatMessage enrichMessageWithUserData(ChatMessage message, Long userId, String roomId) {
+        message.setSenderId(userId);
+        message.setRoomId(roomId);
+        return message;
+    }
+
+    private List<ChatMessage> processOfflineMessages(String roomId, Long userId, List<ChatMessage> offlineMessages) {
+        return offlineMessages.stream()
+                .map(message -> processOfflineMessage(message, userId, roomId))
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private ChatMessage processOfflineMessage(ChatMessage message, Long userId, String roomId) {
+        if (message == null) {
+            return null;
+        }
+
+        ChatMessage enrichedMessage = enrichOfflineMessage(message, userId, roomId);
+        return validateAndSaveOfflineMessage(enrichedMessage);
+    }
+
+    private ChatMessage enrichOfflineMessage(ChatMessage message, Long userId, String roomId) {
+        message.setSenderId(userId);
+        message.setRoomId(roomId);
+
+        enrichOfflineMessageId(message);
+        enrichOfflineMessageTimestamp(message);
+        enrichOfflineMessageType(message);
+
+        return message;
+    }
+
+    private void enrichOfflineMessageId(ChatMessage message) {
+        if (message.getMessageId() == null || message.getMessageId().isEmpty()) {
+            message.setMessageId(generateUniqueMessageId());
+        }
+    }
+
+    private void enrichOfflineMessageTimestamp(ChatMessage message) {
+        if (message.getTimestamp() == null) {
+            message.setTimestamp(getCurrentTimestamp());
+        }
+    }
+
+    private void enrichOfflineMessageType(ChatMessage message) {
+        if (message.getType() == null) {
+            message.setType(MessageType.CHAT);
+        }
+    }
+
+    private ChatMessage validateAndSaveOfflineMessage(ChatMessage message) {
+        saveMessage(message);
+        updateRoomActivity(message.getRoomId());
+        return message;
     }
 
     private void validatePositiveUserId(Long userId) {
@@ -113,205 +421,21 @@ public class ChatService {
         }
     }
 
-    private ChatRoom findExistingRoomOrCreate(Long userId, Long targetUserId) {
-        ChatRoom existingRoom = chatRepository.findRoomByParticipants(userId, targetUserId).orElse(null);
-        return getExistingOrNewRoom(existingRoom, userId, targetUserId);
-    }
-
-    private ChatRoom getExistingOrNewRoom(ChatRoom existingRoom, Long userId, Long targetUserId) {
-        if (existingRoom != null) {
-            return existingRoom;
-        }
-        return createNewOneToOneRoom(userId, targetUserId);
-    }
-
-    private ChatRoom createNewOneToOneRoom(Long user1, Long user2) {
-        ChatRoom room = ChatRoom.create(user1, user2);
-        return chatRepository.saveRoom(room);
-    }
-
-    private void validateMinimumParticipants(Set<Long> participants) {
-        if (participants.size() < 1) {
-            throw new IllegalArgumentException("그룹 채팅 참여자 수가 올바르지 않습니다.");
-        }
-    }
-
-    private Set<Long> buildParticipantSet(Set<Long> participants, Long creatorId) {
-        Set<Long> allParticipants = new HashSet<>(participants);
-        allParticipants.add(creatorId);
-        return allParticipants;
-    }
-
-    private void executeUserKick(ChatRoom room, Long userToKick) {
-        room.kickUser(userToKick);
-    }
-
-    private void createKickNotification(String roomId, Long managerId, Long kickedUserId) {
-        String content = "사용자가 채팅방에서 추방되었습니다.";
-        ChatMessage notification = buildSystemMessage(roomId, managerId, "시스템", content, MessageType.LEAVE);
-        chatRepository.saveMessage(notification);
-    }
-
-    private ChatMessage buildAndSaveEnterMessage(String roomId, Long userId) {
-        String content = "사용자가 입장하셨습니다.";
-        ChatMessage enterMessage = buildSystemMessage(roomId, userId, "시스템", content, MessageType.ENTER);
-        chatRepository.saveMessage(enterMessage);
-        return enterMessage;
-    }
-
-    private ChatMessage buildSystemMessage(String roomId, Long senderId, String senderNickName, String content, MessageType type) {
-        return ChatMessage.builder()
-                .messageId(UUID.randomUUID().toString())
-                .roomId(roomId)
-                .senderId(senderId)
-                .senderNickName(senderNickName)
-                .content(content)
-                .timestamp(LocalDateTime.now())
-                .type(type)
-                .build();
-    }
-
-    private List<ChatMessage> retrieveMessagesFromCacheOrDatabase(String roomId) {
-        List<ChatMessage> cachedMessages = chatRepository.findMessagesByRoomId(roomId);
-        return getCachedOrRestoredMessages(cachedMessages, roomId);
-    }
-
-    private List<ChatMessage> getCachedOrRestoredMessages(List<ChatMessage> cachedMessages, String roomId) {
-        if (!cachedMessages.isEmpty()) {
-            return cachedMessages;
-        }
-        return chatSyncService.restoreMessagesFromDatabase(roomId);
-    }
-
-    private ChatRoom findRoomByIdOrRestore(String roomId) {
-        ChatRoom room = chatRepository.findRoomById(roomId).orElse(null);
-        return getRoomOrRestore(room, roomId);
-    }
-
-    private ChatRoom getRoomOrRestore(ChatRoom room, String roomId) {
-        if (room != null) {
-            return room;
-        }
-        return restoreRoomFromDatabase(roomId);
-    }
-
-    private ChatRoom restoreRoomFromDatabase(String roomId) {
-        ChatRoom restoredRoom = chatSyncService.restoreGroupChatRoom(roomId);
-        if (restoredRoom == null) {
-            throw new ChatRoomNotFoundException();
-        }
-        return restoredRoom;
-    }
-
-    private void processNewMessages(List<ChatMessage> newMessages) {
-        newMessages.forEach(this::processMessage);
-    }
-
-    private void attemptRoomRecreation(String roomId, Long userId, List<ChatMessage> localMessages) {
-        boolean roomRecreated = tryUpdateExistingRoom(roomId, userId, localMessages);
-        if (!roomRecreated) {
-            recreateFromMessages(roomId, userId, localMessages);
-        }
-    }
-
-    private boolean tryUpdateExistingRoom(String roomId, Long userId, List<ChatMessage> localMessages) {
-        try {
-            updateExistingRoomParticipants(roomId, userId);
-            syncMessages(roomId, userId, localMessages);
-            return true;
-        } catch (ChatRoomNotFoundException e) {
-            return false;
-        }
-    }
-
-    private void updateExistingRoomParticipants(String roomId, Long userId) {
+    private void updateRoomActivity(String roomId) {
         ChatRoom room = getChatRoomById(roomId);
-        boolean shouldAddUser = !room.getParticipants().contains(userId);
-        if (shouldAddUser) {
-            room.getParticipants().add(userId);
-            chatRepository.saveRoom(room);
-        }
+        room.updateActivity();
+        saveRoom(room);
     }
 
-    private void recreateFromMessages(String roomId, Long userId, List<ChatMessage> clientMessages) {
-        validateNonEmptyMessages(clientMessages);
-
-        Set<Long> participants = extractParticipantsFromMessages(userId, clientMessages);
-        createRoomWithSpecificId(roomId, participants);
-        saveEnrichedMessages(clientMessages);
+    private String generateUniqueMessageId() {
+        return UUID.randomUUID().toString();
     }
 
-    private void validateNonEmptyMessages(List<ChatMessage> messages) {
-        if (messages.isEmpty()) {
-            throw new IllegalArgumentException("메시지가 없어 채팅방을 재생성할 수 없습니다.");
-        }
+    private String createSystemMessageContent(Long userId) {
+        return userId.toString();
     }
 
-    private Set<Long> extractParticipantsFromMessages(Long userId, List<ChatMessage> messages) {
-        Set<Long> participants = new HashSet<>();
-        participants.add(userId);
-
-        messages.stream()
-                .map(ChatMessage::getSenderId)
-                .forEach(participants::add);
-
-        return participants;
-    }
-
-    private void createRoomWithSpecificId(String roomId, Set<Long> participants) {
-        ChatRoom newRoom = ChatRoom.builder()
-                .roomId(roomId)
-                .participants(participants)
-                .createdAt(LocalDateTime.now())
-                .lastActivityAt(LocalDateTime.now())
-                .build();
-
-        chatRepository.saveRoom(newRoom);
-    }
-
-    private void saveEnrichedMessages(List<ChatMessage> clientMessages) {
-        clientMessages.stream()
-                .peek(this::enrichMessageFields)
-                .forEach(chatRepository::saveMessage);
-    }
-
-    private void enrichMessageFields(ChatMessage message) {
-        setMessageIdIfMissing(message);
-        setTimestampIfMissing(message);
-        setTypeIfMissing(message);
-        setSenderNickNameIfMissing(message);
-    }
-
-    private void setMessageIdIfMissing(ChatMessage message) {
-        if (message.getMessageId() == null) {
-            String newId = UUID.randomUUID().toString();
-            message.setMessageId(newId);
-        }
-    }
-
-    private void setTimestampIfMissing(ChatMessage message) {
-        if (message.getTimestamp() == null) {
-            LocalDateTime now = LocalDateTime.now();
-            message.setTimestamp(now);
-        }
-    }
-
-    private void setTypeIfMissing(ChatMessage message) {
-        if (message.getType() == null) {
-            message.setType(MessageType.CHAT);
-        }
-    }
-
-    private void setSenderNickNameIfMissing(ChatMessage message) {
-        if (message.getSenderNickName() == null) {
-            String defaultName = "사용자" + message.getSenderId();
-            message.setSenderNickName(defaultName);
-        }
-    }
-
-    private List<ChatRoom> filterNonKickedRooms(List<ChatRoom> rooms, Long userId) {
-        return rooms.stream()
-                .filter(room -> !room.isKicked(userId))
-                .toList();
+    private LocalDateTime getCurrentTimestamp() {
+        return LocalDateTime.now();
     }
 }

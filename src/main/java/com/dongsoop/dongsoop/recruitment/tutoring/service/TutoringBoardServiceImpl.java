@@ -3,10 +3,11 @@ package com.dongsoop.dongsoop.recruitment.tutoring.service;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
-import com.dongsoop.dongsoop.exception.domain.department.DepartmentNotFoundException;
+import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
 import com.dongsoop.dongsoop.exception.domain.tutoring.TutoringBoardNotFound;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.CreateTutoringBoardRequest;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardDetails;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardOverview;
@@ -14,7 +15,6 @@ import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringBoard;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepository;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepositoryCustom;
 import java.util.List;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -31,12 +31,14 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
 
     private final MemberService memberService;
 
-    public List<TutoringBoardOverview> getBoardByPage(DepartmentType departmentType, Pageable pageable) {
-        Optional<Department> optionalRecruitmentDepartment = departmentRepository.findById(departmentType);
-        Department recruitmentDepartment = optionalRecruitmentDepartment.orElseThrow(
-                () -> new DepartmentNotFoundException(departmentType));
+    public List<TutoringBoardOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType,
+                                                                       Pageable pageable) {
+        return tutoringBoardRepositoryCustom.findTutoringBoardOverviewsByPageAndDepartmentType(departmentType,
+                pageable);
+    }
 
-        return tutoringBoardRepositoryCustom.findTutoringBoardOverviewsByPage(recruitmentDepartment, pageable);
+    public List<TutoringBoardOverview> getBoardByPage(Pageable pageable) {
+        return tutoringBoardRepositoryCustom.findTutoringBoardOverviewsByPage(pageable);
     }
 
     public TutoringBoard create(CreateTutoringBoardRequest request) {
@@ -44,8 +46,22 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
         return tutoringBoardRepository.save(tutoringBoard);
     }
 
-    public TutoringBoardDetails getBoardDetailsById(Long tutoringBoardId) {
-        return tutoringBoardRepositoryCustom.findInformationById(tutoringBoardId)
+    public TutoringBoardDetails getBoardDetailsById(Long boardId) {
+        try {
+            Member member = memberService.getMemberReferenceByContext();
+            boolean isOwner = tutoringBoardRepository.existsByIdAndAuthor(boardId, member);
+            if (isOwner) {
+                return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
+            }
+
+            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER);
+        } catch (MemberNotFoundException exception) {
+            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.GUEST);
+        }
+    }
+
+    private TutoringBoardDetails getBoardDetailsWithViewType(Long tutoringBoardId, RecruitmentViewType viewType) {
+        return tutoringBoardRepositoryCustom.findBoardDetailsByIdAndViewType(tutoringBoardId, viewType)
                 .orElseThrow(() -> new TutoringBoardNotFound(tutoringBoardId));
     }
 

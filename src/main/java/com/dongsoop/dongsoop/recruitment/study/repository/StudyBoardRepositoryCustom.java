@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.recruitment.study.repository;
 
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardDetails;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardOverview;
 import java.util.List;
@@ -9,7 +10,10 @@ import org.springframework.data.domain.Pageable;
 
 public interface StudyBoardRepositoryCustom {
 
-    List<StudyBoardOverview> findStudyBoardOverviewsByPage(DepartmentType departmentType, Pageable pageable);
+    List<StudyBoardOverview> findStudyBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
+                                                                            Pageable pageable);
 
-    Optional<StudyBoardDetails> findStudyBoardDetails(Long studyBoardId);
+    List<StudyBoardOverview> findStudyBoardOverviewsByPage(Pageable pageable);
+
+    Optional<StudyBoardDetails> findBoardDetailsByIdAndViewType(Long studyBoardId, RecruitmentViewType viewType);
 }

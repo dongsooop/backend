@@ -23,9 +23,9 @@ public class ChatSocketController {
             @Payload ChatMessage message,
             @DestinationVariable("roomId") String roomId,
             Principal principal) {
-        message.setSenderId(Long.parseLong(principal.getName()));
-        message.setRoomId(roomId);
-        return chatService.processMessage(message);
+
+        Long userId = extractUserIdFromPrincipal(principal);
+        return chatService.processWebSocketMessage(message, userId, roomId);
     }
 
     @MessageMapping("/enter/{roomId}")
@@ -33,6 +33,12 @@ public class ChatSocketController {
     public ChatMessage enterChatRoom(
             @DestinationVariable("roomId") String roomId,
             Principal principal) {
-        return chatService.createEnterMessage(roomId, Long.parseLong(principal.getName()));
+
+        Long userId = extractUserIdFromPrincipal(principal);
+        return chatService.processWebSocketEnter(roomId, userId);
+    }
+
+    private Long extractUserIdFromPrincipal(Principal principal) {
+        return Long.parseLong(principal.getName());
     }
 }

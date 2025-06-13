@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.recruitment.tutoring.dto;
 
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -16,12 +17,13 @@ public record TutoringBoardDetails(
         String author,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
-        Integer volunteer
+        Integer volunteer,
+        RecruitmentViewType viewType
 ) {
     public TutoringBoardDetails(Long id, String title, String content, String tags, LocalDateTime startAt,
                                 LocalDateTime endAt, DepartmentType departmentType, String author,
                                 LocalDateTime createdAt,
-                                LocalDateTime updatedAt, Integer volunteer) {
+                                LocalDateTime updatedAt, Integer volunteer, RecruitmentViewType viewType) {
         this(
                 id,
                 title,
@@ -33,7 +35,8 @@ public record TutoringBoardDetails(
                 author,
                 createdAt,
                 updatedAt,
-                volunteer
+                volunteer,
+                viewType
         );
     }
 }

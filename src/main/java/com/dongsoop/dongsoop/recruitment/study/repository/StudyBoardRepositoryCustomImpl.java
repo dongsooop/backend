@@ -2,11 +2,13 @@ package com.dongsoop.dongsoop.recruitment.study.repository;
 
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardDetails;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardOverview;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyApply;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyBoard;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyBoardDepartment;
+import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
@@ -32,30 +34,25 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
 
     private final PageableUtil pageableUtil;
 
-    public List<StudyBoardOverview> findStudyBoardOverviewsByPage(DepartmentType departmentType, Pageable pageable) {
+    public List<StudyBoardOverview> findStudyBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
+                                                                                   Pageable pageable) {
         return queryFactory
-                .select(Projections.constructor(StudyBoardOverview.class,
-                        studyBoard.id,
-                        studyApply.id.member.countDistinct().intValue(),
-                        studyBoard.startAt,
-                        studyBoard.endAt,
-                        studyBoard.title,
-                        studyBoard.content,
-                        studyBoard.tags))
+                .select(getBoardOverviewExpression())
                 .from(studyBoard)
                 .leftJoin(studyApply)
                 .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
                 .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
-                .where(equalDepartmentType(departmentType))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(studyBoard.id)
+                .having(equalDepartmentType(departmentType))
                 .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), studyBoard))
                 .fetch();
     }
 
-    public Optional<StudyBoardDetails> findStudyBoardDetails(Long studyBoardId) {
+    public Optional<StudyBoardDetails> findBoardDetailsByIdAndViewType(Long studyBoardId,
+                                                                       RecruitmentViewType viewType) {
         StudyBoardDetails studyBoardDetails = queryFactory
                 .select(Projections.constructor(StudyBoardDetails.class,
                         studyBoard.id,
@@ -68,7 +65,8 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                         studyBoard.author.nickname,
                         studyBoard.createdAt,
                         studyBoard.updatedAt,
-                        studyApply.id.member.count().intValue()))
+                        studyApply.id.member.count().intValue(),
+                        Expressions.constant(viewType)))
                 .from(studyBoard)
                 .leftJoin(studyApply)
                 .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
@@ -90,11 +88,44 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
         return Optional.ofNullable(studyBoardDetails);
     }
 
+    public List<StudyBoardOverview> findStudyBoardOverviewsByPage(Pageable pageable) {
+        return queryFactory
+                .select(getBoardOverviewExpression())
+                .from(studyBoard)
+                .leftJoin(studyApply)
+                .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
+                .leftJoin(studyBoardDepartment)
+                .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .groupBy(studyBoard.id)
+                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), studyBoard))
+                .fetch();
+    }
+
     private BooleanExpression hasMatchingStudyBoardId(NumberPath<Long> studyBoardId) {
         return studyBoard.id.eq(studyBoardId);
     }
 
+    private Expression<StudyBoardOverview> getBoardOverviewExpression() {
+        return Projections.constructor(StudyBoardOverview.class,
+                studyBoard.id,
+                studyApply.id.member.countDistinct().intValue(),
+                studyBoard.startAt,
+                studyBoard.endAt,
+                studyBoard.title,
+                studyBoard.content,
+                studyBoard.tags,
+                Expressions.stringTemplate("string_agg({0}, ',')",
+                        studyBoardDepartment.id.department.id));
+    }
+
     private BooleanExpression equalDepartmentType(DepartmentType departmentType) {
-        return studyBoardDepartment.id.department.id.eq(departmentType);
+        return Expressions.numberTemplate(
+                        Integer.class,
+                        "SUM(CASE WHEN {0} = {1} THEN 1 ELSE 0 END)",
+                        studyBoardDepartment.id.department.id,
+                        Expressions.constant(departmentType))
+                .gt(0);
     }
 }

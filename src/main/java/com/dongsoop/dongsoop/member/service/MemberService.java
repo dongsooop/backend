@@ -15,4 +15,6 @@ public interface MemberService {
     LoginAuthenticate getLoginAuthenticateByNickname(String nickname);
 
     Member getMemberReferenceByContext();
+
+    String getNicknameById(Long userId);
 }

@@ -152,4 +152,10 @@ public class MemberServiceImpl implements MemberService {
             throw new EmailDuplicatedException();
         }
     }
+
+    public String getNicknameById(Long userId) {
+        return memberRepository.findById(userId)
+                .map(Member::getNickname)
+                .orElseThrow(MemberNotFoundException::new);
+    }
 }

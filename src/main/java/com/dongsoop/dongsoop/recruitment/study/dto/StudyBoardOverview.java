@@ -1,6 +1,9 @@
 package com.dongsoop.dongsoop.recruitment.study.dto;
 
+import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 public record StudyBoardOverview(
 
@@ -10,6 +13,22 @@ public record StudyBoardOverview(
         LocalDateTime endAt,
         String title,
         String content,
-        String tags
+        String tags,
+        List<DepartmentType> departmentTypeList
 ) {
+    public StudyBoardOverview(Long id, Integer volunteer, LocalDateTime startAt, LocalDateTime endAt, String title,
+                              String content, String tags, String departmentTypes) {
+        this(
+                id,
+                volunteer,
+                startAt,
+                endAt,
+                title,
+                content,
+                tags,
+                Arrays.stream(departmentTypes.split(","))
+                        .map(v -> DepartmentType.valueOf(v.trim()))
+                        .toList()
+        );
+    }
 }

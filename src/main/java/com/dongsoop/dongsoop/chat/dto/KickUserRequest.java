@@ -8,5 +8,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class KickUserRequest {
-    private String userId;
+    private Long userId;
 }

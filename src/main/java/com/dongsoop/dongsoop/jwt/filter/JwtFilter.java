@@ -1,17 +1,21 @@
 package com.dongsoop.dongsoop.jwt.filter;
 
+import com.dongsoop.dongsoop.exception.CustomException;
+import com.dongsoop.dongsoop.exception.domain.jwt.TokenExpiredException;
+import com.dongsoop.dongsoop.exception.domain.jwt.TokenMalformedException;
 import com.dongsoop.dongsoop.exception.domain.jwt.TokenNotFoundException;
+import com.dongsoop.dongsoop.exception.domain.jwt.TokenRoleNotAvailableException;
+import com.dongsoop.dongsoop.exception.domain.jwt.TokenSignatureException;
+import com.dongsoop.dongsoop.exception.domain.jwt.TokenUnsupportedException;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.util.Arrays;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -20,33 +24,77 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 @Component
 @Slf4j
-@RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
-    private static final String PREFIX = "Bearer";
-
-    private static final Integer TOKEN_START_INDEX = 7;
+    private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final int TOKEN_START_INDEX = BEARER_PREFIX.length();
+    private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
 
     private final JwtUtil jwtUtil;
-
     private final JwtValidator jwtValidator;
+    private final HandlerExceptionResolver exceptionResolver;
+    private final String[] ignorePaths;
 
-    private final AntPathMatcher matcher = new AntPathMatcher();
-
-    @Value("${authentication.path.all}")
-    private String[] allowedPaths;
+    public JwtFilter(JwtUtil jwtUtil,
+                     JwtValidator jwtValidator,
+                     @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver,
+                     @Value("${authentication.filter.ignore.paths}") String[] ignorePaths) {
+        this.jwtUtil = jwtUtil;
+        this.jwtValidator = jwtValidator;
+        this.exceptionResolver = exceptionResolver;
+        this.ignorePaths = ignorePaths;
+    }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
-                                    FilterChain filterChain)
-            throws ServletException, IOException {
-        String tokenHeader = request.getHeader("Authorization");
-        String token = resolveToken(tokenHeader);
-        
+                                    @NonNull FilterChain filterChain) {
+        try {
+            String token = extractTokenFromHeader(request);
+            validateAndSetAuthentication(token);
+        } catch (TokenMalformedException | TokenNotFoundException | TokenExpiredException |
+                 TokenSignatureException | TokenRoleNotAvailableException | TokenUnsupportedException exception) {
+            log.error("JWT Filter processing failed with JWT exception: {}", exception.getMessage(), exception);
+        } catch (CustomException exception) {
+            log.error("JWT Filter processing failed with custom exception: {}", exception.getMessage(), exception);
+        } catch (Exception exception) {
+            log.error("JWT Filter processing failed with unknown exception: {}", exception.getMessage(), exception);
+        }
+
+        try {
+            filterChain.doFilter(request, response);
+        } catch (Exception exception) {
+            log.error("Filter chain processing failed: {}", exception.getMessage(), exception);
+            exceptionResolver.resolveException(request, response, null, exception);
+        }
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+
+        return Arrays.stream(ignorePaths)
+                .anyMatch(allowPath -> PATH_MATCHER.match(allowPath, path));
+    }
+
+    private String extractTokenFromHeader(HttpServletRequest request) throws TokenNotFoundException {
+        String tokenHeader = request.getHeader(AUTHORIZATION_HEADER);
+
+        if (!StringUtils.hasText(tokenHeader) ||
+                tokenHeader.length() <= TOKEN_START_INDEX ||
+                !tokenHeader.startsWith(BEARER_PREFIX)) {
+            throw new TokenNotFoundException();
+        }
+
+        return tokenHeader.substring(TOKEN_START_INDEX);
+    }
+
+    private void validateAndSetAuthentication(String token) {
         jwtValidator.validate(token);
         Authentication auth = jwtUtil.getAuthenticationByToken(token);
 
@@ -54,26 +102,5 @@ public class JwtFilter extends OncePerRequestFilter {
         context.setAuthentication(auth);
 
         log.info("SecurityContextHolder에 인증 정보 저장 : {}", context.getAuthentication());
-
-        filterChain.doFilter(request, response);
     }
-
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
-
-        return Arrays.stream(allowedPaths)
-                .anyMatch(allowPath -> matcher.match(allowPath, path));
-    }
-
-    private String resolveToken(String tokenHeader) {
-        if (!StringUtils.hasText(tokenHeader) ||
-                tokenHeader.length() <= TOKEN_START_INDEX ||
-                !tokenHeader.startsWith(PREFIX)) {
-            throw new TokenNotFoundException();
-        }
-
-        return tokenHeader.substring(TOKEN_START_INDEX);
-    }
-
 }

@@ -10,6 +10,6 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateGroupRoomRequest {
-    private Set<String> participants;
+    private Set<Long> participants;
     private String title;
 }

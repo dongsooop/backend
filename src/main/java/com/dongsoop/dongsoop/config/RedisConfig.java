@@ -57,6 +57,7 @@ public class RedisConfig {
                 .allowIfSubType("java.util.HashSet")
                 .allowIfSubType("java.util.ArrayList")
                 .allowIfSubType("java.time.LocalDateTime")
+                .allowIfSubType("java.util.HashMap")
                 .build();
 
         objectMapper.activateDefaultTyping(
