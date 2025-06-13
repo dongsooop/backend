@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.marketplace.controller;
 
 import com.dongsoop.dongsoop.marketplace.dto.CreateMarketplaceBoardRequest;
+import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardDetails;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoard;
 import com.dongsoop.dongsoop.marketplace.service.MarketplaceBoardService;
@@ -13,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -32,6 +34,13 @@ public class MarketplaceBoardController {
                 pageable);
 
         return ResponseEntity.ok(marketplaceBoardOverviewList);
+    }
+
+    @GetMapping("/{boardId}")
+    public ResponseEntity<MarketplaceBoardDetails> getMarketplaceBoardDetails(@PathVariable("boardId") Long boardId) {
+        MarketplaceBoardDetails marketplaceBoardDetails = marketplaceBoardService.getBoardDetails(boardId);
+
+        return ResponseEntity.ok(marketplaceBoardDetails);
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

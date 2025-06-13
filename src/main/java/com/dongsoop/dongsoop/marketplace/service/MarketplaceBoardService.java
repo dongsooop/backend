@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.marketplace.service;
 
 import com.dongsoop.dongsoop.marketplace.dto.CreateMarketplaceBoardRequest;
+import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardDetails;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoard;
 import java.io.IOException;
@@ -13,4 +14,6 @@ public interface MarketplaceBoardService {
     MarketplaceBoard create(CreateMarketplaceBoardRequest request, MultipartFile image) throws IOException;
 
     List<MarketplaceBoardOverview> getMarketplaceBoards(Pageable pageable);
+
+    MarketplaceBoardDetails getBoardDetails(Long boardId);
 }

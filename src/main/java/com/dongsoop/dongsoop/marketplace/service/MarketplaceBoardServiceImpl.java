@@ -1,13 +1,18 @@
 package com.dongsoop.dongsoop.marketplace.service;
 
+import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
 import com.dongsoop.dongsoop.marketplace.dto.CreateMarketplaceBoardRequest;
+import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardDetails;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
+import com.dongsoop.dongsoop.marketplace.dto.MarketplaceViewType;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoard;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceImage;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceImage.MarketplaceImageId;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepository;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepositoryCustom;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceImageRepository;
+import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.s3.S3Service;
 import java.io.IOException;
 import java.util.List;
@@ -31,6 +36,8 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
 
     private final MarketplaceImageRepository marketplaceImageRepository;
 
+    private final MemberService memberService;
+
     private final S3Service s3Service;
 
     @Transactional
@@ -49,5 +56,24 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
 
     public List<MarketplaceBoardOverview> getMarketplaceBoards(Pageable pageable) {
         return marketplaceBoardRepositoryCustom.findMarketplaceBoardOverviewByPage(pageable);
+    }
+
+    public MarketplaceBoardDetails getBoardDetails(Long boardId) {
+        try {
+            Member member = memberService.getMemberReferenceByContext();
+            boolean isOwner = marketplaceBoardRepository.existsByIdAndAuthor(boardId, member);
+            if (isOwner) {
+                return getBoardDetailsWithViewType(boardId, MarketplaceViewType.OWNER);
+            }
+
+            return getBoardDetailsWithViewType(boardId, MarketplaceViewType.MEMBER);
+        } catch (MemberNotFoundException exception) {
+            return getBoardDetailsWithViewType(boardId, MarketplaceViewType.GUEST);
+        }
+    }
+
+    public MarketplaceBoardDetails getBoardDetailsWithViewType(Long boardId, MarketplaceViewType viewType) {
+        return marketplaceBoardRepositoryCustom.findMarketplaceBoardDetails(boardId, viewType)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
     }
 }

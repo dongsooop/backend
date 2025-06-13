@@ -1,13 +1,17 @@
 package com.dongsoop.dongsoop.marketplace.repository;
 
+import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardDetails;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
+import com.dongsoop.dongsoop.marketplace.dto.MarketplaceViewType;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoardStatus;
 import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceApply;
 import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceBoard;
 import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceImage;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
@@ -49,5 +53,32 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                         marketplaceBoard.createdAt,
                         marketplaceApply.id.applicant)
                 .fetch();
+    }
+
+    public Optional<MarketplaceBoardDetails> findMarketplaceBoardDetails(Long id, MarketplaceViewType viewType) {
+        MarketplaceBoardDetails result = queryFactory.select(Projections.constructor(MarketplaceBoardDetails.class,
+                        marketplaceBoard.id,
+                        marketplaceBoard.title,
+                        marketplaceBoard.content,
+                        marketplaceBoard.price,
+                        marketplaceBoard.createdAt,
+                        marketplaceApply.id.applicant.countDistinct(),
+                        Expressions.stringTemplate("string_agg({0}, ',')", marketplaceImage.id.url),
+                        Expressions.constant(viewType)))
+                .from(marketplaceBoard)
+                .leftJoin(marketplaceApply)
+                .on(marketplaceApply.id.marketplaceId.eq(marketplaceBoard.id))
+                .leftJoin(marketplaceImage)
+                .on(marketplaceImage.id.marketplaceBoard.id.eq(marketplaceBoard.id))
+                .where(marketplaceBoard.id.eq(id))
+                .groupBy(marketplaceBoard.id,
+                        marketplaceBoard.title,
+                        marketplaceBoard.content,
+                        marketplaceBoard.price,
+                        marketplaceBoard.createdAt,
+                        marketplaceApply.id.applicant)
+                .fetchOne();
+
+        return Optional.ofNullable(result);
     }
 }
