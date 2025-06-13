@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoardStatus;
 import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceApply;
 import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceBoard;
+import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceImage;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
@@ -19,6 +20,8 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
 
     private static final QMarketplaceApply marketplaceApply = QMarketplaceApply.marketplaceApply;
 
+    private static final QMarketplaceImage marketplaceImage = QMarketplaceImage.marketplaceImage;
+
     private final JPAQueryFactory queryFactory;
 
     public List<MarketplaceBoardOverview> findMarketplaceBoardOverviewByPage(Pageable pageable) {
@@ -28,10 +31,13 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                         marketplaceBoard.content,
                         marketplaceBoard.price,
                         marketplaceBoard.createdAt,
-                        marketplaceApply.id.applicant.countDistinct()))
+                        marketplaceApply.id.applicant.countDistinct(),
+                        marketplaceImage.id.url.min())) // 한 개만 가져오기
                 .from(marketplaceBoard)
                 .leftJoin(marketplaceApply)
                 .on(marketplaceApply.id.marketplaceId.eq(marketplaceBoard.id))
+                .leftJoin(marketplaceImage)
+                .on(marketplaceImage.id.marketplaceBoard.id.eq(marketplaceBoard.id))
                 .where(marketplaceBoard.status.eq(MarketplaceBoardStatus.SELLING))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())

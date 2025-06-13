@@ -9,6 +9,7 @@ public record MarketplaceBoardOverview(
         String content,
         Long price,
         LocalDateTime createdAt,
-        Long contactCount
+        Long contactCount,
+        String imageUrl
 ) {
 }
