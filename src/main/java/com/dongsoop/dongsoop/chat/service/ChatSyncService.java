@@ -10,6 +10,8 @@ import com.dongsoop.dongsoop.exception.domain.websocket.ChatRoomNotFoundExceptio
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class ChatSyncService {
@@ -23,30 +25,39 @@ public class ChatSyncService {
         if (room != null) {
             return room;
         }
+        return restoreRoomFromDatabase(roomId);
+    }
 
+    public ChatRoom restoreGroupChatRoom(String roomId) {
+        ChatRoomEntity entity = chatRoomJpaRepository.findById(roomId).orElse(null);
+
+        if (entity == null) {
+            return null;
+        }
+        return restoreRoomToRedis(entity);
+    }
+
+    private ChatRoom restoreRoomFromDatabase(String roomId) {
         ChatRoom restoredRoom = restoreGroupChatRoom(roomId);
+
         if (restoredRoom == null) {
             throw new ChatRoomNotFoundException();
         }
         return restoredRoom;
     }
 
-    public ChatRoom restoreGroupChatRoom(String roomId) {
-        return chatRoomJpaRepository.findById(roomId)
-                .map(this::restoreRoomToRedis)
-                .orElse(null);
-    }
-
     private ChatRoom restoreRoomToRedis(ChatRoomEntity entity) {
         ChatRoom room = entity.toChatRoom();
         redisChatRepository.saveRoom(room);
         restoreMessagesToRedis(entity.getRoomId());
+
         return room;
     }
 
     private void restoreMessagesToRedis(String roomId) {
-        chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(roomId)
-                .stream()
+        List<ChatMessageEntity> messageEntities = chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(roomId);
+
+        messageEntities.stream()
                 .map(ChatMessageEntity::toChatMessage)
                 .forEach(redisChatRepository::saveMessage);
     }
