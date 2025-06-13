@@ -3,7 +3,7 @@ package com.dongsoop.dongsoop.recruitment.tutoring.service;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
-import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
+import com.dongsoop.dongsoop.exception.domain.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.exception.domain.tutoring.TutoringBoardNotFound;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
@@ -12,6 +12,7 @@ import com.dongsoop.dongsoop.recruitment.tutoring.dto.CreateTutoringBoardRequest
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardDetails;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardOverview;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringBoard;
+import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepository;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepositoryCustom;
 import java.util.List;
@@ -26,6 +27,8 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
     private final TutoringBoardRepository tutoringBoardRepository;
 
     private final TutoringBoardRepositoryCustom tutoringBoardRepositoryCustom;
+
+    private final TutoringApplyRepositoryCustom tutoringApplyRepositoryCustom;
 
     private final DepartmentRepository departmentRepository;
 
@@ -48,21 +51,28 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
 
     public TutoringBoardDetails getBoardDetailsById(Long boardId) {
         try {
-            Member member = memberService.getMemberReferenceByContext();
-            boolean isOwner = tutoringBoardRepository.existsByIdAndAuthor(boardId, member);
+            Long memberId = memberService.getMemberIdByAuthentication();
+            boolean isOwner = tutoringBoardRepository.existsByIdAndAuthorId(boardId, memberId);
             if (isOwner) {
                 return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
             }
 
-            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER);
-        } catch (MemberNotFoundException exception) {
+            boolean isAlreadyApplied = tutoringApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
+
+            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
+        } catch (NotAuthenticationException exception) {
             return getBoardDetailsWithViewType(boardId, RecruitmentViewType.GUEST);
         }
     }
 
-    private TutoringBoardDetails getBoardDetailsWithViewType(Long tutoringBoardId, RecruitmentViewType viewType) {
-        return tutoringBoardRepositoryCustom.findBoardDetailsByIdAndViewType(tutoringBoardId, viewType)
-                .orElseThrow(() -> new TutoringBoardNotFound(tutoringBoardId));
+    private TutoringBoardDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType) {
+        return getBoardDetailsWithViewType(boardId, viewType, false);
+    }
+
+    private TutoringBoardDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType,
+                                                             boolean isAlreadyApplied) {
+        return tutoringBoardRepositoryCustom.findBoardDetailsByIdAndViewType(boardId, viewType, isAlreadyApplied)
+                .orElseThrow(() -> new TutoringBoardNotFound(boardId));
     }
 
     private TutoringBoard transformToTutoringBoard(CreateTutoringBoardRequest request) {

@@ -17,4 +17,6 @@ public interface MemberService {
     Member getMemberReferenceByContext();
 
     String getNicknameById(Long userId);
+
+    Long getMemberIdByAuthentication();
 }
