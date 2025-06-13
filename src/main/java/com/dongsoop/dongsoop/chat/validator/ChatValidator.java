@@ -30,10 +30,7 @@ public class ChatValidator {
     public void validateUserForRoom(String roomId, Long userId) {
         ChatRoom room = chatSyncService.findRoomOrRestore(roomId);
 
-        if (room.isKicked(userId)) {
-            throw new UserKickedException(roomId);
-        }
-
+        validateUserNotKicked(room, userId);
         addUserToRoomIfNeeded(room, userId);
     }
 
@@ -52,56 +49,117 @@ public class ChatValidator {
     }
 
     public void validateManagerPermission(ChatRoom room, Long requesterId) {
-        if (!room.isGroupChat()) {
-            throw new IllegalArgumentException("1:1 채팅방에서는 강퇴할 수 없습니다.");
-        }
-
-        Long managerId = room.getManagerId();
-        if (managerId == null || !Objects.equals(managerId, requesterId)) {
-            throw new UnauthorizedManagerActionException();
-        }
+        validateIsGroupChat(room);
+        validateIsRoomManager(room, requesterId);
     }
 
     public void validateKickableUser(ChatRoom room, Long userToKick) {
-        if (!room.getParticipants().contains(userToKick)) {
-            throw new UserNotInRoomException();
-        }
+        validateUserExistsInRoom(room, userToKick);
+        validateNotKickingManager(room, userToKick);
+    }
 
-        if (Objects.equals(room.getManagerId(), userToKick)) {
-            throw new ManagerKickAttemptException();
+    private void validateUserNotKicked(ChatRoom room, Long userId) {
+        if (room.isKicked(userId)) {
+            throw new UserKickedException(room.getRoomId());
         }
     }
 
     private void addUserToRoomIfNeeded(ChatRoom room, Long userId) {
-        boolean isAnonymous = ANONYMOUS_USER_ID.equals(userId);
-        boolean isAlreadyParticipant = room.getParticipants().contains(userId);
-
-        if (!isAnonymous && !isAlreadyParticipant) {
-            room.addNewParticipant(userId);
-            chatRepository.saveRoom(room);
+        if (shouldAddUserToRoom(userId, room)) {
+            addUserToRoom(room, userId);
         }
     }
 
-    private void validateMessageRequirements(ChatMessage message) {
-        boolean hasRoomId = StringUtils.hasText(message.getRoomId());
-        boolean hasSenderId = message.getSenderId() != null;
+    private boolean shouldAddUserToRoom(Long userId, ChatRoom room) {
+        if (isAnonymousUser(userId)) {
+            return false;
+        }
+        return !isUserAlreadyInRoom(userId, room);
+    }
 
-        if (!hasRoomId || !hasSenderId) {
+    private boolean isAnonymousUser(Long userId) {
+        return ANONYMOUS_USER_ID.equals(userId);
+    }
+
+    private boolean isUserAlreadyInRoom(Long userId, ChatRoom room) {
+        return room.getParticipants().contains(userId);
+    }
+
+    private void addUserToRoom(ChatRoom room, Long userId) {
+        room.addNewParticipant(userId);
+        chatRepository.saveRoom(room);
+    }
+
+    private void validateMessageRequirements(ChatMessage message) {
+        validateMessageHasRoomId(message);
+        validateMessageHasSenderId(message);
+    }
+
+    private void validateMessageHasRoomId(ChatMessage message) {
+        if (!StringUtils.hasText(message.getRoomId())) {
+            throw new InvalidChatRequestException();
+        }
+    }
+
+    private void validateMessageHasSenderId(ChatMessage message) {
+        if (message.getSenderId() == null) {
             throw new InvalidChatRequestException();
         }
     }
 
     private void enrichMessage(ChatMessage message) {
-        if (message.getMessageId() == null) {
-            message.setMessageId(UUID.randomUUID().toString());
-        }
+        enrichMessageId(message);
+        enrichMessageTimestamp(message);
+        enrichMessageType(message);
+    }
 
+    private void enrichMessageId(ChatMessage message) {
+        if (message.getMessageId() == null) {
+            message.setMessageId(generateMessageId());
+        }
+    }
+
+    private void enrichMessageTimestamp(ChatMessage message) {
         if (message.getTimestamp() == null) {
             message.setTimestamp(LocalDateTime.now());
         }
+    }
 
+    private void enrichMessageType(ChatMessage message) {
         if (message.getType() == null) {
             message.setType(MessageType.CHAT);
         }
+    }
+
+    private void validateIsGroupChat(ChatRoom room) {
+        if (!room.isGroupChat()) {
+            throw new IllegalArgumentException("1:1 채팅방에서는 강퇴할 수 없습니다.");
+        }
+    }
+
+    private void validateIsRoomManager(ChatRoom room, Long requesterId) {
+        Long managerId = room.getManagerId();
+        if (managerId == null) {
+            throw new UnauthorizedManagerActionException();
+        }
+        if (!Objects.equals(managerId, requesterId)) {
+            throw new UnauthorizedManagerActionException();
+        }
+    }
+
+    private void validateUserExistsInRoom(ChatRoom room, Long userToKick) {
+        if (!room.getParticipants().contains(userToKick)) {
+            throw new UserNotInRoomException();
+        }
+    }
+
+    private void validateNotKickingManager(ChatRoom room, Long userToKick) {
+        if (Objects.equals(room.getManagerId(), userToKick)) {
+            throw new ManagerKickAttemptException();
+        }
+    }
+
+    private String generateMessageId() {
+        return UUID.randomUUID().toString();
     }
 }
