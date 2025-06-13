@@ -11,9 +11,11 @@ import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.project.dto.CreateProjectBoardRequest;
 import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardDetails;
 import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardOverview;
+import com.dongsoop.dongsoop.recruitment.project.entity.ProjectApply.ProjectApplyKey;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoard;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment.ProjectBoardDepartmentId;
+import com.dongsoop.dongsoop.recruitment.project.repository.ProjectApplyRepository;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardRepository;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardRepositoryCustom;
@@ -36,6 +38,8 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
     private final DepartmentRepository departmentRepository;
 
     private final ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
+    
+    private final ProjectApplyRepository projectApplyRepository;
 
     @Transactional
     public ProjectBoard create(CreateProjectBoardRequest request) {
@@ -72,15 +76,24 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
                 return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
             }
 
-            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER);
+            ProjectBoard projectBoard = projectBoardRepository.getReferenceById(boardId);
+            ProjectApplyKey applyKey = new ProjectApplyKey(projectBoard, member);
+            boolean isAlreadyApplied = projectApplyRepository.existsById(applyKey);
+
+            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
         } catch (MemberNotFoundException exception) {
             return getBoardDetailsWithViewType(boardId, RecruitmentViewType.GUEST);
         }
     }
 
-    private ProjectBoardDetails getBoardDetailsWithViewType(Long projectBoardId, RecruitmentViewType viewType) {
-        return projectBoardRepositoryCustom.findBoardDetailsByIdAndViewType(projectBoardId, viewType)
-                .orElseThrow(() -> new ProjectBoardNotFound(projectBoardId));
+    private ProjectBoardDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType,
+                                                            boolean isAlreadyApplied) {
+        return projectBoardRepositoryCustom.findBoardDetailsByIdAndViewType(boardId, viewType, isAlreadyApplied)
+                .orElseThrow(() -> new ProjectBoardNotFound(boardId));
+    }
+
+    private ProjectBoardDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType) {
+        return getBoardDetailsWithViewType(boardId, viewType, false);
     }
 
     private ProjectBoard transformToProjectBoard(CreateProjectBoardRequest request) {

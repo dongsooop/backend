@@ -51,7 +51,8 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
     }
 
     public Optional<TutoringBoardDetails> findBoardDetailsByIdAndViewType(Long tutoringBoardId,
-                                                                          RecruitmentViewType viewType) {
+                                                                          RecruitmentViewType viewType,
+                                                                          boolean isAlreadyApplied) {
         return Optional.ofNullable(
                 queryFactory.select(Projections.constructor(TutoringBoardDetails.class,
                                 tutoringBoard.id,
@@ -65,8 +66,8 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                                 tutoringBoard.createdAt.as("createdAt"),
                                 tutoringBoard.updatedAt.as("updatedAt"),
                                 tutoringApplication.id.member.count().intValue(),
-                                Expressions.constant(viewType)
-                        ))
+                                Expressions.constant(viewType),
+                                Expressions.constant(isAlreadyApplied)))
                         .from(tutoringBoard)
                         .leftJoin(tutoringApplication)
                         .on(tutoringApplication.id.tutoringBoard.id.eq(tutoringBoard.id))

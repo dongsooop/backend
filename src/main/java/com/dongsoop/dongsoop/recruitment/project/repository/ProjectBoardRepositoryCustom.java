@@ -15,5 +15,6 @@ public interface ProjectBoardRepositoryCustom {
 
     List<ProjectBoardOverview> findProjectBoardOverviewsByPage(Pageable pageable);
 
-    Optional<ProjectBoardDetails> findBoardDetailsByIdAndViewType(Long projectBoardId, RecruitmentViewType viewType);
+    Optional<ProjectBoardDetails> findBoardDetailsByIdAndViewType(Long projectBoardId, RecruitmentViewType viewType,
+                                                                  boolean isAlreadyApplied);
 }

@@ -18,12 +18,14 @@ public record TutoringBoardDetails(
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
         Integer volunteer,
-        RecruitmentViewType viewType
+        RecruitmentViewType viewType,
+        boolean isAlreadyApplied
 ) {
     public TutoringBoardDetails(Long id, String title, String content, String tags, LocalDateTime startAt,
                                 LocalDateTime endAt, DepartmentType departmentType, String author,
                                 LocalDateTime createdAt,
-                                LocalDateTime updatedAt, Integer volunteer, RecruitmentViewType viewType) {
+                                LocalDateTime updatedAt, Integer volunteer, RecruitmentViewType viewType,
+                                boolean isAlreadyApplied) {
         this(
                 id,
                 title,
@@ -36,7 +38,8 @@ public record TutoringBoardDetails(
                 createdAt,
                 updatedAt,
                 volunteer,
-                viewType
+                viewType,
+                isAlreadyApplied
         );
     }
 }

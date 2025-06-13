@@ -15,5 +15,7 @@ public interface StudyBoardRepositoryCustom {
 
     List<StudyBoardOverview> findStudyBoardOverviewsByPage(Pageable pageable);
 
-    Optional<StudyBoardDetails> findBoardDetailsByIdAndViewType(Long studyBoardId, RecruitmentViewType viewType);
+    Optional<StudyBoardDetails> findBoardDetailsByIdAndViewType(Long studyBoardId,
+                                                                RecruitmentViewType viewType,
+                                                                boolean isAlreadyApplied);
 }

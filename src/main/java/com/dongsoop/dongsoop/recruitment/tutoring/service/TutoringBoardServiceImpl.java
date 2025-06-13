@@ -11,7 +11,9 @@ import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.CreateTutoringBoardRequest;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardDetails;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardOverview;
+import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringApply.TutoringApplyKey;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringBoard;
+import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringApplyRepository;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepository;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepositoryCustom;
 import java.util.List;
@@ -26,6 +28,8 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
     private final TutoringBoardRepository tutoringBoardRepository;
 
     private final TutoringBoardRepositoryCustom tutoringBoardRepositoryCustom;
+
+    private final TutoringApplyRepository tutoringApplyRepository;
 
     private final DepartmentRepository departmentRepository;
 
@@ -54,15 +58,24 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
                 return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
             }
 
-            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER);
+            TutoringBoard board = tutoringBoardRepository.getReferenceById(boardId);
+            TutoringApplyKey applyKey = new TutoringApplyKey(board, member);
+            boolean isAlreadyApplied = tutoringApplyRepository.existsById(applyKey);
+
+            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
         } catch (MemberNotFoundException exception) {
             return getBoardDetailsWithViewType(boardId, RecruitmentViewType.GUEST);
         }
     }
 
-    private TutoringBoardDetails getBoardDetailsWithViewType(Long tutoringBoardId, RecruitmentViewType viewType) {
-        return tutoringBoardRepositoryCustom.findBoardDetailsByIdAndViewType(tutoringBoardId, viewType)
-                .orElseThrow(() -> new TutoringBoardNotFound(tutoringBoardId));
+    private TutoringBoardDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType) {
+        return getBoardDetailsWithViewType(boardId, viewType, false);
+    }
+
+    private TutoringBoardDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType,
+                                                             boolean isAlreadyApplied) {
+        return tutoringBoardRepositoryCustom.findBoardDetailsByIdAndViewType(boardId, viewType, isAlreadyApplied)
+                .orElseThrow(() -> new TutoringBoardNotFound(boardId));
     }
 
     private TutoringBoard transformToTutoringBoard(CreateTutoringBoardRequest request) {

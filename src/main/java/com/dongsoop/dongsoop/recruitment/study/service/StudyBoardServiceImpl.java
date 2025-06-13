@@ -11,9 +11,11 @@ import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.study.dto.CreateStudyBoardRequest;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardDetails;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardOverview;
+import com.dongsoop.dongsoop.recruitment.study.entity.StudyApply.StudyApplyKey;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoard;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardDepartment.StudyBoardDepartmentId;
+import com.dongsoop.dongsoop.recruitment.study.repository.StudyApplyRepository;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepository;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepositoryCustom;
@@ -36,6 +38,8 @@ public class StudyBoardServiceImpl implements StudyBoardService {
     private final DepartmentRepository departmentRepository;
 
     private final StudyBoardDepartmentRepository studyBoardDepartmentRepository;
+
+    private final StudyApplyRepository studyApplyRepository;
 
     @Transactional
     public StudyBoard create(CreateStudyBoardRequest request) {
@@ -70,15 +74,24 @@ public class StudyBoardServiceImpl implements StudyBoardService {
                 return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
             }
 
-            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER);
+            StudyBoard board = studyBoardRepository.getReferenceById(boardId);
+            StudyApplyKey applyKey = new StudyApplyKey(board, member);
+            boolean isAlreadyApplied = studyApplyRepository.existsById(applyKey);
+
+            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
         } catch (MemberNotFoundException exception) {
             return getBoardDetailsWithViewType(boardId, RecruitmentViewType.GUEST);
         }
     }
 
-    public StudyBoardDetails getBoardDetailsWithViewType(Long studyBoardId, RecruitmentViewType viewType) {
-        return studyBoardRepositoryCustom.findBoardDetailsByIdAndViewType(studyBoardId, viewType)
-                .orElseThrow(() -> new StudyBoardNotFound(studyBoardId));
+    private StudyBoardDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType) {
+        return getBoardDetailsWithViewType(boardId, viewType, false);
+    }
+
+    private StudyBoardDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType,
+                                                          boolean isAlreadyApplied) {
+        return studyBoardRepositoryCustom.findBoardDetailsByIdAndViewType(boardId, viewType, isAlreadyApplied)
+                .orElseThrow(() -> new StudyBoardNotFound(boardId));
     }
 
     private StudyBoard transformToStudyBoard(CreateStudyBoardRequest request) {
