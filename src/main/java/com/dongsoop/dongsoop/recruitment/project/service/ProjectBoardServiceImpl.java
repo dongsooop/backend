@@ -75,7 +75,7 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
                 return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
             }
 
-            boolean isAlreadyApplied = projectApplyRepositoryCustom.existsByBoardIdAndMember(boardId, member);
+            boolean isAlreadyApplied = projectApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, member.getId());
 
             return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
         } catch (MemberNotFoundException exception) {

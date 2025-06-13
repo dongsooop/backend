@@ -73,7 +73,7 @@ public class StudyBoardServiceImpl implements StudyBoardService {
                 return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
             }
 
-            boolean isAlreadyApplied = studyApplyRepositoryCustom.existsByBoardIdAndMember(boardId, member);
+            boolean isAlreadyApplied = studyApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, member.getId());
 
             return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
         } catch (MemberNotFoundException exception) {

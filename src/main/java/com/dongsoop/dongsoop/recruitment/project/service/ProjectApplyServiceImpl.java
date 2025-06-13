@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.exception.domain.project.ProjectBoardDepartmentMismatchException;
 import com.dongsoop.dongsoop.exception.domain.project.ProjectBoardDepartmentNotAssignedException;
 import com.dongsoop.dongsoop.exception.domain.project.ProjectBoardNotFound;
+import com.dongsoop.dongsoop.exception.domain.project.ProjectRecruitmentAlreadyAppliedException;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.project.dto.ApplyProjectBoardRequest;
@@ -13,6 +14,7 @@ import com.dongsoop.dongsoop.recruitment.project.entity.ProjectApply.ProjectAppl
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoard;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectApplyRepository;
+import com.dongsoop.dongsoop.recruitment.project.repository.ProjectApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardRepository;
 import java.util.List;
@@ -31,8 +33,12 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
 
     private final ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
 
+    private final ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
+
     public void apply(ApplyProjectBoardRequest request) {
         Member member = memberService.getMemberReferenceByContext();
+        validateAlreadyApplied(member.getId(), request.boardId());
+
         ProjectBoard projectBoard = projectBoardRepository.findById(request.boardId())
                 .orElseThrow(() -> new ProjectBoardNotFound(request.boardId()));
 
@@ -52,6 +58,13 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
                 .build();
 
         projectApplyRepository.save(boardApply);
+    }
+
+    private void validateAlreadyApplied(Long memberId, Long boardId) {
+        boolean isAlreadyApplied = projectApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
+        if (isAlreadyApplied) {
+            throw new ProjectRecruitmentAlreadyAppliedException(memberId, boardId);
+        }
     }
 
     private void validateDepartment(List<ProjectBoardDepartment> boardDepartmentList, Member member) {

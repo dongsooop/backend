@@ -57,7 +57,8 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
                 return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
             }
 
-            boolean isAlreadyApplied = tutoringApplyRepositoryCustom.existsByBoardIdAndMember(boardId, member);
+            boolean isAlreadyApplied = tutoringApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId,
+                    member.getId());
 
             return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
         } catch (MemberNotFoundException exception) {

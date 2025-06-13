@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.exception.domain.study.StudyBoardDepartmentMismatchException;
 import com.dongsoop.dongsoop.exception.domain.study.StudyBoardDepartmentNotAssignedException;
 import com.dongsoop.dongsoop.exception.domain.study.StudyBoardNotFound;
+import com.dongsoop.dongsoop.exception.domain.study.StudyRecruitmentAlreadyAppliedException;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.study.dto.ApplyStudyBoardRequest;
@@ -13,6 +14,7 @@ import com.dongsoop.dongsoop.recruitment.study.entity.StudyApply.StudyApplyKey;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoard;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyApplyRepository;
+import com.dongsoop.dongsoop.recruitment.study.repository.StudyApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepository;
 import java.util.List;
@@ -31,8 +33,12 @@ public class StudyApplyServiceImpl implements StudyApplyService {
 
     private final StudyBoardDepartmentRepository studyBoardDepartmentRepository;
 
+    private final StudyApplyRepositoryCustom studyApplyRepositoryCustom;
+
     public void apply(ApplyStudyBoardRequest request) {
         Member member = memberService.getMemberReferenceByContext();
+        validateAlreadyApplied(member.getId(), request.boardId());
+
         StudyBoard studyBoard = studyBoardRepository.findById(request.boardId())
                 .orElseThrow(() -> new StudyBoardNotFound(request.boardId()));
 
@@ -52,6 +58,13 @@ public class StudyApplyServiceImpl implements StudyApplyService {
                 .build();
 
         studyApplyRepository.save(studyApplication);
+    }
+
+    private void validateAlreadyApplied(Long memberId, Long boardId) {
+        boolean isAlreadyApplied = studyApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
+        if (isAlreadyApplied) {
+            throw new StudyRecruitmentAlreadyAppliedException(memberId, boardId);
+        }
     }
 
     private void validateDepartment(List<StudyBoardDepartment> boardDepartment, Member member) {

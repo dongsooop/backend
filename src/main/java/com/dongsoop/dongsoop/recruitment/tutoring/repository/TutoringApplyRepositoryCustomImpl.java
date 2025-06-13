@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.recruitment.tutoring.repository;
 
-import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.QTutoringApply;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -14,11 +13,11 @@ public class TutoringApplyRepositoryCustomImpl implements TutoringApplyRepositor
 
     private final JPAQueryFactory queryFactory;
 
-    public boolean existsByBoardIdAndMember(Long boardId, Member member) {
+    public boolean existsByBoardIdAndMemberId(Long boardId, Long memberId) {
         return queryFactory.selectOne()
                 .from(tutoringApply)
                 .where(tutoringApply.id.tutoringBoard.id.eq(boardId)
-                        .and(tutoringApply.id.member.eq(member)))
+                        .and(tutoringApply.id.member.id.eq(memberId)))
                 .fetchFirst() != null;
     }
 }

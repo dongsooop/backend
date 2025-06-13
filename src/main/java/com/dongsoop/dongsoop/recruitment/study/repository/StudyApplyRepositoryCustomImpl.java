@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.recruitment.study.repository;
 
-import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyApply;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -14,11 +13,11 @@ public class StudyApplyRepositoryCustomImpl implements StudyApplyRepositoryCusto
 
     private final JPAQueryFactory queryFactory;
 
-    public boolean existsByBoardIdAndMember(Long boardId, Member member) {
+    public boolean existsByBoardIdAndMemberId(Long boardId, Long memberId) {
         return queryFactory.selectOne()
                 .from(studyApply)
                 .where(studyApply.id.studyBoard.id.eq(boardId)
-                        .and(studyApply.id.member.eq(member)))
+                        .and(studyApply.id.member.id.eq(memberId)))
                 .fetchFirst() != null;
     }
 }
