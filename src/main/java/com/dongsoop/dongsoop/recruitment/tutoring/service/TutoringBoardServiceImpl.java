@@ -3,7 +3,7 @@ package com.dongsoop.dongsoop.recruitment.tutoring.service;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
-import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
+import com.dongsoop.dongsoop.exception.domain.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.exception.domain.tutoring.TutoringBoardNotFound;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
@@ -51,17 +51,16 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
 
     public TutoringBoardDetails getBoardDetailsById(Long boardId) {
         try {
-            Member member = memberService.getMemberReferenceByContext();
-            boolean isOwner = tutoringBoardRepository.existsByIdAndAuthor(boardId, member);
+            Long memberId = memberService.getMemberIdByAuthentication();
+            boolean isOwner = tutoringBoardRepository.existsByIdAndAuthorId(boardId, memberId);
             if (isOwner) {
                 return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
             }
 
-            boolean isAlreadyApplied = tutoringApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId,
-                    member.getId());
+            boolean isAlreadyApplied = tutoringApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
 
             return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
-        } catch (MemberNotFoundException exception) {
+        } catch (NotAuthenticationException exception) {
             return getBoardDetailsWithViewType(boardId, RecruitmentViewType.GUEST);
         }
     }

@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.member.service;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.service.DepartmentService;
+import com.dongsoop.dongsoop.exception.domain.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.exception.domain.member.EmailDuplicatedException;
 import com.dongsoop.dongsoop.exception.domain.member.InvalidPasswordFormatException;
 import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
@@ -157,5 +158,21 @@ public class MemberServiceImpl implements MemberService {
         return memberRepository.findById(userId)
                 .map(Member::getNickname)
                 .orElseThrow(MemberNotFoundException::new);
+    }
+
+    public Long getMemberIdByAuthentication() {
+        Authentication authentication = SecurityContextHolder.getContext()
+                .getAuthentication();
+
+        if (authentication == null || authentication.getName() == null) {
+            throw new NotAuthenticationException();
+        }
+
+        String id = authentication.getName();
+        if (StringUtils.hasText(id) && id.matches("\\d+")) {
+            return Long.valueOf(id);
+        }
+
+        throw new NotAuthenticationException();
     }
 }
