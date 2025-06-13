@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -23,21 +22,28 @@ public class ChatSyncService {
     public ChatRoom findRoomOrRestore(String roomId) {
         ChatRoom room = redisChatRepository.findRoomById(roomId).orElse(null);
 
-        return Optional.ofNullable(room)
-                .orElseGet(() -> restoreRoomFromDatabase(roomId));
+        if (room != null) {
+            return room;
+        }
+        return restoreRoomFromDatabase(roomId);
     }
 
     public ChatRoom restoreGroupChatRoom(String roomId) {
-        return chatRoomJpaRepository.findById(roomId)
-                .map(this::restoreRoomToRedis)
-                .orElse(null);
+        ChatRoomEntity entity = chatRoomJpaRepository.findById(roomId).orElse(null);
+
+        if (entity == null) {
+            return null;
+        }
+        return restoreRoomToRedis(entity);
     }
 
     private ChatRoom restoreRoomFromDatabase(String roomId) {
         ChatRoom restoredRoom = restoreGroupChatRoom(roomId);
-        
-        return Optional.ofNullable(restoredRoom)
-                .orElseThrow(ChatRoomNotFoundException::new);
+
+        if (restoredRoom == null) {
+            throw new ChatRoomNotFoundException();
+        }
+        return restoredRoom;
     }
 
     private ChatRoom restoreRoomToRedis(ChatRoomEntity entity) {
