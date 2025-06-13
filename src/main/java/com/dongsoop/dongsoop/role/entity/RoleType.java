@@ -7,6 +7,7 @@ public enum RoleType {
     ADMIN,
     USER;
 
+    public static final String USER_ROLE = "ROLE_USER";
     private static final String ROLE_PREFIX = "ROLE_";
 
     public GrantedAuthority getAuthority() {
