@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -135,6 +136,22 @@ public class ChatController {
 
         Map<String, Object> response = createOfflineMessageSyncResponse(processedMessages);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/room/{roomId}/participants")
+    public ResponseEntity<Map<Long, String>> getRoomParticipants(@PathVariable("roomId") String roomId) {
+        Long currentUserId = getCurrentUserId();
+        chatService.enterChatRoom(roomId, currentUserId);
+
+        ChatRoom room = chatService.getChatRoomById(roomId);
+
+        Map<Long, String> participants = room.getParticipants().stream()
+                .collect(Collectors.toMap(
+                        participantId -> participantId,
+                        memberService::getNicknameById
+                ));
+
+        return ResponseEntity.ok(participants);
     }
 
     private Long getCurrentUserId() {
