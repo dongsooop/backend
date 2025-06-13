@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.recruitment.tutoring.service;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.exception.domain.tutoring.TutoringBoardDepartmentMismatchException;
 import com.dongsoop.dongsoop.exception.domain.tutoring.TutoringBoardNotFound;
+import com.dongsoop.dongsoop.exception.domain.tutoring.TutoringRecruitmentAlreadyAppliedException;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.ApplyTutoringBoardRequest;
@@ -10,6 +11,7 @@ import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringApply;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringApply.TutoringApplyKey;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringBoard;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringApplyRepository;
+import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,8 +26,12 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
 
     private final TutoringBoardRepository tutoringBoardRepository;
 
+    private final TutoringApplyRepositoryCustom tutoringApplyRepositoryCustom;
+
     public void apply(ApplyTutoringBoardRequest request) {
         Member member = memberService.getMemberReferenceByContext();
+        validateAlreadyApplied(member.getId(), request.boardId());
+
         TutoringBoard tutoringBoard = tutoringBoardRepository.findById(request.boardId())
                 .orElseThrow(() -> new TutoringBoardNotFound(request.boardId()));
 
@@ -37,6 +43,13 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
                 .build();
 
         tutoringApplyRepository.save(tutoringApply);
+    }
+
+    private void validateAlreadyApplied(Long memberId, Long boardId) {
+        boolean isAlreadyApplied = tutoringApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
+        if (isAlreadyApplied) {
+            throw new TutoringRecruitmentAlreadyAppliedException(memberId, boardId);
+        }
     }
 
     private void validateDepartment(TutoringBoard tutoringBoard, Member member) {

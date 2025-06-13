@@ -15,5 +15,7 @@ public interface TutoringBoardRepositoryCustom {
 
     List<TutoringBoardOverview> findTutoringBoardOverviewsByPage(Pageable pageable);
 
-    Optional<TutoringBoardDetails> findBoardDetailsByIdAndViewType(Long tutoringBoardId, RecruitmentViewType viewType);
+    Optional<TutoringBoardDetails> findBoardDetailsByIdAndViewType(Long tutoringBoardId,
+                                                                   RecruitmentViewType viewType,
+                                                                   boolean isAlreadyApplied);
 }

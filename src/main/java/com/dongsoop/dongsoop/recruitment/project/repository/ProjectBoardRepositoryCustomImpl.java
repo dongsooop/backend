@@ -52,7 +52,8 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
     }
 
     public Optional<ProjectBoardDetails> findBoardDetailsByIdAndViewType(Long projectBoardId,
-                                                                         RecruitmentViewType viewType) {
+                                                                         RecruitmentViewType viewType,
+                                                                         boolean isAlreadyApplied) {
         ProjectBoardDetails projectBoardDetails = queryFactory
                 .select(Projections.constructor(ProjectBoardDetails.class,
                         projectBoard.id,
@@ -66,7 +67,8 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                         projectBoard.createdAt,
                         projectBoard.updatedAt,
                         projectApply.id.member.count().intValue(),
-                        Expressions.constant(viewType)))
+                        Expressions.constant(viewType),
+                        Expressions.constant(isAlreadyApplied)))
                 .from(projectBoard)
                 .leftJoin(projectApply)
                 .on(hasMatchingProjectBoardId(projectApply.id.projectBoard.id))

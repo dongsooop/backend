@@ -3,7 +3,7 @@ package com.dongsoop.dongsoop.recruitment.study.service;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
-import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
+import com.dongsoop.dongsoop.exception.domain.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.exception.domain.study.StudyBoardNotFound;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
@@ -14,6 +14,7 @@ import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardOverview;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoard;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardDepartment.StudyBoardDepartmentId;
+import com.dongsoop.dongsoop.recruitment.study.repository.StudyApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepository;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepositoryCustom;
@@ -36,6 +37,8 @@ public class StudyBoardServiceImpl implements StudyBoardService {
     private final DepartmentRepository departmentRepository;
 
     private final StudyBoardDepartmentRepository studyBoardDepartmentRepository;
+
+    private final StudyApplyRepositoryCustom studyApplyRepositoryCustom;
 
     @Transactional
     public StudyBoard create(CreateStudyBoardRequest request) {
@@ -64,21 +67,28 @@ public class StudyBoardServiceImpl implements StudyBoardService {
 
     public StudyBoardDetails getBoardDetailsById(Long boardId) {
         try {
-            Member member = memberService.getMemberReferenceByContext();
-            boolean isOwner = studyBoardRepository.existsByIdAndAuthor(boardId, member);
+            Long memberId = memberService.getMemberIdByAuthentication();
+            boolean isOwner = studyBoardRepository.existsByIdAndAuthorId(boardId, memberId);
             if (isOwner) {
                 return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
             }
 
-            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER);
-        } catch (MemberNotFoundException exception) {
+            boolean isAlreadyApplied = studyApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
+
+            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
+        } catch (NotAuthenticationException exception) {
             return getBoardDetailsWithViewType(boardId, RecruitmentViewType.GUEST);
         }
     }
 
-    public StudyBoardDetails getBoardDetailsWithViewType(Long studyBoardId, RecruitmentViewType viewType) {
-        return studyBoardRepositoryCustom.findBoardDetailsByIdAndViewType(studyBoardId, viewType)
-                .orElseThrow(() -> new StudyBoardNotFound(studyBoardId));
+    private StudyBoardDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType) {
+        return getBoardDetailsWithViewType(boardId, viewType, false);
+    }
+
+    private StudyBoardDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType,
+                                                          boolean isAlreadyApplied) {
+        return studyBoardRepositoryCustom.findBoardDetailsByIdAndViewType(boardId, viewType, isAlreadyApplied)
+                .orElseThrow(() -> new StudyBoardNotFound(boardId));
     }
 
     private StudyBoard transformToStudyBoard(CreateStudyBoardRequest request) {

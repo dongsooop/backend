@@ -19,11 +19,13 @@ public record StudyBoardDetails(
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
         Integer volunteer,
-        RecruitmentViewType viewType
+        RecruitmentViewType viewType,
+        boolean isAlreadyApplied
 ) {
     public StudyBoardDetails(Long id, String title, String content, String tags, LocalDateTime startAt,
                              LocalDateTime endAt, String departmentTypes, String author, LocalDateTime createdAt,
-                             LocalDateTime updatedAt, Integer volunteer, RecruitmentViewType viewType) {
+                             LocalDateTime updatedAt, Integer volunteer, RecruitmentViewType viewType,
+                             boolean isAlreadyApplied) {
         this(
                 id,
                 title,
@@ -36,7 +38,8 @@ public record StudyBoardDetails(
                 createdAt,
                 updatedAt,
                 volunteer,
-                viewType
+                viewType,
+                isAlreadyApplied
         );
     }
 

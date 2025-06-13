@@ -52,7 +52,8 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
     }
 
     public Optional<StudyBoardDetails> findBoardDetailsByIdAndViewType(Long studyBoardId,
-                                                                       RecruitmentViewType viewType) {
+                                                                       RecruitmentViewType viewType,
+                                                                       boolean isAlreadyApplied) {
         StudyBoardDetails studyBoardDetails = queryFactory
                 .select(Projections.constructor(StudyBoardDetails.class,
                         studyBoard.id,
@@ -66,7 +67,8 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                         studyBoard.createdAt,
                         studyBoard.updatedAt,
                         studyApply.id.member.count().intValue(),
-                        Expressions.constant(viewType)))
+                        Expressions.constant(viewType),
+                        Expressions.constant(isAlreadyApplied)))
                 .from(studyBoard)
                 .leftJoin(studyApply)
                 .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))

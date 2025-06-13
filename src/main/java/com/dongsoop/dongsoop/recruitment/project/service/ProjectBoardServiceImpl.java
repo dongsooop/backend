@@ -3,7 +3,7 @@ package com.dongsoop.dongsoop.recruitment.project.service;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
-import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
+import com.dongsoop.dongsoop.exception.domain.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.exception.domain.project.ProjectBoardNotFound;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
@@ -14,6 +14,7 @@ import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardOverview;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoard;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment.ProjectBoardDepartmentId;
+import com.dongsoop.dongsoop.recruitment.project.repository.ProjectApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardRepository;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardRepositoryCustom;
@@ -36,6 +37,8 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
     private final DepartmentRepository departmentRepository;
 
     private final ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
+
+    private final ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
 
     @Transactional
     public ProjectBoard create(CreateProjectBoardRequest request) {
@@ -66,21 +69,28 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
 
     public ProjectBoardDetails getBoardDetailsById(Long boardId) {
         try {
-            Member member = memberService.getMemberReferenceByContext();
-            boolean isOwner = projectBoardRepository.existsByIdAndAuthor(boardId, member);
+            Long memberId = memberService.getMemberIdByAuthentication();
+            boolean isOwner = projectBoardRepository.existsByIdAndAuthorId(boardId, memberId);
             if (isOwner) {
                 return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
             }
 
-            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER);
-        } catch (MemberNotFoundException exception) {
+            boolean isAlreadyApplied = projectApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
+
+            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
+        } catch (NotAuthenticationException exception) {
             return getBoardDetailsWithViewType(boardId, RecruitmentViewType.GUEST);
         }
     }
 
-    private ProjectBoardDetails getBoardDetailsWithViewType(Long projectBoardId, RecruitmentViewType viewType) {
-        return projectBoardRepositoryCustom.findBoardDetailsByIdAndViewType(projectBoardId, viewType)
-                .orElseThrow(() -> new ProjectBoardNotFound(projectBoardId));
+    private ProjectBoardDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType,
+                                                            boolean isAlreadyApplied) {
+        return projectBoardRepositoryCustom.findBoardDetailsByIdAndViewType(boardId, viewType, isAlreadyApplied)
+                .orElseThrow(() -> new ProjectBoardNotFound(boardId));
+    }
+
+    private ProjectBoardDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType) {
+        return getBoardDetailsWithViewType(boardId, viewType, false);
     }
 
     private ProjectBoard transformToProjectBoard(CreateProjectBoardRequest request) {
