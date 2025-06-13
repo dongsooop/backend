@@ -3,9 +3,11 @@ package com.dongsoop.dongsoop.recruitment.study.service;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
+import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
 import com.dongsoop.dongsoop.exception.domain.study.StudyBoardNotFound;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.study.dto.CreateStudyBoardRequest;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardDetails;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardOverview;
@@ -60,8 +62,22 @@ public class StudyBoardServiceImpl implements StudyBoardService {
         return studyBoardRepositoryCustom.findStudyBoardOverviewsByPage(pageable);
     }
 
-    public StudyBoardDetails getBoardDetailsById(Long studyBoardId) {
-        return studyBoardRepositoryCustom.findStudyBoardDetails(studyBoardId)
+    public StudyBoardDetails getBoardDetailsById(Long boardId) {
+        try {
+            Member member = memberService.getMemberReferenceByContext();
+            boolean isOwner = studyBoardRepository.existsByIdAndAuthor(boardId, member);
+            if (isOwner) {
+                return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
+            }
+
+            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER);
+        } catch (MemberNotFoundException exception) {
+            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.GUEST);
+        }
+    }
+
+    public StudyBoardDetails getBoardDetailsWithViewType(Long studyBoardId, RecruitmentViewType viewType) {
+        return studyBoardRepositoryCustom.findBoardDetailsByIdAndViewType(studyBoardId, viewType)
                 .orElseThrow(() -> new StudyBoardNotFound(studyBoardId));
     }
 

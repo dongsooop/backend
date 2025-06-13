@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.recruitment.study.repository;
 
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardDetails;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardOverview;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyApply;
@@ -50,7 +51,8 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .fetch();
     }
 
-    public Optional<StudyBoardDetails> findStudyBoardDetails(Long studyBoardId) {
+    public Optional<StudyBoardDetails> findBoardDetailsByIdAndViewType(Long studyBoardId,
+                                                                       RecruitmentViewType viewType) {
         StudyBoardDetails studyBoardDetails = queryFactory
                 .select(Projections.constructor(StudyBoardDetails.class,
                         studyBoard.id,
@@ -63,7 +65,8 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                         studyBoard.author.nickname,
                         studyBoard.createdAt,
                         studyBoard.updatedAt,
-                        studyApply.id.member.count().intValue()))
+                        studyApply.id.member.count().intValue(),
+                        Expressions.constant(viewType)))
                 .from(studyBoard)
                 .leftJoin(studyApply)
                 .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
