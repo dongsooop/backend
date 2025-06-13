@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.s3;
 
 import java.io.IOException;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -18,11 +19,15 @@ public class S3ServiceImpl implements S3Service {
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
 
+    @Value("${cloud.aws.region.static}")
+    private String region;
+
     public String upload(MultipartFile file, String dirName, long boardId) throws IOException {
         String fileName = file.getOriginalFilename();
 
         int separateIndex = fileName.lastIndexOf(".");
-        String saveFileName = fileName.substring(separateIndex);
+        String extension = fileName.substring(separateIndex);
+        String saveFileName = UUID.randomUUID() + extension;
         String saveFilePath = dirName + "/" + boardId + "/" + saveFileName;
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -35,7 +40,7 @@ public class S3ServiceImpl implements S3Service {
                 putObjectRequest,
                 RequestBody.fromInputStream(file.getInputStream(), file.getSize())
         );
-
-        return "https://" + saveFilePath + ".s3.amazonaws.com/" + fileName;
+        
+        return "https://" + bucket + ".s3." + region + ".amazonaws.com/" + saveFilePath;
     }
 }
