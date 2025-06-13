@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.recruitment.project.repository;
 
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardDetails;
 import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardOverview;
 import com.dongsoop.dongsoop.recruitment.project.entity.QProjectApply;
@@ -50,7 +51,8 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                 .fetch();
     }
 
-    public Optional<ProjectBoardDetails> findProjectBoardDetails(Long projectBoardId) {
+    public Optional<ProjectBoardDetails> findBoardDetailsByIdAndViewType(Long projectBoardId,
+                                                                         RecruitmentViewType viewType) {
         ProjectBoardDetails projectBoardDetails = queryFactory
                 .select(Projections.constructor(ProjectBoardDetails.class,
                         projectBoard.id,
@@ -63,7 +65,8 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                         projectBoard.author.nickname,
                         projectBoard.createdAt,
                         projectBoard.updatedAt,
-                        projectApply.id.member.count().intValue()))
+                        projectApply.id.member.count().intValue(),
+                        Expressions.constant(viewType)))
                 .from(projectBoard)
                 .leftJoin(projectApply)
                 .on(hasMatchingProjectBoardId(projectApply.id.projectBoard.id))

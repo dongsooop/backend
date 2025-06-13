@@ -3,9 +3,11 @@ package com.dongsoop.dongsoop.recruitment.tutoring.service;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
+import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
 import com.dongsoop.dongsoop.exception.domain.tutoring.TutoringBoardNotFound;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.CreateTutoringBoardRequest;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardDetails;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardOverview;
@@ -44,8 +46,22 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
         return tutoringBoardRepository.save(tutoringBoard);
     }
 
-    public TutoringBoardDetails getBoardDetailsById(Long tutoringBoardId) {
-        return tutoringBoardRepositoryCustom.findInformationById(tutoringBoardId)
+    public TutoringBoardDetails getBoardDetailsById(Long boardId) {
+        try {
+            Member member = memberService.getMemberReferenceByContext();
+            boolean isOwner = tutoringBoardRepository.existsByIdAndAuthor(boardId, member);
+            if (isOwner) {
+                return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
+            }
+
+            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER);
+        } catch (MemberNotFoundException exception) {
+            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.GUEST);
+        }
+    }
+
+    private TutoringBoardDetails getBoardDetailsWithViewType(Long tutoringBoardId, RecruitmentViewType viewType) {
+        return tutoringBoardRepositoryCustom.findBoardDetailsByIdAndViewType(tutoringBoardId, viewType)
                 .orElseThrow(() -> new TutoringBoardNotFound(tutoringBoardId));
     }
 

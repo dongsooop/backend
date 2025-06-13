@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.recruitment.study.repository;
 
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardDetails;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardOverview;
 import java.util.List;
@@ -14,5 +15,5 @@ public interface StudyBoardRepositoryCustom {
 
     List<StudyBoardOverview> findStudyBoardOverviewsByPage(Pageable pageable);
 
-    Optional<StudyBoardDetails> findStudyBoardDetails(Long studyBoardId);
+    Optional<StudyBoardDetails> findBoardDetailsByIdAndViewType(Long studyBoardId, RecruitmentViewType viewType);
 }

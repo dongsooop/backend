@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.recruitment.project.repository;
 
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardDetails;
 import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardOverview;
 import java.util.List;
@@ -14,5 +15,5 @@ public interface ProjectBoardRepositoryCustom {
 
     List<ProjectBoardOverview> findProjectBoardOverviewsByPage(Pageable pageable);
 
-    Optional<ProjectBoardDetails> findProjectBoardDetails(Long projectBoardId);
+    Optional<ProjectBoardDetails> findBoardDetailsByIdAndViewType(Long projectBoardId, RecruitmentViewType viewType);
 }
