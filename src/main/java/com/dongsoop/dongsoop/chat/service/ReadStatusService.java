@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -15,11 +14,10 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class ReadStatusService {
 
-    private final RedisTemplate<String, String> redisTemplate;
-
     private static final String USER_LAST_READ_PREFIX = "user:lastread:";
     private static final String USER_JOIN_TIME_PREFIX = "user:jointime:";
     private static final long TTL_DAYS = 30;
+    private final RedisTemplate<String, String> redisTemplate;
 
     public void initializeUserReadStatus(Long userId, String roomId, LocalDateTime joinTime) {
         updateLastReadTimestamp(userId, roomId, joinTime);
@@ -30,7 +28,7 @@ public class ReadStatusService {
 
     public void updateLastReadTimestamp(Long userId, String roomId, LocalDateTime timestamp) {
         String key = buildUserLastReadKey(userId, roomId);
-        String timestampStr = timestamp.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        String timestampStr = formatTimestamp(timestamp);
 
         redisTemplate.opsForValue().set(key, timestampStr, TTL_DAYS, TimeUnit.DAYS);
 
@@ -41,24 +39,38 @@ public class ReadStatusService {
         String key = buildUserLastReadKey(userId, roomId);
         String timestampStr = redisTemplate.opsForValue().get(key);
 
-        return Optional.ofNullable(timestampStr)
-                .map(str -> LocalDateTime.parse(str, DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-                .orElseGet(() -> getUserJoinTime(userId, roomId));
+        return parseTimestampOrGetJoinTime(timestampStr, userId, roomId);
     }
 
     public LocalDateTime getUserJoinTime(Long userId, String roomId) {
         String key = buildUserJoinTimeKey(userId, roomId);
         String timestampStr = redisTemplate.opsForValue().get(key);
 
-        return Optional.ofNullable(timestampStr)
-                .map(str -> LocalDateTime.parse(str, DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-                .orElse(null);
+        return parseTimestamp(timestampStr);
     }
 
     private void saveUserJoinTime(Long userId, String roomId, LocalDateTime joinTime) {
         String joinTimeKey = buildUserJoinTimeKey(userId, roomId);
-        String joinTimeStr = joinTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        String joinTimeStr = formatTimestamp(joinTime);
         redisTemplate.opsForValue().set(joinTimeKey, joinTimeStr, TTL_DAYS, TimeUnit.DAYS);
+    }
+
+    private LocalDateTime parseTimestampOrGetJoinTime(String timestampStr, Long userId, String roomId) {
+        if (timestampStr == null) {
+            return getUserJoinTime(userId, roomId);
+        }
+        return parseTimestamp(timestampStr);
+    }
+
+    private LocalDateTime parseTimestamp(String timestampStr) {
+        if (timestampStr == null) {
+            return null;
+        }
+        return LocalDateTime.parse(timestampStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+    }
+
+    private String formatTimestamp(LocalDateTime timestamp) {
+        return timestamp.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
     }
 
     private String buildUserLastReadKey(Long userId, String roomId) {
