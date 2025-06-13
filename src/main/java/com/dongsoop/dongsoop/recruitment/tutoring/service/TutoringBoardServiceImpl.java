@@ -11,9 +11,8 @@ import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.CreateTutoringBoardRequest;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardDetails;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardOverview;
-import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringApply.TutoringApplyKey;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringBoard;
-import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringApplyRepository;
+import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepository;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepositoryCustom;
 import java.util.List;
@@ -29,7 +28,7 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
 
     private final TutoringBoardRepositoryCustom tutoringBoardRepositoryCustom;
 
-    private final TutoringApplyRepository tutoringApplyRepository;
+    private final TutoringApplyRepositoryCustom tutoringApplyRepositoryCustom;
 
     private final DepartmentRepository departmentRepository;
 
@@ -58,9 +57,7 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
                 return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
             }
 
-            TutoringBoard board = tutoringBoardRepository.getReferenceById(boardId);
-            TutoringApplyKey applyKey = new TutoringApplyKey(board, member);
-            boolean isAlreadyApplied = tutoringApplyRepository.existsById(applyKey);
+            boolean isAlreadyApplied = tutoringApplyRepositoryCustom.existsByBoardIdAndMember(boardId, member);
 
             return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
         } catch (MemberNotFoundException exception) {

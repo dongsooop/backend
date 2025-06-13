@@ -11,11 +11,10 @@ import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.project.dto.CreateProjectBoardRequest;
 import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardDetails;
 import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardOverview;
-import com.dongsoop.dongsoop.recruitment.project.entity.ProjectApply.ProjectApplyKey;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoard;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment.ProjectBoardDepartmentId;
-import com.dongsoop.dongsoop.recruitment.project.repository.ProjectApplyRepository;
+import com.dongsoop.dongsoop.recruitment.project.repository.ProjectApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardRepository;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardRepositoryCustom;
@@ -38,8 +37,8 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
     private final DepartmentRepository departmentRepository;
 
     private final ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
-    
-    private final ProjectApplyRepository projectApplyRepository;
+
+    private final ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
 
     @Transactional
     public ProjectBoard create(CreateProjectBoardRequest request) {
@@ -76,9 +75,7 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
                 return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
             }
 
-            ProjectBoard projectBoard = projectBoardRepository.getReferenceById(boardId);
-            ProjectApplyKey applyKey = new ProjectApplyKey(projectBoard, member);
-            boolean isAlreadyApplied = projectApplyRepository.existsById(applyKey);
+            boolean isAlreadyApplied = projectApplyRepositoryCustom.existsByBoardIdAndMember(boardId, member);
 
             return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
         } catch (MemberNotFoundException exception) {

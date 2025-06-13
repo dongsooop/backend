@@ -11,11 +11,10 @@ import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.study.dto.CreateStudyBoardRequest;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardDetails;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardOverview;
-import com.dongsoop.dongsoop.recruitment.study.entity.StudyApply.StudyApplyKey;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoard;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardDepartment.StudyBoardDepartmentId;
-import com.dongsoop.dongsoop.recruitment.study.repository.StudyApplyRepository;
+import com.dongsoop.dongsoop.recruitment.study.repository.StudyApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepository;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepositoryCustom;
@@ -39,7 +38,7 @@ public class StudyBoardServiceImpl implements StudyBoardService {
 
     private final StudyBoardDepartmentRepository studyBoardDepartmentRepository;
 
-    private final StudyApplyRepository studyApplyRepository;
+    private final StudyApplyRepositoryCustom studyApplyRepositoryCustom;
 
     @Transactional
     public StudyBoard create(CreateStudyBoardRequest request) {
@@ -74,9 +73,7 @@ public class StudyBoardServiceImpl implements StudyBoardService {
                 return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
             }
 
-            StudyBoard board = studyBoardRepository.getReferenceById(boardId);
-            StudyApplyKey applyKey = new StudyApplyKey(board, member);
-            boolean isAlreadyApplied = studyApplyRepository.existsById(applyKey);
+            boolean isAlreadyApplied = studyApplyRepositoryCustom.existsByBoardIdAndMember(boardId, member);
 
             return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
         } catch (MemberNotFoundException exception) {
