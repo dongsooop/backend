@@ -38,16 +38,16 @@ public class JwtFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final JwtValidator jwtValidator;
     private final HandlerExceptionResolver exceptionResolver;
-    private final String[] allowedPaths;
+    private final String[] ignorePaths;
 
     public JwtFilter(JwtUtil jwtUtil,
                      JwtValidator jwtValidator,
                      @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver,
-                     @Value("${authentication.path.all}") String[] allowedPaths) {
+                     @Value("${authentication.filter.ignore.paths}") String[] ignorePaths) {
         this.jwtUtil = jwtUtil;
         this.jwtValidator = jwtValidator;
         this.exceptionResolver = exceptionResolver;
-        this.allowedPaths = allowedPaths;
+        this.ignorePaths = ignorePaths;
     }
 
     @Override
@@ -57,16 +57,19 @@ public class JwtFilter extends OncePerRequestFilter {
         try {
             String token = extractTokenFromHeader(request);
             validateAndSetAuthentication(token);
-            filterChain.doFilter(request, response);
         } catch (TokenMalformedException | TokenNotFoundException | TokenExpiredException |
                  TokenSignatureException | TokenRoleNotAvailableException | TokenUnsupportedException exception) {
             log.error("JWT Filter processing failed with JWT exception: {}", exception.getMessage(), exception);
-            exceptionResolver.resolveException(request, response, null, exception);
         } catch (CustomException exception) {
             log.error("JWT Filter processing failed with custom exception: {}", exception.getMessage(), exception);
-            exceptionResolver.resolveException(request, response, null, exception);
         } catch (Exception exception) {
             log.error("JWT Filter processing failed with unknown exception: {}", exception.getMessage(), exception);
+        }
+
+        try {
+            filterChain.doFilter(request, response);
+        } catch (Exception exception) {
+            log.error("Filter chain processing failed: {}", exception.getMessage(), exception);
             exceptionResolver.resolveException(request, response, null, exception);
         }
     }
@@ -75,11 +78,11 @@ public class JwtFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
 
-        return Arrays.stream(allowedPaths)
+        return Arrays.stream(ignorePaths)
                 .anyMatch(allowPath -> PATH_MATCHER.match(allowPath, path));
     }
 
-    private String extractTokenFromHeader(HttpServletRequest request) {
+    private String extractTokenFromHeader(HttpServletRequest request) throws TokenNotFoundException {
         String tokenHeader = request.getHeader(AUTHORIZATION_HEADER);
 
         if (!StringUtils.hasText(tokenHeader) ||
