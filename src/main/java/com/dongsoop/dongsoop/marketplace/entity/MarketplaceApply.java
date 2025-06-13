@@ -23,12 +23,6 @@ public class MarketplaceApply extends BaseEntity {
     @EmbeddedId
     private MarketplaceApplyId id;
 
-    @Column(name = "introduction")
-    private String introduction;
-
-    @Column(name = "motivation")
-    private String motivation;
-
     @Embeddable
     @NoArgsConstructor(access = AccessLevel.PROTECTED)
     @AllArgsConstructor

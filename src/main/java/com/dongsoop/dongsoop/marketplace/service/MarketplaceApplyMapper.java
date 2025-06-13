@@ -21,8 +21,6 @@ public class MarketplaceApplyMapper {
 
         return MarketplaceApply.builder()
                 .id(id)
-                .introduction(request.introduction())
-                .motivation(request.motivation())
                 .build();
     }
 }
