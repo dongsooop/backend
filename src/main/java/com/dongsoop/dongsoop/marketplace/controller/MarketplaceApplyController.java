@@ -2,9 +2,11 @@ package com.dongsoop.dongsoop.marketplace.controller;
 
 import com.dongsoop.dongsoop.marketplace.dto.ApplyMarketplaceRequest;
 import com.dongsoop.dongsoop.marketplace.service.MarketplaceApplyService;
+import com.dongsoop.dongsoop.role.entity.RoleType;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +19,7 @@ public class MarketplaceApplyController {
     private final MarketplaceApplyService marketplaceApplyService;
 
     @PostMapping
+    @Secured(RoleType.USER_ROLE)
     public ResponseEntity<Void> applyMarketplace(ApplyMarketplaceRequest request) {
         marketplaceApplyService.apply(request);
 
