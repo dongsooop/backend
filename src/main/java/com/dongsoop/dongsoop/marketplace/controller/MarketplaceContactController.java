@@ -23,7 +23,7 @@ public class MarketplaceContactController {
     public ResponseEntity<Void> contactMarketplace(ContactMarketplaceRequest request) {
         marketplaceContactService.contact(request);
 
-        URI uri = URI.create("marketplace-board/" + request.boardId());
+        URI uri = URI.create("/marketplace-board/" + request.boardId());
 
         return ResponseEntity.created(uri)
                 .build();
