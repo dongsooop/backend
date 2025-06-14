@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.marketplace.service;
 
 import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
+import com.dongsoop.dongsoop.exception.domain.s3.S3UnknownException;
 import com.dongsoop.dongsoop.marketplace.dto.CreateMarketplaceBoardRequest;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardDetails;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
@@ -15,6 +16,7 @@ import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.s3.S3Service;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -41,17 +43,27 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
     private final S3Service s3Service;
 
     @Transactional
-    public MarketplaceBoard create(CreateMarketplaceBoardRequest request, MultipartFile image) throws IOException {
+    public MarketplaceBoard create(CreateMarketplaceBoardRequest request, MultipartFile[] images) throws IOException {
         MarketplaceBoard board = marketplaceBoardMapper.toEntity(request);
-        MarketplaceBoard result = marketplaceBoardRepository.save(board);
+        MarketplaceBoard savedBoard = marketplaceBoardRepository.save(board);
 
-        String url = s3Service.upload(image, DIRECTORY_PATH, board.getId());
-        MarketplaceImageId id = new MarketplaceImageId(result, url);
-        MarketplaceImage marketplaceImage = new MarketplaceImage(id);
+        List<MarketplaceImage> imageLinkList = Arrays.stream(images)
+                .map(image -> uploadImage(image, savedBoard))
+                .toList();
 
-        marketplaceImageRepository.save(marketplaceImage);
+        marketplaceImageRepository.saveAll(imageLinkList);
 
-        return result;
+        return savedBoard;
+    }
+
+    private MarketplaceImage uploadImage(MultipartFile image, MarketplaceBoard board) {
+        try {
+            String url = s3Service.upload(image, DIRECTORY_PATH, board.getId());
+            MarketplaceImageId id = new MarketplaceImageId(board, url);
+            return new MarketplaceImage(id);
+        } catch (IOException exception) {
+            throw new S3UnknownException(exception);
+        }
     }
 
     public List<MarketplaceBoardOverview> getMarketplaceBoards(Pageable pageable) {

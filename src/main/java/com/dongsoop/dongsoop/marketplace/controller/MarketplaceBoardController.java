@@ -49,8 +49,8 @@ public class MarketplaceBoardController {
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<Void> createMarketplaceBoard(
             @RequestPart("request") @Valid CreateMarketplaceBoardRequest request,
-            @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
-        MarketplaceBoard board = marketplaceBoardService.create(request, image);
+            @RequestPart(value = "image", required = false) MultipartFile[] images) throws IOException {
+        MarketplaceBoard board = marketplaceBoardService.create(request, images);
 
         URI uri = URI.create("/marketplace-board/" + board.getId());
 

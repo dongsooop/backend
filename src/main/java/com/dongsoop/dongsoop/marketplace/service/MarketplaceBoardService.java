@@ -11,7 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface MarketplaceBoardService {
 
-    MarketplaceBoard create(CreateMarketplaceBoardRequest request, MultipartFile image) throws IOException;
+    MarketplaceBoard create(CreateMarketplaceBoardRequest request, MultipartFile[] images) throws IOException;
 
     List<MarketplaceBoardOverview> getMarketplaceBoards(Pageable pageable);
 
