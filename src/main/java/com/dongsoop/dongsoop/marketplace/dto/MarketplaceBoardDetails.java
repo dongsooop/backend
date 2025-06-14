@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.marketplace.dto;
 
+import io.micrometer.common.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 
@@ -26,6 +27,9 @@ public record MarketplaceBoardDetails(
     }
 
     private static String[] splitImageUrl(String imageUrls) {
+        if (StringUtils.isBlank(imageUrls)) {
+            return new String[0];
+        }
         return Arrays.stream(imageUrls.split(","))
                 .map(String::trim)
                 .toArray(String[]::new);
