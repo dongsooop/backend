@@ -78,8 +78,7 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                         marketplaceBoard.title,
                         marketplaceBoard.content,
                         marketplaceBoard.price,
-                        marketplaceBoard.createdAt,
-                        marketplaceContact.id.applicant)
+                        marketplaceBoard.createdAt)
                 .fetchOne();
 
         return Optional.ofNullable(result);
