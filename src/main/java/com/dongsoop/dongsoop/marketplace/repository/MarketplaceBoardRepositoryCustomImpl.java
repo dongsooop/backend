@@ -9,7 +9,10 @@ import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceContact;
 import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceImage;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.jpa.JPAExpressions;
+import com.querydsl.jpa.JPQLQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -35,13 +38,13 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                         marketplaceBoard.content,
                         marketplaceBoard.price,
                         marketplaceBoard.createdAt,
-                        marketplaceContact.id.applicant.countDistinct(),
-                        marketplaceImage.id.url.min())) // 한 개만 가져오기
+                        marketplaceContact.id.applicant.countDistinct())) // 처음 저장된 이미지 URL 가져오기
                 .from(marketplaceBoard)
                 .leftJoin(marketplaceContact)
                 .on(marketplaceContact.id.marketplaceId.eq(marketplaceBoard.id))
                 .leftJoin(marketplaceImage)
-                .on(marketplaceImage.id.marketplaceBoard.id.eq(marketplaceBoard.id))
+                .on(marketplaceImage.id.marketplaceBoard.id.eq(marketplaceBoard.id)
+                        .and(marketplaceImage.createdAt.eq(getMinCreated()))) // 가장 먼저 저장된 이미지 행 가져오기
                 .where(marketplaceBoard.status.eq(MarketplaceBoardStatus.SELLING))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -79,5 +82,15 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                 .fetchOne();
 
         return Optional.ofNullable(result);
+    }
+
+    /**
+     * @return 가장 먼저 저장된 이미지의 생성일을 나타내는 JPQL 쿼리
+     */
+    private JPQLQuery<LocalDateTime> getMinCreated() {
+        return JPAExpressions
+                .select(marketplaceImage.createdAt.min())
+                .from(marketplaceImage)
+                .where(marketplaceImage.id.marketplaceBoard.eq(marketplaceBoard));
     }
 }
