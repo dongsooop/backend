@@ -38,7 +38,8 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                         marketplaceBoard.content,
                         marketplaceBoard.price,
                         marketplaceBoard.createdAt,
-                        marketplaceContact.id.applicant.countDistinct())) // 처음 저장된 이미지 URL 가져오기
+                        marketplaceContact.id.applicant.countDistinct(),
+                        marketplaceImage.id.url)) // 처음 저장된 이미지 URL 가져오기
                 .from(marketplaceBoard)
                 .leftJoin(marketplaceContact)
                 .on(marketplaceContact.id.marketplaceId.eq(marketplaceBoard.id))
