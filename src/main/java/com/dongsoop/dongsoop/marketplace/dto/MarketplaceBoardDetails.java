@@ -30,7 +30,7 @@ public record MarketplaceBoardDetails(
     }
 
     private static Set<String> splitImageUrl(String imageUrls) {
-        if (StringUtils.hasText(imageUrls)) {
+        if (!StringUtils.hasText(imageUrls)) {
             return Collections.emptySet();
         }
 
