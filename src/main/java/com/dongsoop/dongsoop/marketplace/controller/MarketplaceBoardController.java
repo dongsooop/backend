@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.marketplace.controller;
 
+import com.dongsoop.dongsoop.exception.domain.marketplace.ToManyImagesForMarketplaceException;
 import com.dongsoop.dongsoop.marketplace.dto.CreateMarketplaceBoardRequest;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardDetails;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
@@ -28,6 +29,8 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class MarketplaceBoardController {
 
+    private static final int MAX_IMAGES = 3;
+
     private final MarketplaceBoardService marketplaceBoardService;
 
     @GetMapping
@@ -50,6 +53,9 @@ public class MarketplaceBoardController {
     public ResponseEntity<Void> createMarketplaceBoard(
             @RequestPart("request") @Valid CreateMarketplaceBoardRequest request,
             @RequestPart(value = "image", required = false) MultipartFile[] images) throws IOException {
+        if (images.length > MAX_IMAGES) {
+            throw new ToManyImagesForMarketplaceException(MAX_IMAGES);
+        }
         MarketplaceBoard board = marketplaceBoardService.create(request, images);
 
         URI uri = URI.create("/marketplace-board/" + board.getId());
