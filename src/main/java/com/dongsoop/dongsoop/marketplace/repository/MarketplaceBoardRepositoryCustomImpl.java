@@ -4,8 +4,8 @@ import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardDetails;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceViewType;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoardStatus;
-import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceApply;
 import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceBoard;
+import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceContact;
 import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceImage;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
@@ -22,7 +22,7 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
 
     private static final QMarketplaceBoard marketplaceBoard = QMarketplaceBoard.marketplaceBoard;
 
-    private static final QMarketplaceApply marketplaceApply = QMarketplaceApply.marketplaceApply;
+    private static final QMarketplaceContact marketplaceContact = QMarketplaceContact.marketplaceContact;
 
     private static final QMarketplaceImage marketplaceImage = QMarketplaceImage.marketplaceImage;
 
@@ -35,11 +35,11 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                         marketplaceBoard.content,
                         marketplaceBoard.price,
                         marketplaceBoard.createdAt,
-                        marketplaceApply.id.applicant.countDistinct(),
+                        marketplaceContact.id.applicant.countDistinct(),
                         marketplaceImage.id.url.min())) // 한 개만 가져오기
                 .from(marketplaceBoard)
-                .leftJoin(marketplaceApply)
-                .on(marketplaceApply.id.marketplaceId.eq(marketplaceBoard.id))
+                .leftJoin(marketplaceContact)
+                .on(marketplaceContact.id.marketplaceId.eq(marketplaceBoard.id))
                 .leftJoin(marketplaceImage)
                 .on(marketplaceImage.id.marketplaceBoard.id.eq(marketplaceBoard.id))
                 .where(marketplaceBoard.status.eq(MarketplaceBoardStatus.SELLING))
@@ -50,8 +50,7 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                         marketplaceBoard.title,
                         marketplaceBoard.content,
                         marketplaceBoard.price,
-                        marketplaceBoard.createdAt,
-                        marketplaceApply.id.applicant)
+                        marketplaceBoard.createdAt)
                 .fetch();
     }
 
@@ -62,12 +61,12 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                         marketplaceBoard.content,
                         marketplaceBoard.price,
                         marketplaceBoard.createdAt,
-                        marketplaceApply.id.applicant.countDistinct(),
+                        marketplaceContact.id.applicant.countDistinct(),
                         Expressions.stringTemplate("string_agg({0}, ',')", marketplaceImage.id.url),
                         Expressions.constant(viewType)))
                 .from(marketplaceBoard)
-                .leftJoin(marketplaceApply)
-                .on(marketplaceApply.id.marketplaceId.eq(marketplaceBoard.id))
+                .leftJoin(marketplaceContact)
+                .on(marketplaceContact.id.marketplaceId.eq(marketplaceBoard.id))
                 .leftJoin(marketplaceImage)
                 .on(marketplaceImage.id.marketplaceBoard.id.eq(marketplaceBoard.id))
                 .where(marketplaceBoard.id.eq(id))
@@ -76,7 +75,7 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                         marketplaceBoard.content,
                         marketplaceBoard.price,
                         marketplaceBoard.createdAt,
-                        marketplaceApply.id.applicant)
+                        marketplaceContact.id.applicant)
                 .fetchOne();
 
         return Optional.ofNullable(result);

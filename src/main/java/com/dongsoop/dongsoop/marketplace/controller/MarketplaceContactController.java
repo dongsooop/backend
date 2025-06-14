@@ -1,7 +1,7 @@
 package com.dongsoop.dongsoop.marketplace.controller;
 
-import com.dongsoop.dongsoop.marketplace.dto.ApplyMarketplaceRequest;
-import com.dongsoop.dongsoop.marketplace.service.MarketplaceApplyService;
+import com.dongsoop.dongsoop.marketplace.dto.ContactMarketplaceRequest;
+import com.dongsoop.dongsoop.marketplace.service.MarketplaceContactService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
@@ -12,16 +12,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/marketplace-apply")
+@RequestMapping("/marketplace-contact")
 @RequiredArgsConstructor
-public class MarketplaceApplyController {
+public class MarketplaceContactController {
 
-    private final MarketplaceApplyService marketplaceApplyService;
+    private final MarketplaceContactService marketplaceContactService;
 
     @PostMapping
     @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> applyMarketplace(ApplyMarketplaceRequest request) {
-        marketplaceApplyService.apply(request);
+    public ResponseEntity<Void> contactMarketplace(ContactMarketplaceRequest request) {
+        marketplaceContactService.contact(request);
 
         URI uri = URI.create("marketplace-board/" + request.boardId());
 

@@ -18,15 +18,15 @@ import lombok.experimental.SuperBuilder;
 @Entity
 @SuperBuilder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class MarketplaceApply extends BaseEntity {
+public class MarketplaceContact extends BaseEntity {
 
     @EmbeddedId
-    private MarketplaceApplyId id;
+    private MarketplaceContactId id;
 
     @Embeddable
     @NoArgsConstructor(access = AccessLevel.PROTECTED)
     @AllArgsConstructor
-    public static class MarketplaceApplyId {
+    public static class MarketplaceContactId {
 
         @Column(name = "marketplace_id", nullable = false, updatable = false)
         private Long marketplaceId;
@@ -45,7 +45,7 @@ public class MarketplaceApply extends BaseEntity {
                 return false;
             }
 
-            MarketplaceApplyId thatId = (MarketplaceApplyId) that;
+            MarketplaceContactId thatId = (MarketplaceContactId) that;
             return marketplaceId.equals(thatId.marketplaceId) && applicant.getId().equals(thatId.applicant.getId());
         }
 

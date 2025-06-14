@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.marketplace.dto;
 
-public record ApplyMarketplaceRequest(
+public record ContactMarketplaceRequest(
 
         Long boardId
 ) {
