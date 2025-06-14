@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.marketplace.controller;
 
-import com.dongsoop.dongsoop.exception.domain.marketplace.ToManyImagesForMarketplaceException;
+import com.dongsoop.dongsoop.exception.domain.marketplace.TooManyImagesForMarketplaceException;
 import com.dongsoop.dongsoop.marketplace.dto.CreateMarketplaceBoardRequest;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardDetails;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
@@ -54,7 +54,7 @@ public class MarketplaceBoardController {
             @RequestPart("request") @Valid CreateMarketplaceBoardRequest request,
             @RequestPart(value = "image", required = false) MultipartFile[] images) throws IOException {
         if (images.length > MAX_IMAGES) {
-            throw new ToManyImagesForMarketplaceException(MAX_IMAGES);
+            throw new TooManyImagesForMarketplaceException(MAX_IMAGES);
         }
         MarketplaceBoard board = marketplaceBoardService.create(request, images);
 
