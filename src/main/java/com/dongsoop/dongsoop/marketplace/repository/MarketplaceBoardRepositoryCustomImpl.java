@@ -54,7 +54,8 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                         marketplaceBoard.title,
                         marketplaceBoard.content,
                         marketplaceBoard.price,
-                        marketplaceBoard.createdAt)
+                        marketplaceBoard.createdAt,
+                        marketplaceImage.id.url)
                 .fetch();
     }
 
