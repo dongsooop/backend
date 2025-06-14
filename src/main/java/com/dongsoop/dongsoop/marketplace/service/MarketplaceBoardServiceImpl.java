@@ -47,13 +47,19 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
         MarketplaceBoard board = marketplaceBoardMapper.toEntity(request);
         MarketplaceBoard savedBoard = marketplaceBoardRepository.save(board);
 
+        if (images != null && images.length > 0) {
+            saveImages(images, savedBoard);
+        }
+
+        return savedBoard;
+    }
+
+    private void saveImages(MultipartFile[] images, MarketplaceBoard board) throws IOException {
         List<MarketplaceImage> imageLinkList = Arrays.stream(images)
-                .map(image -> uploadImage(image, savedBoard))
+                .map(image -> uploadImage(image, board))
                 .toList();
 
         marketplaceImageRepository.saveAll(imageLinkList);
-
-        return savedBoard;
     }
 
     private MarketplaceImage uploadImage(MultipartFile image, MarketplaceBoard board) {
