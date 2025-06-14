@@ -1,11 +1,11 @@
 package com.dongsoop.dongsoop.marketplace.dto;
 
-import io.micrometer.common.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.util.StringUtils;
 
 public record MarketplaceBoardDetails(
         Long id,
@@ -30,7 +30,7 @@ public record MarketplaceBoardDetails(
     }
 
     private static Set<String> splitImageUrl(String imageUrls) {
-        if (StringUtils.isBlank(imageUrls)) {
+        if (StringUtils.hasText(imageUrls)) {
             return Collections.emptySet();
         }
 
