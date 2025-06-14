@@ -53,7 +53,7 @@ public class MarketplaceBoardController {
     public ResponseEntity<Void> createMarketplaceBoard(
             @RequestPart("request") @Valid CreateMarketplaceBoardRequest request,
             @RequestPart(value = "image", required = false) MultipartFile[] images) throws IOException {
-        if (images.length > MAX_IMAGES) {
+        if (images != null && images.length > MAX_IMAGES) {
             throw new TooManyImagesForMarketplaceException(MAX_IMAGES);
         }
         MarketplaceBoard board = marketplaceBoardService.create(request, images);
