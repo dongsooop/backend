@@ -39,7 +39,7 @@ public class MarketplaceContactServiceImpl implements MarketplaceContactService 
 
     private void validateBoardExists(Long boardId) {
         boolean isExistsBoard = marketplaceBoardRepository.existsById(boardId);
-        if (isExistsBoard) {
+        if (!isExistsBoard) {
             throw new MarketplaceBoardNotFoundException(boardId);
         }
     }
