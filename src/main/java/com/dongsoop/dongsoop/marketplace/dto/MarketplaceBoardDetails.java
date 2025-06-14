@@ -3,6 +3,9 @@ package com.dongsoop.dongsoop.marketplace.dto;
 import io.micrometer.common.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public record MarketplaceBoardDetails(
         Long id,
@@ -11,7 +14,7 @@ public record MarketplaceBoardDetails(
         Long price,
         LocalDateTime createdAt,
         Long contactCount,
-        String[] imageUrlList,
+        Set<String> imageUrlList,
         MarketplaceViewType viewType
 ) {
     public MarketplaceBoardDetails(Long id, String title, String content, Long price, LocalDateTime createdAt,
@@ -26,12 +29,13 @@ public record MarketplaceBoardDetails(
                 viewType);
     }
 
-    private static String[] splitImageUrl(String imageUrls) {
+    private static Set<String> splitImageUrl(String imageUrls) {
         if (StringUtils.isBlank(imageUrls)) {
-            return new String[0];
+            return Collections.emptySet();
         }
+
         return Arrays.stream(imageUrls.split(","))
                 .map(String::trim)
-                .toArray(String[]::new);
+                .collect(Collectors.toSet());
     }
 }
