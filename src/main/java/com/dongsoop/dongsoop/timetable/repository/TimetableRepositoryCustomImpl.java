@@ -39,9 +39,7 @@ public class TimetableRepositoryCustomImpl implements TimetableRepositoryCustom 
     }
 
     private BooleanExpression validateOverlap(LocalTime startAt, LocalTime endAt) {
-        return timetable.startAt.gt(startAt).and(timetable.startAt.lt(endAt))
-                .or(timetable.endAt.gt(startAt).and(timetable.startAt.lt(endAt)))
-                .or(timetable.startAt.lt(startAt).and(timetable.endAt.gt(endAt)));
+        return timetable.startAt.lt(endAt).and(timetable.endAt.gt(startAt));
     }
 
     public boolean existsByIdAndMemberId(Long id, Long memberId) {
