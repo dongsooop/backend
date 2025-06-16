@@ -11,4 +11,6 @@ public interface TimetableRepositoryCustom {
 
     Optional<OverlapTimetable> findOverlapWithinRange(Long memberId, Year year, SemesterType semester, DayOfWeek week,
                                                       LocalTime startAt, LocalTime endAt);
+
+    boolean existsByIdAndMemberId(Long id, Long memberId);
 }

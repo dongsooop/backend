@@ -17,6 +17,7 @@ import java.time.LocalTime;
 import java.time.Year;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
@@ -24,6 +25,7 @@ import org.hibernate.annotations.SQLRestriction;
 @NoArgsConstructor
 @SequenceGenerator(name = "timetable_sequence_generator")
 @SQLRestriction("is_deleted = false")
+@SQLDelete(sql = "UPDATE timetable SET is_deleted = true WHERE id = ?")
 public class Timetable extends BaseEntity {
 
     @Id

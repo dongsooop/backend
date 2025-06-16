@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.timetable.service;
 
+import com.dongsoop.dongsoop.exception.domain.timetable.TimetableNotOwnedException;
 import com.dongsoop.dongsoop.exception.domain.timetable.TimetableOverlapException;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
@@ -57,5 +58,15 @@ public class TimetableServiceImpl implements TimetableService {
             throw new TimetableOverlapException(request.startAt(), request.endAt(), overlapTimetable.startAt(),
                     overlapTimetable.endAt());
         });
+    }
+
+    public void deleteTimetable(Long timetableId) {
+        Long memberId = memberService.getMemberIdByAuthentication();
+        boolean isRequesterIsOwner = timetableRepositoryCustom.existsByIdAndMemberId(timetableId, memberId);
+        if (!isRequesterIsOwner) { // 요청자가 소유자가 아닌 경우
+            throw new TimetableNotOwnedException(timetableId, memberId);
+        }
+
+        timetableRepository.deleteById(timetableId);
     }
 }

@@ -43,4 +43,12 @@ public class TimetableRepositoryCustomImpl implements TimetableRepositoryCustom 
                 .or(timetable.endAt.between(startAt, endAt))
                 .or(timetable.startAt.loe(startAt).and(timetable.endAt.goe(endAt)));
     }
+
+    public boolean existsByIdAndMemberId(Long id, Long memberId) {
+        return queryFactory
+                .selectFrom(timetable)
+                .where(timetable.id.eq(id)
+                        .and(timetable.member.id.eq(memberId)))
+                .fetchOne() != null;
+    }
 }
