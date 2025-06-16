@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.timetable.controller;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import com.dongsoop.dongsoop.timetable.dto.CreateTimetableRequest;
 import com.dongsoop.dongsoop.timetable.dto.TimetableView;
+import com.dongsoop.dongsoop.timetable.dto.UpdateTimetableRequest;
 import com.dongsoop.dongsoop.timetable.entity.SemesterType;
 import com.dongsoop.dongsoop.timetable.service.TimetableService;
 import jakarta.validation.Valid;
@@ -14,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -49,6 +51,13 @@ public class TimetableController {
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<Void> deleteTimetable(@PathVariable("timetableId") Long timetableId) {
         timetableService.deleteTimetable(timetableId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<Void> updateTimetable(@RequestBody @Valid UpdateTimetableRequest request) {
+        timetableService.updateTimetable(request);
         return ResponseEntity.noContent().build();
     }
 }

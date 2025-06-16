@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.timetable.entity;
 
 import com.dongsoop.dongsoop.common.BaseEntity;
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.timetable.dto.UpdateTimetableRequest;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -51,13 +52,39 @@ public class Timetable extends BaseEntity {
     private LocalTime endAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
+    @JoinColumn(name = "member_id", nullable = false, updatable = false)
     private Member member;
 
-    @Column(name = "year", nullable = false)
+    @Column(name = "year", nullable = false, updatable = false)
     private Year year;
 
-    @Column(name = "semester", nullable = false)
+    @Column(name = "semester", nullable = false, updatable = false)
     @Enumerated(EnumType.STRING)
     private SemesterType semester;
+
+    public void update(UpdateTimetableRequest request) {
+        if (request.name() != null) {
+            this.name = request.name();
+        }
+
+        if (request.professor() != null) {
+            this.professor = request.professor();
+        }
+
+        if (request.location() != null) {
+            this.location = request.location();
+        }
+
+        if (request.week() != null) {
+            this.week = request.week();
+        }
+
+        if (request.startAt() != null) {
+            this.startAt = request.startAt();
+        }
+
+        if (request.endAt() != null) {
+            this.endAt = request.endAt();
+        }
+    }
 }

@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.timetable.service;
 
+import com.dongsoop.dongsoop.exception.domain.timetable.TimetableNotFoundException;
 import com.dongsoop.dongsoop.exception.domain.timetable.TimetableNotOwnedException;
 import com.dongsoop.dongsoop.exception.domain.timetable.TimetableOverlapException;
 import com.dongsoop.dongsoop.member.entity.Member;
@@ -7,6 +8,7 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.timetable.dto.CreateTimetableRequest;
 import com.dongsoop.dongsoop.timetable.dto.OverlapTimetable;
 import com.dongsoop.dongsoop.timetable.dto.TimetableView;
+import com.dongsoop.dongsoop.timetable.dto.UpdateTimetableRequest;
 import com.dongsoop.dongsoop.timetable.entity.SemesterType;
 import com.dongsoop.dongsoop.timetable.entity.Timetable;
 import com.dongsoop.dongsoop.timetable.repository.TimetableRepository;
@@ -61,12 +63,26 @@ public class TimetableServiceImpl implements TimetableService {
     }
 
     public void deleteTimetable(Long timetableId) {
+        validateOwner(timetableId);
+        timetableRepository.deleteById(timetableId);
+    }
+
+    public void updateTimetable(UpdateTimetableRequest request) {
+        validateOwner(request.id());
+
+        Timetable timetable = timetableRepository.findById(request.id())
+                .orElseThrow(() -> new TimetableNotFoundException(request.id()));
+
+        timetable.update(request);
+
+        timetableRepository.save(timetable);
+    }
+
+    private void validateOwner(Long timetableId) {
         Long memberId = memberService.getMemberIdByAuthentication();
         boolean isRequesterIsOwner = timetableRepositoryCustom.existsByIdAndMemberId(timetableId, memberId);
         if (!isRequesterIsOwner) { // 요청자가 소유자가 아닌 경우
             throw new TimetableNotOwnedException(timetableId, memberId);
         }
-
-        timetableRepository.deleteById(timetableId);
     }
 }
