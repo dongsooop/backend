@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.date;
 
+import com.dongsoop.dongsoop.exception.domain.date.TimeTypeMismatchException;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import java.lang.reflect.Field;
@@ -51,6 +52,6 @@ public class EndAtAfterStartAtValidator implements ConstraintValidator<EndAtAfte
             return endAt.isAfter(startAt);
         }
 
-        return false;
+        throw new TimeTypeMismatchException();
     }
 }
