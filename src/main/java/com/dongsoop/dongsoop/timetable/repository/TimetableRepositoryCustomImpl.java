@@ -51,4 +51,23 @@ public class TimetableRepositoryCustomImpl implements TimetableRepositoryCustom 
                         .and(timetable.member.id.eq(memberId)))
                 .fetchOne() != null;
     }
+
+    public Optional<OverlapTimetable> findOverlapWithinRangeExcludingSelf(Long timetableId, Long memberId, Year year,
+                                                                          SemesterType semester,
+                                                                          DayOfWeek week,
+                                                                          LocalTime startAt, LocalTime endAt) {
+        OverlapTimetable result = queryFactory
+                .select(Projections.constructor(OverlapTimetable.class,
+                        timetable.startAt, timetable.endAt))
+                .from(timetable)
+                .where(timetable.semester.eq(semester)
+                        .and(timetable.year.eq(year))
+                        .and(timetable.member.id.eq(memberId))
+                        .and(timetable.week.eq(week))
+                        .and(validateOverlap(startAt, endAt))
+                        .and(timetable.id.ne(timetableId)))
+                .fetchFirst();
+
+        return Optional.ofNullable(result);
+    }
 }

@@ -9,6 +9,7 @@ import com.dongsoop.dongsoop.timetable.dto.CreateTimetableRequest;
 import com.dongsoop.dongsoop.timetable.dto.OverlapTimetable;
 import com.dongsoop.dongsoop.timetable.dto.TimetableView;
 import com.dongsoop.dongsoop.timetable.dto.UpdateTimetableRequest;
+import com.dongsoop.dongsoop.timetable.dto.YearSemester;
 import com.dongsoop.dongsoop.timetable.entity.SemesterType;
 import com.dongsoop.dongsoop.timetable.entity.Timetable;
 import com.dongsoop.dongsoop.timetable.repository.TimetableRepository;
@@ -70,6 +71,10 @@ public class TimetableServiceImpl implements TimetableService {
     public void updateTimetable(UpdateTimetableRequest request) {
         validateOwner(request.id());
 
+        // 업데이트 시간과 겹치는 시간이 있는지
+        YearSemester yearSemester = timetableRepository.findYearSemesterById(request.id());
+        validateOverlapTimetable(request, yearSemester.getYear(), yearSemester.getSemester());
+
         Timetable timetable = timetableRepository.findById(request.id())
                 .orElseThrow(() -> new TimetableNotFoundException(request.id()));
 
@@ -84,5 +89,24 @@ public class TimetableServiceImpl implements TimetableService {
         if (!isRequesterIsOwner) { // 요청자가 소유자가 아닌 경우
             throw new TimetableNotOwnedException(timetableId, memberId);
         }
+    }
+
+    public void validateOverlapTimetable(UpdateTimetableRequest request, Year year, SemesterType semester) {
+
+        Long memberId = memberService.getMemberIdByAuthentication();
+
+        Optional<OverlapTimetable> optionalOverlapTimetable = timetableRepositoryCustom.findOverlapWithinRangeExcludingSelf(
+                request.id(),
+                memberId,
+                year,
+                semester,
+                request.week(),
+                request.startAt(),
+                request.endAt());
+
+        optionalOverlapTimetable.ifPresent(overlapTimetable -> {
+            throw new TimetableOverlapException(request.startAt(), request.endAt(), overlapTimetable.startAt(),
+                    overlapTimetable.endAt());
+        });
     }
 }
