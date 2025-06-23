@@ -8,8 +8,8 @@ import com.dongsoop.dongsoop.date.TodayOrFuture;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,7 +26,7 @@ public record CreateStudyBoardRequest(
         String content,
 
         @Nullable
-        @NotEmpty
+        @Pattern(regexp = "^[a-zA-Z0-9가-힣]+$", message = "태그는 공백을 포함하지 않는 영문, 숫자, 한글만 허용됩니다.")
         @Size(max = 100)
         String tags,
 
