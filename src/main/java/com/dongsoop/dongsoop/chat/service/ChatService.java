@@ -285,30 +285,36 @@ public class ChatService {
     private ChatMessage checkFirstTimeEntryAndCreateEnterMessage(String roomId, Long userId) {
         chatValidator.validateUserForRoom(roomId, userId);
 
-        if (isFirstTimeEntry(roomId, userId)) {
+        boolean shouldCreateEnterMessage = isFirstTimeEntry(roomId, userId);
+
+        if (shouldCreateEnterMessage) {
             return createAndSaveSystemMessage(roomId, userId, MessageType.ENTER);
         }
         return null;
+    }
+
+    private boolean isNewInvitedUser(String roomId, ChatRoom room, Long userId, LocalDateTime userJoinTime) {
+        LocalDateTime roomCreatedAt = room.getCreatedAt();
+        boolean isLaterThanRoomCreation = userJoinTime.isAfter(roomCreatedAt);
+
+        return isLaterThanRoomCreation && hasNotEnteredBefore(roomId, userId, userJoinTime);
     }
 
     private boolean isFirstTimeEntry(String roomId, Long userId) {
         ChatRoom room = getChatRoomById(roomId);
         LocalDateTime userJoinTime = room.getJoinTime(userId);
 
-        if (userJoinTime == null) {
-            return true;
-        }
-        return !hasUserEnteredBefore(roomId, userId, userJoinTime);
+        return Objects.isNull(userJoinTime) || isNewInvitedUser(roomId, room, userId, userJoinTime);
     }
 
-    private boolean hasUserEnteredBefore(String roomId, Long userId, LocalDateTime joinTime) {
+    private boolean hasNotEnteredBefore(String roomId, Long userId, LocalDateTime joinTime) {
         List<ChatMessage> enterMessages = redisChatRepository.findMessagesByRoomIdAfterTime(roomId, joinTime)
                 .stream()
                 .filter(msg -> msg.getType() == MessageType.ENTER)
                 .filter(msg -> msg.getSenderId().equals(userId))
                 .toList();
 
-        return !enterMessages.isEmpty();
+        return enterMessages.isEmpty();
     }
 
     private void processUserLeaveWithMessage(ChatRoom room, String roomId, Long userId) {
