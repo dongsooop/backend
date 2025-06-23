@@ -146,7 +146,7 @@ public class MemberServiceImpl implements MemberService {
         }
     }
 
-    private void checkEmailDuplication(String email) {
+    public void checkEmailDuplication(String email) {
         boolean isExists = memberRepository.existsByEmail(email);
 
         if (isExists) {
