@@ -6,12 +6,13 @@ import com.dongsoop.dongsoop.date.MaxDuration;
 import com.dongsoop.dongsoop.date.MinDuration;
 import com.dongsoop.dongsoop.date.TodayOrFuture;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.List;
-import org.hibernate.validator.constraints.Length;
 
 @MaxDuration // 최대 4주 (28일)
 @MinDuration // 최소 하루
@@ -24,7 +25,9 @@ public record CreateTutoringBoardRequest(
         @NotBlank
         String content,
 
-        @Length(max = 100)
+        @Nullable
+        @NotEmpty
+        @Size(max = 100)
         String tags,
 
         @NotNull
