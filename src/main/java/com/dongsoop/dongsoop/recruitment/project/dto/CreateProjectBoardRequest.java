@@ -6,6 +6,7 @@ import com.dongsoop.dongsoop.date.MaxDuration;
 import com.dongsoop.dongsoop.date.MinDuration;
 import com.dongsoop.dongsoop.date.TodayOrFuture;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.recruitment.validation.annotation.BoardTag;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -23,7 +24,7 @@ public record CreateProjectBoardRequest(
         @NotBlank
         String content,
 
-        @NotBlank
+        @BoardTag
         String tags,
 
         @NotNull
