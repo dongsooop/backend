@@ -9,7 +9,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -284,10 +287,10 @@ public class ChatService {
 
         boolean shouldCreateEnterMessage = isFirstTimeEntry(roomId, userId);
 
-        return Optional.of(shouldCreateEnterMessage)
-                .filter(Boolean::booleanValue)
-                .map(b -> createAndSaveSystemMessage(roomId, userId, MessageType.ENTER))
-                .orElse(null);
+        if (shouldCreateEnterMessage) {
+            return createAndSaveSystemMessage(roomId, userId, MessageType.ENTER);
+        }
+        return null;
     }
 
     private boolean isNewInvitedUser(String roomId, ChatRoom room, Long userId, LocalDateTime userJoinTime) {
