@@ -148,6 +148,7 @@ public class MemberServiceImpl implements MemberService {
         }
     }
 
+    @Transactional(readOnly = true)
     public void checkNicknameDuplication(String nickname) {
         boolean isExists = memberRepository.existsByNickname(nickname);
 
@@ -156,6 +157,7 @@ public class MemberServiceImpl implements MemberService {
         }
     }
 
+    @Transactional(readOnly = true)
     public void checkEmailDuplication(String email) {
         boolean isExists = memberRepository.existsByEmail(email);
 
