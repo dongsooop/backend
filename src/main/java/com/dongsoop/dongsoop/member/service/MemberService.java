@@ -21,4 +21,6 @@ public interface MemberService {
     Long getMemberIdByAuthentication();
 
     void checkEmailDuplication(String email);
+
+    void checkNicknameDuplication(String nickname);
 }

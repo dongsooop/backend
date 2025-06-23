@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.member.dto.EmailValidateRequest;
 import com.dongsoop.dongsoop.member.dto.LoginDetails;
 import com.dongsoop.dongsoop.member.dto.LoginRequest;
 import com.dongsoop.dongsoop.member.dto.LoginResponse;
+import com.dongsoop.dongsoop.member.dto.NicknameValidateRequest;
 import com.dongsoop.dongsoop.member.dto.SignupRequest;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import jakarta.validation.Valid;
@@ -45,6 +46,13 @@ public class MemberController {
     @PostMapping("/validate/email")
     public ResponseEntity<Void> validateEmail(@RequestBody @Valid EmailValidateRequest request) {
         memberService.checkEmailDuplication(request.email());
+        return ResponseEntity.noContent()
+                .build();
+    }
+
+    @PostMapping("/validate/nickname")
+    public ResponseEntity<Void> validateNickname(@RequestBody @Valid NicknameValidateRequest request) {
+        memberService.checkNicknameDuplication(request.nickname());
         return ResponseEntity.noContent()
                 .build();
     }

@@ -7,6 +7,7 @@ import com.dongsoop.dongsoop.exception.domain.authentication.NotAuthenticationEx
 import com.dongsoop.dongsoop.exception.domain.member.EmailDuplicatedException;
 import com.dongsoop.dongsoop.exception.domain.member.InvalidPasswordFormatException;
 import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
+import com.dongsoop.dongsoop.exception.domain.member.NicknameDuplicatedException;
 import com.dongsoop.dongsoop.jwt.TokenGenerator;
 import com.dongsoop.dongsoop.jwt.dto.IssuedToken;
 import com.dongsoop.dongsoop.member.dto.LoginAuthenticate;
@@ -56,6 +57,7 @@ public class MemberServiceImpl implements MemberService {
     @Transactional
     public void signup(SignupRequest request) {
         checkEmailDuplication(request.getEmail());
+        checkNicknameDuplication(request.getNickname());
 
         Member member = transformToMemberBySignupRequest(request);
         memberRepository.save(member);
@@ -143,6 +145,14 @@ public class MemberServiceImpl implements MemberService {
     private void validatePassword(String loginPassword, String password) {
         if (!passwordEncoder.matches(loginPassword, password)) {
             throw new InvalidPasswordFormatException();
+        }
+    }
+
+    public void checkNicknameDuplication(String nickname) {
+        boolean isExists = memberRepository.existsByNickname(nickname);
+
+        if (isExists) {
+            throw new NicknameDuplicatedException();
         }
     }
 
