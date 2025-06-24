@@ -8,6 +8,7 @@ import com.dongsoop.dongsoop.member.dto.LoginResponse;
 import com.dongsoop.dongsoop.member.dto.NicknameValidateRequest;
 import com.dongsoop.dongsoop.member.dto.SignupRequest;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.member.validate.MemberDuplicationValidator;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class MemberController {
 
     private final MemberService memberService;
+
+    private final MemberDuplicationValidator memberDuplicationValidator;
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody @Valid SignupRequest signupRequest) {
@@ -46,14 +49,14 @@ public class MemberController {
 
     @PostMapping("/validate/email")
     public ResponseEntity<Void> validateEmail(@RequestBody @Valid EmailValidateRequest request) {
-        memberService.checkEmailDuplication(request.email());
+        memberDuplicationValidator.validateEmailDuplication(request.email());
         return ResponseEntity.noContent()
                 .build();
     }
 
     @PostMapping("/validate/nickname")
     public ResponseEntity<Void> validateNickname(@RequestBody @Valid NicknameValidateRequest request) {
-        memberService.checkNicknameDuplication(request.nickname());
+        memberDuplicationValidator.validateNicknameDuplication(request.nickname());
         return ResponseEntity.noContent()
                 .build();
     }
