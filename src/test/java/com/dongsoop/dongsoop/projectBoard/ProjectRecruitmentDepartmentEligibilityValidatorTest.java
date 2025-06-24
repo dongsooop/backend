@@ -19,6 +19,7 @@ import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoard;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment.ProjectBoardDepartmentId;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectApplyRepository;
+import com.dongsoop.dongsoop.recruitment.project.repository.ProjectApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardRepository;
 import com.dongsoop.dongsoop.recruitment.project.service.ProjectApplyServiceImpl;
@@ -47,6 +48,9 @@ class ProjectRecruitmentDepartmentEligibilityValidatorTest {
     private ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
 
     @Mock
+    private ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
+
+    @Mock
     private MemberService memberService;
 
     @Test
@@ -54,15 +58,20 @@ class ProjectRecruitmentDepartmentEligibilityValidatorTest {
     void should_Throw_Exception_If_Member_Department_Mismatch_Board() {
         // given
         Long boardId = 1L;
+        Long memberId = 1L;
         Department boardDepartment = new Department(DepartmentType.DEPT_2001, null, null); // 게시판 요구 학과
         Department memberDepartment = new Department(DepartmentType.DEPT_3001, null, null); // 사용자 학과
 
         // Security Context 조회 시 학과가 DEPT_3001인 회원이 조회됨
         Member member = Member.builder()
+                .id(memberId)
                 .department(memberDepartment)
                 .build();
         when(memberService.getMemberReferenceByContext())
                 .thenReturn(member);
+
+        when(projectApplyRepositoryCustom.existsByBoardIdAndMemberId(eq(boardId), eq(memberId))) // null은 회원 ID를 의미
+                .thenReturn(false);
 
         // 게시판 조회 시 Id가 1인 게시판 조회
         ProjectBoard projectBoard = ProjectBoard.builder()
