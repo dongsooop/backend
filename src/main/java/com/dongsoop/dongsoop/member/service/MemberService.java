@@ -23,4 +23,6 @@ public interface MemberService {
     void checkEmailDuplication(String email);
 
     void checkNicknameDuplication(String nickname);
+
+    void deleteMember();
 }
