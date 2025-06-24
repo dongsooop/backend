@@ -282,12 +282,10 @@ public class ChatService {
         return joinTime;
     }
 
-    private ChatMessage checkFirstTimeEntryAndCreateEnterMessage(String roomId, Long userId) {
+    public ChatMessage checkFirstTimeEntryAndCreateEnterMessage(String roomId, Long userId) {
         chatValidator.validateUserForRoom(roomId, userId);
 
-        boolean shouldCreateEnterMessage = isFirstTimeEntry(roomId, userId);
-
-        if (shouldCreateEnterMessage) {
+        if (isFirstTimeEntry(roomId, userId)) {
             return createAndSaveSystemMessage(roomId, userId, MessageType.ENTER);
         }
         return null;
