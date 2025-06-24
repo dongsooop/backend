@@ -17,14 +17,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-@SQLRestriction("is_deleted = false")
 @Table(name = "member")
 public class Member extends BaseEntity {
 
@@ -53,6 +51,7 @@ public class Member extends BaseEntity {
         this.nickname = "익명_" + id;
         this.password = "deleted";
         this.studentId = null;
+        super.isDeleted = true;
         super.updatedAt = LocalDateTime.now();
     }
 }

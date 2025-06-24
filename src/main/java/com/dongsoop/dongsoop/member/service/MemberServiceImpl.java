@@ -188,6 +188,7 @@ public class MemberServiceImpl implements MemberService {
         throw new NotAuthenticationException();
     }
 
+    @Transactional
     public void deleteMember() {
         // 요청 사용자 id
         Long requesterId = getMemberIdByAuthentication();
@@ -195,8 +196,11 @@ public class MemberServiceImpl implements MemberService {
         Member member = memberRepository.findById(requesterId)
                 .orElseThrow(MemberNotFoundException::new);
 
+        if (member.isDeleted()) {
+            throw new MemberNotFoundException();
+        }
+
         // 가명 처리
         member.delete();
-        memberRepository.save(member);
     }
 }
