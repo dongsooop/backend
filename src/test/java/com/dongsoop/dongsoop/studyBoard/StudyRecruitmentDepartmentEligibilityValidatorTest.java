@@ -19,6 +19,7 @@ import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoard;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardDepartment.StudyBoardDepartmentId;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyApplyRepository;
+import com.dongsoop.dongsoop.recruitment.study.repository.StudyApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepository;
 import com.dongsoop.dongsoop.recruitment.study.service.StudyApplyServiceImpl;
@@ -47,6 +48,9 @@ class StudyRecruitmentDepartmentEligibilityValidatorTest {
     private StudyBoardDepartmentRepository studyBoardDepartmentRepository;
 
     @Mock
+    private StudyApplyRepositoryCustom studyApplyRepositoryCustom;
+
+    @Mock
     private MemberService memberService;
 
     @Test
@@ -63,6 +67,9 @@ class StudyRecruitmentDepartmentEligibilityValidatorTest {
                 .build();
         when(memberService.getMemberReferenceByContext())
                 .thenReturn(member);
+
+        when(studyApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, null)) // null은 회원 ID를 의미
+                .thenReturn(false);
 
         // 게시판 조회 시 Id가 1인 게시판 조회
         StudyBoard studyBoard = StudyBoard.builder()

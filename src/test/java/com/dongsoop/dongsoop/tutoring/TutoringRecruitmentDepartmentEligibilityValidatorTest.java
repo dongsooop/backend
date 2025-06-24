@@ -17,6 +17,7 @@ import com.dongsoop.dongsoop.recruitment.tutoring.dto.ApplyTutoringBoardRequest;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringApply;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringBoard;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringApplyRepository;
+import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepository;
 import com.dongsoop.dongsoop.recruitment.tutoring.service.TutoringApplyServiceImpl;
 import java.util.Optional;
@@ -40,6 +41,9 @@ class TutoringRecruitmentDepartmentEligibilityValidatorTest {
     private TutoringApplyRepository tutoringApplyRepository;
 
     @Mock
+    private TutoringApplyRepositoryCustom tutoringApplyRepositoryCustom;
+
+    @Mock
     private MemberService memberService;
 
     @Test
@@ -56,6 +60,9 @@ class TutoringRecruitmentDepartmentEligibilityValidatorTest {
                 .build();
         when(memberService.getMemberReferenceByContext())
                 .thenReturn(member);
+
+        when(tutoringApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, null)) // null은 회원 ID를 의미
+                .thenReturn(false);
 
         // 게시판 조회 시 Id가 1인 게시판 조회
         TutoringBoard tutoringBoard = TutoringBoard.builder()

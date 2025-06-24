@@ -19,6 +19,7 @@ import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoard;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment.ProjectBoardDepartmentId;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectApplyRepository;
+import com.dongsoop.dongsoop.recruitment.project.repository.ProjectApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardRepository;
 import com.dongsoop.dongsoop.recruitment.project.service.ProjectApplyServiceImpl;
@@ -47,6 +48,9 @@ class ProjectRecruitmentDepartmentEligibilityValidatorTest {
     private ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
 
     @Mock
+    private ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
+
+    @Mock
     private MemberService memberService;
 
     @Test
@@ -63,6 +67,9 @@ class ProjectRecruitmentDepartmentEligibilityValidatorTest {
                 .build();
         when(memberService.getMemberReferenceByContext())
                 .thenReturn(member);
+
+        when(projectApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, null)) // null은 회원 ID를 의미
+                .thenReturn(false);
 
         // 게시판 조회 시 Id가 1인 게시판 조회
         ProjectBoard projectBoard = ProjectBoard.builder()
