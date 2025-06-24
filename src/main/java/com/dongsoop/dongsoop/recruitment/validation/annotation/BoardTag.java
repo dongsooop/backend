@@ -18,7 +18,7 @@ import java.lang.annotation.Target;
 @ReportAsSingleViolation
 public @interface BoardTag {
 
-    String message() default "태그는 한글, 영문, 숫자만 포함할 수 있으며 콤마(,)를 포함한 최대 100자입니다";
+    String message() default "태그는 한글, 영문, 숫자만 포함할 수 있으며 쉼표(,)를 포함한 최대 100자입니다";
 
     Class<?>[] groups() default {};
 
