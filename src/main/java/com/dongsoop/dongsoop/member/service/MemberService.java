@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.member.service;
 
-import com.dongsoop.dongsoop.member.dto.LoginAuthenticate;
 import com.dongsoop.dongsoop.member.dto.LoginDetails;
 import com.dongsoop.dongsoop.member.dto.LoginRequest;
 import com.dongsoop.dongsoop.member.dto.SignupRequest;
@@ -12,15 +11,9 @@ public interface MemberService {
 
     LoginDetails login(LoginRequest loginRequest);
 
-    LoginAuthenticate getLoginAuthenticateByNickname(String nickname);
-
     Member getMemberReferenceByContext();
 
     String getNicknameById(Long userId);
 
     Long getMemberIdByAuthentication();
-
-    void checkEmailDuplication(String email);
-
-    void checkNicknameDuplication(String nickname);
 }

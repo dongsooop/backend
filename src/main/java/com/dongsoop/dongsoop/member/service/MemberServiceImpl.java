@@ -4,10 +4,8 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.service.DepartmentService;
 import com.dongsoop.dongsoop.exception.domain.authentication.NotAuthenticationException;
-import com.dongsoop.dongsoop.exception.domain.member.EmailDuplicatedException;
 import com.dongsoop.dongsoop.exception.domain.member.InvalidPasswordFormatException;
 import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
-import com.dongsoop.dongsoop.exception.domain.member.NicknameDuplicatedException;
 import com.dongsoop.dongsoop.jwt.TokenGenerator;
 import com.dongsoop.dongsoop.jwt.dto.IssuedToken;
 import com.dongsoop.dongsoop.member.dto.LoginAuthenticate;
@@ -18,6 +16,7 @@ import com.dongsoop.dongsoop.member.dto.SignupRequest;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.repository.MemberRepositoryCustom;
+import com.dongsoop.dongsoop.member.validate.MemberDuplicationValidator;
 import com.dongsoop.dongsoop.role.entity.MemberRole;
 import com.dongsoop.dongsoop.role.entity.Role;
 import com.dongsoop.dongsoop.role.entity.RoleType;
@@ -54,10 +53,12 @@ public class MemberServiceImpl implements MemberService {
 
     private final TokenGenerator tokenGenerator;
 
+    private final MemberDuplicationValidator memberDuplicationValidator;
+
     @Transactional
     public void signup(SignupRequest request) {
-        checkEmailDuplication(request.getEmail());
-        checkNicknameDuplication(request.getNickname());
+        memberDuplicationValidator.validateEmailDuplication(request.getEmail());
+        memberDuplicationValidator.validateNicknameDuplication(request.getNickname());
 
         Member member = transformToMemberBySignupRequest(request);
         memberRepository.save(member);
@@ -121,11 +122,6 @@ public class MemberServiceImpl implements MemberService {
         return optionalAuthenticate.orElseThrow(MemberNotFoundException::new);
     }
 
-    public LoginAuthenticate getLoginAuthenticateByNickname(String nickname) {
-        Optional<LoginAuthenticate> optionalAuthenticate = memberRepository.findLoginAuthenticateByNickname(nickname);
-        return optionalAuthenticate.orElseThrow(MemberNotFoundException::new);
-    }
-
     public Member getMemberReferenceByContext() {
         Long id = getMemberIdByContext();
         return memberRepository.getReferenceById(id);
@@ -145,24 +141,6 @@ public class MemberServiceImpl implements MemberService {
     private void validatePassword(String loginPassword, String password) {
         if (!passwordEncoder.matches(loginPassword, password)) {
             throw new InvalidPasswordFormatException();
-        }
-    }
-
-    @Transactional(readOnly = true)
-    public void checkNicknameDuplication(String nickname) {
-        boolean isExists = memberRepository.existsByNickname(nickname);
-
-        if (isExists) {
-            throw new NicknameDuplicatedException();
-        }
-    }
-
-    @Transactional(readOnly = true)
-    public void checkEmailDuplication(String email) {
-        boolean isExists = memberRepository.existsByEmail(email);
-
-        if (isExists) {
-            throw new EmailDuplicatedException();
         }
     }
 
