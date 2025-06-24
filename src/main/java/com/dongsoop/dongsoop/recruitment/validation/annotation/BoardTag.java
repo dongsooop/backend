@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
-@Pattern(regexp = "^[a-zA-Z0-9가-힣]+[a-zA-Z0-9가-힣,]*$")
+@Pattern(regexp = "^[a-zA-Z0-9가-힣]+(,[a-zA-Z0-9가-힣])*$")
 @Size(max = 100)
 @Constraint(validatedBy = {})
 public @interface BoardTag {
