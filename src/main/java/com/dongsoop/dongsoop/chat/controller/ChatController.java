@@ -82,10 +82,11 @@ public class ChatController {
     }
 
     @GetMapping("/room/{roomId}/enter")
-    public ResponseEntity<Void> enterRoom(@PathVariable("roomId") String roomId) {
+    public ResponseEntity<ChatMessage> enterRoom(@PathVariable("roomId") String roomId) {
         Long currentUserId = getCurrentUserId();
         chatService.enterChatRoom(roomId, currentUserId);
-        return ResponseEntity.ok().build();
+        ChatMessage enterMessage = chatService.checkFirstTimeEntryAndCreateEnterMessage(roomId, currentUserId);
+        return ResponseEntity.ok(enterMessage);
     }
 
     @PostMapping("/room/{roomId}/leave")
