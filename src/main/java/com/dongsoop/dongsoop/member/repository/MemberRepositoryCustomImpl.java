@@ -37,7 +37,7 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
                 .set(member.email, "deleted_" + id)
                 .set(member.nickname, "익명_" + id)
                 .set(member.password, "deleted")
-                .set(member.studentId, (String) null)
+                .setNull(member.studentId)
                 .set(member.isDeleted, true)
                 .set(member.updatedAt, LocalDateTime.now())
                 .where(member.isDeleted.eq(false)
