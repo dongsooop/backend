@@ -83,7 +83,9 @@ public class MemberServiceImpl implements MemberService {
                 .build();
     }
 
+    @Transactional
     public LoginDetails login(LoginRequest loginRequest) {
+        validateMemberExists(loginRequest.getEmail());
         LoginAuthenticate loginAuthenticate = getLoginAuthenticate(loginRequest.getEmail());
 
         String password = loginAuthenticate.getPassword();
@@ -100,6 +102,13 @@ public class MemberServiceImpl implements MemberService {
                 .orElseThrow(MemberNotFoundException::new);
 
         return new LoginDetails(loginMemberDetails, issuedToken);
+    }
+
+    private void validateMemberExists(String email) {
+        boolean isMemberExists = memberRepository.existsByEmailAndDeletedFalse(email);
+        if (!isMemberExists) {
+            throw new MemberNotFoundException();
+        }
     }
 
     private Authentication getAuthenticationByLoginAuthenticate(LoginAuthenticate loginAuthenticate) {
