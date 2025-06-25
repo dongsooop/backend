@@ -3,6 +3,8 @@ package com.dongsoop.dongsoop.marketplace.entity;
 import com.dongsoop.dongsoop.board.Board;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -32,4 +34,8 @@ public class MarketplaceBoard extends Board {
     @Builder.Default
     @Column(name = "status", nullable = false)
     private MarketplaceBoardStatus status = MarketplaceBoardStatus.SELLING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false)
+    private MarketplaceType type;
 }
