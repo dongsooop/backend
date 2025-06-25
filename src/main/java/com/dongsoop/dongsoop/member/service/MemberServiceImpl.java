@@ -25,6 +25,7 @@ import com.dongsoop.dongsoop.role.repository.RoleRepository;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -187,6 +188,8 @@ public class MemberServiceImpl implements MemberService {
         Long requesterId = getMemberIdByAuthentication();
 
         // 가명처리
-        memberRepositoryCustom.softDelete(requesterId);
+        String emailAlias = passwordEncoder.encode(UUID.randomUUID().toString());
+        String passwordAlias = passwordEncoder.encode(UUID.randomUUID().toString());
+        memberRepositoryCustom.softDelete(requesterId, emailAlias, passwordAlias);
     }
 }
