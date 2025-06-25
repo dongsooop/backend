@@ -18,6 +18,7 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
 
+    @Override
     public Optional<LoginMemberDetails> findLoginMemberDetailById(Long id) {
         LoginMemberDetails loginMemberDetails = queryFactory.select(Projections.constructor(LoginMemberDetails.class,
                         member.id.as("id"),
@@ -31,6 +32,7 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
         return Optional.ofNullable(loginMemberDetails);
     }
 
+    @Override
     public long softDelete(Long id, String emailAlias, String passwordAlias) {
         return queryFactory.update(member)
                 .set(member.email, emailAlias)
