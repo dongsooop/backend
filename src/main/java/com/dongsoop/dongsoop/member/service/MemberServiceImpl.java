@@ -190,6 +190,9 @@ public class MemberServiceImpl implements MemberService {
         // 가명처리
         String emailAlias = passwordEncoder.encode(UUID.randomUUID().toString());
         String passwordAlias = passwordEncoder.encode(UUID.randomUUID().toString());
-        memberRepositoryCustom.softDelete(requesterId, emailAlias, passwordAlias);
+        long updatedCount = memberRepositoryCustom.softDelete(requesterId, emailAlias, passwordAlias);
+        if (updatedCount == 0L) {
+            throw new MemberNotFoundException();
+        }
     }
 }

@@ -7,5 +7,5 @@ public interface MemberRepositoryCustom {
 
     Optional<LoginMemberDetails> findLoginMemberDetailById(Long id);
 
-    void softDelete(Long id, String emailAlias, String passwordAlias);
+    long softDelete(Long id, String emailAlias, String passwordAlias);
 }

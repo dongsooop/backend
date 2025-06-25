@@ -31,8 +31,8 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
         return Optional.ofNullable(loginMemberDetails);
     }
 
-    public void softDelete(Long id, String emailAlias, String passwordAlias) {
-        queryFactory.update(member)
+    public long softDelete(Long id, String emailAlias, String passwordAlias) {
+        return queryFactory.update(member)
                 .set(member.email, emailAlias)
                 .set(member.nickname, "익명_" + id)
                 .set(member.password, passwordAlias)
