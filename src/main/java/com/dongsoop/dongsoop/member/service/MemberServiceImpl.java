@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -37,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class MemberServiceImpl implements MemberService {
 
@@ -192,6 +194,7 @@ public class MemberServiceImpl implements MemberService {
         String passwordAlias = passwordEncoder.encode(UUID.randomUUID().toString());
         long updatedCount = memberRepositoryCustom.softDelete(requesterId, emailAlias, passwordAlias);
         if (updatedCount == 0L) {
+            log.error("Member with id {} not found or already deleted", requesterId);
             throw new MemberNotFoundException();
         }
     }
