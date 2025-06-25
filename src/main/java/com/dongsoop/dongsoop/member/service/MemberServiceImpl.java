@@ -55,6 +55,7 @@ public class MemberServiceImpl implements MemberService {
 
     private final MemberDuplicationValidator memberDuplicationValidator;
 
+    @Override
     @Transactional
     public void signup(SignupRequest request) {
         memberDuplicationValidator.validateEmailDuplication(request.getEmail());
@@ -83,6 +84,7 @@ public class MemberServiceImpl implements MemberService {
                 .build();
     }
 
+    @Override
     @Transactional(readOnly = true)
     public LoginDetails login(LoginRequest loginRequest) {
         validateMemberExists(loginRequest.getEmail());
@@ -131,6 +133,7 @@ public class MemberServiceImpl implements MemberService {
         return optionalAuthenticate.orElseThrow(MemberNotFoundException::new);
     }
 
+    @Override
     public Member getMemberReferenceByContext() {
         Long id = getMemberIdByContext();
         return memberRepository.getReferenceById(id);
@@ -153,12 +156,14 @@ public class MemberServiceImpl implements MemberService {
         }
     }
 
+    @Override
     public String getNicknameById(Long userId) {
         return memberRepository.findById(userId)
                 .map(Member::getNickname)
                 .orElseThrow(MemberNotFoundException::new);
     }
 
+    @Override
     public Long getMemberIdByAuthentication() {
         Authentication authentication = SecurityContextHolder.getContext()
                 .getAuthentication();
@@ -175,6 +180,7 @@ public class MemberServiceImpl implements MemberService {
         throw new NotAuthenticationException();
     }
 
+    @Override
     @Transactional
     public void deleteMember() {
         // 요청 사용자 id
