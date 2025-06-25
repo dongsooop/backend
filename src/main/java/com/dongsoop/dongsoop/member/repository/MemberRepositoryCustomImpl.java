@@ -8,6 +8,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -17,6 +18,9 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
     private static final QMember member = QMember.member;
 
     private final JPAQueryFactory queryFactory;
+
+    @Value("${member.nickname.alias.prefix}")
+    private String nicknameAliasPrefix;
 
     @Override
     public Optional<LoginMemberDetails> findLoginMemberDetailById(Long id) {
@@ -36,7 +40,7 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
     public long softDelete(Long id, String emailAlias, String passwordAlias) {
         return queryFactory.update(member)
                 .set(member.email, emailAlias)
-                .set(member.nickname, "익명_" + id)
+                .set(member.nickname, this.nicknameAliasPrefix + id)
                 .set(member.password, passwordAlias)
                 .setNull(member.studentId)
                 .set(member.isDeleted, true)
