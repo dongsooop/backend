@@ -83,7 +83,7 @@ public class MemberServiceImpl implements MemberService {
                 .build();
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public LoginDetails login(LoginRequest loginRequest) {
         validateMemberExists(loginRequest.getEmail());
         LoginAuthenticate loginAuthenticate = getLoginAuthenticate(loginRequest.getEmail());
