@@ -8,7 +8,6 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -18,7 +17,6 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
     private static final QMember member = QMember.member;
 
     private final JPAQueryFactory queryFactory;
-    private final PasswordEncoder passwordEncoder;
 
     public Optional<LoginMemberDetails> findLoginMemberDetailById(Long id) {
         LoginMemberDetails loginMemberDetails = queryFactory.select(Projections.constructor(LoginMemberDetails.class,
@@ -32,7 +30,7 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
 
         return Optional.ofNullable(loginMemberDetails);
     }
-    
+
     public void softDelete(Long id, String emailAlias, String passwordAlias) {
         queryFactory.update(member)
                 .set(member.email, emailAlias)
