@@ -108,7 +108,7 @@ public class MemberServiceImpl implements MemberService {
     }
 
     private void validateMemberExists(String email) {
-        boolean isMemberExists = memberRepository.existsByEmailAndDeletedFalse(email);
+        boolean isMemberExists = memberRepository.existsByEmailAndIsDeletedFalse(email);
         if (!isMemberExists) {
             throw new MemberNotFoundException();
         }
