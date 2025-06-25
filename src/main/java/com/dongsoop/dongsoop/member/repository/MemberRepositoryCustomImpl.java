@@ -19,7 +19,7 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
 
-    @Value("${member.nickname.alias.prefix}")
+    @Value("${member.nickname.alias.prefix:익명_}")
     private String nicknameAliasPrefix;
 
     @Override
