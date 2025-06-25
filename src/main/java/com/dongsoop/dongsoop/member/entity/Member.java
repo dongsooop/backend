@@ -11,7 +11,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -45,13 +44,4 @@ public class Member extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
     private Department department;
-
-    public void delete() {
-        this.email = "deleted_" + id; // 이메일을 삭제된 것으로 변경
-        this.nickname = "익명_" + id;
-        this.password = "deleted";
-        this.studentId = null;
-        super.isDeleted = true;
-        super.updatedAt = LocalDateTime.now();
-    }
 }

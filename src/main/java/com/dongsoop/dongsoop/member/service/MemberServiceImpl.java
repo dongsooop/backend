@@ -171,14 +171,7 @@ public class MemberServiceImpl implements MemberService {
         // 요청 사용자 id
         Long requesterId = getMemberIdByAuthentication();
 
-        Member member = memberRepository.findById(requesterId)
-                .orElseThrow(MemberNotFoundException::new);
-
-        if (member.isDeleted()) {
-            throw new MemberNotFoundException();
-        }
-
-        // 가명 처리
-        member.delete();
+        // 가명처리
+        memberRepositoryCustom.softDelete(requesterId);
     }
 }
