@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.recruitment.tutoring.repository;
 
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardDetails;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardOverview;
@@ -18,4 +19,6 @@ public interface TutoringBoardRepositoryCustom {
     Optional<TutoringBoardDetails> findBoardDetailsByIdAndViewType(Long tutoringBoardId,
                                                                    RecruitmentViewType viewType,
                                                                    boolean isAlreadyApplied);
+
+    List<ApplyRecruitment> findApplyRecruitmentsByMemberId(Long memberId, Pageable pageable);
 }

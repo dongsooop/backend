@@ -2,18 +2,22 @@ package com.dongsoop.dongsoop.recruitment.study.repository;
 
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
+import com.dongsoop.dongsoop.recruitment.RecruitmentType;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardDetails;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardOverview;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyApply;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyBoard;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyBoardDepartment;
+import com.querydsl.core.types.ConstructorExpression;
 import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberPath;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -129,5 +133,51 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                         studyBoardDepartment.id.department.id,
                         Expressions.constant(departmentType))
                 .gt(0);
+    }
+
+    /**
+     * 특정 회원이 신청한 스터디 모집 게시판 목록을 페이지 단위로 조회합니다.
+     *
+     * @param memberId 회원 ID
+     * @param pageable 페이지 정보
+     * @return 신청한 스터디 모집 게시판 목록
+     */
+    @Override
+    public List<ApplyRecruitment> findApplyRecruitmentsByMemberId(Long memberId, Pageable pageable) {
+        return queryFactory
+                .select(getApplyRecruitmentExpression())
+                .from(studyBoard)
+                .leftJoin(studyApply)
+                .on(studyApply.id.studyBoard.id.eq(studyBoard.id)
+                        .and(studyApply.id.member.id.eq(memberId)))
+                .leftJoin(studyBoardDepartment)
+                .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
+                .where(studyApply.id.member.id.eq(memberId))
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .groupBy(studyBoard.id, studyApply.applyTime)
+                .orderBy(studyApply.applyTime.desc())
+                .fetch();
+    }
+
+    private ConstructorExpression<ApplyRecruitment> getApplyRecruitmentExpression() {
+        return Projections.constructor(ApplyRecruitment.class,
+                studyBoard.id,
+                studyApply.id.member.countDistinct().intValue(),
+                studyBoard.startAt,
+                studyBoard.endAt,
+                studyBoard.title,
+                studyBoard.content,
+                studyBoard.tags,
+                Expressions.stringTemplate("string_agg({0}, ',')",
+                        studyBoardDepartment.id.department.id),
+                Expressions.constant(RecruitmentType.STUDY),
+                studyBoard.createdAt,
+                isRecruiting());
+    }
+
+    private BooleanExpression isRecruiting() {
+        return studyBoard.endAt.gt(LocalDateTime.now())
+                .and(studyBoard.startAt.lt(LocalDateTime.now()));
     }
 }

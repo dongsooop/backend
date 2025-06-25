@@ -9,6 +9,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import java.time.LocalDateTime;
 import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
@@ -29,6 +30,9 @@ public class TutoringApply extends BaseEntity {
 
     @Column(name = "motivation", length = 500)
     private String motivation;
+
+    @Column(name = "apply_time", nullable = false, updatable = false)
+    private LocalDateTime applyTime;
 
     @Embeddable
     @NoArgsConstructor
