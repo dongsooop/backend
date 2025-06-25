@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardDetails;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceViewType;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoardStatus;
+import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
 import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceBoard;
 import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceContact;
 import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceImage;
@@ -31,7 +32,7 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
 
     private final JPAQueryFactory queryFactory;
 
-    public List<MarketplaceBoardOverview> findMarketplaceBoardOverviewByPage(Pageable pageable) {
+    public List<MarketplaceBoardOverview> findMarketplaceBoardOverviewByPage(Pageable pageable, MarketplaceType type) {
         return queryFactory.select(Projections.constructor(MarketplaceBoardOverview.class,
                         marketplaceBoard.id,
                         marketplaceBoard.title,
@@ -39,14 +40,16 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                         marketplaceBoard.price,
                         marketplaceBoard.createdAt,
                         marketplaceContact.id.applicant.countDistinct(),
-                        marketplaceImage.id.url)) // 처음 저장된 이미지 URL 가져오기
+                        marketplaceImage.id.url,
+                        marketplaceBoard.type)) // 처음 저장된 이미지 URL 가져오기
                 .from(marketplaceBoard)
                 .leftJoin(marketplaceContact)
                 .on(marketplaceContact.id.marketplaceId.eq(marketplaceBoard.id))
                 .leftJoin(marketplaceImage)
                 .on(marketplaceImage.id.marketplaceBoard.id.eq(marketplaceBoard.id)
                         .and(marketplaceImage.createdAt.eq(getMinCreated()))) // 가장 먼저 저장된 이미지 행 가져오기
-                .where(marketplaceBoard.status.eq(MarketplaceBoardStatus.SELLING))
+                .where(marketplaceBoard.status.eq(MarketplaceBoardStatus.SELLING)
+                        .and(marketplaceBoard.type.eq(type)))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .orderBy(marketplaceBoard.createdAt.desc())
@@ -55,7 +58,8 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                         marketplaceBoard.content,
                         marketplaceBoard.price,
                         marketplaceBoard.createdAt,
-                        marketplaceImage.id.url)
+                        marketplaceImage.id.url,
+                        marketplaceBoard.type)
                 .fetch();
     }
 
@@ -66,6 +70,7 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                         marketplaceBoard.content,
                         marketplaceBoard.price,
                         marketplaceBoard.createdAt,
+                        marketplaceBoard.type,
                         marketplaceContact.id.applicant.countDistinct(),
                         Expressions.stringTemplate("string_agg({0}, ',')", marketplaceImage.id.url),
                         Expressions.constant(viewType)))

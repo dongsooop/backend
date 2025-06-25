@@ -9,6 +9,7 @@ import com.dongsoop.dongsoop.marketplace.dto.MarketplaceViewType;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoard;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceImage;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceImage.MarketplaceImageId;
+import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepository;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepositoryCustom;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceImageRepository;
@@ -54,7 +55,7 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
         return savedBoard;
     }
 
-    private void saveImages(MultipartFile[] images, MarketplaceBoard board) throws IOException {
+    private void saveImages(MultipartFile[] images, MarketplaceBoard board) {
         List<MarketplaceImage> imageLinkList = Arrays.stream(images)
                 .map(image -> uploadImage(image, board))
                 .toList();
@@ -72,8 +73,8 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
         }
     }
 
-    public List<MarketplaceBoardOverview> getMarketplaceBoards(Pageable pageable) {
-        return marketplaceBoardRepositoryCustom.findMarketplaceBoardOverviewByPage(pageable);
+    public List<MarketplaceBoardOverview> getMarketplaceBoards(Pageable pageable, MarketplaceType type) {
+        return marketplaceBoardRepositoryCustom.findMarketplaceBoardOverviewByPage(pageable, type);
     }
 
     public MarketplaceBoardDetails getBoardDetails(Long boardId) {

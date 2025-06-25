@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.marketplace.dto.CreateMarketplaceBoardRequest;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardDetails;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoard;
+import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
 import com.dongsoop.dongsoop.marketplace.service.MarketplaceBoardService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import jakarta.validation.Valid;
@@ -33,10 +34,11 @@ public class MarketplaceBoardController {
 
     private final MarketplaceBoardService marketplaceBoardService;
 
-    @GetMapping
-    public ResponseEntity<List<MarketplaceBoardOverview>> getMarketplaceBoards(Pageable pageable) {
+    @GetMapping("/type/{type}")
+    public ResponseEntity<List<MarketplaceBoardOverview>> getMarketplaceBoards(Pageable pageable,
+                                                                               @PathVariable MarketplaceType type) {
         List<MarketplaceBoardOverview> marketplaceBoardOverviewList = marketplaceBoardService.getMarketplaceBoards(
-                pageable);
+                pageable, type);
 
         return ResponseEntity.ok(marketplaceBoardOverviewList);
     }

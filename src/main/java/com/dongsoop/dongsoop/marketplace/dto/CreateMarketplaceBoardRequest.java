@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.marketplace.dto;
 
+import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -14,6 +15,9 @@ public record CreateMarketplaceBoardRequest(
 
         @NotNull
         @Positive
-        Long price
+        Long price,
+
+        @NotNull
+        MarketplaceType type
 ) {
 }

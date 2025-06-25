@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.marketplace.dto;
 
+import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
 import java.time.LocalDateTime;
 
 public record MarketplaceBoardOverview(
@@ -10,6 +11,7 @@ public record MarketplaceBoardOverview(
         Long price,
         LocalDateTime createdAt,
         Long contactCount,
-        String imageUrl
+        String imageUrl,
+        MarketplaceType type
 ) {
 }
