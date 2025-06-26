@@ -8,23 +8,17 @@ import com.dongsoop.dongsoop.exception.domain.member.InvalidPasswordFormatExcept
 import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
 import com.dongsoop.dongsoop.jwt.TokenGenerator;
 import com.dongsoop.dongsoop.jwt.dto.IssuedToken;
-import com.dongsoop.dongsoop.member.dto.LoginAuthenticate;
-import com.dongsoop.dongsoop.member.dto.LoginDetails;
-import com.dongsoop.dongsoop.member.dto.LoginMemberDetails;
-import com.dongsoop.dongsoop.member.dto.LoginRequest;
-import com.dongsoop.dongsoop.member.dto.SignupRequest;
+import com.dongsoop.dongsoop.member.dto.*;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.repository.MemberRepositoryCustom;
 import com.dongsoop.dongsoop.member.validate.MemberDuplicationValidator;
+import com.dongsoop.dongsoop.report.service.ReportService;
 import com.dongsoop.dongsoop.role.entity.MemberRole;
 import com.dongsoop.dongsoop.role.entity.Role;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import com.dongsoop.dongsoop.role.repository.MemberRoleRepository;
 import com.dongsoop.dongsoop.role.repository.RoleRepository;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -34,6 +28,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -54,6 +52,8 @@ public class MemberServiceImpl implements MemberService {
     private final TokenGenerator tokenGenerator;
 
     private final MemberDuplicationValidator memberDuplicationValidator;
+
+    private final ReportService reportService;
 
     @Transactional
     public void signup(SignupRequest request) {
@@ -88,6 +88,10 @@ public class MemberServiceImpl implements MemberService {
 
         String password = loginAuthenticate.getPassword();
         validatePassword(loginRequest.getPassword(), password);
+
+        Long memberId = loginAuthenticate.getId();
+        reportService.checkMemberAccessById(loginAuthenticate.getId());
+
 
         Authentication authentication = getAuthenticationByLoginAuthenticate(loginAuthenticate);
 
