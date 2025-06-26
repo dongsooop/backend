@@ -4,21 +4,21 @@ import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
 import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
-import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardDetails;
-import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardOverview;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentOverview;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 
 public interface ProjectBoardRepositoryCustom {
 
-    List<ProjectBoardOverview> findProjectBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
-                                                                                Pageable pageable);
+    List<RecruitmentOverview> findProjectBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
+                                                                               Pageable pageable);
 
-    List<ProjectBoardOverview> findProjectBoardOverviewsByPage(Pageable pageable);
+    List<RecruitmentOverview> findProjectBoardOverviewsByPage(Pageable pageable);
 
-    Optional<ProjectBoardDetails> findBoardDetailsByIdAndViewType(Long projectBoardId, RecruitmentViewType viewType,
-                                                                  boolean isAlreadyApplied);
+    Optional<RecruitmentDetails> findBoardDetailsByIdAndViewType(Long projectBoardId, RecruitmentViewType viewType,
+                                                                 boolean isAlreadyApplied);
 
     List<ApplyRecruitment> findApplyRecruitmentsByMemberId(Long memberId, Pageable pageable);
 

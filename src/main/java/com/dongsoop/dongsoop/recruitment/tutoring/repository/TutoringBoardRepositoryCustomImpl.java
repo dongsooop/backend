@@ -4,19 +4,13 @@ import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
 import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
-import com.dongsoop.dongsoop.recruitment.RecruitmentType;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
-import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardDetails;
-import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardOverview;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentOverview;
+import com.dongsoop.dongsoop.recruitment.projection.TutoringRecruitmentProjection;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.QTutoringApply;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.QTutoringBoard;
-import com.querydsl.core.types.ConstructorExpression;
-import com.querydsl.core.types.Projections;
-import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.Expressions;
-import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -35,17 +29,12 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
 
     private final PageableUtil pageableUtil;
 
-    public List<TutoringBoardOverview> findTutoringBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
-                                                                                         Pageable pageable) {
-        return queryFactory.select(Projections.constructor(TutoringBoardOverview.class,
-                        tutoringBoard.id,
-                        tutoringApply.id.member.count().intValue(),
-                        tutoringBoard.startAt,
-                        tutoringBoard.endAt,
-                        tutoringBoard.title,
-                        tutoringBoard.content,
-                        tutoringBoard.tags,
-                        tutoringBoard.department.id))
+    private final TutoringRecruitmentProjection projection;
+
+    @Override
+    public List<RecruitmentOverview> findTutoringBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
+                                                                                       Pageable pageable) {
+        return queryFactory.select(projection.getRecruitmentOverviewExpression())
                 .from(tutoringBoard)
                 .leftJoin(tutoringApply)
                 .on(tutoringApply.id.tutoringBoard.id.eq(tutoringBoard.id))
@@ -57,42 +46,25 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                 .fetch();
     }
 
-    public Optional<TutoringBoardDetails> findBoardDetailsByIdAndViewType(Long tutoringBoardId,
-                                                                          RecruitmentViewType viewType,
-                                                                          boolean isAlreadyApplied) {
-        return Optional.ofNullable(
-                queryFactory.select(Projections.constructor(TutoringBoardDetails.class,
-                                tutoringBoard.id,
-                                tutoringBoard.title,
-                                tutoringBoard.content,
-                                tutoringBoard.tags,
-                                tutoringBoard.startAt,
-                                tutoringBoard.endAt,
-                                tutoringBoard.department.id,
-                                tutoringBoard.author.nickname,
-                                tutoringBoard.createdAt.as("createdAt"),
-                                tutoringBoard.updatedAt.as("updatedAt"),
-                                tutoringApply.id.member.count().intValue(),
-                                Expressions.constant(viewType),
-                                Expressions.constant(isAlreadyApplied)))
-                        .from(tutoringBoard)
-                        .leftJoin(tutoringApply)
-                        .on(tutoringApply.id.tutoringBoard.id.eq(tutoringBoard.id))
-                        .where(tutoringBoard.id.eq(tutoringBoardId))
-                        .groupBy(tutoringBoard.id, tutoringBoard.author.nickname)
-                        .fetchOne());
+    @Override
+    public Optional<RecruitmentDetails> findBoardDetailsByIdAndViewType(Long tutoringBoardId,
+                                                                        RecruitmentViewType viewType,
+                                                                        boolean isAlreadyApplied) {
+        RecruitmentDetails details = queryFactory.select(
+                        projection.getRecruitmentDetailsExpression(viewType, isAlreadyApplied))
+                .from(tutoringBoard)
+                .leftJoin(tutoringApply)
+                .on(tutoringApply.id.tutoringBoard.id.eq(tutoringBoard.id))
+                .where(tutoringBoard.id.eq(tutoringBoardId))
+                .groupBy(tutoringBoard.id, tutoringBoard.author.nickname)
+                .fetchOne();
+
+        return Optional.ofNullable(details);
     }
 
-    public List<TutoringBoardOverview> findTutoringBoardOverviewsByPage(Pageable pageable) {
-        return queryFactory.select(Projections.constructor(TutoringBoardOverview.class,
-                        tutoringBoard.id,
-                        tutoringApply.id.member.count().intValue(),
-                        tutoringBoard.startAt,
-                        tutoringBoard.endAt,
-                        tutoringBoard.title,
-                        tutoringBoard.content,
-                        tutoringBoard.tags,
-                        tutoringBoard.department.id))
+    @Override
+    public List<RecruitmentOverview> findTutoringBoardOverviewsByPage(Pageable pageable) {
+        return queryFactory.select(projection.getRecruitmentOverviewExpression())
                 .from(tutoringBoard)
                 .leftJoin(tutoringApply)
                 .on(tutoringApply.id.tutoringBoard.id.eq(tutoringBoard.id))
@@ -101,18 +73,6 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                 .groupBy(tutoringBoard.id)
                 .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), tutoringBoard))
                 .fetch();
-    }
-
-    private ConstructorExpression<TutoringBoardOverview> getBoardOverviewExpression() {
-        return Projections.constructor(TutoringBoardOverview.class,
-                tutoringBoard.id,
-                tutoringApply.id.member.count().intValue(),
-                tutoringBoard.startAt,
-                tutoringBoard.endAt,
-                tutoringBoard.title,
-                tutoringBoard.content,
-                tutoringBoard.tags,
-                tutoringBoard.department.id);
     }
 
     /**
@@ -125,7 +85,7 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
     @Override
     public List<ApplyRecruitment> findApplyRecruitmentsByMemberId(Long memberId, Pageable pageable) {
         return queryFactory
-                .select(getApplyRecruitmentExpression())
+                .select(projection.getApplyRecruitmentExpression())
                 .from(tutoringBoard)
                 .leftJoin(tutoringApply)
                 .on(tutoringApply.id.tutoringBoard.id.eq(tutoringBoard.id)
@@ -138,27 +98,10 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                 .fetch();
     }
 
-    private ConstructorExpression<ApplyRecruitment> getApplyRecruitmentExpression() {
-        return Projections.constructor(ApplyRecruitment.class,
-                tutoringBoard.id,
-                JPAExpressions.select(tutoringApply.id.member.countDistinct().intValue())
-                        .from(tutoringApply)
-                        .where(tutoringBoard.id.eq(tutoringApply.id.tutoringBoard.id)),
-                tutoringBoard.startAt,
-                tutoringBoard.endAt,
-                tutoringBoard.title,
-                tutoringBoard.content,
-                tutoringBoard.tags,
-                tutoringBoard.department.id.stringValue(),
-                Expressions.constant(RecruitmentType.TUTORING),
-                tutoringBoard.createdAt,
-                isRecruiting());
-    }
-
     @Override
     public List<OpenedRecruitment> findOpenedRecruitmentsByMemberId(Long memberId, Pageable pageable) {
         return queryFactory
-                .select(getOpenedRecruitmentExpression())
+                .select(projection.getOpenedRecruitmentExpression())
                 .from(tutoringBoard)
                 .leftJoin(tutoringApply)
                 .on(tutoringApply.id.tutoringBoard.id.eq(tutoringBoard.id)
@@ -169,25 +112,5 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                 .groupBy(tutoringBoard.id)
                 .orderBy(tutoringBoard.createdAt.desc())
                 .fetch();
-    }
-
-    private ConstructorExpression<OpenedRecruitment> getOpenedRecruitmentExpression() {
-        return Projections.constructor(OpenedRecruitment.class,
-                tutoringBoard.id,
-                tutoringApply.id.member.countDistinct().intValue(),
-                tutoringBoard.startAt,
-                tutoringBoard.endAt,
-                tutoringBoard.title,
-                tutoringBoard.content,
-                tutoringBoard.tags,
-                tutoringBoard.department.id.stringValue(),
-                Expressions.constant(RecruitmentType.TUTORING),
-                tutoringBoard.createdAt,
-                isRecruiting());
-    }
-
-    private BooleanExpression isRecruiting() {
-        return tutoringBoard.endAt.gt(LocalDateTime.now())
-                .and(tutoringBoard.startAt.lt(LocalDateTime.now()));
     }
 }
