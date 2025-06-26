@@ -92,7 +92,6 @@ public class MemberServiceImpl implements MemberService {
         Long memberId = loginAuthenticate.getId();
         reportService.checkMemberAccessById(loginAuthenticate.getId());
 
-
         Authentication authentication = getAuthenticationByLoginAuthenticate(loginAuthenticate);
 
         String accessToken = tokenGenerator.generateAccessToken(authentication);
