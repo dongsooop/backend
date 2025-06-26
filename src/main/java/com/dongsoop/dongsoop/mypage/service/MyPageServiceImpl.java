@@ -1,7 +1,9 @@
 package com.dongsoop.dongsoop.mypage.service;
 
+import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepositoryCustom;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
+import com.dongsoop.dongsoop.mypage.dto.OpenedMarketplace;
 import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepositoryCustom;
@@ -22,6 +24,8 @@ public class MyPageServiceImpl implements MyPageService {
     private final TutoringBoardRepositoryCustom tutoringBoardRepositoryCustom;
     private final StudyBoardRepositoryCustom studyBoardRepositoryCustom;
     private final ProjectBoardRepositoryCustom projectBoardRepositoryCustom;
+
+    private final MarketplaceBoardRepositoryCustom marketplaceBoardRepositoryCustom;
 
     @Override
     @Transactional(readOnly = true)
@@ -68,5 +72,11 @@ public class MyPageServiceImpl implements MyPageService {
                 .skip(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .toList();
+    }
+
+    @Override
+    public List<OpenedMarketplace> getOpenedMarketplacesByMemberId(Pageable pageable) {
+        Long memberId = memberService.getMemberIdByAuthentication();
+        return marketplaceBoardRepositoryCustom.findOpenedMarketplaceByAuthorIdAndPage(memberId, pageable);
     }
 }

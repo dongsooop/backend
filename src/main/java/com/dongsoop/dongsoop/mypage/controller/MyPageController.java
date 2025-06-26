@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.mypage.controller;
 
 import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
+import com.dongsoop.dongsoop.mypage.dto.OpenedMarketplace;
 import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
 import com.dongsoop.dongsoop.mypage.service.MyPageService;
 import java.util.List;
@@ -27,6 +28,12 @@ public class MyPageController {
     @GetMapping("/opened-recruitments")
     public ResponseEntity<List<OpenedRecruitment>> getOpenedRecruitmentList(Pageable pageable) {
         List<OpenedRecruitment> response = myPageService.getOpenedRecruitmentsByMemberId(pageable);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/opened-marketplace")
+    public ResponseEntity<List<OpenedMarketplace>> getOpenedMarketplaceList(Pageable pageable) {
+        List<OpenedMarketplace> response = myPageService.getOpenedMarketplacesByMemberId(pageable);
         return ResponseEntity.ok(response);
     }
 }
