@@ -17,6 +17,7 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberPath;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -164,7 +165,9 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
     private ConstructorExpression<ApplyRecruitment> getApplyRecruitmentExpression() {
         return Projections.constructor(ApplyRecruitment.class,
                 studyBoard.id,
-                studyApply.id.member.countDistinct().intValue(),
+                JPAExpressions.select(studyApply.id.member.countDistinct().intValue())
+                        .from(studyApply)
+                        .where(studyBoard.id.eq(studyApply.id.studyBoard.id)),
                 studyBoard.startAt,
                 studyBoard.endAt,
                 studyBoard.title,

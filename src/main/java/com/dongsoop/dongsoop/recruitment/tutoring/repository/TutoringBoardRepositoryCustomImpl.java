@@ -14,6 +14,7 @@ import com.querydsl.core.types.ConstructorExpression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -140,7 +141,9 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
     private ConstructorExpression<ApplyRecruitment> getApplyRecruitmentExpression() {
         return Projections.constructor(ApplyRecruitment.class,
                 tutoringBoard.id,
-                tutoringApply.id.member.countDistinct().intValue(),
+                JPAExpressions.select(tutoringApply.id.member.countDistinct().intValue())
+                        .from(tutoringApply)
+                        .where(tutoringBoard.id.eq(tutoringApply.id.tutoringBoard.id)),
                 tutoringBoard.startAt,
                 tutoringBoard.endAt,
                 tutoringBoard.title,

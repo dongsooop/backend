@@ -17,6 +17,7 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberPath;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -164,7 +165,9 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
     private ConstructorExpression<ApplyRecruitment> getApplyRecruitmentExpression() {
         return Projections.constructor(ApplyRecruitment.class,
                 projectBoard.id,
-                projectApply.id.member.countDistinct().intValue(),
+                JPAExpressions.select(projectApply.id.member.countDistinct().intValue())
+                        .from(projectApply)
+                        .where(projectBoard.id.eq(projectApply.id.projectBoard.id)),
                 projectBoard.startAt,
                 projectBoard.endAt,
                 projectBoard.title,
