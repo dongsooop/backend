@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.recruitment.tutoring.repository;
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
+import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
 import com.dongsoop.dongsoop.recruitment.RecruitmentType;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardDetails;
@@ -138,6 +139,37 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
 
     private ConstructorExpression<ApplyRecruitment> getApplyRecruitmentExpression() {
         return Projections.constructor(ApplyRecruitment.class,
+                tutoringBoard.id,
+                tutoringApply.id.member.countDistinct().intValue(),
+                tutoringBoard.startAt,
+                tutoringBoard.endAt,
+                tutoringBoard.title,
+                tutoringBoard.content,
+                tutoringBoard.tags,
+                tutoringBoard.department.id.stringValue(),
+                Expressions.constant(RecruitmentType.TUTORING),
+                tutoringBoard.createdAt,
+                isRecruiting());
+    }
+
+    @Override
+    public List<OpenedRecruitment> findOpenedRecruitmentsByMemberId(Long memberId, Pageable pageable) {
+        return queryFactory
+                .select(getOpenedRecruitmentExpression())
+                .from(tutoringBoard)
+                .leftJoin(tutoringApply)
+                .on(tutoringApply.id.tutoringBoard.id.eq(tutoringBoard.id)
+                        .and(tutoringApply.id.member.id.eq(memberId)))
+                .where(tutoringApply.id.member.id.eq(memberId))
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .groupBy(tutoringBoard.id)
+                .orderBy(tutoringBoard.createdAt.desc())
+                .fetch();
+    }
+
+    private ConstructorExpression<OpenedRecruitment> getOpenedRecruitmentExpression() {
+        return Projections.constructor(OpenedRecruitment.class,
                 tutoringBoard.id,
                 tutoringApply.id.member.countDistinct().intValue(),
                 tutoringBoard.startAt,

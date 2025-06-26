@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.recruitment.study.repository;
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
+import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
 import com.dongsoop.dongsoop.recruitment.RecruitmentType;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardDetails;
@@ -162,6 +163,40 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
 
     private ConstructorExpression<ApplyRecruitment> getApplyRecruitmentExpression() {
         return Projections.constructor(ApplyRecruitment.class,
+                studyBoard.id,
+                studyApply.id.member.countDistinct().intValue(),
+                studyBoard.startAt,
+                studyBoard.endAt,
+                studyBoard.title,
+                studyBoard.content,
+                studyBoard.tags,
+                Expressions.stringTemplate("string_agg({0}, ',')",
+                        studyBoardDepartment.id.department.id),
+                Expressions.constant(RecruitmentType.STUDY),
+                studyBoard.createdAt,
+                isRecruiting());
+    }
+
+    @Override
+    public List<OpenedRecruitment> findOpenedRecruitmentsByMemberId(Long memberId, Pageable pageable) {
+        return queryFactory
+                .select(getOpenedRecruitmentExpression())
+                .from(studyBoard)
+                .leftJoin(studyApply)
+                .on(studyApply.id.studyBoard.id.eq(studyBoard.id)
+                        .and(studyApply.id.member.id.eq(memberId)))
+                .leftJoin(studyBoardDepartment)
+                .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
+                .where(studyBoard.author.id.eq(memberId))
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .groupBy(studyBoard.id)
+                .orderBy(studyBoard.createdAt.desc())
+                .fetch();
+    }
+
+    private ConstructorExpression<OpenedRecruitment> getOpenedRecruitmentExpression() {
+        return Projections.constructor(OpenedRecruitment.class,
                 studyBoard.id,
                 studyApply.id.member.countDistinct().intValue(),
                 studyBoard.startAt,

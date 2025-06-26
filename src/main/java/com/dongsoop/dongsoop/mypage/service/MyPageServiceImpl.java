@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.mypage.service;
 
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
+import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepositoryCustom;
@@ -44,5 +45,28 @@ public class MyPageServiceImpl implements MyPageService {
 
     private int sortedByPageable(ApplyRecruitment compare1, ApplyRecruitment compare2) {
         return compare2.createdAt().compareTo(compare1.createdAt());
+    }
+
+    private int sortedByPageable(OpenedRecruitment compare1, OpenedRecruitment compare2) {
+        return compare2.createdAt().compareTo(compare1.createdAt());
+    }
+
+    public List<OpenedRecruitment> getOpenedRecruitmentsByMemberId(Pageable pageable) {
+        Long memberId = memberService.getMemberIdByAuthentication();
+
+        List<OpenedRecruitment> projectOpenedList = projectBoardRepositoryCustom.findOpenedRecruitmentsByMemberId(
+                memberId,
+                pageable);
+        List<OpenedRecruitment> studyOpenedList = studyBoardRepositoryCustom.findOpenedRecruitmentsByMemberId(memberId,
+                pageable);
+        List<OpenedRecruitment> tutoringOpenedList = tutoringBoardRepositoryCustom.findOpenedRecruitmentsByMemberId(
+                memberId, pageable);
+
+        Stream<OpenedRecruitment> concat = Stream.concat(studyOpenedList.stream(), projectOpenedList.stream());
+        return Stream.concat(concat, tutoringOpenedList.stream())
+                .sorted(this::sortedByPageable)
+                .skip(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .toList();
     }
 }
