@@ -2,7 +2,6 @@ package com.dongsoop.dongsoop.recruitment.tutoring.repository;
 
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
-import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
 import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
@@ -72,29 +71,6 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                 .limit(pageable.getPageSize())
                 .groupBy(tutoringBoard.id)
                 .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), tutoringBoard))
-                .fetch();
-    }
-
-    /**
-     * 특정 회원이 신청한 튜터링 모집 게시판 목록을 페이지 단위로 조회합니다.
-     *
-     * @param memberId 회원 ID
-     * @param pageable 페이지 정보
-     * @return 신청한 튜터링 모집 게시판 목록
-     */
-    @Override
-    public List<ApplyRecruitment> findApplyRecruitmentsByMemberId(Long memberId, Pageable pageable) {
-        return queryFactory
-                .select(projection.getApplyRecruitmentExpression())
-                .from(tutoringBoard)
-                .leftJoin(tutoringApply)
-                .on(tutoringApply.id.tutoringBoard.id.eq(tutoringBoard.id)
-                        .and(tutoringApply.id.member.id.eq(memberId)))
-                .where(tutoringApply.id.member.id.eq(memberId))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .groupBy(tutoringBoard.id, tutoringApply.applyTime)
-                .orderBy(tutoringApply.applyTime.desc())
                 .fetch();
     }
 

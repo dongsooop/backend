@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
 import com.dongsoop.dongsoop.mypage.dto.OpenedMarketplace;
 import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
+import com.dongsoop.dongsoop.recruitment.Repository.RecruitmentRepository;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepositoryCustom;
@@ -27,28 +28,13 @@ public class MyPageServiceImpl implements MyPageService {
 
     private final MarketplaceBoardRepositoryCustom marketplaceBoardRepositoryCustom;
 
+    private final RecruitmentRepository recruitmentRepository;
+
     @Override
     @Transactional(readOnly = true)
     public List<ApplyRecruitment> getApplyRecruitmentsByMemberId(Pageable pageable) {
         Long memberId = memberService.getMemberIdByAuthentication();
-
-        List<ApplyRecruitment> projectApplyList = projectBoardRepositoryCustom.findApplyRecruitmentsByMemberId(memberId,
-                pageable);
-        List<ApplyRecruitment> studyApplyList = studyBoardRepositoryCustom.findApplyRecruitmentsByMemberId(memberId,
-                pageable);
-        List<ApplyRecruitment> tutoringApplyList = tutoringBoardRepositoryCustom.findApplyRecruitmentsByMemberId(
-                memberId, pageable);
-
-        Stream<ApplyRecruitment> concat = Stream.concat(studyApplyList.stream(), projectApplyList.stream());
-        return Stream.concat(concat, tutoringApplyList.stream())
-                .sorted(this::sortedByPageable)
-                .skip(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .toList();
-    }
-
-    private int sortedByPageable(ApplyRecruitment compare1, ApplyRecruitment compare2) {
-        return compare2.createdAt().compareTo(compare1.createdAt());
+        return recruitmentRepository.findApplyRecruitmentsByMemberId(memberId, pageable);
     }
 
     private int sortedByPageable(OpenedRecruitment compare1, OpenedRecruitment compare2) {

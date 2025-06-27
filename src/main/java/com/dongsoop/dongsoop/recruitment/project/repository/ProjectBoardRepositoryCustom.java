@@ -1,7 +1,6 @@
 package com.dongsoop.dongsoop.recruitment.project.repository;
 
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
-import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
 import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
@@ -20,7 +19,5 @@ public interface ProjectBoardRepositoryCustom {
     Optional<RecruitmentDetails> findBoardDetailsByIdAndViewType(Long projectBoardId, RecruitmentViewType viewType,
                                                                  boolean isAlreadyApplied);
 
-    List<ApplyRecruitment> findApplyRecruitmentsByMemberId(Long memberId, Pageable pageable);
-
-    List<OpenedRecruitment> findOpenedRecruitmentsByMemberId(Long memberId, Pageable pageable);
+    List<OpenedRecruitment> findOpenedRecruitmentsByMemberId(Long memberId, int limit);
 }

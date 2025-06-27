@@ -2,7 +2,6 @@ package com.dongsoop.dongsoop.recruitment.study.repository;
 
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
-import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
 import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
@@ -109,31 +108,6 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                         studyBoardDepartment.id.department.id,
                         Expressions.constant(departmentType))
                 .gt(0);
-    }
-
-    /**
-     * 특정 회원이 신청한 스터디 모집 게시판 목록을 페이지 단위로 조회합니다.
-     *
-     * @param memberId 회원 ID
-     * @param pageable 페이지 정보
-     * @return 신청한 스터디 모집 게시판 목록
-     */
-    @Override
-    public List<ApplyRecruitment> findApplyRecruitmentsByMemberId(Long memberId, Pageable pageable) {
-        return queryFactory
-                .select(projection.getApplyRecruitmentExpression())
-                .from(studyBoard)
-                .leftJoin(studyApply)
-                .on(studyApply.id.studyBoard.id.eq(studyBoard.id)
-                        .and(studyApply.id.member.id.eq(memberId)))
-                .leftJoin(studyBoardDepartment)
-                .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
-                .where(studyApply.id.member.id.eq(memberId))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .groupBy(studyBoard.id, studyApply.applyTime)
-                .orderBy(studyApply.applyTime.desc())
-                .fetch();
     }
 
     @Override
