@@ -22,7 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -56,13 +55,6 @@ public class ReportService {
 
         processSanctionForReport(report, request, admin, targetMember);
         sanctionExecutor.executeSanction(report);
-    }
-
-    public void checkMemberAccess(Member member) {
-        reportRepository.findActiveBanForMember(member.getId(), LocalDateTime.now())
-                .ifPresent(report -> {
-                    throw new MemberSanctionedException("회원님은 현재 제재 중입니다. 자세한 내용은 고객센터에 문의해주세요.");
-                });
     }
 
     public void checkMemberAccessById(Long memberId) {
@@ -105,11 +97,9 @@ public class ReportService {
     }
 
     private void checkReportNotProcessed(Report report) {
-        Optional.of(report.getIsProcessed())
-                .filter(processed -> processed)
-                .ifPresent(processed -> {
-                    throw new SanctionAlreadyExistsException(report.getId());
-                });
+        if (report.getIsProcessed()) {
+            throw new SanctionAlreadyExistsException(report.getId());
+        }
     }
 
     private Report findReportById(Long reportId) {
