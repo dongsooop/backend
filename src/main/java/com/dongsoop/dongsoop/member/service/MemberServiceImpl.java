@@ -89,7 +89,6 @@ public class MemberServiceImpl implements MemberService {
         String password = loginAuthenticate.getPassword();
         validatePassword(loginRequest.getPassword(), password);
 
-        Long memberId = loginAuthenticate.getId();
         reportService.checkMemberAccessById(loginAuthenticate.getId());
 
         Authentication authentication = getAuthenticationByLoginAuthenticate(loginAuthenticate);
