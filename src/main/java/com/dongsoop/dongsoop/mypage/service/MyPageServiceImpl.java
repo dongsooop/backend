@@ -10,7 +10,6 @@ import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardReposito
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepositoryCustom;
 import java.util.List;
-import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -37,27 +36,10 @@ public class MyPageServiceImpl implements MyPageService {
         return recruitmentRepository.findApplyRecruitmentsByMemberId(memberId, pageable);
     }
 
-    private int sortedByPageable(OpenedRecruitment compare1, OpenedRecruitment compare2) {
-        return compare2.createdAt().compareTo(compare1.createdAt());
-    }
-
+    @Override
     public List<OpenedRecruitment> getOpenedRecruitmentsByMemberId(Pageable pageable) {
         Long memberId = memberService.getMemberIdByAuthentication();
-
-        List<OpenedRecruitment> projectOpenedList = projectBoardRepositoryCustom.findOpenedRecruitmentsByMemberId(
-                memberId,
-                pageable);
-        List<OpenedRecruitment> studyOpenedList = studyBoardRepositoryCustom.findOpenedRecruitmentsByMemberId(memberId,
-                pageable);
-        List<OpenedRecruitment> tutoringOpenedList = tutoringBoardRepositoryCustom.findOpenedRecruitmentsByMemberId(
-                memberId, pageable);
-
-        Stream<OpenedRecruitment> concat = Stream.concat(studyOpenedList.stream(), projectOpenedList.stream());
-        return Stream.concat(concat, tutoringOpenedList.stream())
-                .sorted(this::sortedByPageable)
-                .skip(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .toList();
+        return recruitmentRepository.findOpenedRecruitmentsByMemberId(memberId, pageable);
     }
 
     @Override

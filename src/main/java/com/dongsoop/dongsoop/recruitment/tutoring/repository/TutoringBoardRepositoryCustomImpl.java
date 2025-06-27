@@ -2,7 +2,6 @@ package com.dongsoop.dongsoop.recruitment.tutoring.repository;
 
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
-import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentOverview;
@@ -71,22 +70,6 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                 .limit(pageable.getPageSize())
                 .groupBy(tutoringBoard.id)
                 .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), tutoringBoard))
-                .fetch();
-    }
-
-    @Override
-    public List<OpenedRecruitment> findOpenedRecruitmentsByMemberId(Long memberId, Pageable pageable) {
-        return queryFactory
-                .select(projection.getOpenedRecruitmentExpression())
-                .from(tutoringBoard)
-                .leftJoin(tutoringApply)
-                .on(tutoringApply.id.tutoringBoard.id.eq(tutoringBoard.id)
-                        .and(tutoringApply.id.member.id.eq(memberId)))
-                .where(tutoringApply.id.member.id.eq(memberId))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .groupBy(tutoringBoard.id)
-                .orderBy(tutoringBoard.createdAt.desc())
                 .fetch();
     }
 }

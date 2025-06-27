@@ -2,7 +2,6 @@ package com.dongsoop.dongsoop.recruitment.study.repository;
 
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
-import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentOverview;
@@ -108,23 +107,5 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                         studyBoardDepartment.id.department.id,
                         Expressions.constant(departmentType))
                 .gt(0);
-    }
-
-    @Override
-    public List<OpenedRecruitment> findOpenedRecruitmentsByMemberId(Long memberId, Pageable pageable) {
-        return queryFactory
-                .select(projection.getOpenedRecruitmentExpression())
-                .from(studyBoard)
-                .leftJoin(studyApply)
-                .on(studyApply.id.studyBoard.id.eq(studyBoard.id)
-                        .and(studyApply.id.member.id.eq(memberId)))
-                .leftJoin(studyBoardDepartment)
-                .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
-                .where(studyBoard.author.id.eq(memberId))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .groupBy(studyBoard.id)
-                .orderBy(studyBoard.createdAt.desc())
-                .fetch();
     }
 }

@@ -2,7 +2,6 @@ package com.dongsoop.dongsoop.recruitment.project.repository;
 
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
-import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentOverview;
@@ -108,23 +107,5 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                         projectBoardDepartment.id.department.id,
                         Expressions.constant(departmentType))
                 .gt(0);
-    }
-
-    @Override
-    public List<OpenedRecruitment> findOpenedRecruitmentsByMemberId(Long memberId, Pageable pageable) {
-        return queryFactory
-                .select(projection.getOpenedRecruitmentExpression())
-                .from(projectBoard)
-                .leftJoin(projectApply)
-                .on(projectApply.id.projectBoard.id.eq(projectBoard.id)
-                        .and(projectApply.id.member.id.eq(memberId)))
-                .leftJoin(projectBoardDepartment)
-                .on(hasMatchingProjectBoardId(projectBoardDepartment.id.projectBoard.id))
-                .where(projectBoard.author.id.eq(memberId))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .groupBy(projectBoard.id)
-                .orderBy(projectBoard.createdAt.desc())
-                .fetch();
     }
 }
