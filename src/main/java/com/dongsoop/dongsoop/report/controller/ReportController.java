@@ -31,8 +31,7 @@ public class ReportController {
 
     @PostMapping("/{reportId}/sanctions")
     @Secured("ROLE_ADMIN")
-    public ResponseEntity<Void> processSanction(@PathVariable Long reportId,
-                                                @RequestBody @Valid ProcessSanctionRequest request) {
+    public ResponseEntity<Void> processSanction(@RequestBody @Valid ProcessSanctionRequest request) {
         reportService.processSanction(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
