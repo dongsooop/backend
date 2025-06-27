@@ -15,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -40,32 +39,26 @@ public class ReportValidator {
         Function<Long, Boolean> checker = getExistenceCheckers().get(reportType);
         Boolean exists = checker.apply(targetId);
 
-        Optional.of(exists)
-                .filter(exist -> !exist)
-                .ifPresent(notExist -> {
-                    throw new ReportTargetNotFoundException(reportType.name(), targetId);
-                });
+        if (!exists) {
+            throw new ReportTargetNotFoundException(reportType.name(), targetId);
+        }
     }
 
     private void validateNotSelfReport(Member reporter, ReportType reportType, Long targetId) {
         BiFunction<Member, Long, Boolean> checker = getSelfReportCheckers().get(reportType);
         Boolean isSelfReport = checker.apply(reporter, targetId);
 
-        Optional.of(isSelfReport)
-                .filter(selfReport -> selfReport)
-                .ifPresent(selfReport -> {
-                    throw new SelfReportException();
-                });
+        if (isSelfReport) {
+            throw new SelfReportException();
+        }
     }
 
     private void validateNotDuplicate(Member reporter, ReportType reportType, Long targetId) {
         Boolean isDuplicate = reportRepository.existsByReporterAndReportTypeAndTargetId(reporter, reportType, targetId);
 
-        Optional.of(isDuplicate)
-                .filter(duplicate -> duplicate)
-                .ifPresent(duplicate -> {
-                    throw new DuplicateReportException();
-                });
+        if (isDuplicate) {
+            throw new DuplicateReportException();
+        }
     }
 
     private Map<ReportType, Function<Long, Boolean>> getExistenceCheckers() {
