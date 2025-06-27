@@ -2,6 +2,8 @@ package com.dongsoop.dongsoop.report.service;
 
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.report.entity.Report;
+import com.dongsoop.dongsoop.report.entity.ReportReason;
+import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.entity.SanctionType;
 import com.dongsoop.dongsoop.report.handler.ContentDeletionHandler;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
@@ -80,9 +82,9 @@ public class SanctionExecutor {
     private Report buildAutoSuspensionReport(Member member) {
         return Report.builder()
                 .reporter(member)
-                .reportType(null)
+                .reportType(ReportType.MEMBER)
                 .targetId(member.getId())
-                .reportReason(null)
+                .reportReason(ReportReason.OTHER)
                 .description("경고 3회 누적으로 인한 자동 일시정지")
                 .targetUrl("/api/members/" + member.getId())
                 .admin(member)
