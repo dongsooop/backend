@@ -10,8 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 @Service
@@ -61,14 +61,38 @@ public class SanctionExecutor {
 
     private void checkWarningAccumulation(Member member) {
         Long warningCount = reportRepository.countActiveWarningsForMember(member.getId());
-        logAutoSuspensionWhen(warningCount, member);
+        executeAutoSuspensionWhen(warningCount, member);
     }
 
-    private void logAutoSuspensionWhen(Long warningCount, Member member) {
-        Optional.of(warningCount)
-                .filter(count -> count >= WARNING_THRESHOLD)
-                .ifPresent(count -> {
-                    log.info("경고 {}회 누적으로 인한 자동 일시정지: {}", WARNING_THRESHOLD, member.getId());
-                });
+    private void executeAutoSuspensionWhen(Long warningCount, Member member) {
+        if (warningCount >= WARNING_THRESHOLD) {
+            log.info("경고 {}회 누적으로 인한 자동 일시정지 실행: {}", WARNING_THRESHOLD, member.getId());
+            createAutoSuspensionReport(member);
+        }
+    }
+
+    private void createAutoSuspensionReport(Member member) {
+        Report autoSuspensionReport = buildAutoSuspensionReport(member);
+        reportRepository.save(autoSuspensionReport);
+        log.info("자동 일시정지 제재 생성 완료: 회원 ID {}", member.getId());
+    }
+
+    private Report buildAutoSuspensionReport(Member member) {
+        return Report.builder()
+                .reporter(member)
+                .reportType(null)
+                .targetId(member.getId())
+                .reportReason(null)
+                .description("경고 3회 누적으로 인한 자동 일시정지")
+                .targetUrl("/api/members/" + member.getId())
+                .admin(member)
+                .targetMember(member)
+                .sanctionType(SanctionType.TEMPORARY_BAN)
+                .sanctionReason("경고 3회 누적으로 인한 자동 일시정지")
+                .sanctionStartAt(LocalDateTime.now())
+                .sanctionEndAt(LocalDateTime.now().plusDays(7))
+                .isProcessed(true)
+                .isSanctionActive(true)
+                .build();
     }
 }
