@@ -76,16 +76,17 @@ public class MarketplaceBoardController {
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PatchMapping(value = "/{boardId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<Void> updateMarketplaceBoard(
+            @PathVariable("boardId") Long boardId,
             @RequestPart("request") @Valid UpdateMarketplaceBoardRequest request,
             @RequestPart(value = "image", required = false) MultipartFile[] images) throws IOException {
         if (images != null && images.length > MAX_IMAGES) {
             throw new TooManyImagesForMarketplaceException(MAX_IMAGES);
         }
 
-        marketplaceBoardService.update(request, images);
+        marketplaceBoardService.update(boardId, request, images);
 
         return ResponseEntity.noContent().build();
     }

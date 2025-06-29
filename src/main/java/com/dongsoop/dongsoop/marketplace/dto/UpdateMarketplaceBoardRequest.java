@@ -6,7 +6,6 @@ import java.util.List;
 
 public record UpdateMarketplaceBoardRequest(
 
-        Long boardId,
         String title,
         String content,
 

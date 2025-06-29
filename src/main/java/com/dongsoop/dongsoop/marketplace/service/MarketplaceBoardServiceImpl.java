@@ -105,11 +105,12 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
         marketplaceBoardRepository.deleteById(boardId);
     }
 
+    @Override
     @Transactional
-    public void update(UpdateMarketplaceBoardRequest request, MultipartFile[] images) throws IOException {
+    public void update(Long boardId, UpdateMarketplaceBoardRequest request, MultipartFile[] images) throws IOException {
         // 게시글 내용 수정
-        MarketplaceBoard board = marketplaceBoardRepository.findById(request.boardId())
-                .orElseThrow(() -> new MarketplaceBoardNotFoundException(request.boardId()));
+        MarketplaceBoard board = marketplaceBoardRepository.findById(boardId)
+                .orElseThrow(() -> new MarketplaceBoardNotFoundException(boardId));
 
         board.update(request);
 
@@ -128,7 +129,7 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
         }
 
         // 최종 이미지 수 검증
-        validateAfterUpdateImageAmount(request.boardId());
+        validateAfterUpdateImageAmount(boardId);
     }
 
     private void validateAfterUpdateImageAmount(Long boardId) {

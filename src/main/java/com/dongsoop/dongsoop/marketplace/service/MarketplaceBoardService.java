@@ -21,5 +21,5 @@ public interface MarketplaceBoardService {
 
     void delete(Long boardId);
 
-    void update(UpdateMarketplaceBoardRequest request, MultipartFile[] images) throws IOException;
+    void update(Long boardId, UpdateMarketplaceBoardRequest request, MultipartFile[] images) throws IOException;
 }
