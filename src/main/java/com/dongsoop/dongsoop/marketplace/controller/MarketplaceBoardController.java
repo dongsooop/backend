@@ -76,7 +76,7 @@ public class MarketplaceBoardController {
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping
+    @PatchMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<Void> updateMarketplaceBoard(
             @RequestPart("request") @Valid UpdateMarketplaceBoardRequest request,
