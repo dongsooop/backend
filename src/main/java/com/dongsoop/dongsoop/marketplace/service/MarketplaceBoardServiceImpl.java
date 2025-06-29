@@ -142,7 +142,9 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
     @Override
     @Transactional
     public void close(Long boardId) {
-        MarketplaceBoard board = marketplaceBoardRepository.findById(boardId)
+        Long memberId = memberService.getMemberIdByAuthentication();
+
+        MarketplaceBoard board = marketplaceBoardRepository.findByIdAndAuthorId(boardId, memberId)
                 .orElseThrow(() -> new MarketplaceBoardNotFoundException(boardId));
 
         board.close();
