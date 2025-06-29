@@ -37,6 +37,7 @@ public class MarketplaceBoard extends Board {
     private Long price;
 
     @Builder.Default
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private MarketplaceBoardStatus status = MarketplaceBoardStatus.OPEN;
 
