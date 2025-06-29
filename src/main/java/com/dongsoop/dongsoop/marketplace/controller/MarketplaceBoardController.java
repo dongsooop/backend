@@ -90,4 +90,11 @@ public class MarketplaceBoardController {
 
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{boardId}")
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<Void> closeMarketplaceBoard(@PathVariable("boardId") Long boardId) {
+        marketplaceBoardService.close(boardId);
+        return ResponseEntity.noContent().build();
+    }
 }

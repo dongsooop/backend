@@ -138,4 +138,13 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
             throw new MarketplaceBoardImageAmountNotAvailableException(imageAmount);
         }
     }
+
+    @Override
+    @Transactional
+    public void close(Long boardId) {
+        MarketplaceBoard board = marketplaceBoardRepository.findById(boardId)
+                .orElseThrow(() -> new MarketplaceBoardNotFoundException(boardId));
+
+        board.close();
+    }
 }
