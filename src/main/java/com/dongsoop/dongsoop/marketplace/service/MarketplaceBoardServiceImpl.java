@@ -101,8 +101,8 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
 
     @Transactional
     public void delete(Long boardId) {
-        marketplaceBoardRepository.deleteById(boardId);
         marketplaceImageRepository.deleteByMarketplaceBoardId(boardId);
+        marketplaceBoardRepository.deleteById(boardId);
     }
 
     @Transactional
