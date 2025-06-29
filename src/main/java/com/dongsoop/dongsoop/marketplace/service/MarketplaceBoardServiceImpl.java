@@ -128,16 +128,13 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
         }
 
         // 최종 이미지 수 검증
-        int deleteImageAmount = request.deleteImageUrls() != null ? request.deleteImageUrls().size() : 0;
-        int addImageAmount = images != null ? images.length : 0;
-        validateAfterUpdateImageAmount(request.boardId(), deleteImageAmount, addImageAmount);
+        validateAfterUpdateImageAmount(request.boardId());
     }
 
-    private void validateAfterUpdateImageAmount(Long boardId, int deleteImageAmount, int addImageAmount) {
+    private void validateAfterUpdateImageAmount(Long boardId) {
         int imageAmount = marketplaceImageRepository.countByMarketplaceBoardId(boardId);
-        int afterUpdateImageAmount = imageAmount - deleteImageAmount + addImageAmount;
-        if (afterUpdateImageAmount > 3 || afterUpdateImageAmount < 0) {
-            throw new MarketplaceBoardImageAmountNotAvailableException(afterUpdateImageAmount);
+        if (imageAmount > 3) {
+            throw new MarketplaceBoardImageAmountNotAvailableException(imageAmount);
         }
     }
 }
