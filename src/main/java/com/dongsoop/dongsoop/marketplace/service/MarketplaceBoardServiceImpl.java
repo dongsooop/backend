@@ -99,8 +99,10 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
     }
 
+    @Transactional
     public void delete(Long boardId) {
         marketplaceBoardRepository.deleteById(boardId);
+        marketplaceImageRepository.deleteByMarketplaceBoardId(boardId);
     }
 
     @Transactional
