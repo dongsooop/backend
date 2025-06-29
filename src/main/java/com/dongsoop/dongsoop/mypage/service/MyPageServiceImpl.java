@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
 import com.dongsoop.dongsoop.mypage.dto.OpenedMarketplace;
 import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
+import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitmentResponse;
 import com.dongsoop.dongsoop.recruitment.Repository.RecruitmentRepository;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepositoryCustom;
@@ -37,9 +38,14 @@ public class MyPageServiceImpl implements MyPageService {
     }
 
     @Override
-    public List<OpenedRecruitment> getOpenedRecruitmentsByMemberId(Pageable pageable) {
+    public List<OpenedRecruitmentResponse> getOpenedRecruitmentsByMemberId(Pageable pageable) {
         Long memberId = memberService.getMemberIdByAuthentication();
-        return recruitmentRepository.findOpenedRecruitmentsByMemberId(memberId, pageable);
+        List<OpenedRecruitment> openedRecruitment = recruitmentRepository.findOpenedRecruitmentsByMemberId(memberId,
+                pageable);
+
+        return openedRecruitment.stream()
+                .map(v -> new OpenedRecruitmentResponse(v))
+                .toList();
     }
 
     @Override

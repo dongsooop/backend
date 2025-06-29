@@ -2,7 +2,7 @@ package com.dongsoop.dongsoop.mypage.controller;
 
 import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
 import com.dongsoop.dongsoop.mypage.dto.OpenedMarketplace;
-import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
+import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitmentResponse;
 import com.dongsoop.dongsoop.mypage.service.MyPageService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -26,8 +26,8 @@ public class MyPageController {
     }
 
     @GetMapping("/opened-recruitments")
-    public ResponseEntity<List<OpenedRecruitment>> getOpenedRecruitmentList(Pageable pageable) {
-        List<OpenedRecruitment> response = myPageService.getOpenedRecruitmentsByMemberId(pageable);
+    public ResponseEntity<List<OpenedRecruitmentResponse>> getOpenedRecruitmentList(Pageable pageable) {
+        List<OpenedRecruitmentResponse> response = myPageService.getOpenedRecruitmentsByMemberId(pageable);
         return ResponseEntity.ok(response);
     }
 
