@@ -95,4 +95,8 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
         return marketplaceBoardRepositoryCustom.findMarketplaceBoardDetails(boardId, viewType)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
     }
+
+    public void delete(Long boardId) {
+        marketplaceBoardRepository.deleteById(boardId);
+    }
 }

@@ -17,4 +17,6 @@ public interface MarketplaceBoardService {
     List<MarketplaceBoardOverview> getMarketplaceBoards(Pageable pageable, MarketplaceType type);
 
     MarketplaceBoardDetails getBoardDetails(Long boardId);
+
+    void delete(Long boardId);
 }
