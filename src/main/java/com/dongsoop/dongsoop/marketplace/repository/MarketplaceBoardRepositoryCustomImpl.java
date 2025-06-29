@@ -73,7 +73,8 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                         marketplaceBoard.type,
                         marketplaceContact.id.applicant.countDistinct(),
                         Expressions.stringTemplate("string_agg({0}, ',')", marketplaceImage.id.url),
-                        Expressions.constant(viewType)))
+                        Expressions.constant(viewType),
+                        marketplaceBoard.status))
                 .from(marketplaceBoard)
                 .leftJoin(marketplaceContact)
                 .on(marketplaceContact.id.marketplaceId.eq(marketplaceBoard.id))
