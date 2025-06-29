@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.marketplace.service;
 import com.dongsoop.dongsoop.marketplace.dto.CreateMarketplaceBoardRequest;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardDetails;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
+import com.dongsoop.dongsoop.marketplace.dto.UpdateMarketplaceBoardRequest;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoard;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
 import java.io.IOException;
@@ -19,4 +20,6 @@ public interface MarketplaceBoardService {
     MarketplaceBoardDetails getBoardDetails(Long boardId);
 
     void delete(Long boardId);
+
+    void update(UpdateMarketplaceBoardRequest request, MultipartFile[] images) throws IOException;
 }

@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.marketplace.entity;
 
 import com.dongsoop.dongsoop.board.Board;
+import com.dongsoop.dongsoop.marketplace.dto.UpdateMarketplaceBoardRequest;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,6 +17,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
+import org.springframework.util.StringUtils;
 
 @Entity
 @SuperBuilder
@@ -40,4 +42,19 @@ public class MarketplaceBoard extends Board {
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
     private MarketplaceType type;
+
+    public void update(UpdateMarketplaceBoardRequest request) {
+        if (request.price() != null) {
+            this.price = request.price();
+        }
+        if (request.type() != null) {
+            this.type = request.type();
+        }
+        if (StringUtils.hasText(request.title())) {
+            super.title = request.title();
+        }
+        if (StringUtils.hasText(request.content())) {
+            super.content = request.content();
+        }
+    }
 }
