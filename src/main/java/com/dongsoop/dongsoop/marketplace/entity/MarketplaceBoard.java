@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.marketplace.entity;
 
 import com.dongsoop.dongsoop.board.Board;
+import com.dongsoop.dongsoop.exception.domain.marketplace.MarketplaceBoardAlreadyClosedException;
 import com.dongsoop.dongsoop.marketplace.dto.UpdateMarketplaceBoardRequest;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -37,7 +38,7 @@ public class MarketplaceBoard extends Board {
 
     @Builder.Default
     @Column(name = "status", nullable = false)
-    private MarketplaceBoardStatus status = MarketplaceBoardStatus.SELLING;
+    private MarketplaceBoardStatus status = MarketplaceBoardStatus.OPEN;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
@@ -56,5 +57,13 @@ public class MarketplaceBoard extends Board {
         if (StringUtils.hasText(request.content())) {
             super.content = request.content();
         }
+    }
+
+    public void close() {
+        if (this.status != MarketplaceBoardStatus.OPEN) {
+            throw new MarketplaceBoardAlreadyClosedException(this.id);
+        }
+
+        this.status = MarketplaceBoardStatus.CLOSED;
     }
 }
