@@ -8,6 +8,7 @@ import com.dongsoop.dongsoop.report.entity.ReportFilterType;
 import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -128,7 +129,7 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
             return isSanctionActive();
         }
 
-        return null;
+        return Expressions.TRUE;
     }
 
     private boolean requiresDetailedView(ReportFilterType filterType) {
