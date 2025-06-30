@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.report.validator;
 
 import com.dongsoop.dongsoop.exception.domain.report.DuplicateReportException;
+import com.dongsoop.dongsoop.exception.domain.report.MemberSanctionedException;
 import com.dongsoop.dongsoop.exception.domain.report.ReportTargetNotFoundException;
 import com.dongsoop.dongsoop.exception.domain.report.SelfReportException;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepository;
@@ -14,6 +15,7 @@ import com.dongsoop.dongsoop.report.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -28,6 +30,13 @@ public class ReportValidator {
     private final MarketplaceBoardRepository marketplaceBoardRepository;
     private final TutoringBoardRepository tutoringBoardRepository;
     private final MemberRepository memberRepository;
+
+    public void checkMemberAccessById(Long memberId) {
+        reportRepository.findActiveBanForMember(memberId, LocalDateTime.now())
+                .ifPresent(report -> {
+                    throw new MemberSanctionedException("회원님은 현재 제재 중입니다. 자세한 내용은 고객센터에 문의해주세요.");
+                });
+    }
 
     public void validateAll(Member reporter, ReportType reportType, Long targetId) {
         validateTargetExists(reportType, targetId);
