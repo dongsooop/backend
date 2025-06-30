@@ -16,9 +16,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 @Component
 @RequiredArgsConstructor
@@ -45,8 +42,7 @@ public class ReportValidator {
     }
 
     private void validateTargetExists(ReportType reportType, Long targetId) {
-        Function<Long, Boolean> checker = getExistenceCheckers().get(reportType);
-        Boolean exists = checker.apply(targetId);
+        boolean exists = checkTargetExists(reportType, targetId);
 
         if (!exists) {
             throw new ReportTargetNotFoundException(reportType.name(), targetId);
@@ -54,8 +50,7 @@ public class ReportValidator {
     }
 
     private void validateNotSelfReport(Member reporter, ReportType reportType, Long targetId) {
-        BiFunction<Member, Long, Boolean> checker = getSelfReportCheckers().get(reportType);
-        Boolean isSelfReport = checker.apply(reporter, targetId);
+        boolean isSelfReport = checkSelfReport(reporter, reportType, targetId);
 
         if (isSelfReport) {
             throw new SelfReportException();
@@ -63,50 +58,58 @@ public class ReportValidator {
     }
 
     private void validateNotDuplicate(Member reporter, ReportType reportType, Long targetId) {
-        Boolean isDuplicate = reportRepository.existsByReporterAndReportTypeAndTargetId(reporter, reportType, targetId);
+        boolean isDuplicate = reportRepository.existsByReporterAndReportTypeAndTargetId(reporter, reportType, targetId);
 
         if (isDuplicate) {
             throw new DuplicateReportException();
         }
     }
 
-    private Map<ReportType, Function<Long, Boolean>> getExistenceCheckers() {
-        return Map.of(
-                ReportType.PROJECT_BOARD, projectBoardRepository::existsById,
-                ReportType.STUDY_BOARD, studyBoardRepository::existsById,
-                ReportType.MARKETPLACE_BOARD, marketplaceBoardRepository::existsById,
-                ReportType.TUTORING_BOARD, tutoringBoardRepository::existsById,
-                ReportType.MEMBER, memberRepository::existsById
-        );
+    private boolean checkTargetExists(ReportType reportType, Long targetId) {
+        if (ReportType.PROJECT_BOARD.equals(reportType)) {
+            return projectBoardRepository.existsById(targetId);
+        }
+
+        if (ReportType.STUDY_BOARD.equals(reportType)) {
+            return studyBoardRepository.existsById(targetId);
+        }
+
+        if (ReportType.MARKETPLACE_BOARD.equals(reportType)) {
+            return marketplaceBoardRepository.existsById(targetId);
+        }
+
+        if (ReportType.TUTORING_BOARD.equals(reportType)) {
+            return tutoringBoardRepository.existsById(targetId);
+        }
+
+        if (ReportType.MEMBER.equals(reportType)) {
+            return memberRepository.existsById(targetId);
+        }
+
+        throw new IllegalArgumentException("Undefined ReportType: " + reportType);
     }
 
-    private Map<ReportType, BiFunction<Member, Long, Boolean>> getSelfReportCheckers() {
-        return Map.of(
-                ReportType.PROJECT_BOARD, this::checkProjectSelfReport,
-                ReportType.STUDY_BOARD, this::checkStudySelfReport,
-                ReportType.MARKETPLACE_BOARD, this::checkMarketplaceSelfReport,
-                ReportType.TUTORING_BOARD, this::checkTutoringSelfReport,
-                ReportType.MEMBER, this::checkMemberSelfReport
-        );
-    }
+    private boolean checkSelfReport(Member reporter, ReportType reportType, Long targetId) {
+        if (ReportType.PROJECT_BOARD.equals(reportType)) {
+            return projectBoardRepository.existsByIdAndAuthorId(targetId, reporter.getId());
+        }
 
-    private Boolean checkProjectSelfReport(Member reporter, Long targetId) {
-        return projectBoardRepository.existsByIdAndAuthorId(targetId, reporter.getId());
-    }
+        if (ReportType.STUDY_BOARD.equals(reportType)) {
+            return studyBoardRepository.existsByIdAndAuthorId(targetId, reporter.getId());
+        }
 
-    private Boolean checkStudySelfReport(Member reporter, Long targetId) {
-        return studyBoardRepository.existsByIdAndAuthorId(targetId, reporter.getId());
-    }
+        if (ReportType.MARKETPLACE_BOARD.equals(reportType)) {
+            return marketplaceBoardRepository.existsByIdAndAuthor(targetId, reporter);
+        }
 
-    private Boolean checkMarketplaceSelfReport(Member reporter, Long targetId) {
-        return marketplaceBoardRepository.existsByIdAndAuthor(targetId, reporter);
-    }
+        if (ReportType.TUTORING_BOARD.equals(reportType)) {
+            return tutoringBoardRepository.existsByIdAndAuthorId(targetId, reporter.getId());
+        }
 
-    private Boolean checkTutoringSelfReport(Member reporter, Long targetId) {
-        return tutoringBoardRepository.existsByIdAndAuthorId(targetId, reporter.getId());
-    }
+        if (ReportType.MEMBER.equals(reportType)) {
+            return targetId.equals(reporter.getId());
+        }
 
-    private Boolean checkMemberSelfReport(Member reporter, Long targetId) {
-        return targetId.equals(reporter.getId());
+        throw new IllegalArgumentException("Undefined ReportType: " + reportType);
     }
 }
