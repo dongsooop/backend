@@ -6,7 +6,7 @@ import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
 import com.dongsoop.dongsoop.mypage.dto.OpenedMarketplace;
 import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
 import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitmentResponse;
-import com.dongsoop.dongsoop.recruitment.Repository.RecruitmentRepository;
+import com.dongsoop.dongsoop.recruitment.repository.RecruitmentRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;

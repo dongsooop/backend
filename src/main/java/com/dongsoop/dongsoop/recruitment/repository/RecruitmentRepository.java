@@ -1,4 +1,4 @@
-package com.dongsoop.dongsoop.recruitment.Repository;
+package com.dongsoop.dongsoop.recruitment.repository;
 
 import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
 import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
