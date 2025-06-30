@@ -15,10 +15,11 @@ import com.dongsoop.dongsoop.report.repository.ReportRepository;
 import com.dongsoop.dongsoop.report.util.ReportUrlGenerator;
 import com.dongsoop.dongsoop.report.validator.ReportValidator;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -57,8 +58,15 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Page<ReportResponse> getReports(ReportFilterType filterType, Pageable pageable) {
-        return reportRepository.findReportsByFilter(filterType, pageable);
+    public List<ReportResponse> getReports(ReportFilterType filterType, Pageable pageable) {
+        if (ReportFilterType.UNPROCESSED.equals(filterType)) {
+            return reportRepository.findSummaryReportsByFilter(filterType, pageable);
+        }
+        return reportRepository.findDetailedReportsByFilter(filterType, pageable);
+    }
+
+    private boolean requiresSummaryView(ReportFilterType filterType) {
+        return ReportFilterType.UNPROCESSED.equals(filterType);
     }
 
     private Report buildReport(CreateReportRequest request, Member reporter, String targetUrl) {
