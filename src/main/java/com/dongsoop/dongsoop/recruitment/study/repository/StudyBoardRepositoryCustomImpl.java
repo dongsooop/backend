@@ -46,6 +46,8 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
     @Override
     public List<StudyBoardOverview> findStudyBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
                                                                                    Pageable pageable) {
+        LocalDateTime now = LocalDateTime.now();
+
         return queryFactory
                 .select(getBoardOverviewExpression())
                 .from(studyBoard)
@@ -53,7 +55,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
                 .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
-                .where(isRecruiting())
+                .where(isRecruiting(now))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(studyBoard.id)
@@ -123,6 +125,8 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
      */
     @Override
     public List<StudyBoardOverview> findStudyBoardOverviewsByPage(Pageable pageable) {
+        LocalDateTime now = LocalDateTime.now();
+
         return queryFactory
                 .select(getBoardOverviewExpression())
                 .from(studyBoard)
@@ -130,7 +134,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
                 .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
-                .where(isRecruiting())
+                .where(isRecruiting(now))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(studyBoard.id)
@@ -164,8 +168,8 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .gt(0);
     }
 
-    private BooleanExpression isRecruiting() {
-        return studyBoard.endAt.gt(LocalDateTime.now())
-                .and(studyBoard.startAt.lt(LocalDateTime.now()));
+    private BooleanExpression isRecruiting(LocalDateTime now) {
+        return studyBoard.endAt.gt(now)
+                .and(studyBoard.startAt.lt(now));
     }
 }

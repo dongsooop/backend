@@ -41,12 +41,14 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
     @Override
     public List<TutoringBoardOverview> findTutoringBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
                                                                                          Pageable pageable) {
+        LocalDateTime now = LocalDateTime.now();
+
         return queryFactory.select(getBoardOverviewExpression())
                 .from(tutoringBoard)
                 .leftJoin(tutoringApply)
                 .on(tutoringApply.id.tutoringBoard.id.eq(tutoringBoard.id))
                 .where(tutoringBoard.department.id.eq(departmentType)
-                        .and(isRecruiting()))
+                        .and(isRecruiting(now)))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(tutoringBoard.id)
@@ -102,11 +104,13 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
      */
     @Override
     public List<TutoringBoardOverview> findTutoringBoardOverviewsByPage(Pageable pageable) {
+        LocalDateTime now = LocalDateTime.now();
+
         return queryFactory.select(getBoardOverviewExpression())
                 .from(tutoringBoard)
                 .leftJoin(tutoringApply)
                 .on(tutoringApply.id.tutoringBoard.id.eq(tutoringBoard.id))
-                .where(isRecruiting())
+                .where(isRecruiting(now))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(tutoringBoard.id)
@@ -126,8 +130,8 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                 tutoringBoard.department.id);
     }
 
-    private BooleanExpression isRecruiting() {
-        return tutoringBoard.endAt.gt(LocalDateTime.now())
-                .and(tutoringBoard.startAt.lt(LocalDateTime.now()));
+    private BooleanExpression isRecruiting(LocalDateTime now) {
+        return tutoringBoard.endAt.gt(now)
+                .and(tutoringBoard.startAt.lt(now));
     }
 }

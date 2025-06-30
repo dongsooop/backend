@@ -46,6 +46,8 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
     @Override
     public List<ProjectBoardOverview> findProjectBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
                                                                                        Pageable pageable) {
+        LocalDateTime now = LocalDateTime.now();
+
         return queryFactory
                 .select(getBoardOverviewExpression())
                 .from(projectBoard)
@@ -53,7 +55,7 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                 .on(hasMatchingProjectBoardId(projectApply.id.projectBoard.id))
                 .leftJoin(projectBoardDepartment)
                 .on(hasMatchingProjectBoardId(projectBoardDepartment.id.projectBoard.id))
-                .where(isRecruiting())
+                .where(isRecruiting(now))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(projectBoard.id)
@@ -123,6 +125,8 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
      */
     @Override
     public List<ProjectBoardOverview> findProjectBoardOverviewsByPage(Pageable pageable) {
+        LocalDateTime now = LocalDateTime.now();
+
         return queryFactory
                 .select(getBoardOverviewExpression())
                 .from(projectBoard)
@@ -130,7 +134,7 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                 .on(hasMatchingProjectBoardId(projectApply.id.projectBoard.id))
                 .leftJoin(projectBoardDepartment)
                 .on(hasMatchingProjectBoardId(projectBoardDepartment.id.projectBoard.id))
-                .where(isRecruiting())
+                .where(isRecruiting(now))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(projectBoard.id)
@@ -164,8 +168,8 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                 .gt(0);
     }
 
-    private BooleanExpression isRecruiting() {
-        return projectBoard.endAt.gt(LocalDateTime.now())
-                .and(projectBoard.startAt.lt(LocalDateTime.now()));
+    private BooleanExpression isRecruiting(LocalDateTime now) {
+        return projectBoard.endAt.gt(now)
+                .and(projectBoard.startAt.lt(now));
     }
 }
