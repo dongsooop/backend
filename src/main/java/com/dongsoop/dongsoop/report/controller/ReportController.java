@@ -29,7 +29,7 @@ public class ReportController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @PostMapping("/{reportId}/sanctions")
+    @PostMapping("/sanctions")
     @Secured("ROLE_ADMIN")
     public ResponseEntity<Void> processSanction(@RequestBody @Valid ProcessSanctionRequest request) {
         reportService.processSanction(request);
