@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.report.service;
 
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportReason;
 import com.dongsoop.dongsoop.report.entity.ReportType;
@@ -25,6 +26,7 @@ public class SanctionExecutor {
     private static final long WARNING_THRESHOLD = 3L;
 
     private final ReportRepository reportRepository;
+    private final MemberRepository memberRepository;
     private final ContentDeletionHandler contentDeletionHandler;
 
     @Transactional
@@ -69,14 +71,17 @@ public class SanctionExecutor {
     private void executeAutoSuspensionWhen(Long warningCount, Member member) {
         if (warningCount >= WARNING_THRESHOLD) {
             log.info("경고 {}회 누적으로 인한 자동 일시정지 실행: {}", WARNING_THRESHOLD, member.getId());
-            createAutoSuspensionReport(member);
+            createAutoSuspensionReport(member.getId());
         }
     }
 
-    private void createAutoSuspensionReport(Member member) {
-        Report autoSuspensionReport = buildAutoSuspensionReport(member);
+    private void createAutoSuspensionReport(Long memberId) {
+        // MemberRepository 직접 사용으로 순환 참조 방지
+        Member memberRef = memberRepository.getReferenceById(memberId);
+
+        Report autoSuspensionReport = buildAutoSuspensionReport(memberRef);
         reportRepository.save(autoSuspensionReport);
-        log.info("자동 일시정지 제재 생성 완료: 회원 ID {}", member.getId());
+        log.info("자동 일시정지 제재 생성 완료: 회원 ID {}", memberId);
     }
 
     private Report buildAutoSuspensionReport(Member member) {
