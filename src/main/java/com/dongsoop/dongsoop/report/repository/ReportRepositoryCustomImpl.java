@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.report.dto.ReportResponse;
 import com.dongsoop.dongsoop.report.entity.QReport;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
+import com.dongsoop.dongsoop.report.entity.SanctionType;
 import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -12,11 +13,10 @@ import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -32,29 +32,25 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     private final PageableUtil pageableUtil;
 
     @Override
-    public Page<ReportResponse> findReportsByFilter(ReportFilterType filterType, Pageable pageable) {
+    public List<ReportResponse> findDetailedReportsByFilter(ReportFilterType filterType, Pageable pageable) {
         BooleanExpression filterCondition = createFilterCondition(filterType);
-        boolean isDetailedView = requiresDetailedView(filterType);
+        Expression<ReportResponse> projection = createDetailedProjection();
 
-        List<ReportResponse> reports = buildQuery(filterCondition, isDetailedView, pageable);
-        Long total = countByFilter(filterCondition);
+        return buildQuery(filterCondition, projection, pageable);
+    }
 
-        return new PageImpl<>(reports, pageable, total);
+    @Override
+    public List<ReportResponse> findSummaryReportsByFilter(ReportFilterType filterType, Pageable pageable) {
+        BooleanExpression filterCondition = createFilterCondition(filterType);
+        Expression<ReportResponse> projection = createSummaryProjection();
+
+        return buildQuery(filterCondition, projection, pageable);
     }
 
     private List<ReportResponse> buildQuery(BooleanExpression filterCondition,
-                                            boolean isDetailedView, Pageable pageable) {
-        Expression<ReportResponse> projection = createProjection(isDetailedView);
+                                            Expression<ReportResponse> projection, Pageable pageable) {
         JPAQuery<ReportResponse> baseQuery = createBaseQuery(projection, filterCondition);
-
         return applyPaginationAndSorting(baseQuery, pageable);
-    }
-
-    private Expression<ReportResponse> createProjection(boolean isDetailedView) {
-        if (isDetailedView) {
-            return createDetailedProjection();
-        }
-        return createSummaryProjection();
     }
 
     private Expression<ReportResponse> createDetailedProjection() {
@@ -82,8 +78,18 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 report.id,
                 reporter.nickname,
                 report.reportType,
+                Expressions.nullExpression(Long.class),
+                Expressions.nullExpression(String.class),
                 report.reportReason,
+                Expressions.nullExpression(String.class),
                 report.isProcessed,
+                Expressions.nullExpression(String.class),
+                Expressions.nullExpression(String.class),
+                Expressions.nullExpression(SanctionType.class),
+                Expressions.nullExpression(String.class),
+                Expressions.nullExpression(LocalDateTime.class),
+                Expressions.nullExpression(LocalDateTime.class),
+                Expressions.nullExpression(Boolean.class),
                 report.createdAt);
     }
 
@@ -106,34 +112,20 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 .fetch();
     }
 
-    private Long countByFilter(BooleanExpression filterCondition) {
-        return queryFactory
-                .select(report.count())
-                .from(report)
-                .where(filterCondition)
-                .fetchOne();
-    }
-
     private BooleanExpression createFilterCondition(ReportFilterType filterType) {
-        String filterTypeName = filterType.name();
-
-        if ("UNPROCESSED".equals(filterTypeName)) {
+        if (ReportFilterType.UNPROCESSED.equals(filterType)) {
             return isUnprocessed();
         }
 
-        if ("PROCESSED".equals(filterTypeName)) {
+        if (ReportFilterType.PROCESSED.equals(filterType)) {
             return isProcessed();
         }
 
-        if ("ACTIVE_SANCTIONS".equals(filterTypeName)) {
+        if (ReportFilterType.ACTIVE_SANCTIONS.equals(filterType)) {
             return isSanctionActive();
         }
 
         return Expressions.TRUE;
-    }
-
-    private boolean requiresDetailedView(ReportFilterType filterType) {
-        return filterType != ReportFilterType.UNPROCESSED;
     }
 
     private BooleanExpression isUnprocessed() {
