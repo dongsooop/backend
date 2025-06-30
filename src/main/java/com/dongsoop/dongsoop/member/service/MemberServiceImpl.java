@@ -13,7 +13,7 @@ import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.repository.MemberRepositoryCustom;
 import com.dongsoop.dongsoop.member.validate.MemberDuplicationValidator;
-import com.dongsoop.dongsoop.report.service.ReportService;
+import com.dongsoop.dongsoop.report.validator.ReportValidator;
 import com.dongsoop.dongsoop.role.entity.MemberRole;
 import com.dongsoop.dongsoop.role.entity.Role;
 import com.dongsoop.dongsoop.role.entity.RoleType;
@@ -53,7 +53,7 @@ public class MemberServiceImpl implements MemberService {
 
     private final MemberDuplicationValidator memberDuplicationValidator;
 
-    private final ReportService reportService;
+    private final ReportValidator reportValidator;
 
     @Transactional
     public void signup(SignupRequest request) {
@@ -89,7 +89,7 @@ public class MemberServiceImpl implements MemberService {
         String password = loginAuthenticate.getPassword();
         validatePassword(loginRequest.getPassword(), password);
 
-        reportService.checkMemberAccessById(loginAuthenticate.getId());
+        reportValidator.checkMemberAccessById(loginAuthenticate.getId());
 
         Authentication authentication = getAuthenticationByLoginAuthenticate(loginAuthenticate);
 
