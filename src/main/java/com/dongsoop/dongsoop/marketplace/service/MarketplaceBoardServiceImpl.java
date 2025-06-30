@@ -1,11 +1,14 @@
 package com.dongsoop.dongsoop.marketplace.service;
 
+import com.dongsoop.dongsoop.exception.domain.marketplace.MarketplaceBoardImageAmountNotAvailableException;
+import com.dongsoop.dongsoop.exception.domain.marketplace.MarketplaceBoardNotFoundException;
 import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
 import com.dongsoop.dongsoop.exception.domain.s3.S3UnknownException;
 import com.dongsoop.dongsoop.marketplace.dto.CreateMarketplaceBoardRequest;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardDetails;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceViewType;
+import com.dongsoop.dongsoop.marketplace.dto.UpdateMarketplaceBoardRequest;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoard;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceImage;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceImage.MarketplaceImageId;
@@ -94,5 +97,56 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
     public MarketplaceBoardDetails getBoardDetailsWithViewType(Long boardId, MarketplaceViewType viewType) {
         return marketplaceBoardRepositoryCustom.findMarketplaceBoardDetails(boardId, viewType)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+    }
+
+    @Transactional
+    public void delete(Long boardId) {
+        marketplaceImageRepository.deleteByMarketplaceBoardId(boardId);
+        marketplaceBoardRepository.deleteById(boardId);
+    }
+
+    @Override
+    @Transactional
+    public void update(Long boardId, UpdateMarketplaceBoardRequest request, MultipartFile[] images) throws IOException {
+        // 게시글 내용 수정
+        MarketplaceBoard board = marketplaceBoardRepository.findById(boardId)
+                .orElseThrow(() -> new MarketplaceBoardNotFoundException(boardId));
+
+        board.update(request);
+
+        // 이미지 삭제
+        if (request.deleteImageUrls() != null) {
+            List<MarketplaceImageId> deleteImage = request.deleteImageUrls()
+                    .stream()
+                    .map(v -> new MarketplaceImageId(board, v))
+                    .toList();
+            marketplaceImageRepository.deleteAllById(deleteImage);
+        }
+
+        // 이미지 추가
+        if (images != null && images.length > 0) {
+            saveImages(images, board);
+        }
+
+        // 최종 이미지 수 검증
+        validateAfterUpdateImageAmount(boardId);
+    }
+
+    private void validateAfterUpdateImageAmount(Long boardId) {
+        int imageAmount = marketplaceImageRepository.countByMarketplaceBoardId(boardId);
+        if (imageAmount > 3) {
+            throw new MarketplaceBoardImageAmountNotAvailableException(imageAmount);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void close(Long boardId) {
+        Long memberId = memberService.getMemberIdByAuthentication();
+
+        MarketplaceBoard board = marketplaceBoardRepository.findByIdAndAuthorId(boardId, memberId)
+                .orElseThrow(() -> new MarketplaceBoardNotFoundException(boardId));
+
+        board.close();
     }
 }

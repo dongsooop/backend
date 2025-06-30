@@ -13,6 +13,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
@@ -20,6 +21,7 @@ import org.hibernate.annotations.SQLRestriction;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @SQLRestriction("is_deleted = false")
+@SQLDelete(sql = "UPDATE marketplace_image SET is_deleted = true WHERE marketplace_board_id = ? AND url = ?")
 public class MarketplaceImage extends BaseEntity {
 
     @EmbeddedId
