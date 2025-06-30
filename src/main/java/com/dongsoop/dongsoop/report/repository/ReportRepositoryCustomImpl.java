@@ -116,12 +116,10 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
             return isSanctionActive();
         }
 
-        // ALL인 경우 null 반환 (조건 없음)
         return null;
     }
 
     private boolean requiresDetailedView(ReportFilterType filterType) {
-        // UNPROCESSED는 요약 정보만 필요
         return filterType != ReportFilterType.UNPROCESSED;
     }
 

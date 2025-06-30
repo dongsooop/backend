@@ -76,7 +76,6 @@ public class SanctionExecutor {
     }
 
     private void createAutoSuspensionReport(Long memberId) {
-        // MemberRepository 직접 사용으로 순환 참조 방지
         Member memberRef = memberRepository.getReferenceById(memberId);
 
         Report autoSuspensionReport = buildAutoSuspensionReport(memberRef);
