@@ -9,7 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 @Entity
 @Getter
@@ -43,7 +42,6 @@ public class Report extends BaseEntity {
     @Column(nullable = false)
     private String targetUrl;
 
-    // 제재 정보 (nullable)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "admin_id")
     private Member admin;
@@ -79,17 +77,5 @@ public class Report extends BaseEntity {
         this.sanctionEndAt = sanctionEndAt;
         this.isProcessed = true;
         this.isSanctionActive = true;
-    }
-
-    public void deactivateSanction() {
-        this.isSanctionActive = false;
-    }
-
-    public Boolean isCurrentlyBanned() {
-        return Optional.ofNullable(sanctionType)
-                .filter(type -> type == SanctionType.TEMPORARY_BAN || type == SanctionType.PERMANENT_BAN)
-                .filter(type -> isSanctionActive)
-                .filter(type -> sanctionEndAt == null || sanctionEndAt.isAfter(LocalDateTime.now()))
-                .isPresent();
     }
 }
