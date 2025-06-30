@@ -8,6 +8,7 @@ import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardOverview;
 import com.dongsoop.dongsoop.recruitment.project.entity.QProjectApply;
 import com.dongsoop.dongsoop.recruitment.project.entity.QProjectBoard;
 import com.dongsoop.dongsoop.recruitment.project.entity.QProjectBoardDepartment;
+import com.dongsoop.dongsoop.recruitment.repository.RecruitmentRepositoryUtils;
 import com.querydsl.core.types.ConstructorExpression;
 import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Projections;
@@ -36,6 +37,8 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
 
     private final PageableUtil pageableUtil;
 
+    private final RecruitmentRepositoryUtils recruitmentRepositoryUtils;
+
     /**
      * 학과별로 모집중인 상태의 프로젝트 모집 게시판 목록을 페이지 단위로 조회합니다.
      *
@@ -55,7 +58,7 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                 .on(hasMatchingProjectBoardId(projectApply.id.projectBoard.id))
                 .leftJoin(projectBoardDepartment)
                 .on(hasMatchingProjectBoardId(projectBoardDepartment.id.projectBoard.id))
-                .where(isRecruiting(now))
+                .where(recruitmentRepositoryUtils.isRecruiting(projectBoard.startAt, projectBoard.endAt, now))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(projectBoard.id)
@@ -134,7 +137,7 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                 .on(hasMatchingProjectBoardId(projectApply.id.projectBoard.id))
                 .leftJoin(projectBoardDepartment)
                 .on(hasMatchingProjectBoardId(projectBoardDepartment.id.projectBoard.id))
-                .where(isRecruiting(now))
+                .where(recruitmentRepositoryUtils.isRecruiting(projectBoard.startAt, projectBoard.endAt, now))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(projectBoard.id)
@@ -166,10 +169,5 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                         projectBoardDepartment.id.department.id,
                         Expressions.constant(departmentType))
                 .gt(0);
-    }
-
-    private BooleanExpression isRecruiting(LocalDateTime now) {
-        return projectBoard.endAt.gt(now)
-                .and(projectBoard.startAt.lt(now));
     }
 }

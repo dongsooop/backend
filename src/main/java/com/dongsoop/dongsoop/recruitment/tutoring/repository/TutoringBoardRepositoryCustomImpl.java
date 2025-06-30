@@ -3,13 +3,13 @@ package com.dongsoop.dongsoop.recruitment.tutoring.repository;
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
+import com.dongsoop.dongsoop.recruitment.repository.RecruitmentRepositoryUtils;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardDetails;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardOverview;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.QTutoringApply;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.QTutoringBoard;
 import com.querydsl.core.types.ConstructorExpression;
 import com.querydsl.core.types.Projections;
-import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
@@ -31,6 +31,8 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
 
     private final PageableUtil pageableUtil;
 
+    private final RecruitmentRepositoryUtils recruitmentRepositoryUtils;
+
     /**
      * 학과별로 모집중인 상태의 튜터링 모집 게시판 목록을 페이지 단위로 조회합니다.
      *
@@ -48,7 +50,7 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                 .leftJoin(tutoringApply)
                 .on(tutoringApply.id.tutoringBoard.id.eq(tutoringBoard.id))
                 .where(tutoringBoard.department.id.eq(departmentType)
-                        .and(isRecruiting(now)))
+                        .and(recruitmentRepositoryUtils.isRecruiting(tutoringBoard.startAt, tutoringBoard.endAt, now)))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(tutoringBoard.id)
@@ -110,7 +112,7 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                 .from(tutoringBoard)
                 .leftJoin(tutoringApply)
                 .on(tutoringApply.id.tutoringBoard.id.eq(tutoringBoard.id))
-                .where(isRecruiting(now))
+                .where(recruitmentRepositoryUtils.isRecruiting(tutoringBoard.startAt, tutoringBoard.endAt, now))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(tutoringBoard.id)
@@ -128,10 +130,5 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                 tutoringBoard.content,
                 tutoringBoard.tags,
                 tutoringBoard.department.id);
-    }
-
-    private BooleanExpression isRecruiting(LocalDateTime now) {
-        return tutoringBoard.endAt.gt(now)
-                .and(tutoringBoard.startAt.lt(now));
     }
 }

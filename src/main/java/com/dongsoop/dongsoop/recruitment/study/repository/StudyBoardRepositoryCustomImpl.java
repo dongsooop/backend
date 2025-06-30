@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.recruitment.study.repository;
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
+import com.dongsoop.dongsoop.recruitment.repository.RecruitmentRepositoryUtils;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardDetails;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardOverview;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyApply;
@@ -36,6 +37,8 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
 
     private final PageableUtil pageableUtil;
 
+    private final RecruitmentRepositoryUtils recruitmentRepositoryUtils;
+
     /**
      * 학과별로 모집중인 상태의 스터디 모집 게시판 목록을 페이지 단위로 조회합니다.
      *
@@ -55,7 +58,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
                 .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
-                .where(isRecruiting(now))
+                .where(recruitmentRepositoryUtils.isRecruiting(studyBoard.startAt, studyBoard.endAt, now))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(studyBoard.id)
@@ -134,7 +137,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
                 .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
-                .where(isRecruiting(now))
+                .where(recruitmentRepositoryUtils.isRecruiting(studyBoard.startAt, studyBoard.endAt, now))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(studyBoard.id)
@@ -166,10 +169,5 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                         studyBoardDepartment.id.department.id,
                         Expressions.constant(departmentType))
                 .gt(0);
-    }
-
-    private BooleanExpression isRecruiting(LocalDateTime now) {
-        return studyBoard.endAt.gt(now)
-                .and(studyBoard.startAt.lt(now));
     }
 }
