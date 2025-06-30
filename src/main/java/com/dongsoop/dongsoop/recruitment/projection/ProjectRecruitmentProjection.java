@@ -1,7 +1,6 @@
 package com.dongsoop.dongsoop.recruitment.projection;
 
-import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
-import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
+import com.dongsoop.dongsoop.mypage.dto.MyRecruitmentOverview;
 import com.dongsoop.dongsoop.recruitment.RecruitmentType;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
@@ -25,8 +24,8 @@ public class ProjectRecruitmentProjection implements RecruitmentProjection {
     private static final QProjectBoardDepartment boardDepartment = QProjectBoardDepartment.projectBoardDepartment;
 
     @Override
-    public ConstructorExpression<ApplyRecruitment> getApplyRecruitmentExpression() {
-        return Projections.constructor(ApplyRecruitment.class,
+    public ConstructorExpression<MyRecruitmentOverview> getApplyRecruitmentExpression() {
+        return Projections.constructor(MyRecruitmentOverview.class,
                 board.id,
                 JPAExpressions.select(apply.id.member.countDistinct().intValue())
                         .from(apply)
@@ -44,8 +43,8 @@ public class ProjectRecruitmentProjection implements RecruitmentProjection {
     }
 
     @Override
-    public ConstructorExpression<OpenedRecruitment> getOpenedRecruitmentExpression() {
-        return Projections.constructor(OpenedRecruitment.class,
+    public ConstructorExpression<MyRecruitmentOverview> getOpenedRecruitmentExpression() {
+        return Projections.constructor(MyRecruitmentOverview.class,
                 board.id,
                 apply.id.member.countDistinct().intValue(),
                 board.startAt,

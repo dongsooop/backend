@@ -3,7 +3,7 @@ package com.dongsoop.dongsoop.mypage.dto;
 import com.dongsoop.dongsoop.recruitment.RecruitmentType;
 import java.time.LocalDateTime;
 
-public interface OpenedRecruitment {
+public interface MyRecruitmentOverview {
 
     Long getId();
 

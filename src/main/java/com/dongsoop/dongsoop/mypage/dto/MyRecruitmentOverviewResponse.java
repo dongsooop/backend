@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
-public record OpenedRecruitmentResponse(
+public record MyRecruitmentOverviewResponse(
 
         Long id,
         Long volunteer,
@@ -19,7 +19,7 @@ public record OpenedRecruitmentResponse(
         LocalDateTime createdAt,
         boolean isRecruiting
 ) {
-    public OpenedRecruitmentResponse(OpenedRecruitment openedRecruitment) {
+    public MyRecruitmentOverviewResponse(MyRecruitmentOverview openedRecruitment) {
         this(
                 openedRecruitment.getId(),
                 openedRecruitment.getVolunteer(),

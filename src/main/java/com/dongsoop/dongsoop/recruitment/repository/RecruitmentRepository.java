@@ -1,7 +1,6 @@
 package com.dongsoop.dongsoop.recruitment.repository;
 
-import com.dongsoop.dongsoop.mypage.dto.ApplyRecruitment;
-import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
+import com.dongsoop.dongsoop.mypage.dto.MyRecruitmentOverview;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringBoard;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
@@ -97,8 +96,8 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
             """,
             nativeQuery = true
     )
-    List<ApplyRecruitment> findApplyRecruitmentsByMemberId(@Param("memberId") Long memberId,
-                                                           @Param("pageable") Pageable pageable);
+    List<MyRecruitmentOverview> findApplyRecruitmentsByMemberId(@Param("memberId") Long memberId,
+                                                                @Param("pageable") Pageable pageable);
 
     /**
      * 특정 회원이 개설한 전체 타입의 모집 게시판 목록을 페이지 단위로 조회합니다.
@@ -180,6 +179,6 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
             """,
             nativeQuery = true
     )
-    List<OpenedRecruitment> findOpenedRecruitmentsByMemberId(@Param("memberId") Long memberId,
-                                                             @Param("pageable") Pageable pageable);
+    List<MyRecruitmentOverview> findOpenedRecruitmentsByMemberId(@Param("memberId") Long memberId,
+                                                                 @Param("pageable") Pageable pageable);
 }
