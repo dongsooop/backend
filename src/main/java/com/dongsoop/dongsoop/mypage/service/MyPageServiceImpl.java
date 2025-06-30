@@ -7,9 +7,6 @@ import com.dongsoop.dongsoop.mypage.dto.OpenedMarketplace;
 import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitment;
 import com.dongsoop.dongsoop.mypage.dto.OpenedRecruitmentResponse;
 import com.dongsoop.dongsoop.recruitment.Repository.RecruitmentRepository;
-import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardRepositoryCustom;
-import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepositoryCustom;
-import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepositoryCustom;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -21,10 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class MyPageServiceImpl implements MyPageService {
 
     private final MemberService memberService;
-
-    private final TutoringBoardRepositoryCustom tutoringBoardRepositoryCustom;
-    private final StudyBoardRepositoryCustom studyBoardRepositoryCustom;
-    private final ProjectBoardRepositoryCustom projectBoardRepositoryCustom;
 
     private final MarketplaceBoardRepositoryCustom marketplaceBoardRepositoryCustom;
 
