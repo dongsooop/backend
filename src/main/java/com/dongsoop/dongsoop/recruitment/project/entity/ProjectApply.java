@@ -5,17 +5,22 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import java.time.LocalDateTime;
 import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @SuperBuilder
 @NoArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
 public class ProjectApply {
 
     @EmbeddedId
@@ -26,6 +31,10 @@ public class ProjectApply {
 
     @Column(name = "motivation", length = 500)
     private String motivation;
+
+    @Column(name = "apply_time", nullable = false, updatable = false)
+    @CreatedDate
+    private LocalDateTime applyTime;
 
     @Embeddable
     @NoArgsConstructor

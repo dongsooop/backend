@@ -3,13 +3,12 @@ package com.dongsoop.dongsoop.recruitment.study.repository;
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
-import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardDetails;
-import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardOverview;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentOverview;
+import com.dongsoop.dongsoop.recruitment.projection.StudyRecruitmentProjection;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyApply;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyBoard;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyBoardDepartment;
-import com.querydsl.core.types.Expression;
-import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberPath;
@@ -34,10 +33,13 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
 
     private final PageableUtil pageableUtil;
 
-    public List<StudyBoardOverview> findStudyBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
-                                                                                   Pageable pageable) {
+    private final StudyRecruitmentProjection projection;
+
+    @Override
+    public List<RecruitmentOverview> findStudyBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
+                                                                                    Pageable pageable) {
         return queryFactory
-                .select(getBoardOverviewExpression())
+                .select(projection.getRecruitmentOverviewExpression())
                 .from(studyBoard)
                 .leftJoin(studyApply)
                 .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
@@ -51,24 +53,12 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .fetch();
     }
 
-    public Optional<StudyBoardDetails> findBoardDetailsByIdAndViewType(Long studyBoardId,
-                                                                       RecruitmentViewType viewType,
-                                                                       boolean isAlreadyApplied) {
-        StudyBoardDetails studyBoardDetails = queryFactory
-                .select(Projections.constructor(StudyBoardDetails.class,
-                        studyBoard.id,
-                        studyBoard.title,
-                        studyBoard.content,
-                        studyBoard.tags,
-                        studyBoard.startAt,
-                        studyBoard.endAt,
-                        Expressions.stringTemplate("string_agg({0}, ',')", studyBoardDepartment.id.department.id),
-                        studyBoard.author.nickname,
-                        studyBoard.createdAt,
-                        studyBoard.updatedAt,
-                        studyApply.id.member.count().intValue(),
-                        Expressions.constant(viewType),
-                        Expressions.constant(isAlreadyApplied)))
+    @Override
+    public Optional<RecruitmentDetails> findBoardDetailsByIdAndViewType(Long studyBoardId,
+                                                                        RecruitmentViewType viewType,
+                                                                        boolean isAlreadyApplied) {
+        RecruitmentDetails details = queryFactory
+                .select(projection.getRecruitmentDetailsExpression(viewType, isAlreadyApplied))
                 .from(studyBoard)
                 .leftJoin(studyApply)
                 .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
@@ -87,12 +77,13 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .where(studyBoard.id.eq(studyBoardId))
                 .fetchOne();
 
-        return Optional.ofNullable(studyBoardDetails);
+        return Optional.ofNullable(details);
     }
 
-    public List<StudyBoardOverview> findStudyBoardOverviewsByPage(Pageable pageable) {
+    @Override
+    public List<RecruitmentOverview> findStudyBoardOverviewsByPage(Pageable pageable) {
         return queryFactory
-                .select(getBoardOverviewExpression())
+                .select(projection.getRecruitmentOverviewExpression())
                 .from(studyBoard)
                 .leftJoin(studyApply)
                 .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
@@ -107,19 +98,6 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
 
     private BooleanExpression hasMatchingStudyBoardId(NumberPath<Long> studyBoardId) {
         return studyBoard.id.eq(studyBoardId);
-    }
-
-    private Expression<StudyBoardOverview> getBoardOverviewExpression() {
-        return Projections.constructor(StudyBoardOverview.class,
-                studyBoard.id,
-                studyApply.id.member.countDistinct().intValue(),
-                studyBoard.startAt,
-                studyBoard.endAt,
-                studyBoard.title,
-                studyBoard.content,
-                studyBoard.tags,
-                Expressions.stringTemplate("string_agg({0}, ',')",
-                        studyBoardDepartment.id.department.id));
     }
 
     private BooleanExpression equalDepartmentType(DepartmentType departmentType) {

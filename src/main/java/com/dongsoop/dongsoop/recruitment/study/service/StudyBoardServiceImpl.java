@@ -8,9 +8,9 @@ import com.dongsoop.dongsoop.exception.domain.study.StudyBoardNotFound;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentOverview;
 import com.dongsoop.dongsoop.recruitment.study.dto.CreateStudyBoardRequest;
-import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardDetails;
-import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardOverview;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoard;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardDepartment.StudyBoardDepartmentId;
@@ -57,15 +57,15 @@ public class StudyBoardServiceImpl implements StudyBoardService {
         return studyBoard;
     }
 
-    public List<StudyBoardOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType, Pageable pageable) {
+    public List<RecruitmentOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType, Pageable pageable) {
         return studyBoardRepositoryCustom.findStudyBoardOverviewsByPageAndDepartmentType(departmentType, pageable);
     }
 
-    public List<StudyBoardOverview> getBoardByPage(Pageable pageable) {
+    public List<RecruitmentOverview> getBoardByPage(Pageable pageable) {
         return studyBoardRepositoryCustom.findStudyBoardOverviewsByPage(pageable);
     }
 
-    public StudyBoardDetails getBoardDetailsById(Long boardId) {
+    public RecruitmentDetails getBoardDetailsById(Long boardId) {
         try {
             Long memberId = memberService.getMemberIdByAuthentication();
             boolean isOwner = studyBoardRepository.existsByIdAndAuthorId(boardId, memberId);
@@ -81,12 +81,12 @@ public class StudyBoardServiceImpl implements StudyBoardService {
         }
     }
 
-    private StudyBoardDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType) {
+    private RecruitmentDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType) {
         return getBoardDetailsWithViewType(boardId, viewType, false);
     }
 
-    private StudyBoardDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType,
-                                                          boolean isAlreadyApplied) {
+    private RecruitmentDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType,
+                                                           boolean isAlreadyApplied) {
         return studyBoardRepositoryCustom.findBoardDetailsByIdAndViewType(boardId, viewType, isAlreadyApplied)
                 .orElseThrow(() -> new StudyBoardNotFound(boardId));
     }

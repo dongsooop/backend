@@ -1,9 +1,9 @@
 package com.dongsoop.dongsoop.recruitment.tutoring.controller;
 
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentOverview;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.CreateTutoringBoardRequest;
-import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardDetails;
-import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardOverview;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringBoard;
 import com.dongsoop.dongsoop.recruitment.tutoring.service.TutoringBoardService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
@@ -29,24 +29,24 @@ public class TutoringBoardController {
     private final TutoringBoardService tutoringBoardService;
 
     @GetMapping("/department/{departmentType}")
-    public ResponseEntity<List<TutoringBoardOverview>> getTutoringBoardOverviewsByDepartment(
+    public ResponseEntity<List<RecruitmentOverview>> getTutoringBoardOverviewsByDepartment(
             @PathVariable("departmentType") DepartmentType departmentType, Pageable pageable) {
-        List<TutoringBoardOverview> tutoringBoardList = tutoringBoardService.getBoardByPageAndDepartmentType(
+        List<RecruitmentOverview> tutoringBoardList = tutoringBoardService.getBoardByPageAndDepartmentType(
                 departmentType,
                 pageable);
         return ResponseEntity.ok(tutoringBoardList);
     }
 
     @GetMapping
-    public ResponseEntity<List<TutoringBoardOverview>> getTutoringBoardOverviews(Pageable pageable) {
-        List<TutoringBoardOverview> tutoringBoardList = tutoringBoardService.getBoardByPage(pageable);
+    public ResponseEntity<List<RecruitmentOverview>> getTutoringBoardOverviews(Pageable pageable) {
+        List<RecruitmentOverview> tutoringBoardList = tutoringBoardService.getBoardByPage(pageable);
         return ResponseEntity.ok(tutoringBoardList);
     }
 
     @GetMapping("/{tutoringBoardId}")
-    public ResponseEntity<TutoringBoardDetails> getTutoringBoard(
+    public ResponseEntity<RecruitmentDetails> getTutoringBoard(
             @PathVariable("tutoringBoardId") Long tutoringBoardId) {
-        TutoringBoardDetails tutoringBoard = tutoringBoardService.getBoardDetailsById(tutoringBoardId);
+        RecruitmentDetails tutoringBoard = tutoringBoardService.getBoardDetailsById(tutoringBoardId);
         return ResponseEntity.ok(tutoringBoard);
     }
 

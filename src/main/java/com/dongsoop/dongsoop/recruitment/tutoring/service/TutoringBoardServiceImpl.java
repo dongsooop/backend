@@ -8,9 +8,9 @@ import com.dongsoop.dongsoop.exception.domain.tutoring.TutoringBoardNotFound;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentOverview;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.CreateTutoringBoardRequest;
-import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardDetails;
-import com.dongsoop.dongsoop.recruitment.tutoring.dto.TutoringBoardOverview;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringBoard;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepository;
@@ -34,13 +34,13 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
 
     private final MemberService memberService;
 
-    public List<TutoringBoardOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType,
-                                                                       Pageable pageable) {
+    public List<RecruitmentOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType,
+                                                                     Pageable pageable) {
         return tutoringBoardRepositoryCustom.findTutoringBoardOverviewsByPageAndDepartmentType(departmentType,
                 pageable);
     }
 
-    public List<TutoringBoardOverview> getBoardByPage(Pageable pageable) {
+    public List<RecruitmentOverview> getBoardByPage(Pageable pageable) {
         return tutoringBoardRepositoryCustom.findTutoringBoardOverviewsByPage(pageable);
     }
 
@@ -49,7 +49,7 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
         return tutoringBoardRepository.save(tutoringBoard);
     }
 
-    public TutoringBoardDetails getBoardDetailsById(Long boardId) {
+    public RecruitmentDetails getBoardDetailsById(Long boardId) {
         try {
             Long memberId = memberService.getMemberIdByAuthentication();
             boolean isOwner = tutoringBoardRepository.existsByIdAndAuthorId(boardId, memberId);
@@ -65,12 +65,12 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
         }
     }
 
-    private TutoringBoardDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType) {
+    private RecruitmentDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType) {
         return getBoardDetailsWithViewType(boardId, viewType, false);
     }
 
-    private TutoringBoardDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType,
-                                                             boolean isAlreadyApplied) {
+    private RecruitmentDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType,
+                                                           boolean isAlreadyApplied) {
         return tutoringBoardRepositoryCustom.findBoardDetailsByIdAndViewType(boardId, viewType, isAlreadyApplied)
                 .orElseThrow(() -> new TutoringBoardNotFound(boardId));
     }

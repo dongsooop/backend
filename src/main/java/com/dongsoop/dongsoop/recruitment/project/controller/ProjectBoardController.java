@@ -1,9 +1,9 @@
 package com.dongsoop.dongsoop.recruitment.project.controller;
 
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentOverview;
 import com.dongsoop.dongsoop.recruitment.project.dto.CreateProjectBoardRequest;
-import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardDetails;
-import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardOverview;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoard;
 import com.dongsoop.dongsoop.recruitment.project.service.ProjectBoardService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
@@ -29,10 +29,10 @@ public class ProjectBoardController {
     private final ProjectBoardService projectBoardService;
 
     @GetMapping("/{projectBoardId}")
-    public ResponseEntity<ProjectBoardDetails> getProjectBoardDetails(@PathVariable Long projectBoardId) {
-        ProjectBoardDetails projectBoardDetails = projectBoardService.getBoardDetailsById(projectBoardId);
+    public ResponseEntity<RecruitmentDetails> getProjectBoardDetails(@PathVariable Long projectBoardId) {
+        RecruitmentDetails details = projectBoardService.getBoardDetailsById(projectBoardId);
 
-        return ResponseEntity.ok(projectBoardDetails);
+        return ResponseEntity.ok(details);
     }
 
     @PostMapping
@@ -47,20 +47,20 @@ public class ProjectBoardController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ProjectBoardOverview>> getProjectBoardList(Pageable pageable) {
-        List<ProjectBoardOverview> projectBoardOverviews = projectBoardService.getBoardByPage(pageable);
+    public ResponseEntity<List<RecruitmentOverview>> getProjectBoardList(Pageable pageable) {
+        List<RecruitmentOverview> overviews = projectBoardService.getBoardByPage(pageable);
 
-        return ResponseEntity.ok(projectBoardOverviews);
+        return ResponseEntity.ok(overviews);
     }
 
     @GetMapping("/department/{departmentType}")
-    public ResponseEntity<List<ProjectBoardOverview>> getProjectBoardListByDepartment(
+    public ResponseEntity<List<RecruitmentOverview>> getProjectBoardListByDepartment(
             @PathVariable("departmentType") DepartmentType departmentType,
             Pageable pageable) {
-        List<ProjectBoardOverview> projectBoardOverviews = projectBoardService.getBoardByPageAndDepartmentType(
+        List<RecruitmentOverview> overviews = projectBoardService.getBoardByPageAndDepartmentType(
                 departmentType,
                 pageable);
 
-        return ResponseEntity.ok(projectBoardOverviews);
+        return ResponseEntity.ok(overviews);
     }
 }

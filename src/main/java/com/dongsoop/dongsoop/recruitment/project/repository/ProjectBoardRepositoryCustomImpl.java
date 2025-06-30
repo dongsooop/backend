@@ -3,13 +3,12 @@ package com.dongsoop.dongsoop.recruitment.project.repository;
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
-import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardDetails;
-import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardOverview;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentOverview;
 import com.dongsoop.dongsoop.recruitment.project.entity.QProjectApply;
 import com.dongsoop.dongsoop.recruitment.project.entity.QProjectBoard;
 import com.dongsoop.dongsoop.recruitment.project.entity.QProjectBoardDepartment;
-import com.querydsl.core.types.Expression;
-import com.querydsl.core.types.Projections;
+import com.dongsoop.dongsoop.recruitment.projection.ProjectRecruitmentProjection;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberPath;
@@ -34,10 +33,13 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
 
     private final PageableUtil pageableUtil;
 
-    public List<ProjectBoardOverview> findProjectBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
-                                                                                       Pageable pageable) {
+    private final ProjectRecruitmentProjection projection;
+
+    @Override
+    public List<RecruitmentOverview> findProjectBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
+                                                                                      Pageable pageable) {
         return queryFactory
-                .select(getBoardOverviewExpression())
+                .select(projection.getRecruitmentOverviewExpression())
                 .from(projectBoard)
                 .leftJoin(projectApply)
                 .on(hasMatchingProjectBoardId(projectApply.id.projectBoard.id))
@@ -51,24 +53,12 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                 .fetch();
     }
 
-    public Optional<ProjectBoardDetails> findBoardDetailsByIdAndViewType(Long projectBoardId,
-                                                                         RecruitmentViewType viewType,
-                                                                         boolean isAlreadyApplied) {
-        ProjectBoardDetails projectBoardDetails = queryFactory
-                .select(Projections.constructor(ProjectBoardDetails.class,
-                        projectBoard.id,
-                        projectBoard.title,
-                        projectBoard.content,
-                        projectBoard.tags,
-                        projectBoard.startAt,
-                        projectBoard.endAt,
-                        Expressions.stringTemplate("string_agg({0}, ',')", projectBoardDepartment.id.department.id),
-                        projectBoard.author.nickname,
-                        projectBoard.createdAt,
-                        projectBoard.updatedAt,
-                        projectApply.id.member.count().intValue(),
-                        Expressions.constant(viewType),
-                        Expressions.constant(isAlreadyApplied)))
+    @Override
+    public Optional<RecruitmentDetails> findBoardDetailsByIdAndViewType(Long projectBoardId,
+                                                                        RecruitmentViewType viewType,
+                                                                        boolean isAlreadyApplied) {
+        RecruitmentDetails projectBoardDetails = queryFactory
+                .select(projection.getRecruitmentDetailsExpression(viewType, isAlreadyApplied))
                 .from(projectBoard)
                 .leftJoin(projectApply)
                 .on(hasMatchingProjectBoardId(projectApply.id.projectBoard.id))
@@ -90,9 +80,10 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
         return Optional.ofNullable(projectBoardDetails);
     }
 
-    public List<ProjectBoardOverview> findProjectBoardOverviewsByPage(Pageable pageable) {
+    @Override
+    public List<RecruitmentOverview> findProjectBoardOverviewsByPage(Pageable pageable) {
         return queryFactory
-                .select(getBoardOverviewExpression())
+                .select(projection.getRecruitmentOverviewExpression())
                 .from(projectBoard)
                 .leftJoin(projectApply)
                 .on(hasMatchingProjectBoardId(projectApply.id.projectBoard.id))
@@ -107,19 +98,6 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
 
     private BooleanExpression hasMatchingProjectBoardId(NumberPath<Long> projectBoardId) {
         return projectBoard.id.eq(projectBoardId);
-    }
-
-    private Expression<ProjectBoardOverview> getBoardOverviewExpression() {
-        return Projections.constructor(ProjectBoardOverview.class,
-                projectBoard.id,
-                projectApply.id.member.countDistinct().intValue(),
-                projectBoard.startAt,
-                projectBoard.endAt,
-                projectBoard.title,
-                projectBoard.content,
-                projectBoard.tags,
-                Expressions.stringTemplate("string_agg({0}, ',')",
-                        projectBoardDepartment.id.department.id));
     }
 
     private BooleanExpression equalDepartmentType(DepartmentType departmentType) {
