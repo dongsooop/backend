@@ -12,7 +12,6 @@ import com.querydsl.core.types.ConstructorExpression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -43,14 +42,12 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
     @Override
     public List<TutoringBoardOverview> findTutoringBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
                                                                                          Pageable pageable) {
-        LocalDateTime now = LocalDateTime.now();
-
         return queryFactory.select(getBoardOverviewExpression())
                 .from(tutoringBoard)
                 .leftJoin(tutoringApply)
                 .on(tutoringApply.id.tutoringBoard.id.eq(tutoringBoard.id))
                 .where(tutoringBoard.department.id.eq(departmentType)
-                        .and(recruitmentRepositoryUtils.isRecruiting(tutoringBoard.startAt, tutoringBoard.endAt, now)))
+                        .and(recruitmentRepositoryUtils.isRecruiting(tutoringBoard.startAt, tutoringBoard.endAt)))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(tutoringBoard.id)
@@ -106,13 +103,11 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
      */
     @Override
     public List<TutoringBoardOverview> findTutoringBoardOverviewsByPage(Pageable pageable) {
-        LocalDateTime now = LocalDateTime.now();
-
         return queryFactory.select(getBoardOverviewExpression())
                 .from(tutoringBoard)
                 .leftJoin(tutoringApply)
                 .on(tutoringApply.id.tutoringBoard.id.eq(tutoringBoard.id))
-                .where(recruitmentRepositoryUtils.isRecruiting(tutoringBoard.startAt, tutoringBoard.endAt, now))
+                .where(recruitmentRepositoryUtils.isRecruiting(tutoringBoard.startAt, tutoringBoard.endAt))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(tutoringBoard.id)

@@ -16,7 +16,6 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberPath;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -49,8 +48,6 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
     @Override
     public List<StudyBoardOverview> findStudyBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
                                                                                    Pageable pageable) {
-        LocalDateTime now = LocalDateTime.now();
-
         return queryFactory
                 .select(getBoardOverviewExpression())
                 .from(studyBoard)
@@ -58,7 +55,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
                 .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
-                .where(recruitmentRepositoryUtils.isRecruiting(studyBoard.startAt, studyBoard.endAt, now))
+                .where(recruitmentRepositoryUtils.isRecruiting(studyBoard.startAt, studyBoard.endAt))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(studyBoard.id)
@@ -128,8 +125,6 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
      */
     @Override
     public List<StudyBoardOverview> findStudyBoardOverviewsByPage(Pageable pageable) {
-        LocalDateTime now = LocalDateTime.now();
-
         return queryFactory
                 .select(getBoardOverviewExpression())
                 .from(studyBoard)
@@ -137,7 +132,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
                 .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
-                .where(recruitmentRepositoryUtils.isRecruiting(studyBoard.startAt, studyBoard.endAt, now))
+                .where(recruitmentRepositoryUtils.isRecruiting(studyBoard.startAt, studyBoard.endAt))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(studyBoard.id)

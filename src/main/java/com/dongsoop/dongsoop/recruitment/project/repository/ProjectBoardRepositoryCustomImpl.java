@@ -16,7 +16,6 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberPath;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -49,8 +48,6 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
     @Override
     public List<ProjectBoardOverview> findProjectBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
                                                                                        Pageable pageable) {
-        LocalDateTime now = LocalDateTime.now();
-
         return queryFactory
                 .select(getBoardOverviewExpression())
                 .from(projectBoard)
@@ -58,7 +55,7 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                 .on(hasMatchingProjectBoardId(projectApply.id.projectBoard.id))
                 .leftJoin(projectBoardDepartment)
                 .on(hasMatchingProjectBoardId(projectBoardDepartment.id.projectBoard.id))
-                .where(recruitmentRepositoryUtils.isRecruiting(projectBoard.startAt, projectBoard.endAt, now))
+                .where(recruitmentRepositoryUtils.isRecruiting(projectBoard.startAt, projectBoard.endAt))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(projectBoard.id)
@@ -128,8 +125,6 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
      */
     @Override
     public List<ProjectBoardOverview> findProjectBoardOverviewsByPage(Pageable pageable) {
-        LocalDateTime now = LocalDateTime.now();
-
         return queryFactory
                 .select(getBoardOverviewExpression())
                 .from(projectBoard)
@@ -137,7 +132,7 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                 .on(hasMatchingProjectBoardId(projectApply.id.projectBoard.id))
                 .leftJoin(projectBoardDepartment)
                 .on(hasMatchingProjectBoardId(projectBoardDepartment.id.projectBoard.id))
-                .where(recruitmentRepositoryUtils.isRecruiting(projectBoard.startAt, projectBoard.endAt, now))
+                .where(recruitmentRepositoryUtils.isRecruiting(projectBoard.startAt, projectBoard.endAt))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(projectBoard.id)

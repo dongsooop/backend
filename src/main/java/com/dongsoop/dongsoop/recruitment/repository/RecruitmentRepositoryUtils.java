@@ -7,6 +7,5 @@ import java.time.LocalDateTime;
 public interface RecruitmentRepositoryUtils {
 
     BooleanExpression isRecruiting(DateTimePath<LocalDateTime> startAt,
-                                   DateTimePath<LocalDateTime> endAt,
-                                   LocalDateTime now);
+                                   DateTimePath<LocalDateTime> endAt);
 }
