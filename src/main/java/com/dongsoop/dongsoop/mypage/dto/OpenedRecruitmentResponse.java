@@ -27,23 +27,23 @@ public record OpenedRecruitmentResponse(
                 openedRecruitment.getEndAt(),
                 openedRecruitment.getTitle(),
                 openedRecruitment.getContent(),
-                splitedTag(openedRecruitment.getTags()),
-                splitedDepartmentType(openedRecruitment.getDepartmentTypeList()),
+                splitTags(openedRecruitment.getTags()),
+                splitDepartmentType(openedRecruitment.getDepartmentTypeList()),
                 openedRecruitment.getBoardType(),
                 openedRecruitment.getCreatedAt(),
                 openedRecruitment.getIsRecruiting()
         );
     }
 
-    private static List<String> splitedTag(String tags) {
+    private static List<String> splitTags(String tags) {
         return Arrays.stream(tags.split(","))
                 .map(String::trim)
                 .toList();
     }
 
-    private static List<String> splitedDepartmentType(String departmentTypes) {
+    private static List<String> splitDepartmentType(String departmentTypes) {
         return Arrays.stream(departmentTypes.split(","))
-                .map(v -> v.trim())
+                .map(String::trim)
                 .toList();
     }
 }
