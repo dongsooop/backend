@@ -3,7 +3,7 @@ package com.dongsoop.dongsoop.report.controller;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
 import com.dongsoop.dongsoop.report.dto.ReportResponse;
-import com.dongsoop.dongsoop.report.dto.ReportSummaryResponse;
+import com.dongsoop.dongsoop.report.entity.ReportFilterType;
 import com.dongsoop.dongsoop.report.service.ReportService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import jakarta.validation.Valid;
@@ -38,29 +38,10 @@ public class ReportController {
 
     @GetMapping("/admin")
     @Secured("ROLE_ADMIN")
-    public ResponseEntity<Page<ReportResponse>> getAllReports(Pageable pageable) {
-        Page<ReportResponse> reports = reportService.getAllReports(pageable);
+    public ResponseEntity<Page<ReportResponse>> getReports(
+            @RequestParam(defaultValue = "ALL") ReportFilterType filter,
+            Pageable pageable) {
+        Page<ReportResponse> reports = reportService.getReports(filter, pageable);
         return ResponseEntity.ok(reports);
-    }
-
-    @GetMapping("/admin/unprocessed")
-    @Secured("ROLE_ADMIN")
-    public ResponseEntity<Page<ReportSummaryResponse>> getUnprocessedReports(Pageable pageable) {
-        Page<ReportSummaryResponse> reports = reportService.getUnprocessedReports(pageable);
-        return ResponseEntity.ok(reports);
-    }
-
-    @GetMapping("/admin/processed")
-    @Secured("ROLE_ADMIN")
-    public ResponseEntity<Page<ReportResponse>> getProcessedReports(Pageable pageable) {
-        Page<ReportResponse> reports = reportService.getProcessedReports(pageable);
-        return ResponseEntity.ok(reports);
-    }
-
-    @GetMapping("/admin/sanctions")
-    @Secured("ROLE_ADMIN")
-    public ResponseEntity<Page<ReportResponse>> getActiveSanctions(Pageable pageable) {
-        Page<ReportResponse> sanctions = reportService.getActiveSanctions(pageable);
-        return ResponseEntity.ok(sanctions);
     }
 }
