@@ -5,8 +5,10 @@ import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.report.dto.ReportResponse;
 import com.dongsoop.dongsoop.report.entity.QReport;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
+import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -41,54 +43,62 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
 
     private List<ReportResponse> buildQuery(BooleanExpression filterCondition,
                                             boolean isDetailedView, Pageable pageable) {
-        if (isDetailedView) {
-            return buildDetailedQuery(filterCondition, pageable);
-        }
-        return buildSummaryQuery(filterCondition, pageable);
+        Expression<ReportResponse> projection = createProjection(isDetailedView);
+        JPAQuery<ReportResponse> baseQuery = createBaseQuery(projection, filterCondition);
+
+        return applyPaginationAndSorting(baseQuery, pageable);
     }
 
-    private List<ReportResponse> buildDetailedQuery(BooleanExpression filterCondition, Pageable pageable) {
+    private Expression<ReportResponse> createProjection(boolean isDetailedView) {
+        if (isDetailedView) {
+            return createDetailedProjection();
+        }
+        return createSummaryProjection();
+    }
+
+    private Expression<ReportResponse> createDetailedProjection() {
+        return Projections.constructor(ReportResponse.class,
+                report.id,
+                reporter.nickname,
+                report.reportType,
+                report.targetId,
+                report.targetUrl,
+                report.reportReason,
+                report.description,
+                report.isProcessed,
+                admin.nickname,
+                targetMember.nickname,
+                report.sanctionType,
+                report.sanctionReason,
+                report.sanctionStartAt,
+                report.sanctionEndAt,
+                report.isSanctionActive,
+                report.createdAt);
+    }
+
+    private Expression<ReportResponse> createSummaryProjection() {
+        return Projections.constructor(ReportResponse.class,
+                report.id,
+                reporter.nickname,
+                report.reportType,
+                report.reportReason,
+                report.isProcessed,
+                report.createdAt);
+    }
+
+    private JPAQuery<ReportResponse> createBaseQuery(Expression<ReportResponse> projection,
+                                                     BooleanExpression filterCondition) {
         return queryFactory
-                .select(Projections.constructor(ReportResponse.class,
-                        report.id,
-                        reporter.nickname,
-                        report.reportType,
-                        report.targetId,
-                        report.targetUrl,
-                        report.reportReason,
-                        report.description,
-                        report.isProcessed,
-                        admin.nickname,
-                        targetMember.nickname,
-                        report.sanctionType,
-                        report.sanctionReason,
-                        report.sanctionStartAt,
-                        report.sanctionEndAt,
-                        report.isSanctionActive,
-                        report.createdAt))
+                .select(projection)
                 .from(report)
                 .leftJoin(report.reporter, reporter)
                 .leftJoin(report.admin, admin)
                 .leftJoin(report.targetMember, targetMember)
-                .where(filterCondition)
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), report))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .fetch();
+                .where(filterCondition);
     }
 
-    private List<ReportResponse> buildSummaryQuery(BooleanExpression filterCondition, Pageable pageable) {
-        return queryFactory
-                .select(Projections.constructor(ReportResponse.class,
-                        report.id,
-                        reporter.nickname,
-                        report.reportType,
-                        report.reportReason,
-                        report.isProcessed,
-                        report.createdAt))
-                .from(report)
-                .leftJoin(report.reporter, reporter)
-                .where(filterCondition)
+    private List<ReportResponse> applyPaginationAndSorting(JPAQuery<ReportResponse> query, Pageable pageable) {
+        return query
                 .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), report))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -104,15 +114,17 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     }
 
     private BooleanExpression createFilterCondition(ReportFilterType filterType) {
-        if (filterType == ReportFilterType.UNPROCESSED) {
+        String filterTypeName = filterType.name();
+
+        if ("UNPROCESSED".equals(filterTypeName)) {
             return isUnprocessed();
         }
 
-        if (filterType == ReportFilterType.PROCESSED) {
+        if ("PROCESSED".equals(filterTypeName)) {
             return isProcessed();
         }
 
-        if (filterType == ReportFilterType.ACTIVE_SANCTIONS) {
+        if ("ACTIVE_SANCTIONS".equals(filterTypeName)) {
             return isSanctionActive();
         }
 
