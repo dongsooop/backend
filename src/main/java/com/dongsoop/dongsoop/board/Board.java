@@ -19,14 +19,14 @@ public abstract class Board extends BaseEntity {
 
     @NotBlank
     @Column(name = "title", length = 20, nullable = false)
-    private String title;
+    protected String title;
 
     @NotBlank
     @Column(name = "content", length = 500, nullable = false)
-    private String content;
+    protected String content;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author", nullable = false, updatable = false)
-    private Member author;
+    protected Member author;
 }

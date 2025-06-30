@@ -48,7 +48,7 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                 .leftJoin(marketplaceImage)
                 .on(marketplaceImage.id.marketplaceBoard.id.eq(marketplaceBoard.id)
                         .and(marketplaceImage.createdAt.eq(getMinCreated()))) // 가장 먼저 저장된 이미지 행 가져오기
-                .where(marketplaceBoard.status.eq(MarketplaceBoardStatus.SELLING)
+                .where(marketplaceBoard.status.eq(MarketplaceBoardStatus.OPEN)
                         .and(marketplaceBoard.type.eq(type)))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -73,7 +73,8 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                         marketplaceBoard.type,
                         marketplaceContact.id.applicant.countDistinct(),
                         Expressions.stringTemplate("string_agg({0}, ',')", marketplaceImage.id.url),
-                        Expressions.constant(viewType)))
+                        Expressions.constant(viewType),
+                        marketplaceBoard.status))
                 .from(marketplaceBoard)
                 .leftJoin(marketplaceContact)
                 .on(marketplaceContact.id.marketplaceId.eq(marketplaceBoard.id))

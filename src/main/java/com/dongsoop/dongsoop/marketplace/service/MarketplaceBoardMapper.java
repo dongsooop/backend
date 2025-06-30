@@ -21,6 +21,7 @@ public class MarketplaceBoardMapper {
                 .content(request.content())
                 .price(request.price())
                 .author(author)
+                .type(request.type())
                 .build();
     }
 }
