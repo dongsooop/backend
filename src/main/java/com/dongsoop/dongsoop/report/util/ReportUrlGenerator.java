@@ -32,10 +32,10 @@ public class ReportUrlGenerator {
     }
 
     private void initializeUrlPrefixes() {
-        urlPrefixes.put(ReportType.PROJECT_BOARD, "/api/project-boards/");
-        urlPrefixes.put(ReportType.STUDY_BOARD, "/api/study-boards/");
-        urlPrefixes.put(ReportType.MARKETPLACE_BOARD, "/api/marketplace-boards/");
-        urlPrefixes.put(ReportType.TUTORING_BOARD, "/api/tutoring-boards/");
-        urlPrefixes.put(ReportType.MEMBER, "/api/members/");
+        urlPrefixes.put(ReportType.PROJECT_BOARD, "/project-board/");
+        urlPrefixes.put(ReportType.STUDY_BOARD, "/study-board/");
+        urlPrefixes.put(ReportType.MARKETPLACE_BOARD, "/marketplace-board/");
+        urlPrefixes.put(ReportType.TUTORING_BOARD, "/tutoring-board/");
+        urlPrefixes.put(ReportType.MEMBER, "/member/");
     }
 }
