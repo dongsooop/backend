@@ -90,7 +90,7 @@ public class SanctionExecutor {
                 .targetId(member.getId())
                 .reportReason(ReportReason.OTHER)
                 .description("경고 3회 누적으로 인한 자동 일시정지")
-                .targetUrl("/api/members/" + member.getId())
+                .targetUrl("/member/" + member.getId())  // /api/ 제거
                 .admin(member)
                 .targetMember(member)
                 .sanctionType(SanctionType.TEMPORARY_BAN)
