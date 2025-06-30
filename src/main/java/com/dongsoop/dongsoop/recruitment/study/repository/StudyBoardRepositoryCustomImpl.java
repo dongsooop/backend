@@ -3,11 +3,13 @@ package com.dongsoop.dongsoop.recruitment.study.repository;
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
+import com.dongsoop.dongsoop.recruitment.repository.RecruitmentRepositoryUtils;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardDetails;
 import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardOverview;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyApply;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyBoard;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyBoardDepartment;
+import com.querydsl.core.types.ConstructorExpression;
 import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -34,6 +36,16 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
 
     private final PageableUtil pageableUtil;
 
+    private final RecruitmentRepositoryUtils recruitmentRepositoryUtils;
+
+    /**
+     * 학과별로 모집중인 상태의 스터디 모집 게시판 목록을 페이지 단위로 조회합니다.
+     *
+     * @param departmentType 학과 타입
+     * @param pageable       페이지 정보
+     * @return 모집중인 스터디 모집 게시판 목록
+     */
+    @Override
     public List<StudyBoardOverview> findStudyBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
                                                                                    Pageable pageable) {
         return queryFactory
@@ -43,6 +55,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
                 .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
+                .where(recruitmentRepositoryUtils.isRecruiting(studyBoard.startAt, studyBoard.endAt))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(studyBoard.id)
@@ -51,24 +64,20 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .fetch();
     }
 
+    /**
+     * 특정 스터디 모집 게시판 ID를 통해 상세 정보를 조회합니다.
+     *
+     * @param studyBoardId     스터디 모집 게시판 ID
+     * @param viewType         조회자 타입 (예: OWNER, MEMBER, GUEST)
+     * @param isAlreadyApplied 현재 멤버가 이미 신청했는지 여부
+     * @return 스터디 모집 게시판 상세 정보
+     */
+    @Override
     public Optional<StudyBoardDetails> findBoardDetailsByIdAndViewType(Long studyBoardId,
                                                                        RecruitmentViewType viewType,
                                                                        boolean isAlreadyApplied) {
         StudyBoardDetails studyBoardDetails = queryFactory
-                .select(Projections.constructor(StudyBoardDetails.class,
-                        studyBoard.id,
-                        studyBoard.title,
-                        studyBoard.content,
-                        studyBoard.tags,
-                        studyBoard.startAt,
-                        studyBoard.endAt,
-                        Expressions.stringTemplate("string_agg({0}, ',')", studyBoardDepartment.id.department.id),
-                        studyBoard.author.nickname,
-                        studyBoard.createdAt,
-                        studyBoard.updatedAt,
-                        studyApply.id.member.count().intValue(),
-                        Expressions.constant(viewType),
-                        Expressions.constant(isAlreadyApplied)))
+                .select(getBoardDetailsExpression(viewType, isAlreadyApplied))
                 .from(studyBoard)
                 .leftJoin(studyApply)
                 .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
@@ -90,6 +99,31 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
         return Optional.ofNullable(studyBoardDetails);
     }
 
+    private ConstructorExpression<StudyBoardDetails> getBoardDetailsExpression(RecruitmentViewType viewType,
+                                                                               boolean isAlreadyApplied) {
+        return Projections.constructor(StudyBoardDetails.class,
+                studyBoard.id,
+                studyBoard.title,
+                studyBoard.content,
+                studyBoard.tags,
+                studyBoard.startAt,
+                studyBoard.endAt,
+                Expressions.stringTemplate("string_agg({0}, ',')", studyBoardDepartment.id.department.id),
+                studyBoard.author.nickname,
+                studyBoard.createdAt,
+                studyBoard.updatedAt,
+                studyApply.id.member.count().intValue(),
+                Expressions.constant(viewType),
+                Expressions.constant(isAlreadyApplied));
+    }
+
+    /**
+     * 학과에 관계없이 모집중인 상태의 모든 스터디 모집 게시판을 페이지 단위로 조회합니다.
+     *
+     * @param pageable 페이지 정보
+     * @return 스터디 모집 게시판 목록
+     */
+    @Override
     public List<StudyBoardOverview> findStudyBoardOverviewsByPage(Pageable pageable) {
         return queryFactory
                 .select(getBoardOverviewExpression())
@@ -98,6 +132,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
                 .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
+                .where(recruitmentRepositoryUtils.isRecruiting(studyBoard.startAt, studyBoard.endAt))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(studyBoard.id)
