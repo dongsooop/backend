@@ -8,12 +8,13 @@ import com.dongsoop.dongsoop.report.service.ReportService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/reports")
@@ -38,10 +39,10 @@ public class ReportController {
 
     @GetMapping("/admin")
     @Secured("ROLE_ADMIN")
-    public ResponseEntity<Page<ReportResponse>> getReports(
+    public ResponseEntity<List<ReportResponse>> getReports(
             @RequestParam(defaultValue = "ALL") ReportFilterType filter,
             Pageable pageable) {
-        Page<ReportResponse> reports = reportService.getReports(filter, pageable);
+        List<ReportResponse> reports = reportService.getReports(filter, pageable);
         return ResponseEntity.ok(reports);
     }
 }
