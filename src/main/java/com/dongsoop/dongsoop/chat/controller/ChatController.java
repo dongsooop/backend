@@ -11,13 +11,18 @@ import com.dongsoop.dongsoop.chat.entity.IncrementalSyncResponse;
 import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
@@ -48,7 +53,7 @@ public class ChatController {
             @RequestBody ReadStatusUpdateRequest request) {
         Long currentUserId = getCurrentUserId();
         chatService.updateReadStatus(roomId, currentUserId, request);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/room/{roomId}/unread-count")
@@ -77,7 +82,8 @@ public class ChatController {
     @PostMapping("/room/group")
     public ResponseEntity<ChatRoom> createGroupRoom(@RequestBody CreateGroupRoomRequest request) {
         Long currentUserId = getCurrentUserId();
-        ChatRoom groupRoom = chatService.createGroupChatRoom(currentUserId, request.getParticipants(), request.getTitle());
+        ChatRoom groupRoom = chatService.createGroupChatRoom(currentUserId, request.getParticipants(),
+                request.getTitle());
         return ResponseEntity.ok(groupRoom);
     }
 
@@ -93,7 +99,7 @@ public class ChatController {
     public ResponseEntity<Void> leaveRoom(@PathVariable("roomId") String roomId) {
         Long currentUserId = getCurrentUserId();
         chatService.leaveChatRoom(roomId, currentUserId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/room/{roomId}/kick")
@@ -125,7 +131,7 @@ public class ChatController {
     public ResponseEntity<Void> markAllMessagesAsRead(@PathVariable("roomId") String roomId) {
         Long currentUserId = getCurrentUserId();
         chatService.markAllMessagesAsRead(roomId, currentUserId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/room/{roomId}/messages/sync-offline")
