@@ -131,7 +131,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
     private JPQLQuery<Long> includeDepartmentType(DepartmentType departmentType) {
         return JPAExpressions.select(studyBoard.id)
                 .leftJoin(studyBoardDepartment)
-                .on(studyBoard.id.eq(studyBoardDepartment.id.studyBoard.id))
-                .where(studyBoardDepartment.id.department.id.eq(departmentType));
+                .where(studyBoard.id.eq(studyBoardDepartment.id.studyBoard.id)
+                        .and(studyBoardDepartment.id.department.id.eq(departmentType)));
     }
 }

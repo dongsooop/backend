@@ -130,7 +130,7 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
     private JPQLQuery<Long> includeDepartmentType(DepartmentType departmentType) {
         return JPAExpressions.select(projectBoard.id)
                 .leftJoin(projectBoardDepartment)
-                .on(projectBoard.id.eq(projectBoardDepartment.id.projectBoard.id))
-                .where(projectBoardDepartment.id.department.id.eq(departmentType));
+                .where(projectBoard.id.eq(projectBoardDepartment.id.projectBoard.id)
+                        .and(projectBoardDepartment.id.department.id.eq(departmentType)));
     }
 }
