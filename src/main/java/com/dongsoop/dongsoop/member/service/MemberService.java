@@ -16,4 +16,6 @@ public interface MemberService {
     String getNicknameById(Long userId);
 
     Long getMemberIdByAuthentication();
+
+    void deleteMember();
 }

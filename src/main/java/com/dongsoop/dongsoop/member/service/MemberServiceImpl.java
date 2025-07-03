@@ -19,7 +19,12 @@ import com.dongsoop.dongsoop.role.entity.Role;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import com.dongsoop.dongsoop.role.repository.MemberRoleRepository;
 import com.dongsoop.dongsoop.role.repository.RoleRepository;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -34,6 +39,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class MemberServiceImpl implements MemberService {
 
@@ -54,7 +60,8 @@ public class MemberServiceImpl implements MemberService {
     private final MemberDuplicationValidator memberDuplicationValidator;
 
     private final ReportValidator reportValidator;
-
+  
+    @Override
     @Transactional
     public void signup(SignupRequest request) {
         memberDuplicationValidator.validateEmailDuplication(request.getEmail());
@@ -83,7 +90,10 @@ public class MemberServiceImpl implements MemberService {
                 .build();
     }
 
+    @Override
+    @Transactional(readOnly = true)
     public LoginDetails login(LoginRequest loginRequest) {
+        validateMemberExists(loginRequest.getEmail());
         LoginAuthenticate loginAuthenticate = getLoginAuthenticate(loginRequest.getEmail());
 
         String password = loginAuthenticate.getPassword();
@@ -102,6 +112,13 @@ public class MemberServiceImpl implements MemberService {
                 .orElseThrow(MemberNotFoundException::new);
 
         return new LoginDetails(loginMemberDetails, issuedToken);
+    }
+
+    private void validateMemberExists(String email) {
+        boolean isMemberExists = memberRepository.existsByEmailAndIsDeletedFalse(email);
+        if (!isMemberExists) {
+            throw new MemberNotFoundException();
+        }
     }
 
     private Authentication getAuthenticationByLoginAuthenticate(LoginAuthenticate loginAuthenticate) {
@@ -124,6 +141,7 @@ public class MemberServiceImpl implements MemberService {
         return optionalAuthenticate.orElseThrow(MemberNotFoundException::new);
     }
 
+    @Override
     public Member getMemberReferenceByContext() {
         Long id = getMemberIdByContext();
         return memberRepository.getReferenceById(id);
@@ -146,12 +164,14 @@ public class MemberServiceImpl implements MemberService {
         }
     }
 
+    @Override
     public String getNicknameById(Long userId) {
         return memberRepository.findById(userId)
                 .map(Member::getNickname)
                 .orElseThrow(MemberNotFoundException::new);
     }
 
+    @Override
     public Long getMemberIdByAuthentication() {
         Authentication authentication = SecurityContextHolder.getContext()
                 .getAuthentication();
@@ -166,5 +186,21 @@ public class MemberServiceImpl implements MemberService {
         }
 
         throw new NotAuthenticationException();
+    }
+
+    @Override
+    @Transactional
+    public void deleteMember() {
+        // 요청 사용자 id
+        Long requesterId = getMemberIdByAuthentication();
+
+        // 가명처리
+        String emailAlias = passwordEncoder.encode(UUID.randomUUID().toString());
+        String passwordAlias = passwordEncoder.encode(UUID.randomUUID().toString());
+        long updatedCount = memberRepositoryCustom.softDelete(requesterId, emailAlias, passwordAlias);
+        if (updatedCount == 0L) {
+            log.error("Member with id {} not found or already deleted", requesterId);
+            throw new MemberNotFoundException();
+        }
     }
 }

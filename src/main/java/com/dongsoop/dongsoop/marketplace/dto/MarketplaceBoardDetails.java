@@ -1,5 +1,7 @@
 package com.dongsoop.dongsoop.marketplace.dto;
 
+import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoardStatus;
+import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -13,20 +15,25 @@ public record MarketplaceBoardDetails(
         String content,
         Long price,
         LocalDateTime createdAt,
+        MarketplaceType type,
         Long contactCount,
         Set<String> imageUrlList,
-        MarketplaceViewType viewType
+        MarketplaceViewType viewType,
+        MarketplaceBoardStatus status
 ) {
     public MarketplaceBoardDetails(Long id, String title, String content, Long price, LocalDateTime createdAt,
-                                   Long contactCount, String imageUrls, MarketplaceViewType viewType) {
+                                   MarketplaceType type, Long contactCount, String imageUrls,
+                                   MarketplaceViewType viewType, MarketplaceBoardStatus status) {
         this(id,
                 title,
                 content,
                 price,
                 createdAt,
+                type,
                 contactCount,
                 splitImageUrl(imageUrls),
-                viewType);
+                viewType,
+                status);
     }
 
     private static Set<String> splitImageUrl(String imageUrls) {

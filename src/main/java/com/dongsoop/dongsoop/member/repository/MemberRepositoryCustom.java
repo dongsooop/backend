@@ -6,4 +6,6 @@ import java.util.Optional;
 public interface MemberRepositoryCustom {
 
     Optional<LoginMemberDetails> findLoginMemberDetailById(Long id);
+
+    long softDelete(Long id, String emailAlias, String passwordAlias);
 }

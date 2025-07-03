@@ -1,10 +1,11 @@
-package com.dongsoop.dongsoop.recruitment.tutoring.dto;
+package com.dongsoop.dongsoop.recruitment.dto;
 
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
-public record TutoringBoardOverview(
+public record RecruitmentOverview(
 
         Long id,
         Integer volunteer,
@@ -15,8 +16,8 @@ public record TutoringBoardOverview(
         String tags,
         List<DepartmentType> departmentTypeList
 ) {
-    public TutoringBoardOverview(Long id, Integer volunteer, LocalDateTime startAt, LocalDateTime endAt, String title,
-                                 String content, String tags, DepartmentType departmentType) {
+    public RecruitmentOverview(Long id, Integer volunteer, LocalDateTime startAt, LocalDateTime endAt, String title,
+                               String content, String tags, String departmentTypes) {
         this(
                 id,
                 volunteer,
@@ -25,7 +26,9 @@ public record TutoringBoardOverview(
                 title,
                 content,
                 tags,
-                List.of(departmentType)
+                Arrays.stream(departmentTypes.split(","))
+                        .map(v -> DepartmentType.valueOf(v.trim()))
+                        .toList()
         );
     }
 }

@@ -1,9 +1,10 @@
-package com.dongsoop.dongsoop.marketplace.dto;
+package com.dongsoop.dongsoop.mypage.dto;
 
+import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoardStatus;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
 import java.time.LocalDateTime;
 
-public record MarketplaceBoardOverview(
+public record OpenedMarketplace(
 
         Long id,
         String title,
@@ -12,6 +13,7 @@ public record MarketplaceBoardOverview(
         LocalDateTime createdAt,
         Long contactCount,
         String imageUrl,
-        MarketplaceType type
+        MarketplaceType type,
+        MarketplaceBoardStatus status
 ) {
 }

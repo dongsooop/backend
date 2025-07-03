@@ -4,7 +4,9 @@ import com.dongsoop.dongsoop.exception.domain.marketplace.TooManyImagesForMarket
 import com.dongsoop.dongsoop.marketplace.dto.CreateMarketplaceBoardRequest;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardDetails;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
+import com.dongsoop.dongsoop.marketplace.dto.UpdateMarketplaceBoardRequest;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoard;
+import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
 import com.dongsoop.dongsoop.marketplace.service.MarketplaceBoardService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import jakarta.validation.Valid;
@@ -16,7 +18,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,10 +37,11 @@ public class MarketplaceBoardController {
 
     private final MarketplaceBoardService marketplaceBoardService;
 
-    @GetMapping
-    public ResponseEntity<List<MarketplaceBoardOverview>> getMarketplaceBoards(Pageable pageable) {
+    @GetMapping("/type/{type}")
+    public ResponseEntity<List<MarketplaceBoardOverview>> getMarketplaceBoards(Pageable pageable,
+                                                                               @PathVariable("type") MarketplaceType type) {
         List<MarketplaceBoardOverview> marketplaceBoardOverviewList = marketplaceBoardService.getMarketplaceBoards(
-                pageable);
+                pageable, type);
 
         return ResponseEntity.ok(marketplaceBoardOverviewList);
     }
@@ -62,5 +67,34 @@ public class MarketplaceBoardController {
 
         return ResponseEntity.created(uri)
                 .build();
+    }
+
+    @DeleteMapping("/{boardId}")
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<Void> deleteMarketplaceBoard(@PathVariable("boardId") Long boardId) {
+        marketplaceBoardService.delete(boardId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping(value = "/{boardId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<Void> updateMarketplaceBoard(
+            @PathVariable("boardId") Long boardId,
+            @RequestPart("request") @Valid UpdateMarketplaceBoardRequest request,
+            @RequestPart(value = "image", required = false) MultipartFile[] images) throws IOException {
+        if (images != null && images.length > MAX_IMAGES) {
+            throw new TooManyImagesForMarketplaceException(MAX_IMAGES);
+        }
+
+        marketplaceBoardService.update(boardId, request, images);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{boardId}")
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<Void> closeMarketplaceBoard(@PathVariable("boardId") Long boardId) {
+        marketplaceBoardService.close(boardId);
+        return ResponseEntity.noContent().build();
     }
 }
