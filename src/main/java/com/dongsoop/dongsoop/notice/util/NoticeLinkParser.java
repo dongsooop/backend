@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.notice.util;
 
-import com.dongsoop.dongsoop.exception.domain.parser.NoticeLinkNotAvailableException;
+import com.dongsoop.dongsoop.notice.exception.NoticeLinkNotAvailableException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Value;

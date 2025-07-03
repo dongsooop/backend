@@ -1,8 +1,5 @@
 package com.dongsoop.dongsoop.timetable.service;
 
-import com.dongsoop.dongsoop.exception.domain.timetable.TimetableNotFoundException;
-import com.dongsoop.dongsoop.exception.domain.timetable.TimetableNotOwnedException;
-import com.dongsoop.dongsoop.exception.domain.timetable.TimetableOverlapException;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.timetable.dto.CreateTimetableRequest;
@@ -12,6 +9,9 @@ import com.dongsoop.dongsoop.timetable.dto.UpdateTimetableRequest;
 import com.dongsoop.dongsoop.timetable.dto.YearSemester;
 import com.dongsoop.dongsoop.timetable.entity.SemesterType;
 import com.dongsoop.dongsoop.timetable.entity.Timetable;
+import com.dongsoop.dongsoop.timetable.exception.TimetableNotFoundException;
+import com.dongsoop.dongsoop.timetable.exception.TimetableNotOwnedException;
+import com.dongsoop.dongsoop.timetable.exception.TimetableOverlapException;
 import com.dongsoop.dongsoop.timetable.repository.TimetableRepository;
 import com.dongsoop.dongsoop.timetable.repository.TimetableRepositoryCustom;
 import java.time.Year;

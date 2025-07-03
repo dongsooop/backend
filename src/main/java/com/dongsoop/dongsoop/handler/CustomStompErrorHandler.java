@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.handler;
 
-import com.dongsoop.dongsoop.exception.domain.websocket.UserKickedException;
+import com.dongsoop.dongsoop.chat.exception.UserKickedException;
+import java.nio.charset.StandardCharsets;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -8,8 +9,6 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.StompSubProtocolErrorHandler;
-
-import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Component

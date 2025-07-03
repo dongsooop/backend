@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.handler;
 
-import com.dongsoop.dongsoop.exception.domain.websocket.UnauthorizedChatAccessException;
+import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import com.dongsoop.dongsoop.jwt.dto.AuthenticationInformationByToken;

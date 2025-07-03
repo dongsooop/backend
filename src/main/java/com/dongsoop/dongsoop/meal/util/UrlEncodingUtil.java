@@ -1,14 +1,13 @@
 package com.dongsoop.dongsoop.meal.util;
 
-import com.dongsoop.dongsoop.exception.domain.meal.MealCrawlingException;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
+import com.dongsoop.dongsoop.meal.exception.MealCrawlingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j

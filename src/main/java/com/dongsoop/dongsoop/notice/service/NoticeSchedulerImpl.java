@@ -2,13 +2,22 @@ package com.dongsoop.dongsoop.notice.service;
 
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
-import com.dongsoop.dongsoop.exception.domain.notice.NoticeParsingException;
 import com.dongsoop.dongsoop.notice.dto.NoticeMaxIdByType;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
+import com.dongsoop.dongsoop.notice.exception.NoticeParsingException;
 import com.dongsoop.dongsoop.notice.repository.NoticeDetailsRepository;
 import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
 import com.dongsoop.dongsoop.notice.util.NoticeParser;
+import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -17,10 +26,6 @@ import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.net.URL;
-import java.util.*;
 
 @Service
 @RequiredArgsConstructor

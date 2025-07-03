@@ -1,8 +1,8 @@
 package com.dongsoop.dongsoop.jwt;
 
-import com.dongsoop.dongsoop.exception.domain.jwt.TokenExpiredException;
-import com.dongsoop.dongsoop.exception.domain.jwt.TokenMalformedException;
-import com.dongsoop.dongsoop.exception.domain.jwt.TokenUnsupportedException;
+import com.dongsoop.dongsoop.jwt.exception.TokenExpiredException;
+import com.dongsoop.dongsoop.jwt.exception.TokenMalformedException;
+import com.dongsoop.dongsoop.jwt.exception.TokenUnsupportedException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;

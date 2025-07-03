@@ -3,14 +3,13 @@ package com.dongsoop.dongsoop.chat.service;
 import com.dongsoop.dongsoop.chat.entity.ChatMessageEntity;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomEntity;
+import com.dongsoop.dongsoop.chat.exception.ChatRoomNotFoundException;
 import com.dongsoop.dongsoop.chat.repository.ChatMessageJpaRepository;
 import com.dongsoop.dongsoop.chat.repository.ChatRoomJpaRepository;
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
-import com.dongsoop.dongsoop.exception.domain.websocket.ChatRoomNotFoundException;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor

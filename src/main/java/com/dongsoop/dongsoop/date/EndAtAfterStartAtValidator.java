@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.date;
 
-import com.dongsoop.dongsoop.exception.domain.date.TimeTypeMismatchException;
+import com.dongsoop.dongsoop.date.exception.TimeTypeMismatchException;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import java.lang.reflect.Field;

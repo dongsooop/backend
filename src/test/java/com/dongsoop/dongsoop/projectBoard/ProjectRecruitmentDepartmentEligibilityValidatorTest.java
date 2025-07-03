@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
-import com.dongsoop.dongsoop.exception.domain.project.ProjectBoardDepartmentMismatchException;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.project.dto.ApplyProjectBoardRequest;
@@ -18,6 +17,7 @@ import com.dongsoop.dongsoop.recruitment.project.entity.ProjectApply;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoard;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment.ProjectBoardDepartmentId;
+import com.dongsoop.dongsoop.recruitment.project.exception.ProjectBoardDepartmentMismatchException;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectApplyRepository;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardDepartmentRepository;

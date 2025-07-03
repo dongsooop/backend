@@ -1,10 +1,9 @@
 package com.dongsoop.dongsoop.recruitment.tutoring.service;
 
+import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
-import com.dongsoop.dongsoop.exception.domain.authentication.NotAuthenticationException;
-import com.dongsoop.dongsoop.exception.domain.tutoring.TutoringBoardNotFound;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
@@ -12,6 +11,7 @@ import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentOverview;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.CreateTutoringBoardRequest;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringBoard;
+import com.dongsoop.dongsoop.recruitment.tutoring.exception.TutoringBoardNotFound;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepository;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepositoryCustom;

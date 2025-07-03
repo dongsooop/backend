@@ -10,12 +10,12 @@ import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
-import com.dongsoop.dongsoop.exception.domain.tutoring.TutoringBoardDepartmentMismatchException;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.ApplyTutoringBoardRequest;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringApply;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringBoard;
+import com.dongsoop.dongsoop.recruitment.tutoring.exception.TutoringBoardDepartmentMismatchException;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringApplyRepository;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepository;

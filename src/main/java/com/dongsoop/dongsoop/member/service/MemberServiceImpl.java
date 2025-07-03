@@ -1,15 +1,19 @@
 package com.dongsoop.dongsoop.member.service;
 
+import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.service.DepartmentService;
-import com.dongsoop.dongsoop.exception.domain.authentication.NotAuthenticationException;
-import com.dongsoop.dongsoop.exception.domain.member.InvalidPasswordFormatException;
-import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
 import com.dongsoop.dongsoop.jwt.TokenGenerator;
 import com.dongsoop.dongsoop.jwt.dto.IssuedToken;
-import com.dongsoop.dongsoop.member.dto.*;
+import com.dongsoop.dongsoop.member.dto.LoginAuthenticate;
+import com.dongsoop.dongsoop.member.dto.LoginDetails;
+import com.dongsoop.dongsoop.member.dto.LoginMemberDetails;
+import com.dongsoop.dongsoop.member.dto.LoginRequest;
+import com.dongsoop.dongsoop.member.dto.SignupRequest;
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.member.exception.InvalidPasswordFormatException;
+import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.repository.MemberRepositoryCustom;
 import com.dongsoop.dongsoop.member.validate.MemberDuplicationValidator;
@@ -34,10 +38,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -60,7 +60,7 @@ public class MemberServiceImpl implements MemberService {
     private final MemberDuplicationValidator memberDuplicationValidator;
 
     private final ReportValidator reportValidator;
-  
+
     @Override
     @Transactional
     public void signup(SignupRequest request) {
