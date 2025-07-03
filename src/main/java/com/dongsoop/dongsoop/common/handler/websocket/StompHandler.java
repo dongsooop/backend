@@ -1,4 +1,4 @@
-package com.dongsoop.dongsoop.handler;
+package com.dongsoop.dongsoop.common.handler.websocket;
 
 import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
 import com.dongsoop.dongsoop.jwt.JwtUtil;

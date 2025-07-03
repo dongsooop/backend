@@ -1,4 +1,4 @@
-package com.dongsoop.dongsoop.handler;
+package com.dongsoop.dongsoop.common.handler.exception;
 
 import com.dongsoop.dongsoop.common.exception.CustomException;
 import java.time.LocalDateTime;

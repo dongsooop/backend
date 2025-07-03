@@ -1,7 +1,7 @@
 package com.dongsoop.dongsoop.common.config;
 
-import com.dongsoop.dongsoop.handler.CustomStompErrorHandler;
-import com.dongsoop.dongsoop.handler.StompHandler;
+import com.dongsoop.dongsoop.common.handler.websocket.CustomStompErrorHandler;
+import com.dongsoop.dongsoop.common.handler.websocket.StompHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

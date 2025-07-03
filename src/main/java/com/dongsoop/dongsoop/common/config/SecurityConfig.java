@@ -1,7 +1,7 @@
 package com.dongsoop.dongsoop.common.config;
 
-import com.dongsoop.dongsoop.handler.CustomAccessDeniedHandler;
-import com.dongsoop.dongsoop.handler.CustomAuthenticationEntryPoint;
+import com.dongsoop.dongsoop.common.handler.authentication.CustomAccessDeniedHandler;
+import com.dongsoop.dongsoop.common.handler.authentication.CustomAuthenticationEntryPoint;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import java.util.List;

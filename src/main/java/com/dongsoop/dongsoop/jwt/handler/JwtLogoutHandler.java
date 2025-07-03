@@ -1,4 +1,4 @@
-package com.dongsoop.dongsoop.handler;
+package com.dongsoop.dongsoop.jwt.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
