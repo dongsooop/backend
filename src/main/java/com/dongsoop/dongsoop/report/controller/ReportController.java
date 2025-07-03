@@ -2,7 +2,6 @@ package com.dongsoop.dongsoop.report.controller;
 
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
-import com.dongsoop.dongsoop.report.dto.ReportResponse;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
 import com.dongsoop.dongsoop.report.service.ReportService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
@@ -39,10 +38,10 @@ public class ReportController {
 
     @GetMapping("/admin")
     @Secured("ROLE_ADMIN")
-    public ResponseEntity<List<ReportResponse>> getReports(
+    public ResponseEntity<List<?>> getReports(
             @RequestParam(defaultValue = "ALL") ReportFilterType filter,
             Pageable pageable) {
-        List<ReportResponse> reports = reportService.getReports(filter, pageable);
+        List<?> reports = reportService.getReports(filter, pageable);
         return ResponseEntity.ok(reports);
     }
 }
