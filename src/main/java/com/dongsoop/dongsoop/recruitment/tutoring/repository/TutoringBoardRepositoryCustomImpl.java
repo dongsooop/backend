@@ -6,6 +6,7 @@ import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentOverview;
 import com.dongsoop.dongsoop.recruitment.projection.TutoringRecruitmentProjection;
+import com.dongsoop.dongsoop.recruitment.repository.RecruitmentRepositoryUtils;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.QTutoringApply;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.QTutoringBoard;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -27,8 +28,17 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
 
     private final PageableUtil pageableUtil;
 
+    private final RecruitmentRepositoryUtils recruitmentRepositoryUtils;
+
     private final TutoringRecruitmentProjection projection;
 
+    /**
+     * 학과별로 모집중인 상태의 튜터링 모집 게시판 목록을 페이지 단위로 조회합니다.
+     *
+     * @param departmentType 학과 타입
+     * @param pageable       페이지 정보
+     * @return 모집중인 튜터링 모집 게시판 목록
+     */
     @Override
     public List<RecruitmentOverview> findTutoringBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
                                                                                        Pageable pageable) {
@@ -36,7 +46,8 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                 .from(tutoringBoard)
                 .leftJoin(tutoringApply)
                 .on(tutoringApply.id.tutoringBoard.id.eq(tutoringBoard.id))
-                .where(tutoringBoard.department.id.eq(departmentType))
+                .where(tutoringBoard.department.id.eq(departmentType)
+                        .and(recruitmentRepositoryUtils.isRecruiting(tutoringBoard.startAt, tutoringBoard.endAt)))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(tutoringBoard.id)
@@ -44,6 +55,14 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                 .fetch();
     }
 
+    /**
+     * 특정 튜터링 모집 게시판 ID를 통해 상세 정보를 조회합니다.
+     *
+     * @param tutoringBoardId  튜터링 모집 게시판 ID
+     * @param viewType         조회자 타입 (예: OWNER, MEMBER, GUEST)
+     * @param isAlreadyApplied 현재 멤버가 이미 신청했는지 여부
+     * @return 튜터링 모집 게시판 상세 정보
+     */
     @Override
     public Optional<RecruitmentDetails> findBoardDetailsByIdAndViewType(Long tutoringBoardId,
                                                                         RecruitmentViewType viewType,
@@ -60,12 +79,19 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
         return Optional.ofNullable(details);
     }
 
+    /**
+     * 학과에 관계없이 모집중인 상태의 모든 튜터링 모집 게시판을 페이지 단위로 조회합니다.
+     *
+     * @param pageable 페이지 정보
+     * @return 튜터링 모집 게시판 목록
+     */
     @Override
     public List<RecruitmentOverview> findTutoringBoardOverviewsByPage(Pageable pageable) {
         return queryFactory.select(projection.getRecruitmentOverviewExpression())
                 .from(tutoringBoard)
                 .leftJoin(tutoringApply)
                 .on(tutoringApply.id.tutoringBoard.id.eq(tutoringBoard.id))
+                .where(recruitmentRepositoryUtils.isRecruiting(tutoringBoard.startAt, tutoringBoard.endAt))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(tutoringBoard.id)
