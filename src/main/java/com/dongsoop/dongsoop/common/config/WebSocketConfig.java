@@ -1,4 +1,4 @@
-package com.dongsoop.dongsoop.config;
+package com.dongsoop.dongsoop.common.config;
 
 import com.dongsoop.dongsoop.handler.CustomStompErrorHandler;
 import com.dongsoop.dongsoop.handler.StompHandler;

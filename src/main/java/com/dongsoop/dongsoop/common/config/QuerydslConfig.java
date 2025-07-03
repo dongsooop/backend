@@ -1,4 +1,4 @@
-package com.dongsoop.dongsoop.config;
+package com.dongsoop.dongsoop.common.config;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;

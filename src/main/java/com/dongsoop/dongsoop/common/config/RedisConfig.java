@@ -1,4 +1,4 @@
-package com.dongsoop.dongsoop.config;
+package com.dongsoop.dongsoop.common.config;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;

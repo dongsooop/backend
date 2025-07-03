@@ -1,4 +1,4 @@
-package com.dongsoop.dongsoop.config;
+package com.dongsoop.dongsoop.s3.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
