@@ -64,7 +64,10 @@ public class SanctionExecutor {
     }
 
     private void checkWarningAccumulation(Member member) {
-        Long warningCount = reportRepository.countActiveWarningsForMember(member.getId());
+        Long warningCount = reportRepository.countActiveWarningsForMember(
+                member.getId(),
+                SanctionType.WARNING
+        );
         executeAutoSuspensionWhen(warningCount, member);
     }
 

@@ -8,7 +8,6 @@ import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
-import com.dongsoop.dongsoop.report.dto.ReportResponse;
 import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
@@ -58,15 +57,11 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public List<ReportResponse> getReports(ReportFilterType filterType, Pageable pageable) {
+    public List<?> getReports(ReportFilterType filterType, Pageable pageable) {
         if (ReportFilterType.UNPROCESSED.equals(filterType)) {
             return reportRepository.findSummaryReportsByFilter(filterType, pageable);
         }
         return reportRepository.findDetailedReportsByFilter(filterType, pageable);
-    }
-
-    private boolean requiresSummaryView(ReportFilterType filterType) {
-        return ReportFilterType.UNPROCESSED.equals(filterType);
     }
 
     private Report buildReport(CreateReportRequest request, Member reporter, String targetUrl) {
