@@ -3,7 +3,9 @@ package com.dongsoop.dongsoop.report.repository;
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.report.dto.ReportResponse;
+import com.dongsoop.dongsoop.report.dto.ReportSummaryResponse;
 import com.dongsoop.dongsoop.report.entity.QReport;
+import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
 import com.dongsoop.dongsoop.report.entity.SanctionType;
 import com.querydsl.core.types.Expression;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -40,11 +43,34 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     }
 
     @Override
-    public List<ReportResponse> findSummaryReportsByFilter(ReportFilterType filterType, Pageable pageable) {
+    public List<ReportSummaryResponse> findSummaryReportsByFilter(ReportFilterType filterType, Pageable pageable) {
         BooleanExpression filterCondition = createFilterCondition(filterType);
-        Expression<ReportResponse> projection = createSummaryProjection();
+        Expression<ReportSummaryResponse> projection = createSummaryProjection();
 
-        return buildQuery(filterCondition, projection, pageable);
+        return buildSummaryQuery(filterCondition, projection, pageable);
+    }
+
+    private List<ReportSummaryResponse> buildSummaryQuery(BooleanExpression filterCondition,
+                                                          Expression<ReportSummaryResponse> projection, Pageable pageable) {
+        JPAQuery<ReportSummaryResponse> baseQuery = createSummaryBaseQuery(projection, filterCondition);
+        return applySummaryPaginationAndSorting(baseQuery, pageable);
+    }
+
+    private List<ReportSummaryResponse> applySummaryPaginationAndSorting(JPAQuery<ReportSummaryResponse> query, Pageable pageable) {
+        return query
+                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), report))
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+    }
+
+    private JPAQuery<ReportSummaryResponse> createSummaryBaseQuery(Expression<ReportSummaryResponse> projection,
+                                                                   BooleanExpression filterCondition) {
+        return queryFactory
+                .select(projection)
+                .from(report)
+                .leftJoin(report.reporter, reporter)
+                .where(filterCondition);
     }
 
     private List<ReportResponse> buildQuery(BooleanExpression filterCondition,
@@ -73,25 +99,16 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 report.createdAt);
     }
 
-    private Expression<ReportResponse> createSummaryProjection() {
-        return Projections.constructor(ReportResponse.class,
+    private Expression<ReportSummaryResponse> createSummaryProjection() {
+        return Projections.constructor(ReportSummaryResponse.class,
                 report.id,
                 reporter.nickname,
                 report.reportType,
-                Expressions.nullExpression(Long.class),
-                Expressions.nullExpression(String.class),
                 report.reportReason,
-                Expressions.nullExpression(String.class),
                 report.isProcessed,
-                Expressions.nullExpression(String.class),
-                Expressions.nullExpression(String.class),
-                Expressions.nullExpression(SanctionType.class),
-                Expressions.nullExpression(String.class),
-                Expressions.nullExpression(LocalDateTime.class),
-                Expressions.nullExpression(LocalDateTime.class),
-                Expressions.nullExpression(Boolean.class),
                 report.createdAt);
     }
+
 
     private JPAQuery<ReportResponse> createBaseQuery(Expression<ReportResponse> projection,
                                                      BooleanExpression filterCondition) {
@@ -102,6 +119,22 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 .leftJoin(report.admin, admin)
                 .leftJoin(report.targetMember, targetMember)
                 .where(filterCondition);
+    }
+
+    @Override
+    public Optional<Report> findActiveBanForMember(Long memberId, LocalDateTime currentTime, List<SanctionType> sanctionTypes) {
+        BooleanExpression condition = report.targetMember.id.eq(memberId)
+                .and(report.isSanctionActive.eq(true))
+                .and(report.sanctionType.in(sanctionTypes))
+                .and(report.sanctionEndAt.isNull().or(report.sanctionEndAt.gt(currentTime)));
+
+        return Optional.ofNullable(
+                queryFactory
+                        .selectFrom(report)
+                        .where(condition)
+                        .orderBy(report.createdAt.desc())
+                        .fetchFirst()
+        );
     }
 
     private List<ReportResponse> applyPaginationAndSorting(JPAQuery<ReportResponse> query, Pageable pageable) {
