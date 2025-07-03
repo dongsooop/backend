@@ -11,8 +11,9 @@ import com.dongsoop.dongsoop.recruitment.project.entity.QProjectBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.projection.ProjectRecruitmentProjection;
 import com.dongsoop.dongsoop.recruitment.repository.RecruitmentRepositoryUtils;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberPath;
+import com.querydsl.jpa.JPAExpressions;
+import com.querydsl.jpa.JPQLQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import java.util.Optional;
@@ -55,12 +56,12 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                 .on(hasMatchingProjectBoardId(projectApply.id.projectBoard.id))
                 .leftJoin(projectBoardDepartment)
                 .on(hasMatchingProjectBoardId(projectBoardDepartment.id.projectBoard.id))
-                .where(recruitmentRepositoryUtils.isRecruiting(projectBoard.startAt, projectBoard.endAt))
+                .where(recruitmentRepositoryUtils.isRecruiting(projectBoard.startAt, projectBoard.endAt)
+                        .and(projectBoard.id.in(includeDepartmentType(departmentType))))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(projectBoard.id)
                 .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), projectBoard))
-                .having(equalDepartmentType(departmentType))
                 .fetch();
     }
 
@@ -126,12 +127,10 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
         return projectBoard.id.eq(projectBoardId);
     }
 
-    private BooleanExpression equalDepartmentType(DepartmentType departmentType) {
-        return Expressions.numberTemplate(
-                        Integer.class,
-                        "SUM(CASE WHEN {0} = {1} THEN 1 ELSE 0 END)",
-                        projectBoardDepartment.id.department.id,
-                        Expressions.constant(departmentType))
-                .gt(0);
+    private JPQLQuery<Long> includeDepartmentType(DepartmentType departmentType) {
+        return JPAExpressions.select(projectBoard.id)
+                .leftJoin(projectBoardDepartment)
+                .on(projectBoard.id.eq(projectBoardDepartment.id.projectBoard.id))
+                .where(projectBoardDepartment.id.department.id.eq(departmentType));
     }
 }

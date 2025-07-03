@@ -11,8 +11,9 @@ import com.dongsoop.dongsoop.recruitment.study.entity.QStudyApply;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyBoard;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyBoardDepartment;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberPath;
+import com.querydsl.jpa.JPAExpressions;
+import com.querydsl.jpa.JPQLQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import java.util.Optional;
@@ -56,11 +57,11 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
                 .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
-                .where(recruitmentRepositoryUtils.isRecruiting(studyBoard.startAt, studyBoard.endAt))
+                .where(recruitmentRepositoryUtils.isRecruiting(studyBoard.startAt, studyBoard.endAt)
+                        .and(studyBoard.id.in(includeDepartmentType(departmentType))))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .groupBy(studyBoard.id)
-                .having(equalDepartmentType(departmentType))
                 .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), studyBoard))
                 .fetch();
     }
@@ -127,12 +128,10 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
         return studyBoard.id.eq(studyBoardId);
     }
 
-    private BooleanExpression equalDepartmentType(DepartmentType departmentType) {
-        return Expressions.numberTemplate(
-                        Integer.class,
-                        "SUM(CASE WHEN {0} = {1} THEN 1 ELSE 0 END)",
-                        studyBoardDepartment.id.department.id,
-                        Expressions.constant(departmentType))
-                .gt(0);
+    private JPQLQuery<Long> includeDepartmentType(DepartmentType departmentType) {
+        return JPAExpressions.select(studyBoard.id)
+                .leftJoin(studyBoardDepartment)
+                .on(studyBoard.id.eq(studyBoardDepartment.id.studyBoard.id))
+                .where(studyBoardDepartment.id.department.id.eq(departmentType));
     }
 }
