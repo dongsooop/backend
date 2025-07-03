@@ -8,9 +8,9 @@ import com.dongsoop.dongsoop.exception.domain.project.ProjectBoardNotFound;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentOverview;
 import com.dongsoop.dongsoop.recruitment.project.dto.CreateProjectBoardRequest;
-import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardDetails;
-import com.dongsoop.dongsoop.recruitment.project.dto.ProjectBoardOverview;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoard;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment.ProjectBoardDepartmentId;
@@ -58,16 +58,16 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
         return projectBoard;
     }
 
-    public List<ProjectBoardOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType,
-                                                                      Pageable pageable) {
+    public List<RecruitmentOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType,
+                                                                     Pageable pageable) {
         return projectBoardRepositoryCustom.findProjectBoardOverviewsByPageAndDepartmentType(departmentType, pageable);
     }
 
-    public List<ProjectBoardOverview> getBoardByPage(Pageable pageable) {
+    public List<RecruitmentOverview> getBoardByPage(Pageable pageable) {
         return projectBoardRepositoryCustom.findProjectBoardOverviewsByPage(pageable);
     }
 
-    public ProjectBoardDetails getBoardDetailsById(Long boardId) {
+    public RecruitmentDetails getBoardDetailsById(Long boardId) {
         try {
             Long memberId = memberService.getMemberIdByAuthentication();
             boolean isOwner = projectBoardRepository.existsByIdAndAuthorId(boardId, memberId);
@@ -83,13 +83,13 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
         }
     }
 
-    private ProjectBoardDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType,
-                                                            boolean isAlreadyApplied) {
+    private RecruitmentDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType,
+                                                           boolean isAlreadyApplied) {
         return projectBoardRepositoryCustom.findBoardDetailsByIdAndViewType(boardId, viewType, isAlreadyApplied)
                 .orElseThrow(() -> new ProjectBoardNotFound(boardId));
     }
 
-    private ProjectBoardDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType) {
+    private RecruitmentDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType) {
         return getBoardDetailsWithViewType(boardId, viewType, false);
     }
 

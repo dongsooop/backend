@@ -1,9 +1,9 @@
 package com.dongsoop.dongsoop.recruitment.study.controller;
 
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentOverview;
 import com.dongsoop.dongsoop.recruitment.study.dto.CreateStudyBoardRequest;
-import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardDetails;
-import com.dongsoop.dongsoop.recruitment.study.dto.StudyBoardOverview;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoard;
 import com.dongsoop.dongsoop.recruitment.study.service.StudyBoardService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
@@ -29,10 +29,10 @@ public class StudyBoardController {
     private final StudyBoardService studyBoardService;
 
     @GetMapping("/{studyBoardId}")
-    public ResponseEntity<StudyBoardDetails> getStudyBoardDetails(@PathVariable Long studyBoardId) {
-        StudyBoardDetails studyBoardDetails = studyBoardService.getBoardDetailsById(studyBoardId);
+    public ResponseEntity<RecruitmentDetails> getStudyBoardDetails(@PathVariable Long studyBoardId) {
+        RecruitmentDetails details = studyBoardService.getBoardDetailsById(studyBoardId);
 
-        return ResponseEntity.ok(studyBoardDetails);
+        return ResponseEntity.ok(details);
     }
 
     @PostMapping
@@ -47,19 +47,20 @@ public class StudyBoardController {
     }
 
     @GetMapping("/department/{departmentType}")
-    public ResponseEntity<List<StudyBoardOverview>> getStudyBoardListByDepartmentType(
+    public ResponseEntity<List<RecruitmentOverview>> getStudyBoardListByDepartmentType(
             @PathVariable("departmentType") DepartmentType departmentType,
             Pageable pageable) {
-        List<StudyBoardOverview> studyBoardOverviews = studyBoardService.getBoardByPageAndDepartmentType(departmentType,
+        List<RecruitmentOverview> overviews = studyBoardService.getBoardByPageAndDepartmentType(
+                departmentType,
                 pageable);
 
-        return ResponseEntity.ok(studyBoardOverviews);
+        return ResponseEntity.ok(overviews);
     }
 
     @GetMapping
-    public ResponseEntity<List<StudyBoardOverview>> getStudyBoardList(Pageable pageable) {
-        List<StudyBoardOverview> studyBoardOverviews = studyBoardService.getBoardByPage(pageable);
+    public ResponseEntity<List<RecruitmentOverview>> getStudyBoardList(Pageable pageable) {
+        List<RecruitmentOverview> overviews = studyBoardService.getBoardByPage(pageable);
 
-        return ResponseEntity.ok(studyBoardOverviews);
+        return ResponseEntity.ok(overviews);
     }
 }
