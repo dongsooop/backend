@@ -28,6 +28,7 @@ public record RecruitmentOverview(
                 tags,
                 Arrays.stream(departmentTypes.split(","))
                         .map(v -> DepartmentType.valueOf(v.trim()))
+                        .distinct()
                         .toList()
         );
     }
