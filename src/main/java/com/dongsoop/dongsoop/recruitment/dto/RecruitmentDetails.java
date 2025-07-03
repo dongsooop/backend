@@ -1,4 +1,4 @@
-package com.dongsoop.dongsoop.recruitment.study.dto;
+package com.dongsoop.dongsoop.recruitment.dto;
 
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
-public record StudyBoardDetails(
+public record RecruitmentDetails(
 
         Long id,
         String title,
@@ -22,10 +22,10 @@ public record StudyBoardDetails(
         RecruitmentViewType viewType,
         boolean isAlreadyApplied
 ) {
-    public StudyBoardDetails(Long id, String title, String content, String tags, LocalDateTime startAt,
-                             LocalDateTime endAt, String departmentTypes, String author, LocalDateTime createdAt,
-                             LocalDateTime updatedAt, Integer volunteer, RecruitmentViewType viewType,
-                             boolean isAlreadyApplied) {
+    public RecruitmentDetails(Long id, String title, String content, String tags, LocalDateTime startAt,
+                              LocalDateTime endAt, String departmentTypes, String author, LocalDateTime createdAt,
+                              LocalDateTime updatedAt, Integer volunteer, RecruitmentViewType viewType,
+                              boolean isAlreadyApplied) {
         this(
                 id,
                 title,
