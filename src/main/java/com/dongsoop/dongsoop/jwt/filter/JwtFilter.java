@@ -1,14 +1,14 @@
 package com.dongsoop.dongsoop.jwt.filter;
 
-import com.dongsoop.dongsoop.exception.CustomException;
-import com.dongsoop.dongsoop.exception.domain.jwt.TokenExpiredException;
-import com.dongsoop.dongsoop.exception.domain.jwt.TokenMalformedException;
-import com.dongsoop.dongsoop.exception.domain.jwt.TokenNotFoundException;
-import com.dongsoop.dongsoop.exception.domain.jwt.TokenRoleNotAvailableException;
-import com.dongsoop.dongsoop.exception.domain.jwt.TokenSignatureException;
-import com.dongsoop.dongsoop.exception.domain.jwt.TokenUnsupportedException;
+import com.dongsoop.dongsoop.common.exception.CustomException;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
+import com.dongsoop.dongsoop.jwt.exception.TokenExpiredException;
+import com.dongsoop.dongsoop.jwt.exception.TokenMalformedException;
+import com.dongsoop.dongsoop.jwt.exception.TokenNotFoundException;
+import com.dongsoop.dongsoop.jwt.exception.TokenRoleNotAvailableException;
+import com.dongsoop.dongsoop.jwt.exception.TokenSignatureException;
+import com.dongsoop.dongsoop.jwt.exception.TokenUnsupportedException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

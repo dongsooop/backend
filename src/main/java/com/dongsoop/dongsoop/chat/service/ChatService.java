@@ -1,18 +1,21 @@
 package com.dongsoop.dongsoop.chat.service;
 
 import com.dongsoop.dongsoop.chat.dto.ReadStatusUpdateRequest;
-import com.dongsoop.dongsoop.chat.entity.*;
+import com.dongsoop.dongsoop.chat.entity.ChatMessage;
+import com.dongsoop.dongsoop.chat.entity.ChatRoom;
+import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
+import com.dongsoop.dongsoop.chat.entity.IncrementalSyncResponse;
+import com.dongsoop.dongsoop.chat.entity.MessageType;
+import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
-import com.dongsoop.dongsoop.exception.domain.websocket.UnauthorizedChatAccessException;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
@@ -151,7 +154,8 @@ public class ChatService {
         return filterNotKickedRooms(allRooms, userId);
     }
 
-    private ChatRoomInitResponse buildChatRoomInitResponse(ChatRoom room, List<ChatMessage> messages, LocalDateTime userJoinTime) {
+    private ChatRoomInitResponse buildChatRoomInitResponse(ChatRoom room, List<ChatMessage> messages,
+                                                           LocalDateTime userJoinTime) {
         return ChatRoomInitResponse.builder()
                 .room(room)
                 .messages(messages)

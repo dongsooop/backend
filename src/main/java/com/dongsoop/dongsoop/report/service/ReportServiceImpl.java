@@ -1,24 +1,23 @@
 package com.dongsoop.dongsoop.report.service;
 
-import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
-import com.dongsoop.dongsoop.exception.domain.report.ReportNotFoundException;
-import com.dongsoop.dongsoop.exception.domain.report.SanctionAlreadyExistsException;
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
 import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
+import com.dongsoop.dongsoop.report.exception.ReportNotFoundException;
+import com.dongsoop.dongsoop.report.exception.SanctionAlreadyExistsException;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
 import com.dongsoop.dongsoop.report.util.ReportUrlGenerator;
 import com.dongsoop.dongsoop.report.validator.ReportValidator;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -75,7 +74,8 @@ public class ReportServiceImpl implements ReportService {
                 .build();
     }
 
-    private void processSanctionForReport(Report report, ProcessSanctionRequest request, Member admin, Member targetMember) {
+    private void processSanctionForReport(Report report, ProcessSanctionRequest request, Member admin,
+                                          Member targetMember) {
         report.processSanction(admin, targetMember, request.sanctionType(),
                 request.sanctionReason(), request.sanctionEndAt());
     }

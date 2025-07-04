@@ -1,8 +1,8 @@
 package com.dongsoop.dongsoop.notice.util;
 
-import com.dongsoop.dongsoop.exception.domain.notice.NoticeLinkFormatNotAvailable;
-import com.dongsoop.dongsoop.exception.domain.notice.NoticeSubjectNotAvailableException;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
+import com.dongsoop.dongsoop.notice.exception.NoticeLinkFormatNotAvailable;
+import com.dongsoop.dongsoop.notice.exception.NoticeSubjectNotAvailableException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;

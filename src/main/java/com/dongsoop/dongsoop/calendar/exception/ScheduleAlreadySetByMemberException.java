@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.calendar.exception;
 
-import com.dongsoop.dongsoop.exception.CustomException;
+import com.dongsoop.dongsoop.common.exception.CustomException;
 import org.springframework.http.HttpStatus;
 
 public class ScheduleAlreadySetByMemberException extends CustomException {

@@ -1,8 +1,8 @@
 package com.dongsoop.dongsoop.marketplace.entity;
 
 import com.dongsoop.dongsoop.board.Board;
-import com.dongsoop.dongsoop.exception.domain.marketplace.MarketplaceBoardAlreadyClosedException;
 import com.dongsoop.dongsoop.marketplace.dto.UpdateMarketplaceBoardRequest;
+import com.dongsoop.dongsoop.marketplace.exception.MarketplaceBoardAlreadyClosedException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

@@ -2,8 +2,8 @@ package com.dongsoop.dongsoop.department.service;
 
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.department.exception.DepartmentNotFoundException;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
-import com.dongsoop.dongsoop.exception.domain.department.DepartmentNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +16,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     public Department getReferenceById(DepartmentType departmentType) {
         validateDepartment(departmentType);
-        
+
         return departmentRepository.getReferenceById(departmentType);
     }
 

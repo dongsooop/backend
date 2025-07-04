@@ -1,9 +1,9 @@
 package com.dongsoop.dongsoop.marketplace.service;
 
-import com.dongsoop.dongsoop.exception.domain.marketplace.MarketplaceAlreadyContactException;
-import com.dongsoop.dongsoop.exception.domain.marketplace.MarketplaceBoardNotFoundException;
 import com.dongsoop.dongsoop.marketplace.dto.ContactMarketplaceRequest;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceContact;
+import com.dongsoop.dongsoop.marketplace.exception.MarketplaceAlreadyContactException;
+import com.dongsoop.dongsoop.marketplace.exception.MarketplaceBoardNotFoundException;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepository;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceContactRepository;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceContactRepositoryCustom;

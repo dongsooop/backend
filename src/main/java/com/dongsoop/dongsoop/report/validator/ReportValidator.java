@@ -1,9 +1,5 @@
 package com.dongsoop.dongsoop.report.validator;
 
-import com.dongsoop.dongsoop.exception.domain.report.DuplicateReportException;
-import com.dongsoop.dongsoop.exception.domain.report.MemberSanctionedException;
-import com.dongsoop.dongsoop.exception.domain.report.ReportTargetNotFoundException;
-import com.dongsoop.dongsoop.exception.domain.report.SelfReportException;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
@@ -12,12 +8,15 @@ import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepository;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepository;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.entity.SanctionType;
+import com.dongsoop.dongsoop.report.exception.DuplicateReportException;
+import com.dongsoop.dongsoop.report.exception.MemberSanctionedException;
+import com.dongsoop.dongsoop.report.exception.ReportTargetNotFoundException;
+import com.dongsoop.dongsoop.report.exception.SelfReportException;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor

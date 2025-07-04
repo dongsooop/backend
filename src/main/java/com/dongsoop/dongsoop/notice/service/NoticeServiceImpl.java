@@ -2,8 +2,8 @@ package com.dongsoop.dongsoop.notice.service;
 
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.department.exception.DepartmentNotFoundException;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
-import com.dongsoop.dongsoop.exception.domain.department.DepartmentNotFoundException;
 import com.dongsoop.dongsoop.notice.dto.NoticeListResponse;
 import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
 import java.util.Optional;

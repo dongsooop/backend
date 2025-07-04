@@ -1,12 +1,12 @@
 package com.dongsoop.dongsoop.marketplace.controller;
 
-import com.dongsoop.dongsoop.exception.domain.marketplace.TooManyImagesForMarketplaceException;
 import com.dongsoop.dongsoop.marketplace.dto.CreateMarketplaceBoardRequest;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardDetails;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
 import com.dongsoop.dongsoop.marketplace.dto.UpdateMarketplaceBoardRequest;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoard;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
+import com.dongsoop.dongsoop.marketplace.exception.TooManyImagesForMarketplaceException;
 import com.dongsoop.dongsoop.marketplace.service.MarketplaceBoardService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import jakarta.validation.Valid;

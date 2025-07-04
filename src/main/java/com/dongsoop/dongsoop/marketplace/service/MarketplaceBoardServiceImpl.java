@@ -1,9 +1,5 @@
 package com.dongsoop.dongsoop.marketplace.service;
 
-import com.dongsoop.dongsoop.exception.domain.marketplace.MarketplaceBoardImageAmountNotAvailableException;
-import com.dongsoop.dongsoop.exception.domain.marketplace.MarketplaceBoardNotFoundException;
-import com.dongsoop.dongsoop.exception.domain.member.MemberNotFoundException;
-import com.dongsoop.dongsoop.exception.domain.s3.S3UnknownException;
 import com.dongsoop.dongsoop.marketplace.dto.CreateMarketplaceBoardRequest;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardDetails;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
@@ -13,12 +9,16 @@ import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoard;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceImage;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceImage.MarketplaceImageId;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
+import com.dongsoop.dongsoop.marketplace.exception.MarketplaceBoardImageAmountNotAvailableException;
+import com.dongsoop.dongsoop.marketplace.exception.MarketplaceBoardNotFoundException;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepository;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepositoryCustom;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceImageRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.s3.S3Service;
+import com.dongsoop.dongsoop.s3.exception.S3UnknownException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;

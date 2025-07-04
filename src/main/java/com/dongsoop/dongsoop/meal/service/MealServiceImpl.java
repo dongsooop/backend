@@ -1,16 +1,28 @@
 package com.dongsoop.dongsoop.meal.service;
 
-import com.dongsoop.dongsoop.exception.domain.meal.MealCrawlingException;
-import com.dongsoop.dongsoop.exception.domain.meal.MealNotFoundException;
 import com.dongsoop.dongsoop.meal.dto.MealDailyResponse;
 import com.dongsoop.dongsoop.meal.dto.MealListDto;
 import com.dongsoop.dongsoop.meal.dto.MealWeeklyResponse;
 import com.dongsoop.dongsoop.meal.entity.Meal;
 import com.dongsoop.dongsoop.meal.entity.MealType;
+import com.dongsoop.dongsoop.meal.exception.MealCrawlingException;
+import com.dongsoop.dongsoop.meal.exception.MealNotFoundException;
 import com.dongsoop.dongsoop.meal.repository.MealRepository;
 import com.dongsoop.dongsoop.meal.util.DayOfWeekUtil;
 import com.dongsoop.dongsoop.meal.util.MealParser;
 import com.dongsoop.dongsoop.meal.util.UrlEncodingUtil;
+import java.io.IOException;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -19,12 +31,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.io.IOException;
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -154,7 +160,8 @@ public class MealServiceImpl implements MealService {
                 .build();
     }
 
-    private List<Meal> selectNewMeals(boolean isFirstCrawling, List<Meal> allMeals, LocalDate lastDate, LocalDate currentWeekStart) {
+    private List<Meal> selectNewMeals(boolean isFirstCrawling, List<Meal> allMeals, LocalDate lastDate,
+                                      LocalDate currentWeekStart) {
         return Optional.of(isFirstCrawling)
                 .filter(Boolean::booleanValue)
                 .map(unused -> allMeals)

@@ -1,7 +1,7 @@
 package com.dongsoop.dongsoop.member.validate;
 
-import com.dongsoop.dongsoop.exception.domain.member.EmailDuplicatedException;
-import com.dongsoop.dongsoop.exception.domain.member.NicknameDuplicatedException;
+import com.dongsoop.dongsoop.member.exception.EmailDuplicatedException;
+import com.dongsoop.dongsoop.member.exception.NicknameDuplicatedException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

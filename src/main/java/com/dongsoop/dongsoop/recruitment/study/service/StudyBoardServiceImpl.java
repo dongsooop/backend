@@ -1,10 +1,9 @@
 package com.dongsoop.dongsoop.recruitment.study.service;
 
+import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
-import com.dongsoop.dongsoop.exception.domain.authentication.NotAuthenticationException;
-import com.dongsoop.dongsoop.exception.domain.study.StudyBoardNotFound;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
@@ -14,6 +13,7 @@ import com.dongsoop.dongsoop.recruitment.study.dto.CreateStudyBoardRequest;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoard;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardDepartment.StudyBoardDepartmentId;
+import com.dongsoop.dongsoop.recruitment.study.exception.StudyBoardNotFound;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepository;
