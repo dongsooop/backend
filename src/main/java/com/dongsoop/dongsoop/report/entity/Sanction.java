@@ -23,8 +23,9 @@ public class Sanction extends BaseEntity {
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
-    @Column(name = "sanction_type", length = 50, nullable = false)
-    private String sanctionType;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sanction_type", nullable = false)
+    private SanctionType sanctionType;
 
     @Column(name = "reason", length = 500, nullable = false)
     private String reason;
@@ -35,18 +36,28 @@ public class Sanction extends BaseEntity {
     @Column(name = "end_date", nullable = false)
     private LocalDateTime endDate;
 
-    @Column(name = "description", length = 1000)
+    @Column(name = "description", length = 500)
     private String description;
 
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
 
+    public boolean isCurrentlyExpired() {
+        return LocalDateTime.now().isAfter(endDate);
+    }
+
     public void deactivate() {
         this.isActive = false;
     }
 
-    public boolean isExpired(LocalDateTime now) {
-        return now.isAfter(endDate);
+    public boolean isSanctionActive() {
+        return isActive && !isCurrentlyExpired();
+    }
+
+    public void expireIfNeeded() {
+        if (isCurrentlyExpired()) {
+            deactivate();
+        }
     }
 }
