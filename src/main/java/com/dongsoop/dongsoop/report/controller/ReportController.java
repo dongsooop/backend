@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.report.controller;
 
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
+import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
 import com.dongsoop.dongsoop.report.service.ReportService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
@@ -27,6 +28,12 @@ public class ReportController {
     public ResponseEntity<Void> createReport(@RequestBody @Valid CreateReportRequest request) {
         reportService.createReport(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @GetMapping("/sanction-status")
+    public ResponseEntity<SanctionStatusResponse> checkSanctionStatus() {
+        SanctionStatusResponse response = reportService.checkAndUpdateSanctionStatus();
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/sanctions")
