@@ -3,6 +3,8 @@ package com.dongsoop.dongsoop.recruitment.tutoring.service;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.recruitment.dto.UpdateApplyStatusRequest;
+import com.dongsoop.dongsoop.recruitment.entity.RecruitmentApplyStatus;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.ApplyTutoringBoardRequest;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringApply;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringApply.TutoringApplyKey;
@@ -15,6 +17,7 @@ import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringApplyReposi
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -59,5 +62,16 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
             Department boardDepartment = tutoringBoard.getDepartment();
             throw new TutoringBoardDepartmentMismatchException(boardDepartment.getId(), requesterDepartment.getId());
         }
+    }
+
+    @Transactional
+    public void updateStatus(Long boardId, UpdateApplyStatusRequest request) {
+        if (request.status() == RecruitmentApplyStatus.APPLY) {
+            return;
+        }
+
+        Long memberId = memberService.getMemberIdByAuthentication();
+
+        tutoringApplyRepositoryCustom.updateApplyStatus(memberId, boardId, request.status());
     }
 }

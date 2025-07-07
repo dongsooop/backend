@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.recruitment.project.repository;
 
+import com.dongsoop.dongsoop.recruitment.entity.RecruitmentApplyStatus;
 import com.dongsoop.dongsoop.recruitment.project.entity.QProjectApply;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -19,5 +20,13 @@ public class ProjectApplyRepositoryCustomImpl implements ProjectApplyRepositoryC
                 .where(projectApply.id.projectBoard.id.eq(boardId)
                         .and(projectApply.id.member.id.eq(memberId)))
                 .fetchFirst() != null;
+    }
+
+    public void updateApplyStatus(Long memberId, Long boardId, RecruitmentApplyStatus status) {
+        queryFactory.update(projectApply)
+                .where(projectApply.id.projectBoard.id.eq(boardId)
+                        .and(projectApply.id.member.id.eq(memberId)))
+                .set(projectApply.status, status)
+                .execute();
     }
 }

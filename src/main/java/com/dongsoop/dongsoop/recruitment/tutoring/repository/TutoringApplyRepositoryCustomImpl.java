@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.recruitment.tutoring.repository;
 
+import com.dongsoop.dongsoop.recruitment.entity.RecruitmentApplyStatus;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.QTutoringApply;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -19,5 +20,13 @@ public class TutoringApplyRepositoryCustomImpl implements TutoringApplyRepositor
                 .where(tutoringApply.id.tutoringBoard.id.eq(boardId)
                         .and(tutoringApply.id.member.id.eq(memberId)))
                 .fetchFirst() != null;
+    }
+
+    public void updateApplyStatus(Long memberId, Long boardId, RecruitmentApplyStatus status) {
+        queryFactory.update(tutoringApply)
+                .where(tutoringApply.id.tutoringBoard.id.eq(boardId)
+                        .and(tutoringApply.id.member.id.eq(memberId)))
+                .set(tutoringApply.status, status)
+                .execute();
     }
 }

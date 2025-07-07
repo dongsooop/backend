@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.recruitment.entity;
 
-public enum ApplyStatus {
+public enum RecruitmentApplyStatus {
 
     APPLY,
     PASS,

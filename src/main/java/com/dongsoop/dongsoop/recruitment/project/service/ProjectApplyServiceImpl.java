@@ -4,6 +4,8 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.recruitment.dto.UpdateApplyStatusRequest;
+import com.dongsoop.dongsoop.recruitment.entity.RecruitmentApplyStatus;
 import com.dongsoop.dongsoop.recruitment.project.dto.ApplyProjectBoardRequest;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectApply;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectApply.ProjectApplyKey;
@@ -20,6 +22,7 @@ import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardReposito
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -82,5 +85,16 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
                 .toList();
 
         throw new ProjectBoardDepartmentMismatchException(boardDepartmentTypeList, requesterDepartmentType);
+    }
+
+    @Transactional
+    public void updateStatus(Long boardId, UpdateApplyStatusRequest request) {
+        if (request.status() == RecruitmentApplyStatus.APPLY) {
+            return;
+        }
+
+        Long memberId = memberService.getMemberIdByAuthentication();
+
+        projectApplyRepositoryCustom.updateApplyStatus(memberId, boardId, request.status());
     }
 }

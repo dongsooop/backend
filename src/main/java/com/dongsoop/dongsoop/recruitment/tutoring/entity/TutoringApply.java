@@ -2,7 +2,7 @@ package com.dongsoop.dongsoop.recruitment.tutoring.entity;
 
 import com.dongsoop.dongsoop.common.BaseEntity;
 import com.dongsoop.dongsoop.member.entity.Member;
-import com.dongsoop.dongsoop.recruitment.entity.ApplyStatus;
+import com.dongsoop.dongsoop.recruitment.entity.RecruitmentApplyStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EmbeddedId;
@@ -46,7 +46,7 @@ public class TutoringApply extends BaseEntity {
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private ApplyStatus status = ApplyStatus.APPLY;
+    private RecruitmentApplyStatus status = RecruitmentApplyStatus.APPLY;
 
     @Embeddable
     @NoArgsConstructor
