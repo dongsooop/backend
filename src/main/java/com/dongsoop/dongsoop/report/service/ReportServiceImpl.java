@@ -6,18 +6,24 @@ import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
+import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
 import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
+import com.dongsoop.dongsoop.report.entity.Sanction;
 import com.dongsoop.dongsoop.report.exception.ReportNotFoundException;
 import com.dongsoop.dongsoop.report.exception.SanctionAlreadyExistsException;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
+import com.dongsoop.dongsoop.report.repository.SanctionRepository;
 import com.dongsoop.dongsoop.report.util.ReportUrlGenerator;
 import com.dongsoop.dongsoop.report.validator.ReportValidator;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +36,7 @@ public class ReportServiceImpl implements ReportService {
     private final ReportValidator reportValidator;
     private final ReportUrlGenerator urlGenerator;
     private final SanctionExecutor sanctionExecutor;
+    private final SanctionRepository sanctionRepository;
 
     @Override
     @Transactional
@@ -94,5 +101,54 @@ public class ReportServiceImpl implements ReportService {
     private Member findMemberById(Long memberId) {
         return memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
+    }
+
+    @Override
+    @Transactional
+    public SanctionStatusResponse checkAndUpdateSanctionStatus() {
+        Long memberId = memberService.getMemberIdByAuthentication();
+
+        Optional<Sanction> activeSanction = sanctionRepository.findActiveSanctionByMemberId(memberId);
+
+        if (activeSanction.isEmpty()) {
+            return buildNoSanctionResponse();
+        }
+
+        Sanction sanction = activeSanction.get();
+        LocalDateTime now = LocalDateTime.now();
+
+        if (sanction.isExpired(now)) {
+            deactivateSanction(sanction);
+            return buildNoSanctionResponse();
+        }
+
+        return buildActiveSanctionResponse(sanction);
+    }
+
+    private void deactivateSanction(Sanction sanction) {
+        sanction.deactivate();
+        sanctionRepository.save(sanction);
+    }
+
+    private SanctionStatusResponse buildActiveSanctionResponse(Sanction sanction) {
+        return new SanctionStatusResponse(
+                true,
+                sanction.getSanctionType(),
+                sanction.getReason(),
+                sanction.getStartDate(),
+                sanction.getEndDate(),
+                sanction.getDescription()
+        );
+    }
+
+    private SanctionStatusResponse buildNoSanctionResponse() {
+        return new SanctionStatusResponse(
+                false,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
     }
 }
