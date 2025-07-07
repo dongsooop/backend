@@ -50,32 +50,18 @@ public class Report extends BaseEntity {
     @JoinColumn(name = "target_member_id")
     private Member targetMember;
 
-    @Enumerated(EnumType.STRING)
-    private SanctionType sanctionType;
-
-    @Column(length = 500)
-    private String sanctionReason;
-
-    private LocalDateTime sanctionStartAt;
-    private LocalDateTime sanctionEndAt;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sanction_id")
+    private Sanction sanction;
 
     @Column(nullable = false)
     @Builder.Default
     private Boolean isProcessed = false;
 
-    @Column(nullable = false)
-    @Builder.Default
-    private Boolean isSanctionActive = false;
-
-    public void processSanction(Member admin, Member targetMember, SanctionType sanctionType,
-                                String sanctionReason, LocalDateTime sanctionEndAt) {
+    public void processSanction(Member admin, Member targetMember, Sanction sanction) {
         this.admin = admin;
         this.targetMember = targetMember;
-        this.sanctionType = sanctionType;
-        this.sanctionReason = sanctionReason;
-        this.sanctionStartAt = LocalDateTime.now();
-        this.sanctionEndAt = sanctionEndAt;
+        this.sanction = sanction;
         this.isProcessed = true;
-        this.isSanctionActive = true;
     }
 }
