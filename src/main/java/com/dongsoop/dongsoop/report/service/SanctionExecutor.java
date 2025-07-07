@@ -5,7 +5,9 @@ import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportReason;
 import com.dongsoop.dongsoop.report.entity.ReportType;
+import com.dongsoop.dongsoop.report.entity.Sanction;
 import com.dongsoop.dongsoop.report.entity.SanctionType;
+import com.dongsoop.dongsoop.report.repository.SanctionRepository;
 import com.dongsoop.dongsoop.report.handler.ContentDeletionHandler;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,11 +30,17 @@ public class SanctionExecutor {
     private final ReportRepository reportRepository;
     private final MemberRepository memberRepository;
     private final ContentDeletionHandler contentDeletionHandler;
+    private final SanctionRepository sanctionRepository;
 
     @Transactional
     public void executeSanction(Report report) {
+        if (report.getSanction() == null) {
+            return;
+        }
+        
+        SanctionType sanctionType = report.getSanction().getSanctionType();
         getSanctionExecutors()
-                .get(report.getSanctionType())
+                .get(sanctionType)
                 .accept(report);
     }
 
@@ -80,28 +88,37 @@ public class SanctionExecutor {
 
     private void createAutoSuspensionReport(Long memberId) {
         Member memberRef = memberRepository.getReferenceById(memberId);
-
-        Report autoSuspensionReport = buildAutoSuspensionReport(memberRef);
+        Sanction sanction = createAutoSuspensionSanction(memberRef);
+        sanctionRepository.save(sanction);
+        
+        Report autoSuspensionReport = buildAutoSuspensionReport(memberRef, sanction);
         reportRepository.save(autoSuspensionReport);
         log.info("자동 일시정지 제재 생성 완료: 회원 ID {}", memberId);
     }
 
-    private Report buildAutoSuspensionReport(Member member) {
+    private Report buildAutoSuspensionReport(Member member, Sanction sanction) {
         return Report.builder()
                 .reporter(member)
                 .reportType(ReportType.MEMBER)
                 .targetId(member.getId())
                 .reportReason(ReportReason.OTHER)
                 .description("경고 3회 누적으로 인한 자동 일시정지")
-                .targetUrl("/member/" + member.getId())  // /api/ 제거
+                .targetUrl("/member/" + member.getId())
                 .admin(member)
                 .targetMember(member)
-                .sanctionType(SanctionType.TEMPORARY_BAN)
-                .sanctionReason("경고 3회 누적으로 인한 자동 일시정지")
-                .sanctionStartAt(LocalDateTime.now())
-                .sanctionEndAt(LocalDateTime.now().plusDays(7))
+                .sanction(sanction)
                 .isProcessed(true)
-                .isSanctionActive(true)
+                .build();
+    }
+
+    private Sanction createAutoSuspensionSanction(Member member) {
+        return Sanction.builder()
+                .member(member)
+                .sanctionType(SanctionType.TEMPORARY_BAN)
+                .reason("경고 3회 누적으로 인한 자동 일시정지")
+                .startDate(LocalDateTime.now())
+                .endDate(LocalDateTime.now().plusDays(7))
+                .description("경고 3회 누적")
                 .build();
     }
 }
