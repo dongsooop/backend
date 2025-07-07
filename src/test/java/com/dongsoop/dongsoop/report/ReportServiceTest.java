@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
 import com.dongsoop.dongsoop.report.entity.Sanction;
+import com.dongsoop.dongsoop.report.entity.SanctionType;
 import com.dongsoop.dongsoop.report.repository.SanctionRepository;
 import com.dongsoop.dongsoop.report.service.ReportServiceImpl;
 import org.junit.jupiter.api.DisplayName;
@@ -69,7 +70,7 @@ class ReportServiceTest {
 
         Sanction sanction = Sanction.builder()
                 .member(member)
-                .sanctionType("TEMPORARY_BAN")
+                .sanctionType(SanctionType.TEMPORARY_BAN)
                 .reason("부적절한 게시글")
                 .startDate(now.minusDays(1))
                 .endDate(endDate)
@@ -103,7 +104,7 @@ class ReportServiceTest {
 
         Sanction expiredSanction = Sanction.builder()
                 .member(member)
-                .sanctionType("TEMPORARY_BAN")
+                .sanctionType(SanctionType.TEMPORARY_BAN)
                 .reason("부적절한 게시글")
                 .startDate(now.minusDays(10))
                 .endDate(expiredEndDate)

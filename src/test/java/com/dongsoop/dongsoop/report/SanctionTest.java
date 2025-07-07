@@ -22,7 +22,7 @@ class SanctionTest {
                 .build();
 
         // when
-        boolean expired = sanction.isExpired(now);
+        boolean expired = sanction.isCurrentlyExpired();
 
         // then
         assertThat(expired).isTrue();
@@ -40,7 +40,7 @@ class SanctionTest {
                 .build();
 
         // when
-        boolean expired = sanction.isExpired(now);
+        boolean expired = sanction.isCurrentlyExpired();
 
         // then
         assertThat(expired).isFalse();
