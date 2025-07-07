@@ -19,8 +19,8 @@ public record ReportResponse(
         String targetMemberNickname,
         SanctionType sanctionType,
         String sanctionReason,
-        LocalDateTime sanctionStartAt,
-        LocalDateTime sanctionEndAt,
+        LocalDateTime sanctionStartDate,
+        LocalDateTime sanctionEndDate,
         Boolean isSanctionActive,
         LocalDateTime createdAt
 ) {
