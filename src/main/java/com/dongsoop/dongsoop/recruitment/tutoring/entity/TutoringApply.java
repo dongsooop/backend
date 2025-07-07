@@ -2,17 +2,21 @@ package com.dongsoop.dongsoop.recruitment.tutoring.entity;
 
 import com.dongsoop.dongsoop.common.BaseEntity;
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.recruitment.entity.ApplyStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLRestriction;
@@ -38,6 +42,11 @@ public class TutoringApply extends BaseEntity {
     @Column(name = "apply_time", nullable = false, updatable = false)
     @CreatedDate
     private LocalDateTime applyTime;
+
+    @Column(name = "status", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private ApplyStatus status = ApplyStatus.APPLY;
 
     @Embeddable
     @NoArgsConstructor
