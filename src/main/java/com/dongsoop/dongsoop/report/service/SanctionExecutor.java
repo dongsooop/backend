@@ -40,7 +40,7 @@ public class SanctionExecutor {
         
         SanctionType sanctionType = report.getSanction().getSanctionType();
         getSanctionExecutors()
-                .get(sanctionType)
+                .getOrDefault(sanctionType, this::handleUnsupportedSanctionType)
                 .accept(report);
     }
 
@@ -69,6 +69,12 @@ public class SanctionExecutor {
     private void executeContentDeletion(Report report) {
         contentDeletionHandler.deleteContent(report);
         log.info("게시글 삭제 제재 실행: {}", report.getId());
+    }
+
+    private void handleUnsupportedSanctionType(Report report) {
+        SanctionType sanctionType = report.getSanction().getSanctionType();
+        log.error("지원되지 않는 제재 타입: {}, 신고 ID: {}", sanctionType, report.getId());
+        throw new IllegalArgumentException("지원되지 않는 제재 타입: " + sanctionType);
     }
 
     private void checkWarningAccumulation(Member member) {
@@ -118,7 +124,7 @@ public class SanctionExecutor {
                 .reason("경고 3회 누적으로 인한 자동 일시정지")
                 .startDate(LocalDateTime.now())
                 .endDate(LocalDateTime.now().plusDays(7))
-                .description("경고 3회 누적")
+                .description("경고 3회 누적으로 인한 자동 일시정지")
                 .build();
     }
 }
