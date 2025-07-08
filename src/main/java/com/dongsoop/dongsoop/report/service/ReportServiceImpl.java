@@ -7,13 +7,13 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
-import com.dongsoop.dongsoop.report.entity.Sanction;
-import com.dongsoop.dongsoop.report.repository.SanctionRepository;
 import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
+import com.dongsoop.dongsoop.report.entity.Sanction;
 import com.dongsoop.dongsoop.report.exception.ReportNotFoundException;
 import com.dongsoop.dongsoop.report.exception.SanctionAlreadyExistsException;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
+import com.dongsoop.dongsoop.report.repository.SanctionRepository;
 import com.dongsoop.dongsoop.report.util.ReportUrlGenerator;
 import com.dongsoop.dongsoop.report.validator.ReportValidator;
 import lombok.RequiredArgsConstructor;
@@ -119,36 +119,29 @@ public class ReportServiceImpl implements ReportService {
     @Transactional
     public SanctionStatusResponse checkAndUpdateSanctionStatus() {
         Long memberId = getMemberId();
-        Sanction sanction = findActiveSanction(memberId);
-        
-        if (sanction == null) {
-            return createSanctionResponse(false, null);
-        }
-        
-        return processSanctionStatus(sanction);
+        Optional<Sanction> sanctionOpt = findActiveSanction(memberId);
+
+        return sanctionOpt.map(this::processSanctionStatus)
+                .orElseGet(() -> createSanctionResponse(false, null));
     }
 
     private Long getMemberId() {
         return memberService.getMemberIdByAuthentication();
     }
 
-    private Sanction findActiveSanction(Long memberId) {
-        Optional<Sanction> sanctionOpt = sanctionRepository.findActiveSanctionByMemberId(memberId);
-        if (sanctionOpt.isEmpty()) {
-            return null;
-        }
-        return sanctionOpt.get();
+    private Optional<Sanction> findActiveSanction(Long memberId) {
+        return sanctionRepository.findActiveSanctionByMemberId(memberId);
     }
 
     private SanctionStatusResponse processSanctionStatus(Sanction sanction) {
         if (sanction.isCurrentlyExpired()) {
             return handleExpiredSanction(sanction);
         }
-        
+
         if (sanction.isSanctionActive()) {
             return createSanctionResponse(true, sanction);
         }
-        
+
         return createSanctionResponse(false, null);
     }
 
@@ -162,14 +155,14 @@ public class ReportServiceImpl implements ReportService {
         if (!isSanctioned) {
             return new SanctionStatusResponse(false, null, null, null, null, null);
         }
-        
+
         return new SanctionStatusResponse(
-            true,
-            sanction.getSanctionType().name(),
-            sanction.getReason(),
-            sanction.getStartDate(),
-            sanction.getEndDate(),
-            sanction.getDescription()
+                true,
+                sanction.getSanctionType().name(),
+                sanction.getReason(),
+                sanction.getStartDate(),
+                sanction.getEndDate(),
+                sanction.getDescription()
         );
     }
 }
