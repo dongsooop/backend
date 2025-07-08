@@ -174,6 +174,6 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     }
 
     private BooleanExpression isSanctionActive() {
-        return sanction.isActive.eq(true).and(sanction.isNotNull());
+        return sanction.isActive.eq(true).and(report.sanction.isNotNull());
     }
 }
