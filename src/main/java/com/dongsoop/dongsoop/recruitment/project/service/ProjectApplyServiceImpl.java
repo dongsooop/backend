@@ -103,6 +103,12 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
     @Override
     @Transactional(readOnly = true)
     public List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId) {
-        return projectApplyRepository.findApplyOverviewByBoardId(boardId);
+        Long requesterId = memberService.getMemberIdByAuthentication();
+
+        if (!projectBoardRepository.existsByBoardIdAndMemberId(boardId, requesterId)) {
+            throw new ProjectBoardNotFound(boardId, requesterId);
+        }
+
+        return projectApplyRepository.findApplyOverviewByBoardId(boardId, requesterId);
     }
 }

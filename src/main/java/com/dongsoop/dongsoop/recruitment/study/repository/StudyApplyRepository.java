@@ -19,7 +19,9 @@ public interface StudyApplyRepository extends JpaRepository<StudyApply, StudyApp
                     FROM StudyApply sa
                     JOIN Member m ON sa.id.member.id = m.id
                     WHERE sa.id.studyBoard.id = :boardId
+                        AND sa.id.studyBoard.author.id = :authorId
                     """
     )
-    List<RecruitmentApplyOverview> findApplyOverviewByBoardId(@Param("boardId") Long boardId);
+    List<RecruitmentApplyOverview> findApplyOverviewByBoardId(@Param("boardId") Long boardId,
+                                                              @Param("authorId") Long authorId);
 }

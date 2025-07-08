@@ -19,7 +19,9 @@ public interface TutoringApplyRepository extends JpaRepository<TutoringApply, Tu
                     FROM TutoringApply ta
                     JOIN Member m ON ta.id.member.id = m.id
                     WHERE ta.id.tutoringBoard.id = :boardId
+                        AND ta.id.tutoringBoard.author.id = :authorId
                     """
     )
-    List<RecruitmentApplyOverview> findApplyOverviewByBoardId(@Param("boardId") Long boardId);
+    List<RecruitmentApplyOverview> findApplyOverviewByBoardId(@Param("boardId") Long boardId,
+                                                              @Param("authorId") Long authorId);
 }

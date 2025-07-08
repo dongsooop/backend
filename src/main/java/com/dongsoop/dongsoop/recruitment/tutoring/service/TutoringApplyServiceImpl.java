@@ -77,10 +77,16 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
 
         tutoringApplyRepositoryCustom.updateApplyStatus(memberId, boardId, request.status());
     }
-    
+
     @Override
     @Transactional(readOnly = true)
     public List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId) {
-        return tutoringApplyRepository.findApplyOverviewByBoardId(boardId);
+        Long requesterId = memberService.getMemberIdByAuthentication();
+
+        if (!tutoringBoardRepository.existsByBoardIdAndMemberId(boardId, requesterId)) {
+            throw new TutoringBoardNotFound(boardId, requesterId);
+        }
+
+        return tutoringApplyRepository.findApplyOverviewByBoardId(boardId, requesterId);
     }
 }

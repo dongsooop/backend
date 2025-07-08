@@ -103,6 +103,12 @@ public class StudyApplyServiceImpl implements StudyApplyService {
     @Override
     @Transactional(readOnly = true)
     public List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId) {
-        return studyApplyRepository.findApplyOverviewByBoardId(boardId);
+        Long requesterId = memberService.getMemberIdByAuthentication();
+
+        if (!studyBoardRepository.existsByBoardIdAndMemberId(boardId, requesterId)) {
+            throw new StudyBoardNotFound(boardId, requesterId);
+        }
+
+        return studyApplyRepository.findApplyOverviewByBoardId(boardId, requesterId);
     }
 }
