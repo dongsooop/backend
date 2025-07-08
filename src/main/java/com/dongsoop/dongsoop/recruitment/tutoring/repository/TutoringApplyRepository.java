@@ -1,8 +1,25 @@
 package com.dongsoop.dongsoop.recruitment.tutoring.repository;
 
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentApplyOverview;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringApply;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringApply.TutoringApplyKey;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface TutoringApplyRepository extends JpaRepository<TutoringApply, TutoringApplyKey> {
+
+    @Query(
+            """
+                    SELECT m.id AS memberId,
+                        m.nickname AS memberName,
+                        ta.status AS status,
+                        m.department.name AS departmentName
+                    FROM TutoringApply ta
+                    JOIN Member m ON ta.id.member.id = m.id
+                    WHERE ta.id.tutoringBoard.id = :boardId
+                    """
+    )
+    List<RecruitmentApplyOverview> findApplyOverviewByBoardId(@Param("boardId") Long boardId);
 }

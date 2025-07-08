@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentApplyOverview;
 import com.dongsoop.dongsoop.recruitment.dto.UpdateApplyStatusRequest;
 import com.dongsoop.dongsoop.recruitment.entity.RecruitmentApplyStatus;
 import com.dongsoop.dongsoop.recruitment.study.dto.ApplyStudyBoardRequest;
@@ -87,6 +88,7 @@ public class StudyApplyServiceImpl implements StudyApplyService {
         throw new StudyBoardDepartmentMismatchException(boardDepartmentTypeList, requesterDepartmentType);
     }
 
+    @Override
     @Transactional
     public void updateStatus(Long boardId, UpdateApplyStatusRequest request) {
         if (request.status() == RecruitmentApplyStatus.APPLY) {
@@ -96,5 +98,11 @@ public class StudyApplyServiceImpl implements StudyApplyService {
         Long memberId = memberService.getMemberIdByAuthentication();
 
         studyApplyRepositoryCustom.updateApplyStatus(memberId, boardId, request.status());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId) {
+        return studyApplyRepository.findApplyOverviewByBoardId(boardId);
     }
 }

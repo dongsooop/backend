@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.recruitment.tutoring.service;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentApplyOverview;
 import com.dongsoop.dongsoop.recruitment.dto.UpdateApplyStatusRequest;
 import com.dongsoop.dongsoop.recruitment.entity.RecruitmentApplyStatus;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.ApplyTutoringBoardRequest;
@@ -15,6 +16,7 @@ import com.dongsoop.dongsoop.recruitment.tutoring.exception.TutoringRecruitmentA
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringApplyRepository;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepository;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,6 +66,7 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
         }
     }
 
+    @Override
     @Transactional
     public void updateStatus(Long boardId, UpdateApplyStatusRequest request) {
         if (request.status() == RecruitmentApplyStatus.APPLY) {
@@ -73,5 +76,11 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
         Long memberId = memberService.getMemberIdByAuthentication();
 
         tutoringApplyRepositoryCustom.updateApplyStatus(memberId, boardId, request.status());
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId) {
+        return tutoringApplyRepository.findApplyOverviewByBoardId(boardId);
     }
 }

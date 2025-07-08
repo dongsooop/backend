@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentApplyOverview;
 import com.dongsoop.dongsoop.recruitment.dto.UpdateApplyStatusRequest;
 import com.dongsoop.dongsoop.recruitment.entity.RecruitmentApplyStatus;
 import com.dongsoop.dongsoop.recruitment.project.dto.ApplyProjectBoardRequest;
@@ -87,6 +88,7 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
         throw new ProjectBoardDepartmentMismatchException(boardDepartmentTypeList, requesterDepartmentType);
     }
 
+    @Override
     @Transactional
     public void updateStatus(Long boardId, UpdateApplyStatusRequest request) {
         if (request.status() == RecruitmentApplyStatus.APPLY) {
@@ -96,5 +98,11 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
         Long memberId = memberService.getMemberIdByAuthentication();
 
         projectApplyRepositoryCustom.updateApplyStatus(memberId, boardId, request.status());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId) {
+        return projectApplyRepository.findApplyOverviewByBoardId(boardId);
     }
 }
