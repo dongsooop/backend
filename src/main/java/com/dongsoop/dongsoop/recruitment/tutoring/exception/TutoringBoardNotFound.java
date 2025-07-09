@@ -10,6 +10,6 @@ public class TutoringBoardNotFound extends CustomException {
     }
 
     public TutoringBoardNotFound(Long studyBoardId, Long memberId) {
-        super("해당 프로젝트 모집글이 존재하지 않습니다: 게시글 ID: " + studyBoardId + ", 회원 ID: " + memberId, HttpStatus.NOT_FOUND);
+        super("해당 튜터링 모집글이 존재하지 않습니다: 게시글 ID: " + studyBoardId + ", 회원 ID: " + memberId, HttpStatus.NOT_FOUND);
     }
 }
