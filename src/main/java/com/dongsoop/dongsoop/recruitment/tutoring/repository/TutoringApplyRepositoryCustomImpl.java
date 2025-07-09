@@ -14,6 +14,7 @@ public class TutoringApplyRepositoryCustomImpl implements TutoringApplyRepositor
 
     private final JPAQueryFactory queryFactory;
 
+    @Override
     public boolean existsByBoardIdAndMemberId(Long boardId, Long memberId) {
         return queryFactory.selectOne()
                 .from(tutoringApply)
@@ -22,6 +23,7 @@ public class TutoringApplyRepositoryCustomImpl implements TutoringApplyRepositor
                 .fetchFirst() != null;
     }
 
+    @Override
     public void updateApplyStatus(Long memberId, Long boardId, RecruitmentApplyStatus status) {
         queryFactory.update(tutoringApply)
                 .where(tutoringApply.id.tutoringBoard.id.eq(boardId)

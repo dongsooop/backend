@@ -14,6 +14,7 @@ public class StudyApplyRepositoryCustomImpl implements StudyApplyRepositoryCusto
 
     private final JPAQueryFactory queryFactory;
 
+    @Override
     public boolean existsByBoardIdAndMemberId(Long boardId, Long memberId) {
         return queryFactory.selectOne()
                 .from(studyApply)
@@ -22,6 +23,7 @@ public class StudyApplyRepositoryCustomImpl implements StudyApplyRepositoryCusto
                 .fetchFirst() != null;
     }
 
+    @Override
     public void updateApplyStatus(Long memberId, Long boardId, RecruitmentApplyStatus status) {
         queryFactory.update(studyApply)
                 .where(studyApply.id.studyBoard.id.eq(boardId)
