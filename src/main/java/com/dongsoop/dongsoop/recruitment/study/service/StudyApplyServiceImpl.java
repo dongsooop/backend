@@ -91,13 +91,16 @@ public class StudyApplyServiceImpl implements StudyApplyService {
     @Override
     @Transactional
     public void updateStatus(Long boardId, UpdateApplyStatusRequest request) {
-        if (request.status() == RecruitmentApplyStatus.APPLY) {
+        Long boardOwnerId = memberService.getMemberIdByAuthentication();
+        if (!studyBoardRepository.existsByIdAndAuthorId(boardId, boardOwnerId)) {
+            throw new StudyBoardNotFound(boardId, boardOwnerId);
+        }
+
+        if (request.compareStatus(RecruitmentApplyStatus.APPLY)) {
             return;
         }
 
-        Long memberId = memberService.getMemberIdByAuthentication();
-
-        studyApplyRepositoryCustom.updateApplyStatus(memberId, boardId, request.status());
+        studyApplyRepositoryCustom.updateApplyStatus(request.applierId(), boardId, request.status());
     }
 
     @Override

@@ -69,13 +69,16 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
     @Override
     @Transactional
     public void updateStatus(Long boardId, UpdateApplyStatusRequest request) {
-        if (request.status() == RecruitmentApplyStatus.APPLY) {
+        Long boardOwnerId = memberService.getMemberIdByAuthentication();
+        if (!tutoringBoardRepository.existsByIdAndAuthorId(boardId, boardOwnerId)) {
+            throw new TutoringBoardNotFound(boardId, boardOwnerId);
+        }
+
+        if (request.compareStatus(RecruitmentApplyStatus.APPLY)) {
             return;
         }
 
-        Long memberId = memberService.getMemberIdByAuthentication();
-
-        tutoringApplyRepositoryCustom.updateApplyStatus(memberId, boardId, request.status());
+        tutoringApplyRepositoryCustom.updateApplyStatus(request.applierId(), boardId, request.status());
     }
 
     @Override

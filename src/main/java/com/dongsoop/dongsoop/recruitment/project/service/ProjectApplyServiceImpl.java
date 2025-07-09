@@ -91,13 +91,16 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
     @Override
     @Transactional
     public void updateStatus(Long boardId, UpdateApplyStatusRequest request) {
-        if (request.status() == RecruitmentApplyStatus.APPLY) {
+        Long boardOwnerId = memberService.getMemberIdByAuthentication();
+        if (!projectBoardRepository.existsByIdAndAuthorId(boardId, boardOwnerId)) {
+            throw new ProjectBoardNotFound(boardId, boardOwnerId);
+        }
+
+        if (request.compareStatus(RecruitmentApplyStatus.APPLY)) {
             return;
         }
 
-        Long memberId = memberService.getMemberIdByAuthentication();
-
-        projectApplyRepositoryCustom.updateApplyStatus(memberId, boardId, request.status());
+        projectApplyRepositoryCustom.updateApplyStatus(request.applierId(), boardId, request.status());
     }
 
     @Override
