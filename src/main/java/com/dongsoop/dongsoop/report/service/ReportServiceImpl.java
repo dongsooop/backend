@@ -148,21 +148,14 @@ public class ReportServiceImpl implements ReportService {
     private SanctionStatusResponse handleExpiredSanction(Sanction sanction) {
         sanction.expireIfNeeded();
         sanctionRepository.save(sanction);
-        return createSanctionResponse(false, null);
+        return SanctionStatusResponse.noSanction();
     }
 
     private SanctionStatusResponse createSanctionResponse(boolean isSanctioned, Sanction sanction) {
         if (!isSanctioned) {
-            return new SanctionStatusResponse(false, null, null, null, null, null);
+            return SanctionStatusResponse.noSanction();
         }
 
-        return new SanctionStatusResponse(
-                true,
-                sanction.getSanctionType().name(),
-                sanction.getReason(),
-                sanction.getStartDate(),
-                sanction.getEndDate(),
-                sanction.getDescription()
-        );
+        return SanctionStatusResponse.withSanction(sanction);
     }
 }
