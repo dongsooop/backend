@@ -2,13 +2,12 @@ package com.dongsoop.dongsoop.report.entity;
 
 import com.dongsoop.dongsoop.common.BaseEntity;
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.report.exception.SanctionAlreadyExistsException;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -50,7 +49,7 @@ public class Report extends BaseEntity {
     @JoinColumn(name = "target_member_id")
     private Member targetMember;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sanction_id")
     private Sanction sanction;
 
@@ -59,6 +58,10 @@ public class Report extends BaseEntity {
     private Boolean isProcessed = false;
 
     public void processSanction(Member admin, Member targetMember, Sanction sanction) {
+        if (this.isProcessed) {
+            throw new SanctionAlreadyExistsException(this.id);
+        }
+
         this.admin = admin;
         this.targetMember = targetMember;
         this.sanction = sanction;
