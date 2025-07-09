@@ -4,6 +4,9 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.recruitment.dto.RecruitmentApplyOverview;
+import com.dongsoop.dongsoop.recruitment.dto.UpdateApplyStatusRequest;
+import com.dongsoop.dongsoop.recruitment.entity.RecruitmentApplyStatus;
 import com.dongsoop.dongsoop.recruitment.study.dto.ApplyStudyBoardRequest;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyApply;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyApply.StudyApplyKey;
@@ -20,6 +23,7 @@ import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -82,5 +86,32 @@ public class StudyApplyServiceImpl implements StudyApplyService {
                 .toList();
 
         throw new StudyBoardDepartmentMismatchException(boardDepartmentTypeList, requesterDepartmentType);
+    }
+
+    @Override
+    @Transactional
+    public void updateStatus(Long boardId, UpdateApplyStatusRequest request) {
+        Long boardOwnerId = memberService.getMemberIdByAuthentication();
+        if (!studyBoardRepository.existsByIdAndAuthorId(boardId, boardOwnerId)) {
+            throw new StudyBoardNotFound(boardId, boardOwnerId);
+        }
+
+        if (request.compareStatus(RecruitmentApplyStatus.APPLY)) {
+            return;
+        }
+
+        studyApplyRepositoryCustom.updateApplyStatus(request.applierId(), boardId, request.status());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId) {
+        Long requesterId = memberService.getMemberIdByAuthentication();
+
+        if (!studyBoardRepository.existsByIdAndAuthorId(boardId, requesterId)) {
+            throw new StudyBoardNotFound(boardId, requesterId);
+        }
+
+        return studyApplyRepository.findApplyOverviewByBoardId(boardId, requesterId);
     }
 }
