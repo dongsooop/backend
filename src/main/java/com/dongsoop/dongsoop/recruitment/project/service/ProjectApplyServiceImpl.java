@@ -108,7 +108,7 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
     public List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId) {
         Long requesterId = memberService.getMemberIdByAuthentication();
 
-        if (!projectBoardRepository.existsByBoardIdAndMemberId(boardId, requesterId)) {
+        if (!projectBoardRepository.existsByIdAndAuthorId(boardId, requesterId)) {
             throw new ProjectBoardNotFound(boardId, requesterId);
         }
 

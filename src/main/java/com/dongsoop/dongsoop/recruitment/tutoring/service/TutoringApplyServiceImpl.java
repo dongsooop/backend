@@ -86,7 +86,7 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
     public List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId) {
         Long requesterId = memberService.getMemberIdByAuthentication();
 
-        if (!tutoringBoardRepository.existsByBoardIdAndMemberId(boardId, requesterId)) {
+        if (!tutoringBoardRepository.existsByIdAndAuthorId(boardId, requesterId)) {
             throw new TutoringBoardNotFound(boardId, requesterId);
         }
 

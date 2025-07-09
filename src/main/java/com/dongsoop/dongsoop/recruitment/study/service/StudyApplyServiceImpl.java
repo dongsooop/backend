@@ -108,7 +108,7 @@ public class StudyApplyServiceImpl implements StudyApplyService {
     public List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId) {
         Long requesterId = memberService.getMemberIdByAuthentication();
 
-        if (!studyBoardRepository.existsByBoardIdAndMemberId(boardId, requesterId)) {
+        if (!studyBoardRepository.existsByIdAndAuthorId(boardId, requesterId)) {
             throw new StudyBoardNotFound(boardId, requesterId);
         }
 
