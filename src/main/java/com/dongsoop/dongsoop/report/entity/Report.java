@@ -2,13 +2,12 @@ package com.dongsoop.dongsoop.report.entity;
 
 import com.dongsoop.dongsoop.common.BaseEntity;
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.report.exception.SanctionAlreadyExistsException;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -50,32 +49,22 @@ public class Report extends BaseEntity {
     @JoinColumn(name = "target_member_id")
     private Member targetMember;
 
-    @Enumerated(EnumType.STRING)
-    private SanctionType sanctionType;
-
-    @Column(length = 500)
-    private String sanctionReason;
-
-    private LocalDateTime sanctionStartAt;
-    private LocalDateTime sanctionEndAt;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sanction_id")
+    private Sanction sanction;
 
     @Column(nullable = false)
     @Builder.Default
     private Boolean isProcessed = false;
 
-    @Column(nullable = false)
-    @Builder.Default
-    private Boolean isSanctionActive = false;
+    public void processSanction(Member admin, Member targetMember, Sanction sanction) {
+        if (this.isProcessed) {
+            throw new SanctionAlreadyExistsException(this.id);
+        }
 
-    public void processSanction(Member admin, Member targetMember, SanctionType sanctionType,
-                                String sanctionReason, LocalDateTime sanctionEndAt) {
         this.admin = admin;
         this.targetMember = targetMember;
-        this.sanctionType = sanctionType;
-        this.sanctionReason = sanctionReason;
-        this.sanctionStartAt = LocalDateTime.now();
-        this.sanctionEndAt = sanctionEndAt;
+        this.sanction = sanction;
         this.isProcessed = true;
-        this.isSanctionActive = true;
     }
 }

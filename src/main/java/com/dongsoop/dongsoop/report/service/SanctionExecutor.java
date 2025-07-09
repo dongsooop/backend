@@ -2,12 +2,10 @@ package com.dongsoop.dongsoop.report.service;
 
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
-import com.dongsoop.dongsoop.report.entity.Report;
-import com.dongsoop.dongsoop.report.entity.ReportReason;
-import com.dongsoop.dongsoop.report.entity.ReportType;
-import com.dongsoop.dongsoop.report.entity.SanctionType;
+import com.dongsoop.dongsoop.report.entity.*;
 import com.dongsoop.dongsoop.report.handler.ContentDeletionHandler;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
+import com.dongsoop.dongsoop.report.repository.SanctionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,15 +22,20 @@ import java.util.function.Consumer;
 public class SanctionExecutor {
 
     private static final long WARNING_THRESHOLD = 3L;
+    private static final String AUTO_SUSPENSION_REASON = "경고 3회 누적으로 인한 자동 일시정지";
+    private static final String AUTO_SUSPENSION_DESCRIPTION = "경고 3회 누적으로 인한 자동 일시정지";
+    private static final int AUTO_SUSPENSION_DAYS = 7;
 
     private final ReportRepository reportRepository;
     private final MemberRepository memberRepository;
     private final ContentDeletionHandler contentDeletionHandler;
+    private final SanctionRepository sanctionRepository;
 
     @Transactional
     public void executeSanction(Report report) {
+        SanctionType sanctionType = report.getSanction().getSanctionType();
         getSanctionExecutors()
-                .get(report.getSanctionType())
+                .getOrDefault(sanctionType, this::handleUnsupportedSanctionType)
                 .accept(report);
     }
 
@@ -63,6 +66,12 @@ public class SanctionExecutor {
         log.info("게시글 삭제 제재 실행: {}", report.getId());
     }
 
+    private void handleUnsupportedSanctionType(Report report) {
+        SanctionType sanctionType = report.getSanction().getSanctionType();
+        log.error("지원되지 않는 제재 타입: {}, 신고 ID: {}", sanctionType, report.getId());
+        throw new IllegalArgumentException("지원되지 않는 제재 타입: " + sanctionType);
+    }
+
     private void checkWarningAccumulation(Member member) {
         Long warningCount = reportRepository.countActiveWarningsForMember(
                 member.getId(),
@@ -80,28 +89,37 @@ public class SanctionExecutor {
 
     private void createAutoSuspensionReport(Long memberId) {
         Member memberRef = memberRepository.getReferenceById(memberId);
+        Sanction sanction = createAutoSuspensionSanction(memberRef);
+        sanctionRepository.save(sanction);
 
-        Report autoSuspensionReport = buildAutoSuspensionReport(memberRef);
+        Report autoSuspensionReport = buildAutoSuspensionReport(memberRef, sanction);
         reportRepository.save(autoSuspensionReport);
         log.info("자동 일시정지 제재 생성 완료: 회원 ID {}", memberId);
     }
 
-    private Report buildAutoSuspensionReport(Member member) {
+    private Report buildAutoSuspensionReport(Member member, Sanction sanction) {
         return Report.builder()
                 .reporter(member)
                 .reportType(ReportType.MEMBER)
                 .targetId(member.getId())
                 .reportReason(ReportReason.OTHER)
-                .description("경고 3회 누적으로 인한 자동 일시정지")
-                .targetUrl("/member/" + member.getId())  // /api/ 제거
+                .description(AUTO_SUSPENSION_DESCRIPTION)
+                .targetUrl("/member/" + member.getId())
                 .admin(member)
                 .targetMember(member)
-                .sanctionType(SanctionType.TEMPORARY_BAN)
-                .sanctionReason("경고 3회 누적으로 인한 자동 일시정지")
-                .sanctionStartAt(LocalDateTime.now())
-                .sanctionEndAt(LocalDateTime.now().plusDays(7))
+                .sanction(sanction)
                 .isProcessed(true)
-                .isSanctionActive(true)
+                .build();
+    }
+
+    private Sanction createAutoSuspensionSanction(Member member) {
+        return Sanction.builder()
+                .member(member)
+                .sanctionType(SanctionType.TEMPORARY_BAN)
+                .reason(AUTO_SUSPENSION_REASON)
+                .startDate(LocalDateTime.now())
+                .endDate(LocalDateTime.now().plusDays(AUTO_SUSPENSION_DAYS))
+                .description(AUTO_SUSPENSION_DESCRIPTION)
                 .build();
     }
 }

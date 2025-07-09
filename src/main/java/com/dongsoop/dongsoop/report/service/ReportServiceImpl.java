@@ -6,18 +6,24 @@ import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
+import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
 import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
+import com.dongsoop.dongsoop.report.entity.Sanction;
 import com.dongsoop.dongsoop.report.exception.ReportNotFoundException;
 import com.dongsoop.dongsoop.report.exception.SanctionAlreadyExistsException;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
+import com.dongsoop.dongsoop.report.repository.SanctionRepository;
 import com.dongsoop.dongsoop.report.util.ReportUrlGenerator;
 import com.dongsoop.dongsoop.report.validator.ReportValidator;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +36,7 @@ public class ReportServiceImpl implements ReportService {
     private final ReportValidator reportValidator;
     private final ReportUrlGenerator urlGenerator;
     private final SanctionExecutor sanctionExecutor;
+    private final SanctionRepository sanctionRepository;
 
     @Override
     @Transactional
@@ -76,8 +83,20 @@ public class ReportServiceImpl implements ReportService {
 
     private void processSanctionForReport(Report report, ProcessSanctionRequest request, Member admin,
                                           Member targetMember) {
-        report.processSanction(admin, targetMember, request.sanctionType(),
-                request.sanctionReason(), request.sanctionEndAt());
+        Sanction sanction = createSanction(targetMember, request);
+        sanctionRepository.save(sanction);
+        report.processSanction(admin, targetMember, sanction);
+    }
+
+    private Sanction createSanction(Member targetMember, ProcessSanctionRequest request) {
+        return Sanction.builder()
+                .member(targetMember)
+                .sanctionType(request.sanctionType())
+                .reason(request.sanctionReason())
+                .startDate(LocalDateTime.now())
+                .endDate(request.sanctionEndAt())
+                .description(request.sanctionType().getDescription())
+                .build();
     }
 
     private void checkReportNotProcessed(Report report) {
@@ -94,5 +113,49 @@ public class ReportServiceImpl implements ReportService {
     private Member findMemberById(Long memberId) {
         return memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
+    }
+
+    @Override
+    @Transactional
+    public SanctionStatusResponse checkAndUpdateSanctionStatus() {
+        Long memberId = getMemberId();
+        Optional<Sanction> sanctionOpt = findActiveSanction(memberId);
+
+        return sanctionOpt.map(this::processSanctionStatus)
+                .orElseGet(() -> createSanctionResponse(false, null));
+    }
+
+    private Long getMemberId() {
+        return memberService.getMemberIdByAuthentication();
+    }
+
+    private Optional<Sanction> findActiveSanction(Long memberId) {
+        return sanctionRepository.findActiveSanctionByMemberId(memberId);
+    }
+
+    private SanctionStatusResponse processSanctionStatus(Sanction sanction) {
+        if (sanction.isCurrentlyExpired()) {
+            return handleExpiredSanction(sanction);
+        }
+
+        if (sanction.isSanctionActive()) {
+            return createSanctionResponse(true, sanction);
+        }
+
+        return createSanctionResponse(false, null);
+    }
+
+    private SanctionStatusResponse handleExpiredSanction(Sanction sanction) {
+        sanction.expireIfNeeded();
+        sanctionRepository.save(sanction);
+        return SanctionStatusResponse.noSanction();
+    }
+
+    private SanctionStatusResponse createSanctionResponse(boolean isSanctioned, Sanction sanction) {
+        if (!isSanctioned) {
+            return SanctionStatusResponse.noSanction();
+        }
+
+        return SanctionStatusResponse.withSanction(sanction);
     }
 }

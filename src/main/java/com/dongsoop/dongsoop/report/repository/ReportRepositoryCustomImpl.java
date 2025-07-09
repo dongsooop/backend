@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.report.dto.ReportResponse;
 import com.dongsoop.dongsoop.report.dto.ReportSummaryResponse;
 import com.dongsoop.dongsoop.report.entity.QReport;
+import com.dongsoop.dongsoop.report.entity.QSanction;
 import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
 import com.dongsoop.dongsoop.report.entity.SanctionType;
@@ -30,6 +31,7 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     private static final QMember reporter = new QMember("reporter");
     private static final QMember admin = new QMember("admin");
     private static final QMember targetMember = new QMember("targetMember");
+    private static final QSanction sanction = QSanction.sanction;
 
     private final JPAQueryFactory queryFactory;
     private final PageableUtil pageableUtil;
@@ -91,11 +93,11 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 report.isProcessed,
                 admin.nickname,
                 targetMember.nickname,
-                report.sanctionType,
-                report.sanctionReason,
-                report.sanctionStartAt,
-                report.sanctionEndAt,
-                report.isSanctionActive,
+                sanction.sanctionType,
+                sanction.reason,
+                sanction.startDate,
+                sanction.endDate,
+                sanction.isActive,
                 report.createdAt);
     }
 
@@ -118,19 +120,21 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 .leftJoin(report.reporter, reporter)
                 .leftJoin(report.admin, admin)
                 .leftJoin(report.targetMember, targetMember)
+                .leftJoin(report.sanction, sanction)
                 .where(filterCondition);
     }
 
     @Override
     public Optional<Report> findActiveBanForMember(Long memberId, LocalDateTime currentTime, List<SanctionType> sanctionTypes) {
         BooleanExpression condition = report.targetMember.id.eq(memberId)
-                .and(report.isSanctionActive.eq(true))
-                .and(report.sanctionType.in(sanctionTypes))
-                .and(report.sanctionEndAt.isNull().or(report.sanctionEndAt.gt(currentTime)));
+                .and(sanction.isActive.eq(true))
+                .and(sanction.sanctionType.in(sanctionTypes))
+                .and(sanction.endDate.isNull().or(sanction.endDate.gt(currentTime)));
 
         return Optional.ofNullable(
                 queryFactory
                         .selectFrom(report)
+                        .leftJoin(report.sanction, sanction)
                         .where(condition)
                         .orderBy(report.createdAt.desc())
                         .fetchFirst()
@@ -170,6 +174,6 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     }
 
     private BooleanExpression isSanctionActive() {
-        return report.isSanctionActive.eq(true);
+        return sanction.isActive.eq(true).and(report.sanction.isNotNull());
     }
 }

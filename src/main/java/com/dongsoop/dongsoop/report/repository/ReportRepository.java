@@ -15,9 +15,10 @@ public interface ReportRepository extends JpaRepository<Report, Long>, ReportRep
     @Query("""
             SELECT COUNT(r)
             FROM Report r
+            JOIN r.sanction s
             WHERE r.targetMember.id = :memberId
-            AND r.sanctionType = :sanctionType
-            AND r.isSanctionActive = true
+            AND s.sanctionType = :sanctionType
+            AND s.isActive = true
             """)
     Long countActiveWarningsForMember(@Param("memberId") Long memberId,
                                       @Param("sanctionType") SanctionType sanctionType);
