@@ -29,6 +29,7 @@ public class TutoringApplyController {
     private final TutoringApplyService tutoringApplyService;
 
     @GetMapping("/{boardId}")
+    @Secured(RoleType.USER_ROLE)
     public ResponseEntity<List<RecruitmentApplyOverview>> getApplyById(@PathVariable @Positive Long boardId) {
         List<RecruitmentApplyOverview> overviewList = tutoringApplyService.getRecruitmentApplyOverview(
                 boardId);

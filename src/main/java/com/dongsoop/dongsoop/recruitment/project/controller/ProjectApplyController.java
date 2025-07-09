@@ -29,6 +29,7 @@ public class ProjectApplyController {
     private final ProjectApplyService projectApplyService;
 
     @GetMapping("/{boardId}")
+    @Secured(RoleType.USER_ROLE)
     public ResponseEntity<List<RecruitmentApplyOverview>> getApplyById(@PathVariable @Positive Long boardId) {
         List<RecruitmentApplyOverview> overviewList = projectApplyService.getRecruitmentApplyOverview(
                 boardId);
