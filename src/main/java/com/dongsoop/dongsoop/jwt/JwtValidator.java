@@ -65,7 +65,7 @@ public class JwtValidator {
         Claims claims = jwtUtil.getClaims(token);
         String type = claims.get(typeClaimName, String.class);
 
-        if (!JWTType.REFRESH.name().equals(type)) {
+        if (!JWTType.ACCESS.name().equals(type)) {
             throw new NotAccessTokenException();
         }
     }
