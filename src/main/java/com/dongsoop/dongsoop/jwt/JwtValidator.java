@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.jwt;
 
+import com.dongsoop.dongsoop.jwt.exception.NotAccessTokenException;
 import com.dongsoop.dongsoop.jwt.exception.TokenExpiredException;
 import com.dongsoop.dongsoop.jwt.exception.TokenMalformedException;
 import com.dongsoop.dongsoop.jwt.exception.TokenUnsupportedException;
@@ -21,6 +22,9 @@ public class JwtValidator {
     @Value("${jwt.claims.role.name}")
     private String roleClaimName;
 
+    @Value("${jwt.claims.type.name}")
+    private String typeClaimName;
+
     public void validate(String token) {
         if (!StringUtils.hasText(token)) {
             throw new TokenMalformedException();
@@ -30,12 +34,23 @@ public class JwtValidator {
             Claims claims = jwtUtil.getClaims(token);
             Long.valueOf(claims.getSubject());
             claims.get(roleClaimName, List.class);
+            claims.get(typeClaimName, String.class);
         } catch (ExpiredJwtException e) {
             throw new TokenExpiredException(e);
         } catch (MalformedJwtException e) {
             throw new TokenMalformedException(e);
         } catch (Exception e) {
             throw new TokenUnsupportedException(e);
+        }
+    }
+
+    public void validateAccessToken(String token) {
+        validate(token);
+        Claims claims = jwtUtil.getClaims(token);
+        String type = claims.get(typeClaimName, String.class);
+
+        if (!type.equals(JWTType.ACCESS.name())) {
+            throw new NotAccessTokenException(token);
         }
     }
 }

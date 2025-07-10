@@ -56,7 +56,8 @@ public class JwtFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain filterChain) {
         try {
             String token = extractTokenFromHeader(request);
-            validateAndSetAuthentication(token);
+            jwtValidator.validateAccessToken(token);
+            setAuthentication(token);
         } catch (TokenMalformedException | TokenNotFoundException | TokenExpiredException |
                  TokenSignatureException | TokenRoleNotAvailableException | TokenUnsupportedException exception) {
             log.error("JWT Filter processing failed with JWT exception: {}", exception.getMessage(), exception);
@@ -94,8 +95,7 @@ public class JwtFilter extends OncePerRequestFilter {
         return tokenHeader.substring(TOKEN_START_INDEX);
     }
 
-    private void validateAndSetAuthentication(String token) {
-        jwtValidator.validate(token);
+    private void setAuthentication(String token) {
         Authentication auth = jwtUtil.getAuthenticationByToken(token);
 
         SecurityContext context = SecurityContextHolder.getContext();
