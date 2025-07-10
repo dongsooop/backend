@@ -27,7 +27,7 @@ public class JwtValidator {
     @Value("${jwt.claims.type.name}")
     private String typeClaimName;
 
-    public void validate(String token) {
+    public Claims validate(String token) {
         if (!StringUtils.hasText(token)) {
             throw new TokenMalformedException();
         }
@@ -36,6 +36,8 @@ public class JwtValidator {
             Claims claims = jwtUtil.getClaims(token);
             Long.valueOf(claims.getSubject());
             validateClaims(claims);
+
+            return claims;
         } catch (ExpiredJwtException e) {
             throw new TokenExpiredException(e);
         } catch (MalformedJwtException e) {
@@ -65,8 +67,7 @@ public class JwtValidator {
     }
 
     public void validateAccessToken(String token) {
-        validate(token);
-        Claims claims = jwtUtil.getClaims(token);
+        Claims claims = validate(token);
         String type = claims.get(typeClaimName, String.class);
 
         if (!JWTType.ACCESS.name().equals(type)) {
@@ -75,8 +76,7 @@ public class JwtValidator {
     }
 
     public void validateRefreshToken(String token) {
-        validate(token);
-        Claims claims = jwtUtil.getClaims(token);
+        Claims claims = validate(token);
         String type = claims.get(typeClaimName, String.class);
 
         if (!JWTType.REFRESH.name().equals(type)) {
