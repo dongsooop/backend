@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.jwt;
 
 import com.dongsoop.dongsoop.jwt.exception.NotAccessTokenException;
+import com.dongsoop.dongsoop.jwt.exception.NotRefreshTokenException;
 import com.dongsoop.dongsoop.jwt.exception.TokenExpiredException;
 import com.dongsoop.dongsoop.jwt.exception.TokenMalformedException;
 import com.dongsoop.dongsoop.jwt.exception.TokenUnsupportedException;
@@ -51,6 +52,16 @@ public class JwtValidator {
 
         if (!type.equals(JWTType.ACCESS.name())) {
             throw new NotAccessTokenException(token);
+        }
+    }
+
+    public void validateRefreshToken(String token) {
+        validate(token);
+        Claims claims = jwtUtil.getClaims(token);
+        String type = claims.get(typeClaimName, String.class);
+
+        if (!type.equals(JWTType.REFRESH.name())) {
+            throw new NotRefreshTokenException(token);
         }
     }
 }
