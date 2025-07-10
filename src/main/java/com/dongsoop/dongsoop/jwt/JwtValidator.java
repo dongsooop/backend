@@ -33,8 +33,15 @@ public class JwtValidator {
         }
 
         try {
+            // 토큰 포맷 검사
             Claims claims = jwtUtil.getClaims(token);
-            Long.valueOf(claims.getSubject());
+
+            // 요청자 ID 검사
+            if (!claims.getSubject().matches("\\d+")) {
+                throw new TokenMalformedException();
+            }
+
+            // 토큰 내용 검사
             validateClaims(claims);
 
             return claims;
