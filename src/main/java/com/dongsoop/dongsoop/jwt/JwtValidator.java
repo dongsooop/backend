@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.jwt.exception.NotAccessTokenException;
 import com.dongsoop.dongsoop.jwt.exception.NotRefreshTokenException;
 import com.dongsoop.dongsoop.jwt.exception.TokenExpiredException;
 import com.dongsoop.dongsoop.jwt.exception.TokenMalformedException;
+import com.dongsoop.dongsoop.jwt.exception.TokenRoleNotAvailableException;
 import com.dongsoop.dongsoop.jwt.exception.TokenUnsupportedException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -34,8 +35,7 @@ public class JwtValidator {
         try {
             Claims claims = jwtUtil.getClaims(token);
             Long.valueOf(claims.getSubject());
-            claims.get(roleClaimName, List.class);
-            claims.get(typeClaimName, String.class);
+            validateClaims(claims);
         } catch (ExpiredJwtException e) {
             throw new TokenExpiredException(e);
         } catch (MalformedJwtException e) {
@@ -43,6 +43,21 @@ public class JwtValidator {
         } catch (Exception e) {
             throw new TokenUnsupportedException(e);
         }
+    }
+
+    private void validateClaims(Claims claims) {
+        List<?> auth = claims.get(roleClaimName, List.class);
+        String type = claims.get(typeClaimName, String.class);
+
+        if (auth == null || auth.isEmpty()) {
+            throw new TokenRoleNotAvailableException();
+        }
+        if (type == null) {
+            throw new TokenMalformedException();
+        }
+
+        // 타입 체크 시 JWTType enum에 존재하지 않는 경우 IllegalArgumentException 발생
+        JWTType.valueOf(type);
     }
 
     public void validateAccessToken(String token) {
