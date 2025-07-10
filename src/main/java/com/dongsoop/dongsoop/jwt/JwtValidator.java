@@ -51,7 +51,7 @@ public class JwtValidator {
         String type = claims.get(typeClaimName, String.class);
 
         if (!type.equals(JWTType.ACCESS.name())) {
-            throw new NotAccessTokenException(token);
+            throw new NotAccessTokenException();
         }
     }
 
@@ -61,7 +61,7 @@ public class JwtValidator {
         String type = claims.get(typeClaimName, String.class);
 
         if (!type.equals(JWTType.REFRESH.name())) {
-            throw new NotRefreshTokenException(token);
+            throw new NotRefreshTokenException();
         }
     }
 }
