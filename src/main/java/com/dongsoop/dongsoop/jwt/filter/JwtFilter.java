@@ -3,12 +3,14 @@ package com.dongsoop.dongsoop.jwt.filter;
 import com.dongsoop.dongsoop.common.exception.CustomException;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
+import com.dongsoop.dongsoop.jwt.exception.NotAccessTokenException;
 import com.dongsoop.dongsoop.jwt.exception.TokenExpiredException;
 import com.dongsoop.dongsoop.jwt.exception.TokenMalformedException;
 import com.dongsoop.dongsoop.jwt.exception.TokenNotFoundException;
 import com.dongsoop.dongsoop.jwt.exception.TokenRoleNotAvailableException;
 import com.dongsoop.dongsoop.jwt.exception.TokenSignatureException;
 import com.dongsoop.dongsoop.jwt.exception.TokenUnsupportedException;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -56,9 +58,13 @@ public class JwtFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain filterChain) {
         try {
             String token = extractTokenFromHeader(request);
-            validateAndSetAuthentication(token);
+            Claims claims = jwtUtil.getClaims(token);
+            jwtValidator.validate(claims);
+            jwtValidator.validateAccessToken(claims);
+            setAuthentication(token);
         } catch (TokenMalformedException | TokenNotFoundException | TokenExpiredException |
-                 TokenSignatureException | TokenRoleNotAvailableException | TokenUnsupportedException exception) {
+                 TokenSignatureException | TokenRoleNotAvailableException | TokenUnsupportedException |
+                 NotAccessTokenException exception) {
             log.error("JWT Filter processing failed with JWT exception: {}", exception.getMessage(), exception);
         } catch (CustomException exception) {
             log.error("JWT Filter processing failed with custom exception: {}", exception.getMessage(), exception);
@@ -94,8 +100,7 @@ public class JwtFilter extends OncePerRequestFilter {
         return tokenHeader.substring(TOKEN_START_INDEX);
     }
 
-    private void validateAndSetAuthentication(String token) {
-        jwtValidator.validate(token);
+    private void setAuthentication(String token) {
         Authentication auth = jwtUtil.getAuthenticationByToken(token);
 
         SecurityContext context = SecurityContextHolder.getContext();

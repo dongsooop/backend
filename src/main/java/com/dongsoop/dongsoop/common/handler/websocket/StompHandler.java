@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import com.dongsoop.dongsoop.jwt.dto.AuthenticationInformationByToken;
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -69,7 +70,8 @@ public class StompHandler implements ChannelInterceptor {
 
     private void validateToken(String token) {
         try {
-            jwtValidator.validate(token);
+            Claims claims = jwtUtil.getClaims(token);
+            jwtValidator.validate(claims);
         } catch (Exception e) {
             throw new UnauthorizedChatAccessException(e);
         }
