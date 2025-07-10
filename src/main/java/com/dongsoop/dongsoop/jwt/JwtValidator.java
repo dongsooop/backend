@@ -66,9 +66,13 @@ public class JwtValidator {
         }
     }
 
-    public void validateAccessToken(String token) {
+    private String validateTokenType(String token) {
         Claims claims = validate(token);
-        String type = claims.get(typeClaimName, String.class);
+        return claims.get(typeClaimName, String.class);
+    }
+
+    public void validateAccessToken(String token) {
+        String type = validateTokenType(token);
 
         if (!JWTType.ACCESS.name().equals(type)) {
             throw new NotAccessTokenException();
@@ -76,8 +80,7 @@ public class JwtValidator {
     }
 
     public void validateRefreshToken(String token) {
-        Claims claims = validate(token);
-        String type = claims.get(typeClaimName, String.class);
+        String type = validateTokenType(token);
 
         if (!JWTType.REFRESH.name().equals(type)) {
             throw new NotRefreshTokenException();
