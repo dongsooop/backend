@@ -57,7 +57,11 @@ public class JwtValidator {
         }
 
         // 타입 체크 시 JWTType enum에 존재하지 않는 경우 IllegalArgumentException 발생
-        JWTType.valueOf(type);
+        try {
+            JWTType.valueOf(type);
+        } catch (IllegalArgumentException e) {
+            throw new TokenMalformedException();
+        }
     }
 
     public void validateAccessToken(String token) {
