@@ -59,6 +59,7 @@ public class JwtFilter extends OncePerRequestFilter {
         try {
             String token = extractTokenFromHeader(request);
             Claims claims = jwtUtil.getClaims(token);
+            jwtValidator.validate(claims);
             jwtValidator.validateAccessToken(claims);
             setAuthentication(token);
         } catch (TokenMalformedException | TokenNotFoundException | TokenExpiredException |

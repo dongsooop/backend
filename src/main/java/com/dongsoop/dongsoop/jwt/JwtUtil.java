@@ -1,8 +1,12 @@
 package com.dongsoop.dongsoop.jwt;
 
 import com.dongsoop.dongsoop.jwt.dto.AuthenticationInformationByToken;
+import com.dongsoop.dongsoop.jwt.exception.TokenExpiredException;
+import com.dongsoop.dongsoop.jwt.exception.TokenMalformedException;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -30,11 +34,17 @@ public class JwtUtil {
     public Claims getClaims(String token) {
         SecretKey key = jwtKeyManager.getSecretKey();
 
-        return Jwts.parser()
-                .verifyWith(key)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        try {
+            return Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (ExpiredJwtException e) {
+            throw new TokenExpiredException(e);
+        } catch (MalformedJwtException e) {
+            throw new TokenMalformedException(e);
+        }
     }
 
     protected String issue(Date tokenExpiredTime, String id, List<String> roleList, JWTType type) {

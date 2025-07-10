@@ -21,6 +21,7 @@ public class JwtServiceImpl implements JwtService {
 
     public IssuedToken issuedTokenByRefreshToken(String refreshToken) {
         Claims claims = jwtUtil.getClaims(refreshToken);
+        jwtValidator.validate(claims);
         jwtValidator.validateRefreshToken(claims);
 
         Authentication authentication = jwtUtil.getAuthenticationByToken(refreshToken);
