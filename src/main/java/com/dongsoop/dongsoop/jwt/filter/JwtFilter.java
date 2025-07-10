@@ -10,6 +10,7 @@ import com.dongsoop.dongsoop.jwt.exception.TokenNotFoundException;
 import com.dongsoop.dongsoop.jwt.exception.TokenRoleNotAvailableException;
 import com.dongsoop.dongsoop.jwt.exception.TokenSignatureException;
 import com.dongsoop.dongsoop.jwt.exception.TokenUnsupportedException;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -57,7 +58,8 @@ public class JwtFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain filterChain) {
         try {
             String token = extractTokenFromHeader(request);
-            jwtValidator.validateAccessToken(token);
+            Claims claims = jwtUtil.getClaims(token);
+            jwtValidator.validateAccessToken(claims);
             setAuthentication(token);
         } catch (TokenMalformedException | TokenNotFoundException | TokenExpiredException |
                  TokenSignatureException | TokenRoleNotAvailableException | TokenUnsupportedException |

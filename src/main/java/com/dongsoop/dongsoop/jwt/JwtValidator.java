@@ -19,23 +19,14 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class JwtValidator {
 
-    private final JwtUtil jwtUtil;
-
     @Value("${jwt.claims.role.name}")
     private String roleClaimName;
 
     @Value("${jwt.claims.type.name}")
     private String typeClaimName;
 
-    public Claims validate(String token) {
-        if (!StringUtils.hasText(token)) {
-            throw new TokenMalformedException();
-        }
-
+    public void validate(Claims claims) {
         try {
-            // 토큰 포맷 검사
-            Claims claims = jwtUtil.getClaims(token);
-
             // 요청자 ID 검사
             if (!claims.getSubject().matches("\\d+")) {
                 throw new TokenMalformedException();
@@ -43,8 +34,6 @@ public class JwtValidator {
 
             // 토큰 내용 검사
             validateClaims(claims);
-
-            return claims;
         } catch (ExpiredJwtException e) {
             throw new TokenExpiredException(e);
         } catch (MalformedJwtException e) {
@@ -73,23 +62,31 @@ public class JwtValidator {
         }
     }
 
-    private String validateTokenType(String token) {
-        Claims claims = validate(token);
-        return claims.get(typeClaimName, String.class);
+    private JWTType validateTokenType(Claims claims) {
+        try {
+            String type = claims.get(typeClaimName, String.class);
+            if (!StringUtils.hasText(type)) {
+                throw new TokenMalformedException();
+            }
+
+            return JWTType.valueOf(type);
+        } catch (IllegalArgumentException exception) {
+            throw new TokenMalformedException();
+        }
     }
 
-    public void validateAccessToken(String token) {
-        String type = validateTokenType(token);
+    public void validateAccessToken(Claims claims) {
+        JWTType type = validateTokenType(claims);
 
-        if (!JWTType.ACCESS.name().equals(type)) {
+        if (!JWTType.ACCESS.equals(type)) {
             throw new NotAccessTokenException();
         }
     }
 
-    public void validateRefreshToken(String token) {
-        String type = validateTokenType(token);
+    public void validateRefreshToken(Claims claims) {
+        JWTType type = validateTokenType(claims);
 
-        if (!JWTType.REFRESH.name().equals(type)) {
+        if (!JWTType.REFRESH.equals(type)) {
             throw new NotRefreshTokenException();
         }
     }

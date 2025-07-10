@@ -27,7 +27,7 @@ public class JwtUtil {
     @Value("${jwt.claims.type.name}")
     private String typeClaimName;
 
-    protected Claims getClaims(String token) {
+    public Claims getClaims(String token) {
         SecretKey key = jwtKeyManager.getSecretKey();
 
         return Jwts.parser()
