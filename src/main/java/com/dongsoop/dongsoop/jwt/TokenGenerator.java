@@ -13,13 +13,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class TokenGenerator {
 
+    private final JwtUtil jwtUtil;
+    
     @Value("${jwt.expired-time.access-token}")
     private Long accessTokenExpiredTime;
 
     @Value("${jwt.expired-time.refresh-token}")
     private Long refreshTokenExpiredTime;
-
-    private final JwtUtil jwtUtil;
 
     public String generateAccessToken(Authentication authentication) {
         long now = (new Date()).getTime();
@@ -31,7 +31,7 @@ public class TokenGenerator {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-        return jwtUtil.issue(expireAt, id, roleList);
+        return jwtUtil.issue(expireAt, id, roleList, JWTType.ACCESS);
     }
 
     public String generateRefreshToken(Authentication authentication) {
@@ -44,7 +44,7 @@ public class TokenGenerator {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-        return jwtUtil.issue(expireAt, id, roleList);
+        return jwtUtil.issue(expireAt, id, roleList, JWTType.REFRESH);
     }
 
 }

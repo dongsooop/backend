@@ -20,8 +20,12 @@ import org.springframework.stereotype.Component;
 public class JwtUtil {
 
     private final JwtKeyManager jwtKeyManager;
+
     @Value("${jwt.claims.role.name}")
     private String roleClaimName;
+
+    @Value("${jwt.claims.type.name")
+    private String typeClaimName;
 
     protected Claims getClaims(String token) {
         SecretKey key = jwtKeyManager.getSecretKey();
@@ -33,12 +37,13 @@ public class JwtUtil {
                 .getPayload();
     }
 
-    protected String issue(Date tokenExpiredTime, String id, List<String> roleList) {
+    protected String issue(Date tokenExpiredTime, String id, List<String> roleList, JWTType type) {
         SecretKey key = jwtKeyManager.getSecretKey();
 
         return Jwts.builder()
                 .subject(id)
                 .claim(roleClaimName, roleList)
+                .claim(typeClaimName, type)
                 .signWith(key)
                 .expiration(tokenExpiredTime)
                 .compact();
