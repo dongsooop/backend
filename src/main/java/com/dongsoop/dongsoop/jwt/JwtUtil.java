@@ -24,7 +24,7 @@ public class JwtUtil {
     @Value("${jwt.claims.role.name}")
     private String roleClaimName;
 
-    @Value("${jwt.claims.type.name")
+    @Value("${jwt.claims.type.name}")
     private String typeClaimName;
 
     protected Claims getClaims(String token) {
