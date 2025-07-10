@@ -43,7 +43,7 @@ public class JwtUtil {
         return Jwts.builder()
                 .subject(id)
                 .claim(roleClaimName, roleList)
-                .claim(typeClaimName, type)
+                .claim(typeClaimName, type.name())
                 .signWith(key)
                 .expiration(tokenExpiredTime)
                 .compact();
