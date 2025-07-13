@@ -8,11 +8,13 @@ import java.util.List;
 
 public interface ProjectApplyService {
 
-    ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId);
-
     void apply(ApplyProjectBoardRequest boardId);
 
     void updateStatus(Long boardId, UpdateApplyStatusRequest request);
 
     List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId);
+
+    ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId);
+
+    ApplyDetails getRecruitmentApplyDetails(Long boardId);
 }

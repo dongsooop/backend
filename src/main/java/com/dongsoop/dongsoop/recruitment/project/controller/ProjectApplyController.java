@@ -47,6 +47,14 @@ public class ProjectApplyController {
         return ResponseEntity.ok(applyDetails);
     }
 
+    @GetMapping("/self/{boardId}")
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<ApplyDetails> getApplyDetailsBySelf(@PathVariable("boardId") @Positive Long boardId) {
+        ApplyDetails applyDetails = projectApplyService.getRecruitmentApplyDetails(boardId);
+
+        return ResponseEntity.ok(applyDetails);
+    }
+
     @PostMapping
     @Secured(value = RoleType.USER_ROLE)
     public ResponseEntity<Void> applyProjectBoard(@RequestBody ApplyProjectBoardRequest applyProjectBoardRequest) {

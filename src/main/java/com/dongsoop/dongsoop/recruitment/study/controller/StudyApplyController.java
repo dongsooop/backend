@@ -47,6 +47,14 @@ public class StudyApplyController {
         return ResponseEntity.ok(applyDetails);
     }
 
+    @GetMapping("/self/{boardId}")
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<ApplyDetails> getApplyDetailsBySelf(@PathVariable("boardId") @Positive Long boardId) {
+        ApplyDetails applyDetails = studyApplyService.getRecruitmentApplyDetails(boardId);
+
+        return ResponseEntity.ok(applyDetails);
+    }
+
     @PostMapping
     @Secured(value = RoleType.USER_ROLE)
     public ResponseEntity<Void> applyTutoringBoard(@RequestBody ApplyStudyBoardRequest request) {

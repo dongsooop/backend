@@ -121,13 +121,20 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
     public ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId) {
         Long authorId = memberService.getMemberIdByAuthentication();
 
-        // 게시물 주인도 아니면서 지원자도 아닌 경우 확인할 수 없다.
-        if (!projectBoardRepository.existsByIdAndAuthorId(boardId, authorId)
-                && !projectApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, applierId)) {
+        // 게시물 주인이 아닌 경우 예외
+        if (!projectBoardRepository.existsByIdAndAuthorId(boardId, authorId)) {
             throw new ProjectBoardNotFound(boardId);
         }
 
         return projectApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
                 .orElseThrow(() -> new ProjectApplyNotFoundException(boardId, applierId));
+    }
+
+    @Override
+    public ApplyDetails getRecruitmentApplyDetails(Long boardId) {
+        Long requester = memberService.getMemberIdByAuthentication();
+
+        return projectApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, requester)
+                .orElseThrow(() -> new ProjectApplyNotFoundException(boardId, requester));
     }
 }

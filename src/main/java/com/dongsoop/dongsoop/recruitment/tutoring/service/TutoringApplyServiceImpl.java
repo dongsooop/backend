@@ -97,15 +97,22 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
 
     @Override
     public ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId) {
-        Long authorId = memberService.getMemberIdByAuthentication();
+        Long requester = memberService.getMemberIdByAuthentication();
 
-        // 게시물 주인도 아니면서 지원자도 아닌 경우 확인할 수 없다.
-        if (!tutoringBoardRepository.existsByIdAndAuthorId(boardId, authorId)
-                && !tutoringApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, applierId)) {
+        // 게시물 주인이 아닌 경우 예외
+        if (!tutoringBoardRepository.existsByIdAndAuthorId(boardId, requester)) {
             throw new TutoringBoardNotFound(boardId);
         }
 
         return tutoringApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
                 .orElseThrow(() -> new TutoringApplyNotFoundException(boardId, applierId));
+    }
+
+    @Override
+    public ApplyDetails getRecruitmentApplyDetails(Long boardId) {
+        Long requester = memberService.getMemberIdByAuthentication();
+
+        return tutoringApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, requester)
+                .orElseThrow(() -> new TutoringApplyNotFoundException(boardId, requester));
     }
 }

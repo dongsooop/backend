@@ -119,15 +119,22 @@ public class StudyApplyServiceImpl implements StudyApplyService {
 
     @Override
     public ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId) {
-        Long authorId = memberService.getMemberIdByAuthentication();
+        Long requester = memberService.getMemberIdByAuthentication();
 
-        // 게시물 주인도 아니면서 지원자도 아닌 경우 확인할 수 없다.
-        if (!studyBoardRepository.existsByIdAndAuthorId(boardId, authorId)
-                && !studyApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, applierId)) {
+        // 게시물 주인이 아닌 경우 예외
+        if (!studyBoardRepository.existsByIdAndAuthorId(boardId, requester)) {
             throw new StudyBoardNotFound(boardId);
         }
 
         return studyApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
                 .orElseThrow(() -> new StudyApplyNotFoundException(boardId, applierId));
+    }
+
+    @Override
+    public ApplyDetails getRecruitmentApplyDetails(Long boardId) {
+        Long requester = memberService.getMemberIdByAuthentication();
+
+        return studyApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, requester)
+                .orElseThrow(() -> new StudyApplyNotFoundException(boardId, requester));
     }
 }

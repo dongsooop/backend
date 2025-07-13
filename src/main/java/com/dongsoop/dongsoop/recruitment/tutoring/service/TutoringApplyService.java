@@ -15,4 +15,6 @@ public interface TutoringApplyService {
     List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId);
 
     ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId);
+    
+    ApplyDetails getRecruitmentApplyDetails(Long boardId);
 }
