@@ -121,7 +121,7 @@ public class StudyApplyServiceImpl implements StudyApplyService {
     public ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId) {
         Long authorId = memberService.getMemberIdByAuthentication();
 
-        // 게시물 주인이거나 지원자가 아닐 경우 확인할 수 없다.
+        // 게시물 주인도 아니면서 지원자도 아닌 경우 확인할 수 없다.
         if (!studyBoardRepository.existsByIdAndAuthorId(boardId, authorId)
                 && !studyApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, applierId)) {
             throw new StudyBoardNotFound(boardId);
