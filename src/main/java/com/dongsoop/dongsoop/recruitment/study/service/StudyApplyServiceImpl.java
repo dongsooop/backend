@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.recruitment.dto.ApplyDetails;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentApplyOverview;
 import com.dongsoop.dongsoop.recruitment.dto.UpdateApplyStatusRequest;
 import com.dongsoop.dongsoop.recruitment.entity.RecruitmentApplyStatus;
@@ -12,6 +13,7 @@ import com.dongsoop.dongsoop.recruitment.study.entity.StudyApply;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyApply.StudyApplyKey;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoard;
 import com.dongsoop.dongsoop.recruitment.study.entity.StudyBoardDepartment;
+import com.dongsoop.dongsoop.recruitment.study.exception.StudyApplyNotFoundException;
 import com.dongsoop.dongsoop.recruitment.study.exception.StudyBoardDepartmentMismatchException;
 import com.dongsoop.dongsoop.recruitment.study.exception.StudyBoardDepartmentNotAssignedException;
 import com.dongsoop.dongsoop.recruitment.study.exception.StudyBoardNotFound;
@@ -113,5 +115,11 @@ public class StudyApplyServiceImpl implements StudyApplyService {
         }
 
         return studyApplyRepository.findApplyOverviewByBoardId(boardId, requesterId);
+    }
+
+    @Override
+    public ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId) {
+        return studyApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
+                .orElseThrow(() -> new StudyApplyNotFoundException(boardId, applierId));
     }
 }

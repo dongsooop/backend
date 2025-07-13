@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.recruitment.tutoring.controller;
 
+import com.dongsoop.dongsoop.recruitment.dto.ApplyDetails;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentApplyOverview;
 import com.dongsoop.dongsoop.recruitment.dto.UpdateApplyStatusRequest;
 import com.dongsoop.dongsoop.recruitment.tutoring.dto.ApplyTutoringBoardRequest;
@@ -35,6 +36,15 @@ public class TutoringApplyController {
                 boardId);
 
         return ResponseEntity.ok(overviewList);
+    }
+
+    @GetMapping("/{boardId}/applier/{applierId}")
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<ApplyDetails> getApplyDetails(@PathVariable("boardId") @Positive Long boardId,
+                                                        @PathVariable("applierId") @Positive Long applierId) {
+        ApplyDetails applyDetails = tutoringApplyService.getRecruitmentApplyDetails(boardId, applierId);
+
+        return ResponseEntity.ok(applyDetails);
     }
 
     @PostMapping

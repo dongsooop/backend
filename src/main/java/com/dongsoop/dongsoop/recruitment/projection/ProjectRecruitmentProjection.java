@@ -1,8 +1,11 @@
 package com.dongsoop.dongsoop.recruitment.projection;
 
+import com.dongsoop.dongsoop.department.entity.QDepartment;
+import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.mypage.dto.MyRecruitmentOverview;
 import com.dongsoop.dongsoop.recruitment.RecruitmentType;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
+import com.dongsoop.dongsoop.recruitment.dto.ApplyDetails;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentOverview;
 import com.dongsoop.dongsoop.recruitment.project.entity.QProjectApply;
@@ -22,6 +25,8 @@ public class ProjectRecruitmentProjection implements RecruitmentProjection {
     private static final QProjectBoard board = QProjectBoard.projectBoard;
     private static final QProjectApply apply = QProjectApply.projectApply;
     private static final QProjectBoardDepartment boardDepartment = QProjectBoardDepartment.projectBoardDepartment;
+    private static final QDepartment department = QDepartment.department;
+    private static final QMember member = QMember.member;
 
     @Override
     public ConstructorExpression<MyRecruitmentOverview> getApplyRecruitmentExpression() {
@@ -95,5 +100,17 @@ public class ProjectRecruitmentProjection implements RecruitmentProjection {
                 apply.id.member.count().intValue(),
                 Expressions.constant(viewType),
                 Expressions.constant(isAlreadyApplied));
+    }
+
+    @Override
+    public ConstructorExpression<ApplyDetails> getApplyDetailsExpression() {
+        return Projections.constructor(ApplyDetails.class,
+                board.id,
+                member.id,
+                member.nickname,
+                department.name,
+                apply.applyTime,
+                apply.introduction,
+                apply.motivation);
     }
 }
