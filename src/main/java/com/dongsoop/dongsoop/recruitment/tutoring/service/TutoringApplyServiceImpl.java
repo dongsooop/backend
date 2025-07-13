@@ -97,6 +97,13 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
 
     @Override
     public ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId) {
+        Long authorId = memberService.getMemberIdByAuthentication();
+
+        // 게시물 주인이 아닐 경우 확인할 수 없다.
+        if (!tutoringBoardRepository.existsByIdAndAuthorId(boardId, authorId)) {
+            throw new TutoringBoardNotFound(boardId, authorId);
+        }
+
         return tutoringApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
                 .orElseThrow(() -> new TutoringApplyNotFoundException(boardId, applierId));
     }

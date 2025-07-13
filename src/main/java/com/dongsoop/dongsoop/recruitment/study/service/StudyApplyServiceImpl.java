@@ -22,6 +22,7 @@ import com.dongsoop.dongsoop.recruitment.study.repository.StudyApplyRepository;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepository;
+import com.dongsoop.dongsoop.recruitment.tutoring.exception.TutoringBoardNotFound;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -119,6 +120,13 @@ public class StudyApplyServiceImpl implements StudyApplyService {
 
     @Override
     public ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId) {
+        Long authorId = memberService.getMemberIdByAuthentication();
+
+        // 게시물 주인이 아닐 경우 확인할 수 없다.
+        if (!studyBoardRepository.existsByIdAndAuthorId(boardId, authorId)) {
+            throw new TutoringBoardNotFound(boardId, authorId);
+        }
+
         return studyApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
                 .orElseThrow(() -> new StudyApplyNotFoundException(boardId, applierId));
     }
