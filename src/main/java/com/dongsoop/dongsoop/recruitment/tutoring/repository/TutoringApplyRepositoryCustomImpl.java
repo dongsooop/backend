@@ -1,8 +1,14 @@
 package com.dongsoop.dongsoop.recruitment.tutoring.repository;
 
+import com.dongsoop.dongsoop.department.entity.QDepartment;
+import com.dongsoop.dongsoop.member.entity.QMember;
+import com.dongsoop.dongsoop.recruitment.dto.ApplyDetails;
 import com.dongsoop.dongsoop.recruitment.entity.RecruitmentApplyStatus;
+import com.dongsoop.dongsoop.recruitment.projection.TutoringRecruitmentProjection;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.QTutoringApply;
+import com.dongsoop.dongsoop.recruitment.tutoring.entity.QTutoringBoard;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -11,6 +17,11 @@ import org.springframework.stereotype.Repository;
 public class TutoringApplyRepositoryCustomImpl implements TutoringApplyRepositoryCustom {
 
     private static final QTutoringApply tutoringApply = QTutoringApply.tutoringApply;
+    private static final QTutoringBoard tutoringBoard = QTutoringBoard.tutoringBoard;
+    private static final QMember member = QMember.member;
+    private static final QDepartment department = QDepartment.department;
+
+    private final TutoringRecruitmentProjection tutoringRecruitmentProjection;
 
     private final JPAQueryFactory queryFactory;
 
@@ -30,5 +41,19 @@ public class TutoringApplyRepositoryCustomImpl implements TutoringApplyRepositor
                         .and(tutoringApply.id.member.id.eq(memberId)))
                 .set(tutoringApply.status, status)
                 .execute();
+    }
+
+    @Override
+    public Optional<ApplyDetails> findApplyDetailsByBoardIdAndApplierId(Long boardId, Long applierId) {
+        ApplyDetails result = queryFactory.select(tutoringRecruitmentProjection.getApplyDetailsExpression())
+                .from(tutoringApply)
+                .leftJoin(tutoringApply.id.tutoringBoard, tutoringBoard)
+                .leftJoin(tutoringApply.id.member, member)
+                .leftJoin(member.department, department)
+                .where(tutoringApply.id.tutoringBoard.id.eq(boardId)
+                        .and(tutoringApply.id.member.id.eq(applierId)))
+                .fetchOne();
+
+        return Optional.ofNullable(result);
     }
 }

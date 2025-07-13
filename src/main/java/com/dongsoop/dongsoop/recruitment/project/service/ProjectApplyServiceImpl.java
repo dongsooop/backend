@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.recruitment.dto.ApplyDetails;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentApplyOverview;
 import com.dongsoop.dongsoop.recruitment.dto.UpdateApplyStatusRequest;
 import com.dongsoop.dongsoop.recruitment.entity.RecruitmentApplyStatus;
@@ -12,6 +13,7 @@ import com.dongsoop.dongsoop.recruitment.project.entity.ProjectApply;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectApply.ProjectApplyKey;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoard;
 import com.dongsoop.dongsoop.recruitment.project.entity.ProjectBoardDepartment;
+import com.dongsoop.dongsoop.recruitment.project.exception.ProjectApplyNotFoundException;
 import com.dongsoop.dongsoop.recruitment.project.exception.ProjectBoardDepartmentMismatchException;
 import com.dongsoop.dongsoop.recruitment.project.exception.ProjectBoardDepartmentNotAssignedException;
 import com.dongsoop.dongsoop.recruitment.project.exception.ProjectBoardNotFound;
@@ -113,5 +115,26 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
         }
 
         return projectApplyRepository.findApplyOverviewByBoardId(boardId, requesterId);
+    }
+
+    @Override
+    public ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId) {
+        Long authorId = memberService.getMemberIdByAuthentication();
+
+        // 게시물 주인이 아닌 경우 예외
+        if (!projectBoardRepository.existsByIdAndAuthorId(boardId, authorId)) {
+            throw new ProjectBoardNotFound(boardId);
+        }
+
+        return projectApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
+                .orElseThrow(() -> new ProjectApplyNotFoundException(boardId, applierId));
+    }
+
+    @Override
+    public ApplyDetails getRecruitmentApplyDetails(Long boardId) {
+        Long requester = memberService.getMemberIdByAuthentication();
+
+        return projectApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, requester)
+                .orElseThrow(() -> new ProjectApplyNotFoundException(boardId, requester));
     }
 }

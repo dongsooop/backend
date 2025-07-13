@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.recruitment.tutoring.service;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.recruitment.dto.ApplyDetails;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentApplyOverview;
 import com.dongsoop.dongsoop.recruitment.dto.UpdateApplyStatusRequest;
 import com.dongsoop.dongsoop.recruitment.entity.RecruitmentApplyStatus;
@@ -10,6 +11,7 @@ import com.dongsoop.dongsoop.recruitment.tutoring.dto.ApplyTutoringBoardRequest;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringApply;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringApply.TutoringApplyKey;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringBoard;
+import com.dongsoop.dongsoop.recruitment.tutoring.exception.TutoringApplyNotFoundException;
 import com.dongsoop.dongsoop.recruitment.tutoring.exception.TutoringBoardDepartmentMismatchException;
 import com.dongsoop.dongsoop.recruitment.tutoring.exception.TutoringBoardNotFound;
 import com.dongsoop.dongsoop.recruitment.tutoring.exception.TutoringRecruitmentAlreadyAppliedException;
@@ -91,5 +93,26 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
         }
 
         return tutoringApplyRepository.findApplyOverviewByBoardId(boardId, requesterId);
+    }
+
+    @Override
+    public ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId) {
+        Long requester = memberService.getMemberIdByAuthentication();
+
+        // 게시물 주인이 아닌 경우 예외
+        if (!tutoringBoardRepository.existsByIdAndAuthorId(boardId, requester)) {
+            throw new TutoringBoardNotFound(boardId);
+        }
+
+        return tutoringApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
+                .orElseThrow(() -> new TutoringApplyNotFoundException(boardId, applierId));
+    }
+
+    @Override
+    public ApplyDetails getRecruitmentApplyDetails(Long boardId) {
+        Long requester = memberService.getMemberIdByAuthentication();
+
+        return tutoringApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, requester)
+                .orElseThrow(() -> new TutoringApplyNotFoundException(boardId, requester));
     }
 }
