@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.recruitment.dto.ApplyDetails;
 import com.dongsoop.dongsoop.recruitment.entity.RecruitmentApplyStatus;
 import com.dongsoop.dongsoop.recruitment.project.entity.QProjectApply;
+import com.dongsoop.dongsoop.recruitment.project.entity.QProjectBoard;
 import com.dongsoop.dongsoop.recruitment.projection.ProjectRecruitmentProjection;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.Optional;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Repository;
 public class ProjectApplyRepositoryCustomImpl implements ProjectApplyRepositoryCustom {
 
     private static final QProjectApply projectApply = QProjectApply.projectApply;
+    private static final QProjectBoard projectBoard = QProjectBoard.projectBoard;
     private static final QMember member = QMember.member;
     private static final QDepartment department = QDepartment.department;
 
@@ -45,6 +47,7 @@ public class ProjectApplyRepositoryCustomImpl implements ProjectApplyRepositoryC
     public Optional<ApplyDetails> findApplyDetailsByBoardIdAndApplierId(Long boardId, Long applierId) {
         ApplyDetails result = queryFactory.select(projectRecruitmentProjection.getApplyDetailsExpression())
                 .from(projectApply)
+                .leftJoin(projectApply.id.projectBoard, projectBoard)
                 .leftJoin(projectApply.id.member, member)
                 .leftJoin(member.department, department)
                 .where(projectApply.id.projectBoard.id.eq(boardId)

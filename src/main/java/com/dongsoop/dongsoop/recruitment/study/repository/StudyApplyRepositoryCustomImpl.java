@@ -6,6 +6,7 @@ import com.dongsoop.dongsoop.recruitment.dto.ApplyDetails;
 import com.dongsoop.dongsoop.recruitment.entity.RecruitmentApplyStatus;
 import com.dongsoop.dongsoop.recruitment.projection.StudyRecruitmentProjection;
 import com.dongsoop.dongsoop.recruitment.study.entity.QStudyApply;
+import com.dongsoop.dongsoop.recruitment.study.entity.QStudyBoard;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Repository;
 public class StudyApplyRepositoryCustomImpl implements StudyApplyRepositoryCustom {
 
     private static final QStudyApply studyApply = QStudyApply.studyApply;
+    private static final QStudyBoard studyBoard = QStudyBoard.studyBoard;
     private static final QMember member = QMember.member;
     private static final QDepartment department = QDepartment.department;
 
@@ -45,6 +47,7 @@ public class StudyApplyRepositoryCustomImpl implements StudyApplyRepositoryCusto
     public Optional<ApplyDetails> findApplyDetailsByBoardIdAndApplierId(Long boardId, Long applierId) {
         ApplyDetails result = queryFactory.select(studyRecruitmentProjection.getApplyDetailsExpression())
                 .from(studyApply)
+                .leftJoin(studyApply.id.studyBoard, studyBoard)
                 .leftJoin(studyApply.id.member, member)
                 .leftJoin(member.department, department)
                 .where(studyApply.id.studyBoard.id.eq(boardId)
