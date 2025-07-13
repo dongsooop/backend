@@ -22,7 +22,6 @@ import com.dongsoop.dongsoop.recruitment.project.repository.ProjectApplyReposito
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardRepository;
-import com.dongsoop.dongsoop.recruitment.tutoring.exception.TutoringBoardNotFound;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -122,9 +121,10 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
     public ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId) {
         Long authorId = memberService.getMemberIdByAuthentication();
 
-        // 게시물 주인이 아닐 경우 확인할 수 없다.
-        if (!projectBoardRepository.existsByIdAndAuthorId(boardId, authorId)) {
-            throw new TutoringBoardNotFound(boardId, authorId);
+        // 게시물 주인이거나 지원자가 아닐 경우 확인할 수 없다.
+        if (!projectBoardRepository.existsByIdAndAuthorId(boardId, authorId)
+                && !projectApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, authorId)) {
+            throw new ProjectBoardNotFound(boardId);
         }
 
         return projectApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
