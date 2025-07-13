@@ -123,7 +123,7 @@ public class StudyApplyServiceImpl implements StudyApplyService {
 
         // 게시물 주인이거나 지원자가 아닐 경우 확인할 수 없다.
         if (!studyBoardRepository.existsByIdAndAuthorId(boardId, authorId)
-                && !studyApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, authorId)) {
+                && !studyApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, applierId)) {
             throw new StudyBoardNotFound(boardId);
         }
 

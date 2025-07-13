@@ -123,7 +123,7 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
 
         // 게시물 주인이거나 지원자가 아닐 경우 확인할 수 없다.
         if (!projectBoardRepository.existsByIdAndAuthorId(boardId, authorId)
-                && !projectApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, authorId)) {
+                && !projectApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, applierId)) {
             throw new ProjectBoardNotFound(boardId);
         }
 

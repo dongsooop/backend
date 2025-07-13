@@ -101,7 +101,7 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
 
         // 게시물 주인이거나 지원자가 아닐 경우 확인할 수 없다.
         if (!tutoringBoardRepository.existsByIdAndAuthorId(boardId, authorId)
-                && !tutoringApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, authorId)) {
+                && !tutoringApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, applierId)) {
             throw new TutoringBoardNotFound(boardId);
         }
 

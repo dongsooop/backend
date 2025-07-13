@@ -2,8 +2,6 @@ package com.dongsoop.dongsoop.recruitment.projection;
 
 import com.dongsoop.dongsoop.department.entity.QDepartment;
 import com.dongsoop.dongsoop.member.entity.QMember;
-import com.dongsoop.dongsoop.mypage.dto.MyRecruitmentOverview;
-import com.dongsoop.dongsoop.recruitment.RecruitmentType;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.dto.ApplyDetails;
 import com.dongsoop.dongsoop.recruitment.dto.RecruitmentDetails;
@@ -12,10 +10,7 @@ import com.dongsoop.dongsoop.recruitment.tutoring.entity.QTutoringApply;
 import com.dongsoop.dongsoop.recruitment.tutoring.entity.QTutoringBoard;
 import com.querydsl.core.types.ConstructorExpression;
 import com.querydsl.core.types.Projections;
-import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
-import com.querydsl.jpa.JPAExpressions;
-import java.time.LocalDateTime;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -25,45 +20,6 @@ public class TutoringRecruitmentProjection implements RecruitmentProjection {
     private static final QTutoringApply apply = QTutoringApply.tutoringApply;
     private static final QMember member = QMember.member;
     private static final QDepartment department = QDepartment.department;
-
-    @Override
-    public ConstructorExpression<MyRecruitmentOverview> getApplyRecruitmentExpression() {
-        return Projections.constructor(MyRecruitmentOverview.class,
-                board.id,
-                JPAExpressions.select(apply.id.member.countDistinct().intValue())
-                        .from(apply)
-                        .where(board.id.eq(apply.id.tutoringBoard.id)),
-                board.startAt,
-                board.endAt,
-                board.title,
-                board.content,
-                board.tags,
-                board.department.id.stringValue(),
-                Expressions.constant(RecruitmentType.TUTORING),
-                board.createdAt,
-                isRecruiting());
-    }
-
-    @Override
-    public ConstructorExpression<MyRecruitmentOverview> getOpenedRecruitmentExpression() {
-        return Projections.constructor(MyRecruitmentOverview.class,
-                board.id,
-                apply.id.member.countDistinct().intValue(),
-                board.startAt,
-                board.endAt,
-                board.title,
-                board.content,
-                board.tags,
-                board.department.id.stringValue(),
-                Expressions.constant(RecruitmentType.TUTORING),
-                board.createdAt,
-                isRecruiting());
-    }
-
-    private BooleanExpression isRecruiting() {
-        return board.endAt.gt(LocalDateTime.now())
-                .and(board.startAt.lt(LocalDateTime.now()));
-    }
 
     @Override
     public ConstructorExpression<RecruitmentOverview> getRecruitmentOverviewExpression() {
