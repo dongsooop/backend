@@ -195,12 +195,28 @@ public class MemberServiceImpl implements MemberService {
         Long requesterId = getMemberIdByAuthentication();
 
         // 가명처리
-        String emailAlias = UUID.randomUUID().toString().replace("-", "");
-        String passwordAlias = passwordEncoder.encode(UUID.randomUUID().toString());
+        String emailAlias = generateEmailAlias();
+        String passwordAlias = generatePasswordAlias();
         long updatedCount = memberRepositoryCustom.softDelete(requesterId, emailAlias, passwordAlias);
         if (updatedCount == 0L) {
             log.error("Member with id {} not found or already deleted", requesterId);
             throw new MemberNotFoundException();
         }
+    }
+
+    private String generateEmailAlias() {
+        return generateRawUUID();
+    }
+
+    private String generatePasswordAlias() {
+        String uuid = generateRawUUID();
+
+        return passwordEncoder.encode(uuid);
+    }
+
+    private String generateRawUUID() {
+        return UUID.randomUUID()
+                .toString()
+                .replace("-", "");
     }
 }
