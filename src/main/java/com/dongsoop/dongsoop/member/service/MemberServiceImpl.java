@@ -195,7 +195,7 @@ public class MemberServiceImpl implements MemberService {
         Long requesterId = getMemberIdByAuthentication();
 
         // 가명처리
-        String emailAlias = passwordEncoder.encode(UUID.randomUUID().toString());
+        String emailAlias = UUID.randomUUID().toString().replace("-", "");
         String passwordAlias = passwordEncoder.encode(UUID.randomUUID().toString());
         long updatedCount = memberRepositoryCustom.softDelete(requesterId, emailAlias, passwordAlias);
         if (updatedCount == 0L) {
