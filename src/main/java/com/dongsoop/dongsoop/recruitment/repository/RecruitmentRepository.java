@@ -1,7 +1,7 @@
 package com.dongsoop.dongsoop.recruitment.repository;
 
 import com.dongsoop.dongsoop.mypage.dto.MyRecruitmentOverview;
-import com.dongsoop.dongsoop.recruitment.tutoring.entity.TutoringBoard;
+import com.dongsoop.dongsoop.recruitment.board.tutoring.entity.TutoringBoard;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
