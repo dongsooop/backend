@@ -1,9 +1,9 @@
 package com.dongsoop.dongsoop.report.handler;
 
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepository;
-import com.dongsoop.dongsoop.recruitment.project.repository.ProjectBoardRepository;
-import com.dongsoop.dongsoop.recruitment.study.repository.StudyBoardRepository;
-import com.dongsoop.dongsoop.recruitment.tutoring.repository.TutoringBoardRepository;
+import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepository;
+import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepository;
+import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoardRepository;
 import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 import org.springframework.data.jpa.repository.JpaRepository;
