@@ -3,10 +3,14 @@ package com.dongsoop.dongsoop.jwt;
 import com.dongsoop.dongsoop.jwt.dto.AuthenticationInformationByToken;
 import com.dongsoop.dongsoop.jwt.exception.TokenExpiredException;
 import com.dongsoop.dongsoop.jwt.exception.TokenMalformedException;
+import com.dongsoop.dongsoop.jwt.exception.TokenSignatureException;
+import com.dongsoop.dongsoop.jwt.exception.TokenUnsupportedException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -42,8 +46,12 @@ public class JwtUtil {
                     .getPayload();
         } catch (ExpiredJwtException e) {
             throw new TokenExpiredException(e);
-        } catch (MalformedJwtException e) {
+        } catch (MalformedJwtException | IllegalArgumentException e) {
             throw new TokenMalformedException(e);
+        } catch (SignatureException e) {
+            throw new TokenSignatureException(e);
+        } catch (UnsupportedJwtException e) {
+            throw new TokenUnsupportedException(e);
         }
     }
 
