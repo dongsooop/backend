@@ -1,15 +1,8 @@
 package com.dongsoop.dongsoop.jwt.filter;
 
-import com.dongsoop.dongsoop.common.exception.CustomException;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
-import com.dongsoop.dongsoop.jwt.exception.NotAccessTokenException;
-import com.dongsoop.dongsoop.jwt.exception.TokenExpiredException;
-import com.dongsoop.dongsoop.jwt.exception.TokenMalformedException;
 import com.dongsoop.dongsoop.jwt.exception.TokenNotFoundException;
-import com.dongsoop.dongsoop.jwt.exception.TokenRoleNotAvailableException;
-import com.dongsoop.dongsoop.jwt.exception.TokenSignatureException;
-import com.dongsoop.dongsoop.jwt.exception.TokenUnsupportedException;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
@@ -62,14 +55,12 @@ public class JwtFilter extends OncePerRequestFilter {
             jwtValidator.validate(claims);
             jwtValidator.validateAccessToken(claims);
             setAuthentication(token);
-        } catch (TokenMalformedException | TokenNotFoundException | TokenExpiredException |
-                 TokenSignatureException | TokenRoleNotAvailableException | TokenUnsupportedException |
-                 NotAccessTokenException exception) {
-            log.error("JWT Filter processing failed with JWT exception: {}", exception.getMessage(), exception);
-        } catch (CustomException exception) {
-            log.error("JWT Filter processing failed with custom exception: {}", exception.getMessage(), exception);
+        } catch (TokenNotFoundException exception) {
+            log.error("Member doesn't have token: {}", exception.getMessage(), exception);
         } catch (Exception exception) {
-            log.error("JWT Filter processing failed with unknown exception: {}", exception.getMessage(), exception);
+            log.error("Token validation failed: {}", exception.getMessage(), exception);
+            exceptionResolver.resolveException(request, response, null, exception);
+            return;
         }
 
         try {
