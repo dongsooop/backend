@@ -47,7 +47,7 @@ public class JwtUtil {
         } catch (MalformedJwtException e) {
             throw new TokenMalformedException(e);
         } catch (SignatureException e) {
-            throw new TokenSignatureException();
+            throw new TokenSignatureException(e);
         }
     }
 
