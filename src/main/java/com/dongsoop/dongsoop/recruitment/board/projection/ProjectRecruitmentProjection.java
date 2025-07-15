@@ -46,7 +46,7 @@ public class ProjectRecruitmentProjection implements RecruitmentProjection {
                 board.author.nickname,
                 board.createdAt,
                 board.updatedAt,
-                apply.id.member.count().intValue(),
+                apply.id.member.countDistinct().intValue(),
                 Expressions.constant(viewType),
                 Expressions.constant(isAlreadyApplied));
     }
