@@ -1,15 +1,12 @@
 package com.dongsoop.dongsoop.jwt.exception;
 
-import com.dongsoop.dongsoop.common.exception.CustomException;
-import org.springframework.http.HttpStatus;
-
-public class TokenSignatureException extends CustomException {
+public class TokenSignatureException extends JWTException {
 
     public TokenSignatureException() {
-        super("토큰의 서명이 올바르지 않습니다.", HttpStatus.UNAUTHORIZED);
+        super("토큰의 서명이 올바르지 않습니다.");
     }
 
     public TokenSignatureException(Exception exception) {
-        super("토큰의 서명이 올바르지 않습니다.", HttpStatus.UNAUTHORIZED, exception);
+        super("토큰의 서명이 올바르지 않습니다.", exception);
     }
 }

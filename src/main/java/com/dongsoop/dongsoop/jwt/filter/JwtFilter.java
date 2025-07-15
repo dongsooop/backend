@@ -2,13 +2,8 @@ package com.dongsoop.dongsoop.jwt.filter;
 
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
-import com.dongsoop.dongsoop.jwt.exception.NotAccessTokenException;
-import com.dongsoop.dongsoop.jwt.exception.TokenExpiredException;
-import com.dongsoop.dongsoop.jwt.exception.TokenMalformedException;
+import com.dongsoop.dongsoop.jwt.exception.JWTException;
 import com.dongsoop.dongsoop.jwt.exception.TokenNotFoundException;
-import com.dongsoop.dongsoop.jwt.exception.TokenRoleNotAvailableException;
-import com.dongsoop.dongsoop.jwt.exception.TokenSignatureException;
-import com.dongsoop.dongsoop.jwt.exception.TokenUnsupportedException;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
@@ -63,8 +58,7 @@ public class JwtFilter extends OncePerRequestFilter {
             setAuthentication(token);
         } catch (TokenNotFoundException exception) {
             log.debug("Member doesn't have token: {}", exception.getMessage(), exception);
-        } catch (TokenMalformedException | TokenExpiredException | NotAccessTokenException |
-                 TokenSignatureException | TokenRoleNotAvailableException | TokenUnsupportedException exception) {
+        } catch (JWTException exception) {
             log.error("Token validation failed: {}", exception.getMessage(), exception);
             exceptionResolver.resolveException(request, response, null, exception);
             return;

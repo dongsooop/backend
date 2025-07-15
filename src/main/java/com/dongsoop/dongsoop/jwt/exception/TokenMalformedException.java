@@ -1,18 +1,13 @@
 package com.dongsoop.dongsoop.jwt.exception;
 
-import com.dongsoop.dongsoop.common.exception.CustomException;
-import org.springframework.http.HttpStatus;
-
-public class TokenMalformedException extends CustomException {
-
-    private static final HttpStatus HTTP_STATUS = HttpStatus.UNAUTHORIZED;
+public class TokenMalformedException extends JWTException {
 
     public TokenMalformedException() {
-        super("토큰이 올바르지 않습니다.", HTTP_STATUS);
+        super("토큰이 올바르지 않습니다.");
     }
 
     public TokenMalformedException(Exception e) {
-        super("토큰이 올바르지 않습니다.", HTTP_STATUS, e);
+        super("토큰이 올바르지 않습니다.", e);
     }
 
 }
