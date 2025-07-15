@@ -47,6 +47,7 @@ public record RecruitmentDetails(
         return Arrays.stream(departmentTypes.split(","))
                 .map(String::trim)
                 .map(DepartmentType::valueOf)
+                .distinct()
                 .toList();
     }
 }
