@@ -56,9 +56,9 @@ public class JwtFilter extends OncePerRequestFilter {
             jwtValidator.validateAccessToken(claims);
             setAuthentication(token);
         } catch (TokenNotFoundException exception) {
-            log.error("Member doesn't have token: {}", exception.getMessage(), exception);
+            log.info("Member doesn't have token: {}", exception.getMessage(), exception);
         } catch (Exception exception) {
-            log.error("Token validation failed: {}", exception.getMessage(), exception);
+            log.info("Token validation failed: {}", exception.getMessage(), exception);
             exceptionResolver.resolveException(request, response, null, exception);
             return;
         }
