@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 public record ApplyDetails(
 
         Long boardId,
+        String title,
         Long applierId,
         String applierName,
         String departmentName,
