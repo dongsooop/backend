@@ -11,6 +11,7 @@ import com.dongsoop.dongsoop.recruitment.apply.tutoring.dto.ApplyTutoringBoardRe
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.entity.TutoringApply;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.entity.TutoringApply.TutoringApplyKey;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.exception.TutoringApplyNotFoundException;
+import com.dongsoop.dongsoop.recruitment.apply.tutoring.exception.TutoringOwnerCannotApplyException;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.exception.TutoringRecruitmentAlreadyAppliedException;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.repository.TutoringApplyRepository;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.repository.TutoringApplyRepositoryCustom;
@@ -37,6 +38,9 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
 
     public void apply(ApplyTutoringBoardRequest request) {
         Member member = memberService.getMemberReferenceByContext();
+        if (tutoringBoardRepository.existsByIdAndAuthorId(request.boardId(), member.getId())) {
+            throw new TutoringOwnerCannotApplyException(request.boardId());
+        }
         validateAlreadyApplied(member.getId(), request.boardId());
 
         TutoringBoard tutoringBoard = tutoringBoardRepository.findById(request.boardId())
