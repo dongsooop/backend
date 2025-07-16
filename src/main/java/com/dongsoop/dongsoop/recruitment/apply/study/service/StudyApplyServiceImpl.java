@@ -44,13 +44,14 @@ public class StudyApplyServiceImpl implements StudyApplyService {
 
     public void apply(ApplyStudyBoardRequest request) {
         Member member = memberService.getMemberReferenceByContext();
-        if (studyBoardRepository.existsByIdAndAuthorId(request.boardId(), member.getId())) {
-            throw new StudyOwnerCannotApplyException(request.boardId());
-        }
         validateAlreadyApplied(member.getId(), request.boardId());
 
         StudyBoard studyBoard = studyBoardRepository.findById(request.boardId())
                 .orElseThrow(() -> new StudyBoardNotFound(request.boardId()));
+
+        if (studyBoard.getId().equals(member.getId())) {
+            throw new StudyOwnerCannotApplyException(request.boardId());
+        }
 
         List<StudyBoardDepartment> studyBoardDepartmentList = studyBoardDepartmentRepository.findByStudyBoardId(
                 request.boardId());

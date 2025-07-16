@@ -44,13 +44,14 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
 
     public void apply(ApplyProjectBoardRequest request) {
         Member member = memberService.getMemberReferenceByContext();
-        if (projectBoardRepository.existsByIdAndAuthorId(request.boardId(), member.getId())) {
-            throw new ProjectOwnerCannotApplyException(request.boardId());
-        }
         validateAlreadyApplied(member.getId(), request.boardId());
 
         ProjectBoard projectBoard = projectBoardRepository.findById(request.boardId())
                 .orElseThrow(() -> new ProjectBoardNotFound(request.boardId()));
+
+        if (projectBoard.getId().equals(member.getId())) {
+            throw new ProjectOwnerCannotApplyException(request.boardId());
+        }
 
         List<ProjectBoardDepartment> boardDepartmentList = projectBoardDepartmentRepository.findByProjectBoardId(
                 request.boardId());

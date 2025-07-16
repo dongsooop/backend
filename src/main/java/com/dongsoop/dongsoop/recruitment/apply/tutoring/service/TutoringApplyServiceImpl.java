@@ -38,13 +38,14 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
 
     public void apply(ApplyTutoringBoardRequest request) {
         Member member = memberService.getMemberReferenceByContext();
-        if (tutoringBoardRepository.existsByIdAndAuthorId(request.boardId(), member.getId())) {
-            throw new TutoringOwnerCannotApplyException(request.boardId());
-        }
         validateAlreadyApplied(member.getId(), request.boardId());
 
         TutoringBoard tutoringBoard = tutoringBoardRepository.findById(request.boardId())
                 .orElseThrow(() -> new TutoringBoardNotFound(request.boardId()));
+
+        if (tutoringBoard.getId().equals(member.getId())) {
+            throw new TutoringOwnerCannotApplyException(request.boardId());
+        }
 
         validateDepartment(tutoringBoard, member);
 
