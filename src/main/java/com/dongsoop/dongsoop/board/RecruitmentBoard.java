@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.board;
 
+import com.dongsoop.dongsoop.recruitment.validation.constant.RecruitmentValidationConstant;
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.validation.constraints.NotNull;
@@ -20,6 +21,6 @@ public abstract class RecruitmentBoard extends Board {
     @Column(name = "end_at", nullable = false)
     private LocalDateTime endAt;
 
-    @Column(name = "tags", length = 100, nullable = false)
+    @Column(name = "tags", length = RecruitmentValidationConstant.TAG_MAX_LENGTH, nullable = false)
     private String tags;
 }
