@@ -20,6 +20,6 @@ public abstract class RecruitmentBoard extends Board {
     @Column(name = "end_at", nullable = false)
     private LocalDateTime endAt;
 
-    @Column(name = "tags", length = 100)
+    @Column(name = "tags", length = 100, nullable = false)
     private String tags;
 }
