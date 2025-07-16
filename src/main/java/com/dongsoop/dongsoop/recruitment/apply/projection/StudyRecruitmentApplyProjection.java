@@ -27,6 +27,7 @@ public class StudyRecruitmentApplyProjection implements RecruitmentApplyProjecti
                 department.name,
                 apply.applyTime,
                 apply.introduction,
-                apply.motivation);
+                apply.motivation,
+                apply.status);
     }
 }

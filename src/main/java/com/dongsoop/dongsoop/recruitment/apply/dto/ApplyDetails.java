@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.recruitment.apply.dto;
 
+import com.dongsoop.dongsoop.recruitment.apply.entity.RecruitmentApplyStatus;
 import java.time.LocalDateTime;
 
 public record ApplyDetails(
@@ -11,6 +12,7 @@ public record ApplyDetails(
         String departmentName,
         LocalDateTime applyTime,
         String introduction,
-        String motivation
+        String motivation,
+        RecruitmentApplyStatus status
 ) {
 }

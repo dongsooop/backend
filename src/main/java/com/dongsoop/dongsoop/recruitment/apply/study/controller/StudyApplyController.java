@@ -31,7 +31,8 @@ public class StudyApplyController {
 
     @GetMapping("/{boardId}")
     @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<List<RecruitmentApplyOverview>> getApplyById(@PathVariable @Positive Long boardId) {
+    public ResponseEntity<List<RecruitmentApplyOverview>> getApplyById(
+            @PathVariable("boardId") @Positive Long boardId) {
         List<RecruitmentApplyOverview> overviewList = studyApplyService.getRecruitmentApplyOverview(
                 boardId);
 
