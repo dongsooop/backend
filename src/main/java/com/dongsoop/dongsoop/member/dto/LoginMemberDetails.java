@@ -3,10 +3,12 @@ package com.dongsoop.dongsoop.member.dto;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.util.StringUtils;
 
 @Getter
 @NoArgsConstructor
@@ -32,7 +34,12 @@ public class LoginMemberDetails {
     }
 
     private List<RoleType> parseRoles(String role) {
+        if (!StringUtils.hasText(role)) {
+            return Collections.emptyList();
+        }
+        
         return Arrays.stream(role.split(","))
+                .map(String::trim)
                 .map(RoleType::valueOf)
                 .toList();
     }
