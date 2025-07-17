@@ -14,7 +14,6 @@ import java.util.Objects;
 @MappedSuperclass
 @SuperBuilder
 @NoArgsConstructor
-@Getter
 public abstract class Board extends BaseEntity {
 
     @NotBlank
@@ -25,6 +24,7 @@ public abstract class Board extends BaseEntity {
     @Column(name = "content", length = 500, nullable = false)
     protected String content;
 
+    @Getter
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author", nullable = false, updatable = false)
