@@ -58,6 +58,7 @@ public class NoticeLinkParser {
         } while (matcher.find());
 
         linkBuilder.append(departmentUrlSuffix);
+        linkBuilder.append(layoutHeader);
 
         return linkBuilder.toString();
     }
