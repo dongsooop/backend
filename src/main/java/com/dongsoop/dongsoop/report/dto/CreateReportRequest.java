@@ -18,9 +18,6 @@ public record CreateReportRequest(
         ReportReason reason,
 
         @Size(max = 500, message = "신고 내용은 500자 이하로 입력해주세요.")
-        String description,
-
-        @Positive(message = "신고 대상 회원 ID는 양수여야 합니다.")
-        Long targetMemberId
+        String description
 ) {
 }
