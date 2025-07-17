@@ -21,11 +21,13 @@ public class ProjectRecruitmentApplyProjection implements RecruitmentApplyProjec
     public ConstructorExpression<ApplyDetails> getApplyDetailsExpression() {
         return Projections.constructor(ApplyDetails.class,
                 board.id,
+                board.title,
                 member.id,
                 member.nickname,
                 department.name,
                 apply.applyTime,
                 apply.introduction,
-                apply.motivation);
+                apply.motivation,
+                apply.status);
     }
 }
