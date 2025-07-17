@@ -1,16 +1,26 @@
 package com.dongsoop.dongsoop.report.service;
 
+import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoard;
+import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.recruitment.board.project.entity.ProjectBoard;
+import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepository;
+import com.dongsoop.dongsoop.recruitment.board.study.entity.StudyBoard;
+import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepository;
+import com.dongsoop.dongsoop.recruitment.board.tutoring.entity.TutoringBoard;
+import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoardRepository;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
 import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
+import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.entity.Sanction;
 import com.dongsoop.dongsoop.report.exception.ReportNotFoundException;
+import com.dongsoop.dongsoop.report.exception.ReportTargetNotFoundException;
 import com.dongsoop.dongsoop.report.exception.SanctionAlreadyExistsException;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
 import com.dongsoop.dongsoop.report.repository.SanctionRepository;
@@ -37,6 +47,11 @@ public class ReportServiceImpl implements ReportService {
     private final ReportUrlGenerator urlGenerator;
     private final SanctionExecutor sanctionExecutor;
     private final SanctionRepository sanctionRepository;
+
+    private final ProjectBoardRepository projectBoardRepository;
+    private final StudyBoardRepository studyBoardRepository;
+    private final MarketplaceBoardRepository marketplaceBoardRepository;
+    private final TutoringBoardRepository tutoringBoardRepository;
 
     @Override
     @Transactional
@@ -71,10 +86,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     private Report buildReport(CreateReportRequest request, Member reporter, String targetUrl) {
-        Member targetMember = null;
-        if (request.targetMemberId() != null) {
-            targetMember = memberRepository.getReferenceById(request.targetMemberId());
-        }
+        Member targetMember = findTargetMemberByReportType(request.reportType(), request.targetId());
 
         return Report.builder()
                 .reporter(reporter)
@@ -85,6 +97,54 @@ public class ReportServiceImpl implements ReportService {
                 .targetUrl(targetUrl)
                 .targetMember(targetMember)
                 .build();
+    }
+
+    private Member findTargetMemberByReportType(ReportType reportType, Long targetId) {
+        if (ReportType.PROJECT_BOARD.equals(reportType)) {
+            return findProjectBoardAuthor(targetId);
+        }
+
+        if (ReportType.STUDY_BOARD.equals(reportType)) {
+            return findStudyBoardAuthor(targetId);
+        }
+
+        if (ReportType.MARKETPLACE_BOARD.equals(reportType)) {
+            return findMarketplaceBoardAuthor(targetId);
+        }
+
+        if (ReportType.TUTORING_BOARD.equals(reportType)) {
+            return findTutoringBoardAuthor(targetId);
+        }
+
+        if (ReportType.MEMBER.equals(reportType)) {
+            return findMemberById(targetId);
+        }
+
+        throw new IllegalArgumentException("Undefined ReportType: " + reportType);
+    }
+
+    private Member findProjectBoardAuthor(Long boardId) {
+        ProjectBoard board = projectBoardRepository.findById(boardId)
+                .orElseThrow(() -> new ReportTargetNotFoundException("PROJECT_BOARD", boardId));
+        return board.getAuthor();
+    }
+
+    private Member findStudyBoardAuthor(Long boardId) {
+        StudyBoard board = studyBoardRepository.findById(boardId)
+                .orElseThrow(() -> new ReportTargetNotFoundException("STUDY_BOARD", boardId));
+        return board.getAuthor();
+    }
+
+    private Member findMarketplaceBoardAuthor(Long boardId) {
+        MarketplaceBoard board = marketplaceBoardRepository.findById(boardId)
+                .orElseThrow(() -> new ReportTargetNotFoundException("MARKETPLACE_BOARD", boardId));
+        return board.getAuthor();
+    }
+
+    private Member findTutoringBoardAuthor(Long boardId) {
+        TutoringBoard board = tutoringBoardRepository.findById(boardId)
+                .orElseThrow(() -> new ReportTargetNotFoundException("TUTORING_BOARD", boardId));
+        return board.getAuthor();
     }
 
     private void processSanctionForReport(Report report, ProcessSanctionRequest request, Member admin,
