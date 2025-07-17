@@ -17,4 +17,6 @@ public interface TutoringBoardService {
     TutoringBoard create(CreateTutoringBoardRequest request);
 
     RecruitmentDetails getBoardDetailsById(Long boardId);
+
+    void deleteBoardById(Long boardId);
 }

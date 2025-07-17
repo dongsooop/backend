@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -57,6 +58,15 @@ public class TutoringBoardController {
         URI uri = URI.create("/tutoring-board/" + createdBoard.getId());
 
         return ResponseEntity.created(uri)
+                .build();
+    }
+
+    @DeleteMapping("/{boardId}")
+    @Secured(value = RoleType.USER_ROLE)
+    public ResponseEntity<Void> deleteStudyBoard(@PathVariable("boardId") Long boardId) {
+        tutoringBoardService.deleteBoardById(boardId);
+
+        return ResponseEntity.noContent()
                 .build();
     }
 }

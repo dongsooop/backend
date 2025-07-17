@@ -109,4 +109,14 @@ public class StudyBoardServiceImpl implements StudyBoardService {
                 .map(departmentRepository::getReferenceById)
                 .toList();
     }
+
+    @Override
+    public void deleteBoardById(Long boardId) {
+        Long requesterId = memberService.getMemberIdByAuthentication();
+        if (!studyBoardRepository.existsByIdAndAuthorId(boardId, requesterId)) {
+            throw new StudyBoardNotFound(boardId, requesterId);
+        }
+
+        studyBoardRepository.deleteById(boardId);
+    }
 }

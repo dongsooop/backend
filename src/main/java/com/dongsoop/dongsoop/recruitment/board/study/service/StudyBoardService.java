@@ -17,4 +17,6 @@ public interface StudyBoardService {
     StudyBoard create(CreateStudyBoardRequest request);
 
     RecruitmentDetails getBoardDetailsById(Long boardId);
+
+    void deleteBoardById(Long boardId);
 }

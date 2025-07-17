@@ -91,4 +91,14 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
                 .endAt(request.endAt())
                 .build();
     }
+
+    @Override
+    public void deleteBoardById(Long boardId) {
+        Long requesterId = memberService.getMemberIdByAuthentication();
+        if (!tutoringBoardRepository.existsByIdAndAuthorId(boardId, requesterId)) {
+            throw new TutoringBoardNotFound(boardId, requesterId);
+        }
+
+        tutoringBoardRepository.deleteById(boardId);
+    }
 }

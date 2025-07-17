@@ -17,4 +17,6 @@ public interface ProjectBoardService {
     ProjectBoard create(CreateProjectBoardRequest request);
 
     RecruitmentDetails getBoardDetailsById(Long boardId);
+
+    void deleteBoardById(Long boardId);
 }
