@@ -111,4 +111,14 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
                 .map(departmentRepository::getReferenceById)
                 .toList();
     }
+
+    @Override
+    public void deleteBoardById(Long boardId) {
+        Long requesterId = memberService.getMemberIdByAuthentication();
+        if (!projectBoardRepository.existsByIdAndAuthorId(boardId, requesterId)) {
+            throw new ProjectBoardNotFound(boardId, requesterId);
+        }
+
+        projectBoardRepository.deleteById(boardId);
+    }
 }

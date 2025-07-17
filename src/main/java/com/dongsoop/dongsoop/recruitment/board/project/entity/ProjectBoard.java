@@ -10,6 +10,7 @@ import java.util.Objects;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
@@ -17,6 +18,7 @@ import org.hibernate.annotations.SQLRestriction;
 @NoArgsConstructor
 @SequenceGenerator(name = "project_board_sequence_generator")
 @SQLRestriction("is_deleted = false")
+@SQLDelete(sql = "UPDATE project_board SET is_deleted = true WHERE id = ?")
 public class ProjectBoard extends RecruitmentBoard {
 
     @Id
