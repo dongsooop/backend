@@ -11,6 +11,8 @@ public record ReportSummaryResponse(
         ReportType reportType,
         ReportReason reportReason,
         Boolean isProcessed,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        Long targetMemberId,
+        String description
 ) {
 }

@@ -4,11 +4,7 @@ import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.report.dto.ReportResponse;
 import com.dongsoop.dongsoop.report.dto.ReportSummaryResponse;
-import com.dongsoop.dongsoop.report.entity.QReport;
-import com.dongsoop.dongsoop.report.entity.QSanction;
-import com.dongsoop.dongsoop.report.entity.Report;
-import com.dongsoop.dongsoop.report.entity.ReportFilterType;
-import com.dongsoop.dongsoop.report.entity.SanctionType;
+import com.dongsoop.dongsoop.report.entity.*;
 import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -72,6 +68,7 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 .select(projection)
                 .from(report)
                 .leftJoin(report.reporter, reporter)
+                .leftJoin(report.targetMember, targetMember)
                 .where(filterCondition);
     }
 
@@ -108,7 +105,10 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 report.reportType,
                 report.reportReason,
                 report.isProcessed,
-                report.createdAt);
+                report.createdAt,
+                report.targetMember.id,
+                report.description
+        );
     }
 
 
