@@ -107,6 +107,7 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 report.isProcessed,
                 report.createdAt,
                 report.targetMember.id,
+                report.targetId,
                 report.description
         );
     }
