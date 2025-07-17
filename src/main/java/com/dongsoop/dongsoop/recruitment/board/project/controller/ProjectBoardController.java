@@ -66,6 +66,7 @@ public class ProjectBoardController {
     }
 
     @DeleteMapping("/{boardId}")
+    @Secured(value = RoleType.USER_ROLE)
     public ResponseEntity<Void> deleteStudyBoard(@PathVariable("boardId") Long boardId) {
         projectBoardService.deleteBoardById(boardId);
 

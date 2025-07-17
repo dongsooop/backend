@@ -66,6 +66,7 @@ public class StudyBoardController {
     }
 
     @DeleteMapping("/{boardId}")
+    @Secured(value = RoleType.USER_ROLE)
     public ResponseEntity<Void> deleteStudyBoard(@PathVariable("boardId") Long boardId) {
         studyBoardService.deleteBoardById(boardId);
 
