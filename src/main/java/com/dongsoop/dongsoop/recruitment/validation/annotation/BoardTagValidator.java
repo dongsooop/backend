@@ -3,7 +3,6 @@ package com.dongsoop.dongsoop.recruitment.validation.annotation;
 import com.dongsoop.dongsoop.recruitment.validation.constant.RecruitmentValidationConstant;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
-import org.springframework.util.StringUtils;
 
 public class BoardTagValidator implements ConstraintValidator<BoardTag, String> {
 
@@ -13,7 +12,7 @@ public class BoardTagValidator implements ConstraintValidator<BoardTag, String> 
             return false;
         }
 
-        return !StringUtils.hasText(tags) || (
+        return tags.trim().isEmpty() || (
                 tags.length() <= RecruitmentValidationConstant.TAG_MAX_LENGTH
                         && RecruitmentValidationConstant.TAG_PATTERN.matcher(tags).matches());
     }
