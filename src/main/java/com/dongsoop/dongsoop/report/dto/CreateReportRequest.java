@@ -7,7 +7,6 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 public record CreateReportRequest(
-
         @NotNull(message = "신고 대상 타입은 필수입니다.")
         ReportType reportType,
 
