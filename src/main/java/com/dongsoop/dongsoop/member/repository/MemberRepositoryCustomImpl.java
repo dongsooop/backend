@@ -2,8 +2,10 @@ package com.dongsoop.dongsoop.member.repository;
 
 import com.dongsoop.dongsoop.member.dto.LoginMemberDetails;
 import com.dongsoop.dongsoop.member.entity.QMember;
+import com.dongsoop.dongsoop.role.entity.QMemberRole;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Repository;
 public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
 
     private static final QMember member = QMember.member;
+    private static final QMemberRole memberRole = QMemberRole.memberRole;
 
     private final JPAQueryFactory queryFactory;
 
@@ -28,9 +31,13 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
                         member.id.as("id"),
                         member.nickname.as("nickname"),
                         member.email.as("email"),
-                        member.department.id.as("departmentType")))
+                        member.department.id.as("departmentType"),
+                        Expressions.stringTemplate("string_agg({0}, ',')", memberRole.id.role.roleType)))
                 .from(member)
+                .leftJoin(memberRole)
+                .on(memberRole.id.member.eq(member))
                 .where(eqId(id))
+                .groupBy(member)
                 .fetchOne();
 
         return Optional.ofNullable(loginMemberDetails);
