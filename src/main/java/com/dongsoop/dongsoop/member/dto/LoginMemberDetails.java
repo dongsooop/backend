@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.member.dto;
 
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.member.exception.MemberRoleNotAvailableException;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import java.util.Arrays;
 import java.util.Collections;
@@ -8,8 +9,10 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 
+@Slf4j
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -37,10 +40,15 @@ public class LoginMemberDetails {
         if (!StringUtils.hasText(role)) {
             return Collections.emptyList();
         }
-        
-        return Arrays.stream(role.split(","))
-                .map(String::trim)
-                .map(RoleType::valueOf)
-                .toList();
+
+        try {
+            return Arrays.stream(role.split(","))
+                    .map(String::trim)
+                    .map(RoleType::valueOf)
+                    .toList();
+        } catch (IllegalArgumentException exception) {
+            log.warn("Invalid role format from database by role: {}, member id: {}", role, id, exception);
+            throw new MemberRoleNotAvailableException(role);
+        }
     }
 }
