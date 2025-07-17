@@ -12,6 +12,7 @@ import com.dongsoop.dongsoop.recruitment.apply.study.dto.ApplyStudyBoardRequest;
 import com.dongsoop.dongsoop.recruitment.apply.study.entity.StudyApply;
 import com.dongsoop.dongsoop.recruitment.apply.study.entity.StudyApply.StudyApplyKey;
 import com.dongsoop.dongsoop.recruitment.apply.study.exception.StudyApplyNotFoundException;
+import com.dongsoop.dongsoop.recruitment.apply.study.exception.StudyOwnerCannotApplyException;
 import com.dongsoop.dongsoop.recruitment.apply.study.exception.StudyRecruitmentAlreadyAppliedException;
 import com.dongsoop.dongsoop.recruitment.apply.study.repository.StudyApplyRepository;
 import com.dongsoop.dongsoop.recruitment.apply.study.repository.StudyApplyRepositoryCustom;
@@ -47,6 +48,10 @@ public class StudyApplyServiceImpl implements StudyApplyService {
 
         StudyBoard studyBoard = studyBoardRepository.findById(request.boardId())
                 .orElseThrow(() -> new StudyBoardNotFound(request.boardId()));
+
+        if (studyBoard.isAuthor(member)) {
+            throw new StudyOwnerCannotApplyException(request.boardId());
+        }
 
         List<StudyBoardDepartment> studyBoardDepartmentList = studyBoardDepartmentRepository.findByStudyBoardId(
                 request.boardId());

@@ -12,6 +12,7 @@ import com.dongsoop.dongsoop.recruitment.apply.project.dto.ApplyProjectBoardRequ
 import com.dongsoop.dongsoop.recruitment.apply.project.entity.ProjectApply;
 import com.dongsoop.dongsoop.recruitment.apply.project.entity.ProjectApply.ProjectApplyKey;
 import com.dongsoop.dongsoop.recruitment.apply.project.exception.ProjectApplyNotFoundException;
+import com.dongsoop.dongsoop.recruitment.apply.project.exception.ProjectOwnerCannotApplyException;
 import com.dongsoop.dongsoop.recruitment.apply.project.exception.ProjectRecruitmentAlreadyAppliedException;
 import com.dongsoop.dongsoop.recruitment.apply.project.repository.ProjectApplyRepository;
 import com.dongsoop.dongsoop.recruitment.apply.project.repository.ProjectApplyRepositoryCustom;
@@ -47,6 +48,10 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
 
         ProjectBoard projectBoard = projectBoardRepository.findById(request.boardId())
                 .orElseThrow(() -> new ProjectBoardNotFound(request.boardId()));
+
+        if (projectBoard.isAuthor(member)) {
+            throw new ProjectOwnerCannotApplyException(request.boardId());
+        }
 
         List<ProjectBoardDepartment> boardDepartmentList = projectBoardDepartmentRepository.findByProjectBoardId(
                 request.boardId());
