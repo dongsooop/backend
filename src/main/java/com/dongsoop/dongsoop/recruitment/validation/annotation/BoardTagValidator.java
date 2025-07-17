@@ -12,8 +12,10 @@ public class BoardTagValidator implements ConstraintValidator<BoardTag, String> 
             return false;
         }
 
-        return tags.trim().isEmpty() || (
-                tags.length() <= RecruitmentValidationConstant.TAG_MAX_LENGTH
-                        && RecruitmentValidationConstant.TAG_PATTERN.matcher(tags).matches());
+        boolean isEmpty = tags.isEmpty();
+        boolean isValidTag = tags.length() <= RecruitmentValidationConstant.TAG_MAX_LENGTH
+                && RecruitmentValidationConstant.TAG_PATTERN.matcher(tags).matches();
+
+        return isEmpty || isValidTag;
     }
 }
