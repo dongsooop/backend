@@ -1,12 +1,10 @@
 package com.dongsoop.dongsoop.board;
 
-import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.recruitment.validation.constant.RecruitmentValidationConstant;
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
-import java.util.Objects;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
@@ -25,8 +23,4 @@ public abstract class RecruitmentBoard extends Board {
 
     @Column(name = "tags", length = RecruitmentValidationConstant.TAG_MAX_LENGTH, nullable = false)
     private String tags;
-
-    public boolean isAuthor(Member author) {
-        return Objects.equals(super.author, author);
-    }
 }

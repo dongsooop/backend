@@ -9,6 +9,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.Objects;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
@@ -29,4 +30,8 @@ public abstract class Board extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author", nullable = false, updatable = false)
     protected Member author;
+
+    public boolean isAuthor(Member author) {
+        return Objects.equals(this.author, author);
+    }
 }
