@@ -2,20 +2,19 @@ package com.dongsoop.dongsoop.board;
 
 import com.dongsoop.dongsoop.common.BaseEntity;
 import com.dongsoop.dongsoop.member.entity.Member;
-import jakarta.persistence.Column;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.util.Objects;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+
+import java.util.Objects;
 
 @MappedSuperclass
 @SuperBuilder
 @NoArgsConstructor
+@Getter
 public abstract class Board extends BaseEntity {
 
     @NotBlank
