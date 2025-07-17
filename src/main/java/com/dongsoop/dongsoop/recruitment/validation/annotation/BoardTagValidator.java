@@ -9,7 +9,12 @@ public class BoardTagValidator implements ConstraintValidator<BoardTag, String> 
 
     @Override
     public boolean isValid(String tags, ConstraintValidatorContext constraintValidatorContext) {
-        return StringUtils.hasText(tags) && tags.length() <= RecruitmentValidationConstant.TAG_MAX_LENGTH
-                && RecruitmentValidationConstant.TAG_PATTERN.matcher(tags).matches();
+        if (tags == null) {
+            return false;
+        }
+
+        return !StringUtils.hasText(tags) || (
+                tags.length() <= RecruitmentValidationConstant.TAG_MAX_LENGTH
+                        && RecruitmentValidationConstant.TAG_PATTERN.matcher(tags).matches());
     }
 }
