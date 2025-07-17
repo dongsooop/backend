@@ -71,6 +71,11 @@ public class ReportServiceImpl implements ReportService {
     }
 
     private Report buildReport(CreateReportRequest request, Member reporter, String targetUrl) {
+        Member targetMember = null;
+        if (request.targetMemberId() != null) {
+            targetMember = memberRepository.getReferenceById(request.targetMemberId());
+        }
+
         return Report.builder()
                 .reporter(reporter)
                 .reportType(request.reportType())
@@ -78,6 +83,7 @@ public class ReportServiceImpl implements ReportService {
                 .reportReason(request.reason())
                 .description(request.description())
                 .targetUrl(targetUrl)
+                .targetMember(targetMember)
                 .build();
     }
 
