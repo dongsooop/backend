@@ -17,6 +17,8 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
 
+    private static final String ROLE_DELIMITER = ",";
+
     private static final QMember member = QMember.member;
     private static final QMemberRole memberRole = QMemberRole.memberRole;
 
@@ -32,7 +34,7 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
                         member.nickname.as("nickname"),
                         member.email.as("email"),
                         member.department.id.as("departmentType"),
-                        Expressions.stringTemplate("string_agg({0}, ',')", memberRole.id.role.roleType)))
+                        Expressions.stringTemplate("string_agg({0}, '" + ROLE_DELIMITER + "')", memberRole.id.role.roleType)))
                 .from(member)
                 .leftJoin(memberRole)
                 .on(memberRole.id.member.eq(member))

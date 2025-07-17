@@ -18,6 +18,8 @@ import org.springframework.util.StringUtils;
 @AllArgsConstructor
 public class LoginMemberDetails {
 
+    private static final String ROLE_DELIMITER = ",";
+
     private Long id;
 
     private String nickname;
@@ -42,7 +44,7 @@ public class LoginMemberDetails {
         }
 
         try {
-            return Arrays.stream(role.split(","))
+            return Arrays.stream(role.split(ROLE_DELIMITER))
                     .map(String::trim)
                     .map(RoleType::valueOf)
                     .toList();
