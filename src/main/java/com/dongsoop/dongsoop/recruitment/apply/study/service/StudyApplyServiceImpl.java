@@ -49,7 +49,7 @@ public class StudyApplyServiceImpl implements StudyApplyService {
         StudyBoard studyBoard = studyBoardRepository.findById(request.boardId())
                 .orElseThrow(() -> new StudyBoardNotFound(request.boardId()));
 
-        if (studyBoard.getId().equals(member.getId())) {
+        if (studyBoard.isAuthor(member)) {
             throw new StudyOwnerCannotApplyException(request.boardId());
         }
 

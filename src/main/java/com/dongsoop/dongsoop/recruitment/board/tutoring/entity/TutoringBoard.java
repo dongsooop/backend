@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.recruitment.board.tutoring.entity;
 import com.dongsoop.dongsoop.board.RecruitmentBoard;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.member.entity.Member;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -48,5 +49,9 @@ public class TutoringBoard extends RecruitmentBoard {
 
     public Department getDepartment() {
         return this.department;
+    }
+
+    public boolean isAuthor(Member author) {
+        return super.author.equals(author);
     }
 }

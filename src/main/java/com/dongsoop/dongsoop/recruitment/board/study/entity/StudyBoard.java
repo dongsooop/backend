@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.recruitment.board.study.entity;
 
 import com.dongsoop.dongsoop.board.RecruitmentBoard;
+import com.dongsoop.dongsoop.member.entity.Member;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -26,5 +27,9 @@ public class StudyBoard extends RecruitmentBoard {
 
     public boolean equalsId(StudyBoard that) {
         return Objects.equals(this.id, that.id);
+    }
+
+    public boolean isAuthor(Member author) {
+        return super.author.equals(author);
     }
 }

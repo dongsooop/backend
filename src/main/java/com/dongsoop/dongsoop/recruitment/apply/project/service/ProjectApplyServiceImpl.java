@@ -49,7 +49,7 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
         ProjectBoard projectBoard = projectBoardRepository.findById(request.boardId())
                 .orElseThrow(() -> new ProjectBoardNotFound(request.boardId()));
 
-        if (projectBoard.getId().equals(member.getId())) {
+        if (projectBoard.isAuthor(member)) {
             throw new ProjectOwnerCannotApplyException(request.boardId());
         }
 

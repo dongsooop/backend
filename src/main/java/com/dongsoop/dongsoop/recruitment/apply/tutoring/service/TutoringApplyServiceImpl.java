@@ -43,7 +43,7 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
         TutoringBoard tutoringBoard = tutoringBoardRepository.findById(request.boardId())
                 .orElseThrow(() -> new TutoringBoardNotFound(request.boardId()));
 
-        if (tutoringBoard.getId().equals(member.getId())) {
+        if (tutoringBoard.isAuthor(member)) {
             throw new TutoringOwnerCannotApplyException(request.boardId());
         }
 
