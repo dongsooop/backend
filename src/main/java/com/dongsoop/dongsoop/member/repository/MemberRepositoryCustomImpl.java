@@ -1,14 +1,11 @@
 package com.dongsoop.dongsoop.member.repository;
 
-import static com.querydsl.core.group.GroupBy.groupBy;
-
 import com.dongsoop.dongsoop.member.dto.LoginMemberDetails;
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.role.entity.QMemberRole;
-import com.dongsoop.dongsoop.role.entity.QRole;
-import com.querydsl.core.group.GroupBy;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -22,7 +19,6 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
 
     private static final QMember member = QMember.member;
     private static final QMemberRole memberRole = QMemberRole.memberRole;
-    private static final QRole role = QRole.role;
 
     private final JPAQueryFactory queryFactory;
 
@@ -31,20 +27,18 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
 
     @Override
     public Optional<LoginMemberDetails> findLoginMemberDetailById(Long id) {
-        LoginMemberDetails loginMemberDetails = queryFactory
+        LoginMemberDetails loginMemberDetails = queryFactory.select(Projections.constructor(LoginMemberDetails.class,
+                        member.id.as("id"),
+                        member.nickname.as("nickname"),
+                        member.email.as("email"),
+                        member.department.id.as("departmentType"),
+                        Expressions.stringTemplate("string_agg({0}, ',')", memberRole.id.role.roleType)))
                 .from(member)
-                .leftJoin(memberRole).on(memberRole.id.member.eq(member))
-                .leftJoin(role).on(role.eq(memberRole.id.role))
+                .leftJoin(memberRole)
+                .on(memberRole.id.member.eq(member))
                 .where(eqId(id))
-                .transform(
-                        groupBy(member.id).list(
-                                Projections.constructor(LoginMemberDetails.class,
-                                        member.id,
-                                        member.nickname,
-                                        member.email,
-                                        member.department.id,
-                                        GroupBy.list(memberRole.id.role.roleType)))
-                ).get(0);
+                .groupBy(member)
+                .fetchOne();
 
         return Optional.ofNullable(loginMemberDetails);
     }
