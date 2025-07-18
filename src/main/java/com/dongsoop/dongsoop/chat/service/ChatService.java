@@ -6,7 +6,9 @@ import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
 import com.dongsoop.dongsoop.chat.entity.IncrementalSyncResponse;
 import com.dongsoop.dongsoop.chat.entity.MessageType;
+import com.dongsoop.dongsoop.chat.exception.KickedUserInviteException;
 import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
+import com.dongsoop.dongsoop.chat.exception.UserAlreadyInRoomException;
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import java.time.LocalDateTime;
@@ -433,6 +435,42 @@ public class ChatService {
         ChatRoom room = getChatRoomById(roomId);
         room.updateActivity();
         saveRoom(room);
+    }
+
+    public ChatMessage inviteUserToGroupChat(String roomId, Long inviterId, Long targetUserId) {
+        ChatRoom room = getChatRoomById(roomId);
+
+        validateInviteRequest(room, inviterId, targetUserId);
+        addUserToGroupChatRoom(room, targetUserId);
+
+        return createInviteSystemMessage(roomId, targetUserId);
+    }
+
+    private void validateInviteRequest(ChatRoom room, Long inviterId, Long targetUserId) {
+        chatValidator.validateManagerPermission(room, inviterId);
+        validateTargetUserForInvite(room, targetUserId);
+        validatePositiveUserId(targetUserId);
+    }
+
+    private void validateTargetUserForInvite(ChatRoom room, Long targetUserId) {
+        if (room.getParticipants().contains(targetUserId)) {
+            throw new UserAlreadyInRoomException(targetUserId);
+        }
+        if (room.isKicked(targetUserId)) {
+            throw new KickedUserInviteException(targetUserId);
+        }
+    }
+
+    private void addUserToGroupChatRoom(ChatRoom room, Long userId) {
+        LocalDateTime joinTime = LocalDateTime.now();
+        room.addNewParticipant(userId);
+        saveRoom(room);
+
+        readStatusService.initializeUserReadStatus(userId, room.getRoomId(), joinTime);
+    }
+
+    private ChatMessage createInviteSystemMessage(String roomId, Long targetUserId) {
+        return createAndSaveSystemMessage(roomId, targetUserId, MessageType.ENTER);
     }
 
     private String generateUniqueMessageId() {
