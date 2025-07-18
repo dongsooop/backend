@@ -47,16 +47,11 @@ public class BoardSearchService {
 
     private Page<BoardDocument> performSearchByBoardType(String keyword, BoardType boardType, Pageable pageable) {
         try {
-            String boardTypeCode = extractBoardTypeCode(boardType);
-            return boardSearchRepository.findByKeywordAndBoardType(keyword, boardTypeCode, pageable);
+            return boardSearchRepository.findByKeywordAndBoardType(keyword, boardType.getCode(), pageable);
         } catch (Exception e) {
             logSearchError("searchByBoardType", keyword, boardType.getCode(), e);
             return Page.empty(pageable);
         }
-    }
-
-    private String extractBoardTypeCode(BoardType boardType) {
-        return boardType.getCode();
     }
 
     private List<BoardDocument> executeSearch(String keyword) {
