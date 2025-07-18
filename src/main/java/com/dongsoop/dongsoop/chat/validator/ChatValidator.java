@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.chat.validator;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.MessageType;
+import com.dongsoop.dongsoop.chat.exception.GroupChatOnlyException;
 import com.dongsoop.dongsoop.chat.exception.InvalidChatRequestException;
 import com.dongsoop.dongsoop.chat.exception.ManagerKickAttemptException;
 import com.dongsoop.dongsoop.chat.exception.SelfChatException;
@@ -137,7 +138,7 @@ public class ChatValidator {
 
     private void validateIsGroupChat(ChatRoom room) {
         if (!room.isGroupChat()) {
-            throw new IllegalArgumentException("1:1 채팅방에서는 강퇴할 수 없습니다.");
+            throw new GroupChatOnlyException("사용자 초대");
         }
     }
 
