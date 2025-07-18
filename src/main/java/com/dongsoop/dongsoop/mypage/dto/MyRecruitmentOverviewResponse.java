@@ -17,7 +17,7 @@ public record MyRecruitmentOverviewResponse(
         List<String> departmentTypeList,
         RecruitmentType boardType,
         LocalDateTime createdAt,
-        boolean isRecruiting
+        RecruitmentStatusType status
 ) {
     public MyRecruitmentOverviewResponse(MyRecruitmentOverview openedRecruitment) {
         this(
@@ -31,7 +31,7 @@ public record MyRecruitmentOverviewResponse(
                 splitDepartmentType(openedRecruitment.getDepartmentTypeList()),
                 openedRecruitment.getBoardType(),
                 openedRecruitment.getCreatedAt(),
-                openedRecruitment.getIsRecruiting()
+                openedRecruitment.getStatus()
         );
     }
 
