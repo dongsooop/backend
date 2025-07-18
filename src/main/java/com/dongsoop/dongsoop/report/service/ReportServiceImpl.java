@@ -184,11 +184,14 @@ public class ReportServiceImpl implements ReportService {
     @Override
     @Transactional
     public SanctionStatusResponse checkAndUpdateSanctionStatus() {
-        Long memberId = getMemberId();
-        Optional<Sanction> sanctionOpt = findActiveSanction(memberId);
+        try {
+            Long memberId = getMemberId();
+            Optional<Sanction> sanctionOpt = findActiveSanction(memberId);
 
-        return sanctionOpt.map(this::processSanctionStatus)
-                .orElseGet(() -> createSanctionResponse(false, null));
+            return sanctionOpt.map(this::processSanctionStatus).orElse(SanctionStatusResponse.noSanction());
+        } catch (Exception e) {
+            return SanctionStatusResponse.noSanction();
+        }
     }
 
     private Long getMemberId() {
