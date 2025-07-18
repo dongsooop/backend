@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -24,7 +25,15 @@ public class BoardSearchService {
 
     @PostConstruct
     public void warmupRepository() {
-        performWarmupOperation();
+        try {
+            boardSearchRepository.count();
+            boardSearchRepository.findByTitleContainingOrContentContaining(
+                    ELASTICSEARCH_WARMUP_KEYWORD,
+                    ELASTICSEARCH_WARMUP_KEYWORD
+            );
+        } catch (Exception e) {
+            logWarmupError(e);
+        }
     }
 
     public Page<BoardDocument> searchAll(String keyword, Pageable pageable) {
@@ -72,17 +81,7 @@ public class BoardSearchService {
         }
     }
 
-    private void performWarmupOperation() {
-        try {
-            boardSearchRepository.count();
-            boardSearchRepository.findByTitleContainingOrContentContaining(
-                    ELASTICSEARCH_WARMUP_KEYWORD,
-                    ELASTICSEARCH_WARMUP_KEYWORD
-            );
-        } catch (Exception e) {
-            logWarmupError(e);
-        }
-    }
+
 
     private void logSearchError(String operation, String keyword, String boardType, Exception e) {
         if (boardType != null) {
@@ -98,16 +97,11 @@ public class BoardSearchService {
     }
 
     private String preprocessKeyword(String keyword) {
-        if (keyword == null) {
+        if (!StringUtils.hasText(keyword)) {
             return "";
         }
 
-        String trimmed = keyword.trim();
-        if (trimmed.isEmpty()) {
-            return "";
-        }
-
-        return trimmed.replaceAll("\\s+", " ");
+        return keyword.trim().replaceAll("\\s+", " ");
     }
 
     private Page<BoardDocument> createPageFromList(List<BoardDocument> allResults, Pageable pageable) {
