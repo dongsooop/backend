@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.search.controller;
 
 import com.dongsoop.dongsoop.search.entity.BoardDocument;
+import com.dongsoop.dongsoop.search.entity.BoardType;
 import com.dongsoop.dongsoop.search.service.BoardSearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -29,7 +30,7 @@ public class SearchController {
     @GetMapping("/by-type")
     public ResponseEntity<Page<BoardDocument>> searchByType(
             @RequestParam String keyword,
-            @RequestParam String boardType,
+            @RequestParam BoardType boardType,
             Pageable pageable) {
         Page<BoardDocument> results = boardSearchService.searchByBoardType(keyword, boardType, pageable);
         return ResponseEntity.ok(results);
