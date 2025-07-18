@@ -1,5 +1,7 @@
 package com.dongsoop.dongsoop.search.controller;
 
+import com.dongsoop.dongsoop.search.dto.SearchDtoMapper;
+import com.dongsoop.dongsoop.search.dto.SearchResponse;
 import com.dongsoop.dongsoop.search.entity.BoardDocument;
 import com.dongsoop.dongsoop.search.entity.BoardType;
 import com.dongsoop.dongsoop.search.service.BoardSearchService;
@@ -20,19 +22,21 @@ public class SearchController {
     private final BoardSearchService boardSearchService;
 
     @GetMapping
-    public ResponseEntity<Page<BoardDocument>> searchAll(
+    public ResponseEntity<SearchResponse> searchAll(
             @RequestParam String keyword,
             Pageable pageable) {
         Page<BoardDocument> results = boardSearchService.searchAll(keyword, pageable);
-        return ResponseEntity.ok(results);
+        SearchResponse response = SearchDtoMapper.toSearchResponse(results);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/by-type")
-    public ResponseEntity<Page<BoardDocument>> searchByType(
+    public ResponseEntity<SearchResponse> searchByType(
             @RequestParam String keyword,
             @RequestParam BoardType boardType,
             Pageable pageable) {
         Page<BoardDocument> results = boardSearchService.searchByBoardType(keyword, boardType, pageable);
-        return ResponseEntity.ok(results);
+        SearchResponse response = SearchDtoMapper.toSearchResponse(results);
+        return ResponseEntity.ok(response);
     }
 }
