@@ -20,6 +20,7 @@ public class SearchDtoMapper {
                 .recruitmentStartAt(document.getRecruitmentStartAt())
                 .recruitmentEndAt(document.getRecruitmentEndAt())
                 .marketplaceStatus(document.getMarketplaceStatus())
+                .marketplaceType(document.getMarketplaceType())
                 .noticeUrl(getNoticeUrlByBoardType(document))
                 .tags(document.getTags())
                 .build();
