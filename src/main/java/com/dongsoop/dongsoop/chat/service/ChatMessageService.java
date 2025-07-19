@@ -19,7 +19,7 @@ public class ChatMessageService {
 
     public ChatMessage processMessage(ChatMessage message) {
         ChatMessage enrichedMessage = chatValidator.validateAndEnrichMessage(message);
-        saveMessage(enrichedMessage);
+        redisChatRepository.saveMessage(message);
         return enrichedMessage;
     }
 
@@ -30,7 +30,7 @@ public class ChatMessageService {
 
     public ChatMessage createAndSaveSystemMessage(String roomId, Long userId, MessageType type) {
         ChatMessage message = buildSystemMessage(roomId, userId, type);
-        saveMessage(message);
+        redisChatRepository.saveMessage(message);
         return message;
     }
 
@@ -74,10 +74,6 @@ public class ChatMessageService {
         return redisChatRepository.findMessagesByRoomIdAfterId(roomId, messageId);
     }
 
-    private void saveMessage(ChatMessage message) {
-        redisChatRepository.saveMessage(message);
-    }
-
     private ChatMessage buildSystemMessage(String roomId, Long userId, MessageType type) {
         return ChatMessage.builder()
                 .messageId(ChatCommonUtils.generateMessageId())
@@ -115,7 +111,7 @@ public class ChatMessageService {
     }
 
     private ChatMessage validateAndSaveOfflineMessage(ChatMessage message) {
-        saveMessage(message);
+        redisChatRepository.saveMessage(message);
         return message;
     }
 }
