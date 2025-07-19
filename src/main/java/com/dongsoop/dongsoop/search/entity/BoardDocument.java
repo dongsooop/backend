@@ -63,7 +63,7 @@ public class BoardDocument {
     @JsonProperty("noticeUrl")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getNoticeUrl() {
-        if ("NOTICE".equals(boardType)) {
+        if (BoardType.NOTICE.getCode().equals(boardType)) {
             return link;
         }
         return null;
@@ -71,7 +71,7 @@ public class BoardDocument {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getContent() {
-        if ("NOTICE".equals(boardType)) {
+        if (BoardType.NOTICE.getCode().equals(boardType)) {
             return null;
         }
         return content;
