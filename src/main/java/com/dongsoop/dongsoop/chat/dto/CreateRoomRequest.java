@@ -9,4 +9,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CreateRoomRequest {
     private Long targetUserId;
+    private String title;
 }

@@ -2,15 +2,18 @@ package com.dongsoop.dongsoop.chat.controller;
 
 import com.dongsoop.dongsoop.chat.dto.CreateGroupRoomRequest;
 import com.dongsoop.dongsoop.chat.dto.CreateRoomRequest;
+import com.dongsoop.dongsoop.chat.dto.InviteUserRequest;
 import com.dongsoop.dongsoop.chat.dto.KickUserRequest;
 import com.dongsoop.dongsoop.chat.dto.ReadStatusUpdateRequest;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
 import com.dongsoop.dongsoop.chat.entity.IncrementalSyncResponse;
+import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -29,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/chat")
 public class ChatController {
     private final ChatService chatService;
+    private final ChatRoomService chatRoomService;
     private final MemberService memberService;
 
     @GetMapping("/room/{roomId}/initialize")
@@ -68,7 +72,8 @@ public class ChatController {
     public ResponseEntity<ChatRoom> createRoom(@RequestBody CreateRoomRequest request) {
         Long currentUserId = getCurrentUserId();
         Long targetUserId = request.getTargetUserId();
-        ChatRoom createdRoom = chatService.createOneToOneChatRoom(currentUserId, targetUserId);
+        String title = request.getTitle();
+        ChatRoom createdRoom = chatRoomService.createOneToOneChatRoom(currentUserId, targetUserId, title);
         return ResponseEntity.ok(createdRoom);
     }
 
@@ -90,7 +95,7 @@ public class ChatController {
     @GetMapping("/room/{roomId}/enter")
     public ResponseEntity<ChatMessage> enterRoom(@PathVariable("roomId") String roomId) {
         Long currentUserId = getCurrentUserId();
-        chatService.enterChatRoom(roomId, currentUserId);
+        chatRoomService.enterChatRoom(roomId, currentUserId);
         ChatMessage enterMessage = chatService.checkFirstTimeEntryAndCreateEnterMessage(roomId, currentUserId);
         return ResponseEntity.ok(enterMessage);
     }
@@ -148,9 +153,9 @@ public class ChatController {
     @GetMapping("/room/{roomId}/participants")
     public ResponseEntity<Map<Long, String>> getRoomParticipants(@PathVariable("roomId") String roomId) {
         Long currentUserId = getCurrentUserId();
-        chatService.enterChatRoom(roomId, currentUserId);
+        chatRoomService.enterChatRoom(roomId, currentUserId);
 
-        ChatRoom room = chatService.getChatRoomById(roomId);
+        ChatRoom room = chatRoomService.getChatRoomById(roomId);
 
         Map<Long, String> participants = room.getParticipants().stream()
                 .collect(Collectors.toMap(
@@ -159,6 +164,17 @@ public class ChatController {
                 ));
 
         return ResponseEntity.ok(participants);
+    }
+
+    @PostMapping("/room/{roomId}/invite")
+    public ResponseEntity<ChatMessage> inviteUserToRoom(
+            @PathVariable("roomId") String roomId,
+            @RequestBody @Valid InviteUserRequest request) {
+        Long currentUserId = getCurrentUserId();
+        Long targetUserId = request.targetUserId();
+
+        ChatMessage inviteMessage = chatService.inviteUserToGroupChat(roomId, currentUserId, targetUserId);
+        return ResponseEntity.ok(inviteMessage);
     }
 
     private Long getCurrentUserId() {

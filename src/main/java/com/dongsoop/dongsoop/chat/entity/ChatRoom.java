@@ -1,10 +1,17 @@
 package com.dongsoop.dongsoop.chat.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.*;
-
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -34,9 +41,10 @@ public class ChatRoom {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
 
-    public static ChatRoom create(Long user1, Long user2) {
+    public static ChatRoom create(Long user1, Long user2, String title) {
         return ChatRoom.builder()
                 .roomId(generateRandomRoomId())
+                .title(title)
                 .participants(createParticipantSet(user1, user2))
                 .isGroupChat(false)
                 .managerId(null)

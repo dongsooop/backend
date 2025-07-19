@@ -33,6 +33,7 @@ public class ChatRoomEntity {
     @CollectionTable(name = "chat_room_participants",
             joinColumns = @JoinColumn(name = "room_id"))
     @Column(name = "participant_id")
+    @Builder.Default
     private Set<Long> participants = new HashSet<>();
 
     private LocalDateTime createdAt;
