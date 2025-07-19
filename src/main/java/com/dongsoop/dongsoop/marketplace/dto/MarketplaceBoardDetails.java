@@ -11,6 +11,7 @@ import org.springframework.util.StringUtils;
 
 public record MarketplaceBoardDetails(
         Long id,
+        Long authorId,
         String title,
         String content,
         Long price,
@@ -21,10 +22,12 @@ public record MarketplaceBoardDetails(
         MarketplaceViewType viewType,
         MarketplaceBoardStatus status
 ) {
-    public MarketplaceBoardDetails(Long id, String title, String content, Long price, LocalDateTime createdAt,
+    public MarketplaceBoardDetails(Long id, Long authorId, String title, String content, Long price,
+                                   LocalDateTime createdAt,
                                    MarketplaceType type, Long contactCount, String imageUrls,
                                    MarketplaceViewType viewType, MarketplaceBoardStatus status) {
         this(id,
+                authorId,
                 title,
                 content,
                 price,
@@ -42,7 +45,7 @@ public record MarketplaceBoardDetails(
         }
 
         return Arrays.stream(imageUrls.split(","))
-                .map(String::trim)
+                .map(java.lang.String::trim)
                 .collect(Collectors.toSet());
     }
 }

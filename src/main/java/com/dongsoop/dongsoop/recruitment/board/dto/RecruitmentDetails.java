@@ -9,6 +9,7 @@ import java.util.List;
 public record RecruitmentDetails(
 
         Long id,
+        Long authorId,
         String title,
         String content,
         String tags,
@@ -22,12 +23,13 @@ public record RecruitmentDetails(
         RecruitmentViewType viewType,
         boolean isAlreadyApplied
 ) {
-    public RecruitmentDetails(Long id, String title, String content, String tags, LocalDateTime startAt,
+    public RecruitmentDetails(Long id, Long authorId, String title, String content, String tags, LocalDateTime startAt,
                               LocalDateTime endAt, String departmentTypes, String author, LocalDateTime createdAt,
                               LocalDateTime updatedAt, Integer volunteer, RecruitmentViewType viewType,
                               boolean isAlreadyApplied) {
         this(
                 id,
+                authorId,
                 title,
                 content,
                 tags,
@@ -45,7 +47,7 @@ public record RecruitmentDetails(
 
     private static List<DepartmentType> getDepartmentTypeList(String departmentTypes) {
         return Arrays.stream(departmentTypes.split(","))
-                .map(String::trim)
+                .map(java.lang.String::trim)
                 .map(DepartmentType::valueOf)
                 .distinct()
                 .toList();

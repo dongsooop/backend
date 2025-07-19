@@ -34,6 +34,7 @@ public class TutoringRecruitmentProjection implements RecruitmentProjection {
             RecruitmentViewType viewType, boolean isAlreadyApplied) {
         return Projections.constructor(RecruitmentDetails.class,
                 board.id,
+                board.author.id,
                 board.title,
                 board.content,
                 board.tags,
