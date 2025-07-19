@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.search.controller;
 
+import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
 import com.dongsoop.dongsoop.search.dto.SearchDtoMapper;
 import com.dongsoop.dongsoop.search.dto.SearchResponse;
 import com.dongsoop.dongsoop.search.entity.BoardDocument;
@@ -36,6 +37,16 @@ public class SearchController {
             @RequestParam BoardType boardType,
             Pageable pageable) {
         Page<BoardDocument> results = boardSearchService.searchByBoardType(keyword, boardType, pageable);
+        SearchResponse response = SearchDtoMapper.toSearchResponse(results);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/marketplace")
+    public ResponseEntity<SearchResponse> searchMarketplace(
+            @RequestParam String keyword,
+            @RequestParam(required = false) MarketplaceType marketplaceType,
+            Pageable pageable) {
+        Page<BoardDocument> results = boardSearchService.searchMarketplace(keyword, marketplaceType, pageable);
         SearchResponse response = SearchDtoMapper.toSearchResponse(results);
         return ResponseEntity.ok(response);
     }
