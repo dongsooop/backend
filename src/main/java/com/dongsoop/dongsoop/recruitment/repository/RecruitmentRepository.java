@@ -19,7 +19,7 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
      */
     @Query(value = """
             SELECT
-                id, volunteer, startAt, endAt, title, content, tags, departmentTypeList, boardType, createdAt, isRecruiting
+                id, volunteer, startAt, endAt, title, content, tags, departmentTypeList, boardType, createdAt, status
             FROM (
                 (SELECT
                     p.id AS id,
@@ -34,7 +34,11 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
                     STRING_AGG(d.name, ',') AS departmentTypeList,
                     'PROJECT' AS boardType,
                     p.created_At AS createdAt,
-                    (p.end_at > NOW() AND p.start_at < NOW()) AS isRecruiting,
+                    CASE
+                        WHEN p.end_at > NOW() AND p.start_at <= NOW() THEN 'RECRUITING'
+                        WHEN p.start_at > NOW() THEN 'WAITING'
+                        ELSE 'ENDED'
+                    END AS status,
                     pa.apply_time AS applyTime
                 FROM project_board p
                 LEFT JOIN project_apply pa ON p.id = pa.project_board_id
@@ -58,7 +62,11 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
                     STRING_AGG(d.name, ',') AS departmentTypeList,
                     'STUDY' AS boardType,
                     s.created_at AS createdAt,
-                    (s.end_at > NOW() AND s.start_at < NOW()) AS isRecruiting,
+                    CASE
+                        WHEN s.end_at > NOW() AND s.start_at <= NOW() THEN 'RECRUITING'
+                        WHEN s.start_at > NOW() THEN 'WAITING'
+                        ELSE 'ENDED'
+                    END AS status,
                     sa.apply_time AS applyTime
                 FROM study_board s
                 LEFT JOIN study_apply sa ON s.id = sa.study_board_id
@@ -82,7 +90,11 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
                     d.name AS departmentTypeList,
                     'TUTORING' AS boardType,
                     t.created_at AS createdAt,
-                    (t.end_at > NOW() AND t.start_at < NOW()) AS isRecruiting,
+                    CASE
+                        WHEN t.end_at > NOW() AND t.start_at <= NOW() THEN 'RECRUITING'
+                        WHEN t.start_at > NOW() THEN 'WAITING'
+                        ELSE 'ENDED'
+                    END AS status,
                     ta.apply_time AS applyTime
                 FROM tutoring_board t
                 LEFT JOIN tutoring_apply ta ON t.id = ta.tutoring_board_id
@@ -108,7 +120,7 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
      */
     @Query(value = """
             SELECT
-                id, volunteer, startAt, endAt, title, content, tags, departmentTypeList, boardType, createdAt, isRecruiting
+                id, volunteer, startAt, endAt, title, content, tags, departmentTypeList, boardType, createdAt, status
             FROM (
                 (SELECT
                     p.id AS id,
@@ -123,7 +135,11 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
                     STRING_AGG(d.name, ',') AS departmentTypeList,
                     'PROJECT' AS boardType,
                     p.created_At AS createdAt,
-                    (p.end_at > NOW() AND p.start_at < NOW()) AS isRecruiting
+                    CASE
+                        WHEN p.end_at > NOW() AND p.start_at <= NOW() THEN 'RECRUITING'
+                        WHEN p.start_at > NOW() THEN 'WAITING'
+                        ELSE 'ENDED'
+                    END AS status
                 FROM project_board p
                 LEFT JOIN project_board_department pd ON p.id = pd.project_board_id
                 LEFT JOIN department d ON pd.department_id = d.id
@@ -145,7 +161,11 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
                     STRING_AGG(d.name, ',') AS departmentTypeList,
                     'STUDY' AS boardType,
                     s.created_at AS createdAt,
-                    (s.end_at > NOW() AND s.start_at < NOW()) AS isRecruiting
+                    CASE
+                        WHEN s.end_at > NOW() AND s.start_at <= NOW() THEN 'RECRUITING'
+                        WHEN s.start_at > NOW() THEN 'WAITING'
+                        ELSE 'ENDED'
+                    END AS status
                 FROM study_board s
                 LEFT JOIN study_board_department sd ON s.id = sd.study_board_id
                 LEFT JOIN department d ON sd.department_id = d.id
@@ -167,7 +187,11 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
                     d.name AS departmentTypeList,
                     'TUTORING' AS boardType,
                     t.created_at AS createdAt,
-                    (t.end_at > NOW() AND t.start_at < NOW()) AS isRecruiting
+                    CASE
+                        WHEN t.end_at > NOW() AND t.start_at <= NOW() THEN 'RECRUITING'
+                        WHEN t.start_at > NOW() THEN 'WAITING'
+                        ELSE 'ENDED'
+                    END AS status
                 FROM tutoring_board t
                 LEFT JOIN department d ON t.department_id = d.id
                 WHERE t.author = :memberId
