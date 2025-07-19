@@ -27,6 +27,9 @@ public class BoardSearchResult {
     private String marketplaceStatus;
     
     @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String marketplaceType;
+    
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String noticeUrl;
     
     @JsonInclude(JsonInclude.Include.NON_NULL)
