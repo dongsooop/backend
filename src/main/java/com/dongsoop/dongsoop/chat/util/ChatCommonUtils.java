@@ -33,7 +33,9 @@ public final class ChatCommonUtils {
     }
 
     public static void enrichMessageId(ChatMessage message) {
-        if (message.getMessageId() == null || message.getMessageId().isEmpty()) {
+        String currentMessageId = message.getMessageId();
+
+        if (currentMessageId == null || currentMessageId.isEmpty()) {
             message.setMessageId(generateMessageId());
         }
     }
