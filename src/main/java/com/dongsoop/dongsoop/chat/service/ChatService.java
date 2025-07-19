@@ -135,22 +135,19 @@ public class ChatService {
     }
 
     private void processReadTimeUpdate(Long userId, String roomId, LocalDateTime readUntilTime) {
-        boolean hasReadTime = readUntilTime != null;
-        if (hasReadTime) {
+        if (readUntilTime != null) {
             updateReadTimestamp(userId, roomId, readUntilTime);
         }
     }
 
     private void processMessageIdReadUpdate(String roomId, Long userId, String lastReadMessageId) {
-        boolean hasMessageId = lastReadMessageId != null;
-        if (hasMessageId) {
+        if (lastReadMessageId != null) {
             updateReadStatusByMessageId(roomId, userId, lastReadMessageId);
         }
     }
 
     private void processDefaultReadStatus(ReadStatusUpdateRequest request, String roomId, Long userId) {
-        boolean hasNoReadStatusRequest = hasNoReadStatusRequest(request);
-        if (hasNoReadStatusRequest) {
+        if (hasNoReadStatusRequest(request)) {
             updateReadTimestamp(userId, roomId, LocalDateTime.now());
         }
     }
@@ -167,15 +164,13 @@ public class ChatService {
         List<ChatMessage> messages = chatMessageService.getAllMessages(roomId);
 
         ChatMessage targetMessage = chatMessageService.findMessageById(messages, messageId);
-        boolean messageFound = targetMessage != null;
-        if (messageFound) {
+        if (targetMessage != null) {
             updateReadTimestamp(userId, roomId, targetMessage.getTimestamp());
         }
     }
 
     private int calculateUnreadCount(String roomId, Long userId, LocalDateTime lastReadTime) {
-        boolean noLastReadTime = lastReadTime == null;
-        if (noLastReadTime) {
+        if (lastReadTime == null) {
             return 0;
         }
 

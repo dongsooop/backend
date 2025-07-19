@@ -43,8 +43,7 @@ public class ChatMessageService {
 
     public ChatMessage findMessageById(List<ChatMessage> messages, String messageId) {
         for (ChatMessage message : messages) {
-            boolean messageFound = message.getMessageId().equals(messageId);
-            if (messageFound) {
+            if (messageId.equals(message.getMessageId())) {
                 return message;
             }
         }
