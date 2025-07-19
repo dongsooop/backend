@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.search.service;
 
+import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
 import com.dongsoop.dongsoop.search.entity.BoardDocument;
 import com.dongsoop.dongsoop.search.entity.BoardType;
 import com.dongsoop.dongsoop.search.repository.BoardSearchRepository;
@@ -45,6 +46,19 @@ public class BoardSearchService {
         return executeSearchByBoardType(keyword, boardType, pageable);
     }
 
+    public Page<BoardDocument> searchMarketplace(String keyword, MarketplaceType marketplaceType, Pageable pageable) {
+        String processedKeyword = preprocessKeyword(keyword);
+        if (processedKeyword.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        if (marketplaceType != null) {
+            return performMarketplaceSearchByType(processedKeyword, marketplaceType, pageable);
+        }
+
+        return performMarketplaceSearch(processedKeyword, pageable);
+    }
+
     private Page<BoardDocument> executeSearchByBoardType(String keyword, BoardType boardType, Pageable pageable) {
         String processedKeyword = preprocessKeyword(keyword);
         if (processedKeyword.isEmpty()) {
@@ -56,9 +70,31 @@ public class BoardSearchService {
 
     private Page<BoardDocument> performSearchByBoardType(String keyword, BoardType boardType, Pageable pageable) {
         try {
-            return boardSearchRepository.findByKeywordAndBoardType(keyword, boardType.getCode(), pageable);
+            // BoardType을 소문자로 변환
+            String lowerBoardType = boardType.getCode().toLowerCase();
+            return boardSearchRepository.findByKeywordAndBoardType(keyword, lowerBoardType, pageable);
         } catch (Exception e) {
             logSearchError("searchByBoardType", keyword, boardType.getCode(), e);
+            return Page.empty(pageable);
+        }
+    }
+
+    private Page<BoardDocument> performMarketplaceSearch(String keyword, Pageable pageable) {
+        try {
+            return boardSearchRepository.findMarketplaceByKeyword(keyword, pageable);
+        } catch (Exception e) {
+            logSearchError("searchMarketplace", keyword, null, e);
+            return Page.empty(pageable);
+        }
+    }
+
+    private Page<BoardDocument> performMarketplaceSearchByType(String keyword, MarketplaceType marketplaceType, Pageable pageable) {
+        try {
+            // MarketplaceType을 소문자로 변환 (SELL -> sell, BUY -> buy)
+            String lowerMarketplaceType = marketplaceType.name().toLowerCase();
+            return boardSearchRepository.findMarketplaceByKeywordAndType(keyword, lowerMarketplaceType, pageable);
+        } catch (Exception e) {
+            logSearchError("searchMarketplaceByType", keyword, marketplaceType.name(), e);
             return Page.empty(pageable);
         }
     }
