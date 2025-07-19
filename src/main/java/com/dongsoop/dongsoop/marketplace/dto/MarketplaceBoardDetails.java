@@ -45,7 +45,7 @@ public record MarketplaceBoardDetails(
         }
 
         return Arrays.stream(imageUrls.split(","))
-                .map(java.lang.String::trim)
+                .map(String::trim)
                 .collect(Collectors.toSet());
     }
 }

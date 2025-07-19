@@ -47,7 +47,7 @@ public record RecruitmentDetails(
 
     private static List<DepartmentType> getDepartmentTypeList(String departmentTypes) {
         return Arrays.stream(departmentTypes.split(","))
-                .map(java.lang.String::trim)
+                .map(String::trim)
                 .map(DepartmentType::valueOf)
                 .distinct()
                 .toList();
