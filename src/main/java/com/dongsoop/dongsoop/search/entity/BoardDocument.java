@@ -52,6 +52,10 @@ public class BoardDocument {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String marketplaceStatus;
 
+    @Field(name = "marketplace_type", type = FieldType.Keyword)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String marketplaceType;
+
     @Field(name = "link", type = FieldType.Keyword)
     @JsonIgnore
     private String link;
