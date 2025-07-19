@@ -1,8 +1,8 @@
 package com.dongsoop.dongsoop.report.dto;
-
 import com.dongsoop.dongsoop.report.entity.Sanction;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 public record SanctionStatusResponse(
         boolean isSanctioned,
@@ -18,13 +18,21 @@ public record SanctionStatusResponse(
     }
 
     public static SanctionStatusResponse withSanction(Sanction sanction) {
+        String typeName = "UNKNOWN";
+        if (sanction.getSanctionType() != null) {
+            typeName = sanction.getSanctionType().name();
+        }
+
+        String reason = Objects.requireNonNullElse(sanction.getReason(), "");
+        String description = Objects.requireNonNullElse(sanction.getDescription(), "");
+
         return new SanctionStatusResponse(
                 true,
-                sanction.getSanctionType().name(),
-                sanction.getReason(),
+                typeName,
+                reason,
                 sanction.getStartDate(),
                 sanction.getEndDate(),
-                sanction.getDescription()
+                description
         );
     }
 }

@@ -13,6 +13,7 @@ public record ReportSummaryResponse(
         Boolean isProcessed,
         LocalDateTime createdAt,
         Long targetMemberId,
+        Long targetId,
         String description
 ) {
 }

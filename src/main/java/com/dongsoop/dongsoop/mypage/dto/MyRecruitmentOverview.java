@@ -25,5 +25,5 @@ public interface MyRecruitmentOverview {
 
     LocalDateTime getCreatedAt();
 
-    boolean getIsRecruiting();
+    RecruitmentStatusType getStatus();
 }
