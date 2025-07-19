@@ -29,9 +29,9 @@ public class ProjectBoardController {
 
     private final ProjectBoardService projectBoardService;
 
-    @GetMapping("/{projectBoardId}")
-    public ResponseEntity<RecruitmentDetails> getProjectBoardDetails(@PathVariable Long projectBoardId) {
-        RecruitmentDetails details = projectBoardService.getBoardDetailsById(projectBoardId);
+    @GetMapping("/{boardId}")
+    public ResponseEntity<RecruitmentDetails> getProjectBoardDetails(@PathVariable("boardId") Long boardId) {
+        RecruitmentDetails details = projectBoardService.getBoardDetailsById(boardId);
 
         return ResponseEntity.ok(details);
     }
