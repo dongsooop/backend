@@ -12,8 +12,10 @@ public final class ChatCommonUtils {
     }
 
     public static void validatePositiveUserId(Long userId) {
-        boolean invalidId = userId < 0;
-        if (invalidId) {
+        if (userId == null) {
+            throw new UnauthorizedChatAccessException();
+        }
+        if (userId < 0) {
             throw new UnauthorizedChatAccessException();
         }
     }
@@ -31,22 +33,19 @@ public final class ChatCommonUtils {
     }
 
     public static void enrichMessageId(ChatMessage message) {
-        boolean needsMessageId = message.getMessageId() == null || message.getMessageId().isEmpty();
-        if (needsMessageId) {
+        if (message.getMessageId() == null || message.getMessageId().isEmpty()) {
             message.setMessageId(generateMessageId());
         }
     }
 
     public static void enrichMessageTimestamp(ChatMessage message) {
-        boolean needsTimestamp = message.getTimestamp() == null;
-        if (needsTimestamp) {
+        if (message.getTimestamp() == null) {
             message.setTimestamp(getCurrentTime());
         }
     }
 
     public static void enrichMessageType(ChatMessage message) {
-        boolean needsType = message.getType() == null;
-        if (needsType) {
+        if (message.getType() == null) {
             message.setType(MessageType.CHAT);
         }
     }
