@@ -2,7 +2,6 @@ package com.dongsoop.dongsoop.chat.validator;
 
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
-import com.dongsoop.dongsoop.chat.entity.MessageType;
 import com.dongsoop.dongsoop.chat.exception.GroupChatOnlyException;
 import com.dongsoop.dongsoop.chat.exception.InvalidChatRequestException;
 import com.dongsoop.dongsoop.chat.exception.ManagerKickAttemptException;
@@ -12,9 +11,8 @@ import com.dongsoop.dongsoop.chat.exception.UserKickedException;
 import com.dongsoop.dongsoop.chat.exception.UserNotInRoomException;
 import com.dongsoop.dongsoop.chat.repository.ChatRepository;
 import com.dongsoop.dongsoop.chat.service.ChatSyncService;
-import java.time.LocalDateTime;
+import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
 import java.util.Objects;
-import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -49,7 +47,7 @@ public class ChatValidator {
         validateMessageRequirements(message);
         validateUserForRoom(message.getRoomId(), message.getSenderId());
 
-        enrichMessage(message);
+        ChatCommonUtils.enrichMessage(message);
         return message;
     }
 
@@ -112,30 +110,6 @@ public class ChatValidator {
         }
     }
 
-    private void enrichMessage(ChatMessage message) {
-        enrichMessageId(message);
-        enrichMessageTimestamp(message);
-        enrichMessageType(message);
-    }
-
-    private void enrichMessageId(ChatMessage message) {
-        if (message.getMessageId() == null) {
-            message.setMessageId(generateMessageId());
-        }
-    }
-
-    private void enrichMessageTimestamp(ChatMessage message) {
-        if (message.getTimestamp() == null) {
-            message.setTimestamp(LocalDateTime.now());
-        }
-    }
-
-    private void enrichMessageType(ChatMessage message) {
-        if (message.getType() == null) {
-            message.setType(MessageType.CHAT);
-        }
-    }
-
     private void validateIsGroupChat(ChatRoom room) {
         if (!room.isGroupChat()) {
             throw new GroupChatOnlyException("사용자 초대");
@@ -162,9 +136,5 @@ public class ChatValidator {
         if (Objects.equals(room.getManagerId(), userToKick)) {
             throw new ManagerKickAttemptException();
         }
-    }
-
-    private String generateMessageId() {
-        return UUID.randomUUID().toString();
     }
 }
