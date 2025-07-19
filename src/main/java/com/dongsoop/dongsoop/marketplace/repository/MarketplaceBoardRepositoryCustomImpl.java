@@ -67,6 +67,7 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
     public Optional<MarketplaceBoardDetails> findMarketplaceBoardDetails(Long id, MarketplaceViewType viewType) {
         MarketplaceBoardDetails result = queryFactory.select(Projections.constructor(MarketplaceBoardDetails.class,
                         marketplaceBoard.id,
+                        marketplaceBoard.author.id,
                         marketplaceBoard.title,
                         marketplaceBoard.content,
                         marketplaceBoard.price,

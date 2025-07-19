@@ -29,9 +29,9 @@ public class StudyBoardController {
 
     private final StudyBoardService studyBoardService;
 
-    @GetMapping("/{studyBoardId}")
-    public ResponseEntity<RecruitmentDetails> getStudyBoardDetails(@PathVariable Long studyBoardId) {
-        RecruitmentDetails details = studyBoardService.getBoardDetailsById(studyBoardId);
+    @GetMapping("/{boardId}")
+    public ResponseEntity<RecruitmentDetails> getStudyBoardDetails(@PathVariable("boardId") Long boardId) {
+        RecruitmentDetails details = studyBoardService.getBoardDetailsById(boardId);
 
         return ResponseEntity.ok(details);
     }

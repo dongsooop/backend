@@ -37,6 +37,7 @@ public class ProjectRecruitmentProjection implements RecruitmentProjection {
                                                                                      boolean isAlreadyApplied) {
         return Projections.constructor(RecruitmentDetails.class,
                 board.id,
+                board.author.id,
                 board.title,
                 board.content,
                 board.tags,

@@ -96,7 +96,7 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
 
     public MarketplaceBoardDetails getBoardDetailsWithViewType(Long boardId, MarketplaceViewType viewType) {
         return marketplaceBoardRepositoryCustom.findMarketplaceBoardDetails(boardId, viewType)
-                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+                .orElseThrow(() -> new MarketplaceBoardNotFoundException(boardId));
     }
 
     @Transactional

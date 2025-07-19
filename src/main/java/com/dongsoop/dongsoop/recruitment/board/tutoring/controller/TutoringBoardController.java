@@ -44,10 +44,10 @@ public class TutoringBoardController {
         return ResponseEntity.ok(tutoringBoardList);
     }
 
-    @GetMapping("/{tutoringBoardId}")
+    @GetMapping("/{boardId}")
     public ResponseEntity<RecruitmentDetails> getTutoringBoard(
-            @PathVariable("tutoringBoardId") Long tutoringBoardId) {
-        RecruitmentDetails tutoringBoard = tutoringBoardService.getBoardDetailsById(tutoringBoardId);
+            @PathVariable("boardId") Long boardId) {
+        RecruitmentDetails tutoringBoard = tutoringBoardService.getBoardDetailsById(boardId);
         return ResponseEntity.ok(tutoringBoard);
     }
 
