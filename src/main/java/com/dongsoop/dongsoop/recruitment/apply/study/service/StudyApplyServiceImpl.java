@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.recruitment.apply.study.service;
 
+import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
@@ -25,9 +26,11 @@ import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardDepart
 import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class StudyApplyServiceImpl implements StudyApplyService {
@@ -41,6 +44,8 @@ public class StudyApplyServiceImpl implements StudyApplyService {
     private final StudyBoardDepartmentRepository studyBoardDepartmentRepository;
 
     private final StudyApplyRepositoryCustom studyApplyRepositoryCustom;
+
+    private final ChatService chatService;
 
     public void apply(ApplyStudyBoardRequest request) {
         Member member = memberService.getMemberReferenceByContext();
@@ -108,7 +113,24 @@ public class StudyApplyServiceImpl implements StudyApplyService {
         }
 
         studyApplyRepositoryCustom.updateApplyStatus(request.applierId(), boardId, request.status());
+
+        if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
+            inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
+        }
     }
+
+    private void inviteToGroupChat(Long boardId, Long applierId, Long authorId) {
+        StudyBoard studyBoard = studyBoardRepository.findById(boardId)
+                .orElseThrow(() -> new StudyBoardNotFound(boardId));
+
+        if (!studyBoard.hasChatRoom()) {
+            log.warn("게시판 {}에 채팅방이 연결되지 않음", boardId);
+            return;
+        }
+
+        chatService.inviteUserToGroupChat(studyBoard.getRoomId(), authorId, applierId);
+    }
+
 
     @Override
     @Transactional(readOnly = true)

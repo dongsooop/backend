@@ -1,5 +1,7 @@
 package com.dongsoop.dongsoop.recruitment.board.project.service;
 
+import com.dongsoop.dongsoop.chat.entity.ChatRoom;
+import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
@@ -19,6 +21,7 @@ import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardDe
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepositoryCustom;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -40,6 +43,8 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
 
     private final ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
 
+    private final ChatService chatService;
+
     @Transactional
     public ProjectBoard create(CreateProjectBoardRequest request) {
         ProjectBoard projectBoardToSave = transformToProjectBoard(request);
@@ -55,7 +60,22 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
                 .toList();
 
         projectBoardDepartmentRepository.saveAll(projectBoardDepartmentList);
+
+        createAndLinkChatRoom(projectBoard);
+
         return projectBoard;
+    }
+
+    private void createAndLinkChatRoom(ProjectBoard projectBoard) {
+        Member author = projectBoard.getAuthor();
+        String chatRoomTitle = String.format("[프로젝트] %s", projectBoard.getTitle());
+
+        Set<Long> initialParticipants = Set.of(author.getId());
+
+        ChatRoom chatRoom = chatService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
+
+        projectBoard.assignChatRoom(chatRoom.getRoomId());
+        projectBoardRepository.save(projectBoard);
     }
 
     public List<RecruitmentOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType,

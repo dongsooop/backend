@@ -1,5 +1,7 @@
 package com.dongsoop.dongsoop.recruitment.board.tutoring.service;
 
+import com.dongsoop.dongsoop.chat.entity.ChatRoom;
+import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
@@ -16,9 +18,11 @@ import com.dongsoop.dongsoop.recruitment.board.tutoring.exception.TutoringBoardN
 import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoardRepositoryCustom;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +38,8 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
 
     private final MemberService memberService;
 
+    private final ChatService chatService;
+
     public List<RecruitmentOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType,
                                                                      Pageable pageable) {
         return tutoringBoardRepositoryCustom.findTutoringBoardOverviewsByPageAndDepartmentType(departmentType,
@@ -44,9 +50,26 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
         return tutoringBoardRepositoryCustom.findTutoringBoardOverviewsByPage(pageable);
     }
 
+    @Transactional
     public TutoringBoard create(CreateTutoringBoardRequest request) {
         TutoringBoard tutoringBoard = transformToTutoringBoard(request);
-        return tutoringBoardRepository.save(tutoringBoard);
+        TutoringBoard savedBoard = tutoringBoardRepository.save(tutoringBoard);
+
+        createAndLinkChatRoom(savedBoard);
+
+        return savedBoard;
+    }
+
+    private void createAndLinkChatRoom(TutoringBoard tutoringBoard) {
+        Member author = tutoringBoard.getAuthor();
+        String chatRoomTitle = String.format("[튜터링] %s", tutoringBoard.getTitle());
+
+        Set<Long> initialParticipants = Set.of(author.getId());
+
+        ChatRoom chatRoom = chatService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
+
+        tutoringBoard.assignChatRoom(chatRoom.getRoomId());
+        tutoringBoardRepository.save(tutoringBoard);
     }
 
     public RecruitmentDetails getBoardDetailsById(Long boardId) {

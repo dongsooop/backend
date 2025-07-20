@@ -1,5 +1,7 @@
 package com.dongsoop.dongsoop.recruitment.board.study.service;
 
+import com.dongsoop.dongsoop.chat.entity.ChatRoom;
+import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
@@ -19,6 +21,7 @@ import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardDepart
 import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepositoryCustom;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -40,6 +43,8 @@ public class StudyBoardServiceImpl implements StudyBoardService {
 
     private final StudyApplyRepositoryCustom studyApplyRepositoryCustom;
 
+    private final ChatService chatService;
+
     @Transactional
     public StudyBoard create(CreateStudyBoardRequest request) {
         StudyBoard studyBoardToSave = transformToStudyBoard(request);
@@ -54,7 +59,22 @@ public class StudyBoardServiceImpl implements StudyBoardService {
                 .toList();
 
         studyBoardDepartmentRepository.saveAll(studyBoardDepartmentList);
+
+        createAndLinkChatRoom(studyBoard);
+
         return studyBoard;
+    }
+
+    private void createAndLinkChatRoom(StudyBoard studyBoard) {
+        Member author = studyBoard.getAuthor();
+        String chatRoomTitle = String.format("[스터디] %s", studyBoard.getTitle());
+
+        Set<Long> initialParticipants = Set.of(author.getId());
+
+        ChatRoom chatRoom = chatService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
+
+        studyBoard.assignChatRoom(chatRoom.getRoomId());
+        studyBoardRepository.save(studyBoard);
     }
 
     public List<RecruitmentOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType, Pageable pageable) {
