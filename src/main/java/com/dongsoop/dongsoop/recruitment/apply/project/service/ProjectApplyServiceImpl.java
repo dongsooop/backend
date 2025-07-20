@@ -123,13 +123,12 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
         ProjectBoard projectBoard = projectBoardRepository.findById(boardId)
                 .orElseThrow(() -> new ProjectBoardNotFound(boardId));
 
-        String chatRoomId = projectBoard.getRoomId();
-        if (chatRoomId == null) {
+        if (!projectBoard.hasChatRoom()) {
             log.warn("프로젝트 게시판 {}에 채팅방이 연결되지 않음", boardId);
             return;
         }
 
-        chatService.inviteUserToGroupChat(chatRoomId, authorId, applierId);
+        chatService.inviteUserToGroupChat(projectBoard.getRoomId(), authorId, applierId);
     }
 
     @Override

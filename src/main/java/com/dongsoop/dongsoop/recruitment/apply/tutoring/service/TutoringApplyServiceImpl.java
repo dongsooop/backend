@@ -101,13 +101,12 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
         TutoringBoard tutoringBoard = tutoringBoardRepository.findById(boardId)
                 .orElseThrow(() -> new TutoringBoardNotFound(boardId));
 
-        String chatRoomId = tutoringBoard.getRoomId();
-        if (chatRoomId == null) {
+        if (!tutoringBoard.hasChatRoom()) {
             log.warn("튜터링 게시판 {}에 채팅방이 연결되지 않음", boardId);
             return;
         }
 
-        chatService.inviteUserToGroupChat(chatRoomId, authorId, applierId);
+        chatService.inviteUserToGroupChat(tutoringBoard.getRoomId(), authorId, applierId);
     }
 
     @Override

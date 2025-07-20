@@ -123,14 +123,14 @@ public class StudyApplyServiceImpl implements StudyApplyService {
         StudyBoard studyBoard = studyBoardRepository.findById(boardId)
                 .orElseThrow(() -> new StudyBoardNotFound(boardId));
 
-        String chatRoomId = studyBoard.getRoomId();
-        if (chatRoomId == null) {
+        if (!studyBoard.hasChatRoom()) {
             log.warn("게시판 {}에 채팅방이 연결되지 않음", boardId);
             return;
         }
 
-        chatService.inviteUserToGroupChat(chatRoomId, authorId, applierId);
+        chatService.inviteUserToGroupChat(studyBoard.getRoomId(), authorId, applierId);
     }
+
 
     @Override
     @Transactional(readOnly = true)
