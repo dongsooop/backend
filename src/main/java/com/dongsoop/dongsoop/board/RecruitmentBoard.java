@@ -32,4 +32,8 @@ public abstract class RecruitmentBoard extends Board {
     public void assignChatRoom(String RoomId) {
         this.RoomId = RoomId;
     }
+
+    public boolean hasChatRoom() {
+        return this.RoomId != null;
+    }
 }
