@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.recruitment.apply.project.service;
 
+import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
@@ -25,9 +26,11 @@ import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardDe
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProjectApplyServiceImpl implements ProjectApplyService {
@@ -41,6 +44,8 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
     private final ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
 
     private final ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
+
+    private final ChatService chatService;
 
     public void apply(ApplyProjectBoardRequest request) {
         Member member = memberService.getMemberReferenceByContext();
@@ -108,6 +113,23 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
         }
 
         projectApplyRepositoryCustom.updateApplyStatus(request.applierId(), boardId, request.status());
+
+        if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
+            inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
+        }
+    }
+
+    private void inviteToGroupChat(Long boardId, Long applierId, Long authorId) {
+        ProjectBoard projectBoard = projectBoardRepository.findById(boardId)
+                .orElseThrow(() -> new ProjectBoardNotFound(boardId));
+
+        String chatRoomId = projectBoard.getRoomId();
+        if (chatRoomId == null) {
+            log.warn("프로젝트 게시판 {}에 채팅방이 연결되지 않음", boardId);
+            return;
+        }
+
+        chatService.inviteUserToGroupChat(chatRoomId, authorId, applierId);
     }
 
     @Override
