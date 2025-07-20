@@ -20,7 +20,6 @@ import com.dongsoop.dongsoop.recruitment.board.project.exception.ProjectBoardNot
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepositoryCustom;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -70,9 +69,8 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
     private void createAndLinkChatRoom(ProjectBoard projectBoard) {
         Member author = projectBoard.getAuthor();
         String chatRoomTitle = String.format("[프로젝트] %s", projectBoard.getTitle());
-        
-        Set<Long> initialParticipants = new HashSet<>();
-        initialParticipants.add(author.getId());
+
+        Set<Long> initialParticipants = Set.of(author.getId());
 
         ChatRoom chatRoom = chatService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
 

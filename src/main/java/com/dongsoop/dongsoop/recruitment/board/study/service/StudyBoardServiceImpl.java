@@ -20,7 +20,6 @@ import com.dongsoop.dongsoop.recruitment.board.study.exception.StudyBoardNotFoun
 import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepositoryCustom;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -70,8 +69,7 @@ public class StudyBoardServiceImpl implements StudyBoardService {
         Member author = studyBoard.getAuthor();
         String chatRoomTitle = String.format("[스터디] %s", studyBoard.getTitle());
 
-        Set<Long> initialParticipants = new HashSet<>();
-        initialParticipants.add(author.getId());
+        Set<Long> initialParticipants = Set.of(author.getId());
 
         ChatRoom chatRoom = chatService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
 

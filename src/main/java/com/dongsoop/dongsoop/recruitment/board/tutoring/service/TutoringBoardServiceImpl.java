@@ -17,7 +17,6 @@ import com.dongsoop.dongsoop.recruitment.board.tutoring.entity.TutoringBoard;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.exception.TutoringBoardNotFound;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoardRepositoryCustom;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -65,8 +64,7 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
         Member author = tutoringBoard.getAuthor();
         String chatRoomTitle = String.format("[튜터링] %s", tutoringBoard.getTitle());
 
-        Set<Long> initialParticipants = new HashSet<>();
-        initialParticipants.add(author.getId());
+        Set<Long> initialParticipants = Set.of(author.getId());
 
         ChatRoom chatRoom = chatService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
 
