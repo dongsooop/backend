@@ -37,7 +37,7 @@ public class MailTextGeneratorImpl implements MailTextGenerator {
                             margin: 0;
                             font-size: 24px;
                         }
-                        .content {
+                        .content-text {
                             padding: 30px;
                             color: #333333;
                             line-height: 1.6;
@@ -47,6 +47,7 @@ public class MailTextGeneratorImpl implements MailTextGenerator {
                             text-align: center;
                         }
                         .code {
+                            margin-top: 20px;
                             display: inline-block;
                             background-color: #F0F0F0;
                             color: #006DFF;
@@ -82,7 +83,7 @@ public class MailTextGeneratorImpl implements MailTextGenerator {
                         <div class="code-box">
                             <span class="code">{{code}}</span>
                         </div>
-                        <div class="content">
+                        <div class="content-text ">
                             <p>안녕하세요.</p>
                             <p>인증 코드를 가입 화면에 입력하여 본인 인증을 완료해 주세요.</p>
                             <p>만약 요청하지 않으셨다면, 이 메일을 무시하셔도 됩니다.</p>
