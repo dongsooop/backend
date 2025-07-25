@@ -22,7 +22,7 @@ public class MailVerifyController {
     public ResponseEntity<Void> sendVerifyMail(@RequestBody MailSendRequest request) throws MessagingException {
         mailVerifyService.sendMail(request.to());
 
-        return ResponseEntity.ok()
+        return ResponseEntity.noContent()
                 .build();
     }
 
@@ -30,7 +30,7 @@ public class MailVerifyController {
     public ResponseEntity<Void> verifyMail(@RequestBody MailVerifyRequest request) {
         mailVerifyService.validateVerificationCode(request.to(), request.code());
 
-        return ResponseEntity.ok()
+        return ResponseEntity.noContent()
                 .build();
     }
 }
