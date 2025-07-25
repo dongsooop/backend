@@ -3,7 +3,6 @@ package com.dongsoop.dongsoop.mailverify.service;
 import com.dongsoop.dongsoop.mailverify.exception.VerifyMailCodeNotAvailableException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import java.security.SecureRandom;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,7 +17,6 @@ public class MailVerifyServiceImpl implements MailVerifyService {
 
     private static final String SUBJECT = "[동숲] 인증번호 발송";
     private static final String CHAR_POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private static final SecureRandom random = new SecureRandom();
     private static final int CODE_LENGTH = 6;
     private static final int VERIFY_CODE_EXPIRATION_TIME = 300; // 5minute
     private static final String VERIFY_CODE_KEY_PREFIX = "mail-verify:";
@@ -51,7 +49,7 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     private String generateVerificationCode() {
         StringBuilder codeBuilder = new StringBuilder(CODE_LENGTH);
         for (int i = 0; i < CODE_LENGTH; i++) {
-            int index = random.nextInt(CHAR_POOL.length());
+            int index = (int) (Math.random() * CHAR_POOL.length());
             codeBuilder.append(CHAR_POOL.charAt(index));
         }
         return codeBuilder.toString();
