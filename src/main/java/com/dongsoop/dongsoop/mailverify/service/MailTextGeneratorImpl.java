@@ -14,6 +14,7 @@ public class MailTextGeneratorImpl implements MailTextGenerator {
     @Value("${mail.format.path}")
     private String mailFormatPath;
 
+    @Override
     public String generateVerificationText(String code) {
         Path filePath = Paths.get(mailFormatPath);
         try {
