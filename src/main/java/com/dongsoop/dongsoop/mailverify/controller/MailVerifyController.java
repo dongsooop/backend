@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.mailverify.controller;
 
 import com.dongsoop.dongsoop.mailverify.dto.MailSendRequest;
+import com.dongsoop.dongsoop.mailverify.dto.MailVerifyRequest;
 import com.dongsoop.dongsoop.mailverify.service.MailVerifyService;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,14 @@ public class MailVerifyController {
     @PostMapping
     public ResponseEntity<Void> sendVerifyMail(@RequestBody MailSendRequest request) throws MessagingException {
         mailVerifyService.sendMail(request.to());
+
+        return ResponseEntity.ok()
+                .build();
+    }
+
+    @PostMapping("/verify")
+    public ResponseEntity<Void> verifyMail(@RequestBody MailVerifyRequest request) {
+        mailVerifyService.validateVerificationCode(request.to(), request.code());
 
         return ResponseEntity.ok()
                 .build();

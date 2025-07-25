@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.mailverify.service;
 
+import com.dongsoop.dongsoop.mailverify.exception.VerifyMailCodeNotAvailableException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.security.SecureRandom;
@@ -18,6 +19,7 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     private static final SecureRandom random = new SecureRandom();
     private static final int CODE_LENGTH = 6;
     private static final int VERIFY_CODE_EXPIRATION_TIME = 300; // 5minute
+    private static final String VERIFY_CODE_KEY_PREFIX = "mail-verify:";
 
     private final JavaMailSender sender;
 
@@ -29,9 +31,9 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     public void sendMail(String to) throws MessagingException {
         String verifyCode = generateVerificationCode();
 
-        String redisKey = "mail-verify:" + to;
-        redisTemplate.opsForSet()
-                .add(redisKey, verifyCode);
+        String redisKey = VERIFY_CODE_KEY_PREFIX + to;
+        redisTemplate.opsForValue()
+                .set(redisKey, verifyCode);
         redisTemplate.expire(redisKey, Duration.ofSeconds(VERIFY_CODE_EXPIRATION_TIME));
 
         MimeMessage message = sender.createMimeMessage();
@@ -50,5 +52,17 @@ public class MailVerifyServiceImpl implements MailVerifyService {
             codeBuilder.append(CHAR_POOL.charAt(index));
         }
         return codeBuilder.toString();
+    }
+
+    @Override
+    public void validateVerificationCode(String email, String code) {
+        String redisKey = VERIFY_CODE_KEY_PREFIX + email;
+        String storedCode = redisTemplate.opsForValue()
+                .get(redisKey);
+        redisTemplate.delete(redisKey);
+
+        if (storedCode == null || !storedCode.equals(code)) {
+            throw new VerifyMailCodeNotAvailableException();
+        }
     }
 }

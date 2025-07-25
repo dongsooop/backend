@@ -5,4 +5,6 @@ import jakarta.mail.MessagingException;
 public interface MailVerifyService {
 
     void sendMail(String to) throws MessagingException;
+
+    void validateVerificationCode(String email, String code);
 }
