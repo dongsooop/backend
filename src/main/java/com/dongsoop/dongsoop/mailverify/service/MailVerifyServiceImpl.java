@@ -22,7 +22,6 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class MailVerifyServiceImpl implements MailVerifyService {
 
-    private static final ThreadLocal<SecureRandom> secureRandom = ThreadLocal.withInitial(SecureRandom::new);
     private static final String SUBJECT = "[동숲] 인증번호 발송";
     private static final String CHAR_POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int CODE_LENGTH = 6;
@@ -58,9 +57,10 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     }
 
     private String generateVerificationCode() {
+        SecureRandom secureRandom = new SecureRandom();
         StringBuilder codeBuilder = new StringBuilder(CODE_LENGTH);
         for (int i = 0; i < CODE_LENGTH; i++) {
-            int index = secureRandom.get().nextInt(CHAR_POOL.length());
+            int index = secureRandom.nextInt(CHAR_POOL.length());
             codeBuilder.append(CHAR_POOL.charAt(index));
         }
         return codeBuilder.toString();
