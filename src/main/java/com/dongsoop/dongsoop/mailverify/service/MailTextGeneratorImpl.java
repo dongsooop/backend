@@ -34,12 +34,6 @@ public class MailTextGeneratorImpl implements MailTextGenerator {
                 .toAbsolutePath()
                 .normalize();
 
-        // .. 및 /, \ 문자가 포함되어 있으면 불필요한 경로 탐색을 방지하기 위해 예외를 발생시킵니다.
-        if (mailFormatFileName.contains("..") || mailFormatFileName.contains("/") || mailFormatFileName.contains(
-                "\\")) {
-            throw new MailSendingFormatFileCannotReadException();
-        }
-
         Path filePath = basePath.resolve(mailFormatFileName)
                 .normalize();
 
