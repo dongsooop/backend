@@ -25,7 +25,7 @@ public class MailTextGeneratorImpl implements MailTextGenerator {
             String staticForm = Files.readString(filePath);
             return staticForm.replace("{{code}}", code);
         } catch (IOException exception) {
-            throw new MailSendingFormatFileCannotReadException(exception, filePath.toString());
+            throw new MailSendingFormatFileCannotReadException(exception);
         }
     }
 
@@ -37,7 +37,7 @@ public class MailTextGeneratorImpl implements MailTextGenerator {
                 .normalize();
 
         if (!filePath.startsWith(basePath)) {
-            throw new MailSendingFormatFileCannotReadException(filePath.toString());
+            throw new MailSendingFormatFileCannotReadException();
         }
 
         return filePath;

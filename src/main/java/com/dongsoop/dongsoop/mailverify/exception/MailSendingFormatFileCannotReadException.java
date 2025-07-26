@@ -6,16 +6,16 @@ import org.springframework.http.HttpStatus;
 
 public class MailSendingFormatFileCannotReadException extends CustomException {
 
-    public MailSendingFormatFileCannotReadException(String filePath) {
+    public MailSendingFormatFileCannotReadException() {
         super(
-                "메일 형식을 읽을 수 없습니다: " + filePath,
+                "메일 형식을 읽을 수 없습니다.",
                 HttpStatus.INTERNAL_SERVER_ERROR
         );
     }
 
-    public MailSendingFormatFileCannotReadException(IOException exception, String filePath) {
+    public MailSendingFormatFileCannotReadException(IOException exception) {
         super(
-                "메일 형식을 읽을 수 없습니다: " + filePath + "\n" + exception.getMessage(),
+                "메일 형식을 읽을 수 없습니다: " + exception.getMessage(),
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 exception
         );
