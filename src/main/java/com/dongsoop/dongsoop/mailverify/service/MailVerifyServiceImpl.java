@@ -1,9 +1,11 @@
 package com.dongsoop.dongsoop.mailverify.service;
 
+import com.dongsoop.dongsoop.mailverify.exception.UsingAllMailVerifyOpportunityException;
 import com.dongsoop.dongsoop.mailverify.exception.VerifyMailCodeNotAvailableException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.time.Duration;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -33,8 +35,8 @@ public class MailVerifyServiceImpl implements MailVerifyService {
         String verifyCode = generateVerificationCode();
 
         String redisKey = VERIFY_CODE_KEY_PREFIX + to;
-        redisTemplate.opsForValue()
-                .set(redisKey, verifyCode);
+        redisTemplate.opsForHash()
+                .putAll(redisKey, Map.of("code", verifyCode, "opportunity", 3));
         redisTemplate.expire(redisKey, Duration.ofSeconds(VERIFY_CODE_EXPIRATION_TIME));
 
         MimeMessage message = sender.createMimeMessage();
@@ -58,12 +60,31 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     @Override
     public void validateVerificationCode(String email, String code) {
         String redisKey = VERIFY_CODE_KEY_PREFIX + email;
-        String storedCode = redisTemplate.opsForValue()
-                .get(redisKey);
-        redisTemplate.delete(redisKey);
 
+        Integer storedOpportunity = getStoredOpportunity(redisKey);
+        if (storedOpportunity == null || storedOpportunity <= 0) {
+            throw new UsingAllMailVerifyOpportunityException();
+        }
+
+        String storedCode = getStoredVerifyCode(redisKey);
         if (storedCode == null || !storedCode.equals(code)) {
             throw new VerifyMailCodeNotAvailableException();
         }
+
+        if (storedOpportunity == 1) {
+            redisTemplate.delete(redisKey);
+        }
+    }
+
+    private Integer getStoredOpportunity(String redisKey) {
+        Object storedOpportunityObject = redisTemplate.opsForHash()
+                .get(redisKey, "opportunity");
+        return (Integer) storedOpportunityObject;
+    }
+
+    private String getStoredVerifyCode(String redisKey) {
+        Object storedVerifyCodeObject = redisTemplate.opsForHash()
+                .get(redisKey, "code");
+        return String.valueOf(storedVerifyCodeObject);
     }
 }
