@@ -79,12 +79,12 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     public void validateVerificationCode(String email, String code) {
         String redisKey = getRedisKeyByHashed(email);
 
-        Integer storedOpportunity = getStoredOpportunity(redisKey);
+        Integer storedOpportunity = getTypedValueFromRedisHash(redisKey, VERIFY_CODE_KEY, Integer.class);
         if (storedOpportunity == null || storedOpportunity <= 0) {
             throw new UsingAllMailVerifyOpportunityException();
         }
 
-        String storedCode = getStoredVerifyCode(redisKey);
+        String storedCode = getTypedValueFromRedisHash(redisKey, VERIFY_CODE_KEY, String.class);
         if (storedCode == null || !storedCode.equals(code)) {
             redisTemplate.opsForHash()
                     .increment(redisKey, OPPORTUNITY_KEY, -1);
@@ -111,15 +111,6 @@ public class MailVerifyServiceImpl implements MailVerifyService {
         } catch (NoSuchAlgorithmException exception) {
             throw new UnknownEmailEncodeException(exception);
         }
-    }
-
-    private Integer getStoredOpportunity(String redisKey) {
-        return getTypedValueFromRedisHash(redisKey, OPPORTUNITY_KEY, Integer.class);
-
-    }
-
-    private String getStoredVerifyCode(String redisKey) {
-        return getTypedValueFromRedisHash(redisKey, VERIFY_CODE_KEY, String.class);
     }
 
     private <T> T getTypedValueFromRedisHash(String redisKey, String hashKey, Class<T> type) {
