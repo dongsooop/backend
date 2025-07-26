@@ -37,7 +37,7 @@ public class MailTextGeneratorImpl implements MailTextGenerator {
         Path filePath = basePath.resolve(mailFormatFileName)
                 .normalize();
 
-        if (!filePath.startsWith(basePath)) {
+        if (!filePath.startsWith(basePath) || !Files.exists(filePath) || !filePath.toString().endsWith(".html")) {
             throw new MailSendingFormatFileCannotReadException();
         }
 
