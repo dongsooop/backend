@@ -84,21 +84,21 @@ public class MailVerifyServiceImpl implements MailVerifyService {
         Object storedOpportunityObject = redisTemplate.opsForHash()
                 .get(redisKey, OPPORTUNITY_KEY);
 
-        if (storedOpportunityObject == null) {
-            return null;
+        if (storedOpportunityObject instanceof Integer) {
+            return (Integer) storedOpportunityObject;
         }
 
-        return (Integer) storedOpportunityObject;
+        return null;
     }
 
     private String getStoredVerifyCode(String redisKey) {
         Object storedVerifyCodeObject = redisTemplate.opsForHash()
                 .get(redisKey, VERIFY_CODE_KEY);
 
-        if (storedVerifyCodeObject == null) {
-            return null;
+        if (storedVerifyCodeObject instanceof String) {
+            return String.valueOf(storedVerifyCodeObject);
         }
 
-        return String.valueOf(storedVerifyCodeObject);
+        return null;
     }
 }
