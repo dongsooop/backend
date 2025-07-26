@@ -22,6 +22,8 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     private static final int CODE_LENGTH = 6;
     private static final int VERIFY_CODE_EXPIRATION_TIME = 300; // 5minute
     private static final String VERIFY_CODE_KEY_PREFIX = "mail-verify:";
+    private static final String VERIFY_CODE_KEY = "code";
+    private static final String OPPORTUNITY_KEY = "opportunity";
 
     private final JavaMailSender sender;
     private final MailTextGenerator mailTextGenerator;
@@ -36,7 +38,7 @@ public class MailVerifyServiceImpl implements MailVerifyService {
 
         String redisKey = VERIFY_CODE_KEY_PREFIX + to;
         redisTemplate.opsForHash()
-                .putAll(redisKey, Map.of("code", verifyCode, "opportunity", 3));
+                .putAll(redisKey, Map.of(VERIFY_CODE_KEY, verifyCode, OPPORTUNITY_KEY, 3));
         redisTemplate.expire(redisKey, Duration.ofSeconds(VERIFY_CODE_EXPIRATION_TIME));
 
         MimeMessage message = sender.createMimeMessage();
@@ -68,23 +70,23 @@ public class MailVerifyServiceImpl implements MailVerifyService {
 
         String storedCode = getStoredVerifyCode(redisKey);
         if (storedCode == null || !storedCode.equals(code)) {
+            redisTemplate.opsForHash()
+                    .increment(redisKey, OPPORTUNITY_KEY, -1);
             throw new VerifyMailCodeNotAvailableException();
         }
 
-        if (storedOpportunity == 1) {
-            redisTemplate.delete(redisKey);
-        }
+        redisTemplate.delete(redisKey);
     }
 
     private Integer getStoredOpportunity(String redisKey) {
         Object storedOpportunityObject = redisTemplate.opsForHash()
-                .get(redisKey, "opportunity");
+                .get(redisKey, OPPORTUNITY_KEY);
         return (Integer) storedOpportunityObject;
     }
 
     private String getStoredVerifyCode(String redisKey) {
         Object storedVerifyCodeObject = redisTemplate.opsForHash()
-                .get(redisKey, "code");
+                .get(redisKey, VERIFY_CODE_KEY);
         return String.valueOf(storedVerifyCodeObject);
     }
 }
