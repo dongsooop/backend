@@ -22,6 +22,7 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     private static final String SUBJECT = "[동숲] 인증번호 발송";
     private static final String CHAR_POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int CODE_LENGTH = 6;
+    private static final int DEFAULT_OPPORTUNITY_COUNT = 3;
     private static final int VERIFY_CODE_EXPIRATION_TIME = 300; // 5minute
     private static final String VERIFY_CODE_KEY_PREFIX = "mail-verify:";
     private static final String VERIFY_CODE_KEY = "code";
@@ -40,7 +41,7 @@ public class MailVerifyServiceImpl implements MailVerifyService {
 
         String redisKey = VERIFY_CODE_KEY_PREFIX + to;
         redisTemplate.opsForHash()
-                .putAll(redisKey, Map.of(VERIFY_CODE_KEY, verifyCode, OPPORTUNITY_KEY, 3));
+                .putAll(redisKey, Map.of(VERIFY_CODE_KEY, verifyCode, OPPORTUNITY_KEY, DEFAULT_OPPORTUNITY_COUNT));
         redisTemplate.expire(redisKey, Duration.ofSeconds(VERIFY_CODE_EXPIRATION_TIME));
 
         MimeMessage message = sender.createMimeMessage();
