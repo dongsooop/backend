@@ -27,7 +27,7 @@ public class MailVerifyServiceImpl implements MailVerifyService {
 
     private final JavaMailSender sender;
     private final MailTextGenerator mailTextGenerator;
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Value("${mail.sender}")
     private String senderEmail;
@@ -81,12 +81,22 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     private Integer getStoredOpportunity(String redisKey) {
         Object storedOpportunityObject = redisTemplate.opsForHash()
                 .get(redisKey, OPPORTUNITY_KEY);
+
+        if (storedOpportunityObject == null) {
+            return null;
+        }
+
         return (Integer) storedOpportunityObject;
     }
 
     private String getStoredVerifyCode(String redisKey) {
         Object storedVerifyCodeObject = redisTemplate.opsForHash()
                 .get(redisKey, VERIFY_CODE_KEY);
+
+        if (storedVerifyCodeObject == null) {
+            return null;
+        }
+
         return String.valueOf(storedVerifyCodeObject);
     }
 }
