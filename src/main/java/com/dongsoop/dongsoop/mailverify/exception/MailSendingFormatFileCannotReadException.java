@@ -8,14 +8,14 @@ public class MailSendingFormatFileCannotReadException extends CustomException {
 
     public MailSendingFormatFileCannotReadException() {
         super(
-                "메일 형식을 읽을 수 없습니다.",
+                "인증 메일 포맷 파일의 경로를 읽을 수 없습니다.",
                 HttpStatus.INTERNAL_SERVER_ERROR
         );
     }
 
     public MailSendingFormatFileCannotReadException(IOException exception) {
         super(
-                "메일 형식을 읽을 수 없습니다: " + exception.getMessage(),
+                "인증 메일 포맷 파일의 경로를 읽을 수 없습니다: " + exception.getMessage(),
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 exception
         );
