@@ -40,26 +40,26 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     private String senderEmail;
 
     @Override
-    public void sendMail(String to) {
+    public void sendMail(String userEmail) {
         String verifyCode = generateVerificationCode();
 
-        String redisKey = getRedisKeyByHashed(to);
+        String redisKey = getRedisKeyByHashed(userEmail);
         redisTemplate.opsForHash()
                 .putAll(redisKey, Map.of(VERIFY_CODE_KEY, verifyCode, OPPORTUNITY_KEY, DEFAULT_OPPORTUNITY_COUNT));
         redisTemplate.expire(redisKey, Duration.ofSeconds(VERIFY_CODE_EXPIRATION_TIME));
 
         try {
-            sendMessage(to, verifyCode);
+            sendMessage(userEmail, verifyCode);
         } catch (MessagingException exception) {
             throw new UnknownMailMessagingException(exception);
         }
     }
 
-    private void sendMessage(String to, String verifyCode) throws MessagingException {
+    private void sendMessage(String userEmail, String verifyCode) throws MessagingException {
         MimeMessage message = sender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
         helper.setFrom(senderEmail); // 발송자 이메일
-        helper.setTo(to);
+        helper.setTo(userEmail);
         helper.setSubject(SUBJECT);
         helper.setText(mailTextGenerator.generateVerificationText(verifyCode), true);
         sender.send(message);
@@ -94,10 +94,10 @@ public class MailVerifyServiceImpl implements MailVerifyService {
         redisTemplate.delete(redisKey);
     }
 
-    private String getRedisKeyByHashed(String email) {
+    private String getRedisKeyByHashed(String userEmail) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(email.getBytes(StandardCharsets.UTF_8));
+            byte[] hash = digest.digest(userEmail.getBytes(StandardCharsets.UTF_8));
             StringBuilder hexString = new StringBuilder();
             for (byte b : hash) {
                 String hex = Integer.toHexString(0xff & b);

@@ -20,7 +20,7 @@ public class MailVerifyController {
 
     @PostMapping("/send")
     public ResponseEntity<Void> sendVerifyMail(@RequestBody @Valid MailSendRequest request) {
-        mailVerifyService.sendMail(request.to());
+        mailVerifyService.sendMail(request.userEmail());
 
         return ResponseEntity.noContent()
                 .build();
@@ -28,7 +28,7 @@ public class MailVerifyController {
 
     @PostMapping
     public ResponseEntity<Void> verifyMail(@RequestBody @Valid MailVerifyRequest request) {
-        mailVerifyService.validateVerificationCode(request.to(), request.code());
+        mailVerifyService.validateVerificationCode(request.userEmail(), request.code());
 
         return ResponseEntity.noContent()
                 .build();
