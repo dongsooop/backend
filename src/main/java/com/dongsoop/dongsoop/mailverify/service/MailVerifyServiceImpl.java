@@ -10,8 +10,10 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DigestUtils;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -31,6 +33,7 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     private final JavaMailSender sender;
     private final MailTextGenerator mailTextGenerator;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${mail.sender}")
     private String senderEmail;
@@ -39,7 +42,8 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     public void sendMail(String to) throws MessagingException {
         String verifyCode = generateVerificationCode();
 
-        String redisKey = VERIFY_CODE_KEY_PREFIX + to;
+        String redisKey = getRedisKeyByHashed(to);
+        System.out.println(redisKey);
         redisTemplate.opsForHash()
                 .putAll(redisKey, Map.of(VERIFY_CODE_KEY, verifyCode, OPPORTUNITY_KEY, DEFAULT_OPPORTUNITY_COUNT));
         redisTemplate.expire(redisKey, Duration.ofSeconds(VERIFY_CODE_EXPIRATION_TIME));
@@ -64,7 +68,8 @@ public class MailVerifyServiceImpl implements MailVerifyService {
 
     @Override
     public void validateVerificationCode(String email, String code) {
-        String redisKey = VERIFY_CODE_KEY_PREFIX + email;
+        String redisKey = getRedisKeyByHashed(email);
+        System.out.println(redisKey);
 
         Integer storedOpportunity = getStoredOpportunity(redisKey);
         if (storedOpportunity == null || storedOpportunity <= 0) {
@@ -79,6 +84,10 @@ public class MailVerifyServiceImpl implements MailVerifyService {
         }
 
         redisTemplate.delete(redisKey);
+    }
+
+    private String getRedisKeyByHashed(String email) {
+        return VERIFY_CODE_KEY_PREFIX + DigestUtils.sha1DigestAsHex(email);
     }
 
     private Integer getStoredOpportunity(String redisKey) {
