@@ -11,7 +11,9 @@ public class SchoolEmailValidator implements ConstraintValidator<SchoolEmail, St
 
     @Override
     public boolean isValid(String value, ConstraintValidatorContext context) {
-        if (StringUtils.isBlank(value)) { // 여기서 검증하지 않음
+        // null 또는 내용이 비어있는지에 대한 검증은 이 어노테이션에서 수행하지 않음
+        // @NotBlank 어노테이션으로 처리 (역할분리)
+        if (StringUtils.isBlank(value)) {
             return true;
         }
 
