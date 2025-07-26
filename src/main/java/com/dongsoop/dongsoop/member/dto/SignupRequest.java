@@ -1,7 +1,7 @@
 package com.dongsoop.dongsoop.member.dto;
 
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
-import jakarta.validation.constraints.Email;
+import com.dongsoop.dongsoop.email.annotation.SchoolEmail;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -19,7 +19,7 @@ public class SignupRequest {
 
     @NotNull
     @NotBlank(message = "이메일은 필수 입력값입니다.")
-    @Email(message = "이메일 형식이 올바르지 않습니다.")
+    @SchoolEmail
     private String email;
 
     @NotNull
