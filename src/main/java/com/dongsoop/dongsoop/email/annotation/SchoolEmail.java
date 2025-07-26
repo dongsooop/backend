@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
 @Constraint(validatedBy = {SchoolEmailValidator.class})
 public @interface SchoolEmail {
 
-    String message() default "이메일 형식이 올바르지 않습니다.";
+    String message() default "동양미래대학교 이메일 형식(@dongyang.ac.kr)이어야 합니다.";
 
     Class<?>[] groups() default {};
 
