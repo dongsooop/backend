@@ -55,7 +55,7 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     private String generateVerificationCode() {
         StringBuilder codeBuilder = new StringBuilder(CODE_LENGTH);
         for (int i = 0; i < CODE_LENGTH; i++) {
-            int index = secureRandom.nextInt() * CHAR_POOL.length();
+            int index = secureRandom.nextInt(CHAR_POOL.length());
             codeBuilder.append(CHAR_POOL.charAt(index));
         }
         return codeBuilder.toString();
