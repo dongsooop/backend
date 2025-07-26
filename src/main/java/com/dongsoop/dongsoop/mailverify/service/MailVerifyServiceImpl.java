@@ -13,7 +13,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DigestUtils;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -33,7 +32,6 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     private final JavaMailSender sender;
     private final MailTextGenerator mailTextGenerator;
     private final RedisTemplate<String, Object> redisTemplate;
-    private final PasswordEncoder passwordEncoder;
 
     @Value("${mail.sender}")
     private String senderEmail;
@@ -50,7 +48,7 @@ public class MailVerifyServiceImpl implements MailVerifyService {
 
         MimeMessage message = sender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-        helper.setFrom(senderEmail);   // 내 도메인 주소
+        helper.setFrom(senderEmail); // 발송자 이메일
         helper.setTo(to);
         helper.setSubject(SUBJECT);
         helper.setText(mailTextGenerator.generateVerificationText(verifyCode), true);
