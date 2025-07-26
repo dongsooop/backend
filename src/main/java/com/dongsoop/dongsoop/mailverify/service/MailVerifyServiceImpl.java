@@ -79,7 +79,7 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     public void validateVerificationCode(String email, String code) {
         String redisKey = getRedisKeyByHashed(email);
 
-        Integer storedOpportunity = getTypedValueFromRedisHash(redisKey, VERIFY_CODE_KEY, Integer.class);
+        Integer storedOpportunity = getTypedValueFromRedisHash(redisKey, OPPORTUNITY_KEY, Integer.class);
         if (storedOpportunity == null || storedOpportunity <= 0) {
             throw new UsingAllMailVerifyOpportunityException();
         }
