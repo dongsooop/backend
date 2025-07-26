@@ -1,16 +1,19 @@
 package com.dongsoop.dongsoop.mailverify.service;
 
+import com.dongsoop.dongsoop.mailverify.exception.UnknownEmailEncodeException;
 import com.dongsoop.dongsoop.mailverify.exception.UsingAllMailVerifyOpportunityException;
 import com.dongsoop.dongsoop.mailverify.exception.VerifyMailCodeNotAvailableException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.script.DigestUtils;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -83,7 +86,22 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     }
 
     private String getRedisKeyByHashed(String email) {
-        return VERIFY_CODE_KEY_PREFIX + DigestUtils.sha1DigestAsHex(email);
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(email.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+
+            return VERIFY_CODE_KEY_PREFIX + hexString;
+        } catch (NoSuchAlgorithmException exception) {
+            throw new UnknownEmailEncodeException(exception);
+        }
     }
 
     private Integer getStoredOpportunity(String redisKey) {
