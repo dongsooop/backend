@@ -3,7 +3,6 @@ package com.dongsoop.dongsoop.mailverify.controller;
 import com.dongsoop.dongsoop.mailverify.dto.MailSendRequest;
 import com.dongsoop.dongsoop.mailverify.dto.MailVerifyRequest;
 import com.dongsoop.dongsoop.mailverify.service.MailVerifyService;
-import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +19,7 @@ public class MailVerifyController {
     private final MailVerifyService mailVerifyService;
 
     @PostMapping("/send")
-    public ResponseEntity<Void> sendVerifyMail(@RequestBody @Valid MailSendRequest request) throws MessagingException {
+    public ResponseEntity<Void> sendVerifyMail(@RequestBody @Valid MailSendRequest request) {
         mailVerifyService.sendMail(request.to());
 
         return ResponseEntity.noContent()

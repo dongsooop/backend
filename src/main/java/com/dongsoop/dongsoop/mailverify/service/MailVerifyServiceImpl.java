@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.mailverify.service;
 
 import com.dongsoop.dongsoop.mailverify.exception.UnknownEmailEncodeException;
+import com.dongsoop.dongsoop.mailverify.exception.UnknownMailMessagingException;
 import com.dongsoop.dongsoop.mailverify.exception.UsingAllMailVerifyOpportunityException;
 import com.dongsoop.dongsoop.mailverify.exception.VerifyMailCodeNotAvailableException;
 import jakarta.mail.MessagingException;
@@ -39,7 +40,7 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     private String senderEmail;
 
     @Override
-    public void sendMail(String to) throws MessagingException {
+    public void sendMail(String to) {
         String verifyCode = generateVerificationCode();
 
         String redisKey = getRedisKeyByHashed(to);
@@ -47,6 +48,14 @@ public class MailVerifyServiceImpl implements MailVerifyService {
                 .putAll(redisKey, Map.of(VERIFY_CODE_KEY, verifyCode, OPPORTUNITY_KEY, DEFAULT_OPPORTUNITY_COUNT));
         redisTemplate.expire(redisKey, Duration.ofSeconds(VERIFY_CODE_EXPIRATION_TIME));
 
+        try {
+            sendMessage(to, verifyCode);
+        } catch (MessagingException exception) {
+            throw new UnknownMailMessagingException(exception);
+        }
+    }
+
+    private void sendMessage(String to, String verifyCode) throws MessagingException {
         MimeMessage message = sender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
         helper.setFrom(senderEmail); // 발송자 이메일
