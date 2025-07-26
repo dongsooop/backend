@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class MailVerifyServiceImpl implements MailVerifyService {
 
+    private static final SecureRandom secureRandom = new SecureRandom();
     private static final String SUBJECT = "[동숲] 인증번호 발송";
     private static final String CHAR_POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int CODE_LENGTH = 6;
@@ -29,7 +30,6 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     private final JavaMailSender sender;
     private final MailTextGenerator mailTextGenerator;
     private final RedisTemplate<String, Object> redisTemplate;
-    private final SecureRandom secureRandom = new SecureRandom();
 
     @Value("${mail.sender}")
     private String senderEmail;
