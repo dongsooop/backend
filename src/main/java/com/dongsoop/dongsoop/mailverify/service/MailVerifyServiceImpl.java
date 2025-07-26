@@ -106,7 +106,7 @@ public class MailVerifyServiceImpl implements MailVerifyService {
                 .get(redisKey, VERIFY_CODE_KEY);
 
         if (storedVerifyCodeObject instanceof String) {
-            return String.valueOf(storedVerifyCodeObject);
+            return (String) storedVerifyCodeObject;
         }
 
         return null;
