@@ -20,7 +20,7 @@ public class MailTextGeneratorImpl implements MailTextGenerator {
     @Override
     public String generateVerificationText(String code) {
         Path filePath = getMailFormatPath();
-        System.out.println(filePath);
+
         try {
             String staticForm = Files.readString(filePath);
             return staticForm.replace("{{code}}", code);
@@ -37,7 +37,6 @@ public class MailTextGeneratorImpl implements MailTextGenerator {
         Path filePath = basePath.resolve(mailFormatFileName)
                 .normalize();
 
-        System.out.println(filePath);
         if (!filePath.startsWith(basePath) || !Files.exists(filePath) || !filePath.toString().endsWith(".html")) {
             throw new MailSendingFormatFileCannotReadException();
         }
