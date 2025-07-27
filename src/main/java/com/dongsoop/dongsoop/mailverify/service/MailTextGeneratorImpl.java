@@ -20,7 +20,7 @@ public class MailTextGeneratorImpl implements MailTextGenerator {
     @Override
     public String generateVerificationText(String code) {
         Path filePath = getMailFormatPath();
-
+        System.out.println(filePath);
         try {
             String staticForm = Files.readString(filePath);
             return staticForm.replace("{{code}}", code);
