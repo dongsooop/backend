@@ -2,10 +2,9 @@ package com.dongsoop.dongsoop.mailverify.service;
 
 import com.dongsoop.dongsoop.mailverify.exception.MailSendingFormatFileCannotReadException;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -19,28 +18,13 @@ public class MailTextGeneratorImpl implements MailTextGenerator {
 
     @Override
     public String generateVerificationText(String code) {
-        Path filePath = getMailFormatPath();
+        ClassPathResource resource = new ClassPathResource(staticResourceBasePath + mailFormatFileName);
 
         try {
-            String staticForm = Files.readString(filePath);
+            String staticForm = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             return staticForm.replace("{{code}}", code);
         } catch (IOException exception) {
             throw new MailSendingFormatFileCannotReadException(exception);
         }
-    }
-
-    private Path getMailFormatPath() {
-        Path basePath = Paths.get(staticResourceBasePath)
-                .toAbsolutePath()
-                .normalize();
-
-        Path filePath = basePath.resolve(mailFormatFileName)
-                .normalize();
-
-        if (!filePath.startsWith(basePath) || !Files.exists(filePath) || !filePath.toString().endsWith(".html")) {
-            throw new MailSendingFormatFileCannotReadException();
-        }
-
-        return filePath;
     }
 }
