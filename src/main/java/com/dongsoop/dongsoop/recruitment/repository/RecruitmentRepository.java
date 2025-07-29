@@ -45,6 +45,7 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
                 LEFT JOIN project_board_department pd ON p.id = pd.project_board_id
                 LEFT JOIN department d ON pd.department_id = d.id
                 WHERE pa.member_id = :memberId
+                    AND NOT p.is_deleted
                 GROUP BY p.id, pa.apply_time)
             
                 UNION ALL
@@ -73,6 +74,7 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
                 LEFT JOIN study_board_department sd ON s.id = sd.study_board_id
                 LEFT JOIN department d ON sd.department_id = d.id
                 WHERE sa.member_id = :memberId
+                    AND NOT s.is_deleted
                 GROUP BY s.id, sa.apply_time)
             
                 UNION ALL
@@ -100,6 +102,7 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
                 LEFT JOIN tutoring_apply ta ON t.id = ta.tutoring_board_id
                 LEFT JOIN department d ON t.department_id = d.id
                 WHERE ta.member_id = :memberId
+                    AND NOT t.is_deleted
                 GROUP BY t.id, d.name, ta.apply_time)
             ) AS combined_results
             ORDER BY combined_results.applyTime DESC
@@ -144,6 +147,7 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
                 LEFT JOIN project_board_department pd ON p.id = pd.project_board_id
                 LEFT JOIN department d ON pd.department_id = d.id
                 WHERE p.author = :memberId
+                    AND NOT p.is_deleted
                 GROUP BY p.id)
             
                 UNION ALL
@@ -170,6 +174,7 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
                 LEFT JOIN study_board_department sd ON s.id = sd.study_board_id
                 LEFT JOIN department d ON sd.department_id = d.id
                 WHERE s.author = :memberId
+                    AND NOT s.is_deleted
                 GROUP BY s.id)
             
                 UNION ALL
@@ -195,6 +200,7 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
                 FROM tutoring_board t
                 LEFT JOIN department d ON t.department_id = d.id
                 WHERE t.author = :memberId
+                    AND NOT t.is_deleted
                 GROUP BY t.id, d.name)
             ) AS combined_results
             ORDER BY combined_results.createdAt DESC
