@@ -8,24 +8,29 @@ import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class NoticeParser {
 
-    private static final String TD_SUBJECT_SELECTOR = ".td-subject";
-
-    private static final Pattern DEPARTMENT_NOTICE_LINK_PATTERN = Pattern.compile(
-            "^/combBbs/dmu/\\d+/\\d+/(\\d+)/view.do$");
-    private static final Pattern UNIVERSITY_NOTICE_LINK_PATTERN = Pattern.compile(
-            "^/bbs/dmu/\\d+/(\\d+)/artclView.do\\?layout=unknown$");
+    private final String TD_SUBJECT_SELECTOR;
+    private final Pattern DEPARTMENT_NOTICE_LINK_PATTERN;
+    private final Pattern UNIVERSITY_NOTICE_LINK_PATTERN;
     private final NoticeLinkParser noticeLinkParser;
+
+    public NoticeParser(NoticeLinkParser noticeLinkParser, @Value("${parser.link.layout-header}") String layoutHeader) {
+        this.noticeLinkParser = noticeLinkParser;
+        this.TD_SUBJECT_SELECTOR = ".td-subject";
+        this.DEPARTMENT_NOTICE_LINK_PATTERN = Pattern.compile(
+                "^/combBbs/dmu/\\d+/\\d+/(\\d+)/view.do\\" + layoutHeader + "$");
+        this.UNIVERSITY_NOTICE_LINK_PATTERN = Pattern.compile(
+                "^/bbs/dmu/\\d+/(\\d+)/artclView.do\\" + layoutHeader + "$");
+    }
 
     public NoticeDetails parse(Element row) {
         if (!isNoticeRow(row)) {
