@@ -50,7 +50,7 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
         ProjectBoard projectBoardToSave = transformToProjectBoard(request);
         List<Department> departmentList = getDepartmentReferenceList(request.departmentTypeList());
 
-        ProjectBoard projectBoard = projectBoardRepository.save(projectBoardToSave);
+        ProjectBoard projectBoard = createAndLinkChatRoom(projectBoardToSave);
         List<ProjectBoardDepartment> projectBoardDepartmentList = departmentList.stream()
                 .map(department -> {
                     ProjectBoardDepartmentId projectBoardDepartmentId = new ProjectBoardDepartmentId(projectBoard,
@@ -61,12 +61,10 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
 
         projectBoardDepartmentRepository.saveAll(projectBoardDepartmentList);
 
-        createAndLinkChatRoom(projectBoard);
-
         return projectBoard;
     }
 
-    private void createAndLinkChatRoom(ProjectBoard projectBoard) {
+    private ProjectBoard createAndLinkChatRoom(ProjectBoard projectBoard) {
         Member author = projectBoard.getAuthor();
         String chatRoomTitle = String.format("[프로젝트] %s", projectBoard.getTitle());
 
@@ -75,7 +73,7 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
         ChatRoom chatRoom = chatService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
 
         projectBoard.assignChatRoom(chatRoom.getRoomId());
-        projectBoardRepository.save(projectBoard);
+        return projectBoardRepository.save(projectBoard);
     }
 
     public List<RecruitmentOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType,

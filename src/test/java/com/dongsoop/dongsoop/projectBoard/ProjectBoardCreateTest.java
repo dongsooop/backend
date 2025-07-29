@@ -5,6 +5,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.dongsoop.dongsoop.chat.entity.ChatRoom;
+import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
@@ -54,6 +56,9 @@ class ProjectBoardCreateTest {
     @Mock
     private ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
 
+    @Mock
+    private ChatService chatService;
+
     private CreateProjectBoardRequest request;
 
     @BeforeEach
@@ -81,6 +86,12 @@ class ProjectBoardCreateTest {
                                 .id(1L)
                                 .build());
 
+        when(chatService.createGroupChatRoom(any(), any(), any()))
+                .thenReturn(
+                        ChatRoom.builder()
+                                .roomId("")
+                                .build());
+
         when(projectBoardRepository.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -94,13 +105,13 @@ class ProjectBoardCreateTest {
         projectBoardService.create(this.request);
 
         // then
-        ArgumentCaptor<ProjectBoard> captorprojectBoard = ArgumentCaptor.forClass(ProjectBoard.class);
+        ArgumentCaptor<ProjectBoard> captorProjectBoard = ArgumentCaptor.forClass(ProjectBoard.class);
         ArgumentCaptor<List<ProjectBoardDepartment>> captorDepartment = ArgumentCaptor.forClass(List.class);
 
-        verify(projectBoardRepository).save(captorprojectBoard.capture());
+        verify(projectBoardRepository).save(captorProjectBoard.capture());
         verify(projectBoardDepartmentRepository).saveAll(captorDepartment.capture());
 
-        ProjectBoard board = captorprojectBoard.getValue();
+        ProjectBoard board = captorProjectBoard.getValue();
         List<ProjectBoardDepartment> projectBoardDepartmentList = captorDepartment.getValue();
 
         ProjectBoard compareBoard = ProjectBoard.builder()
