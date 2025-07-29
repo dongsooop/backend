@@ -50,7 +50,7 @@ public class StudyBoardServiceImpl implements StudyBoardService {
         StudyBoard studyBoardToSave = transformToStudyBoard(request);
         List<Department> departmentList = getDepartmentReferenceList(request.departmentTypeList());
 
-        StudyBoard studyBoard = studyBoardRepository.save(studyBoardToSave);
+        StudyBoard studyBoard = createAndLinkChatRoom(studyBoardToSave);
         List<StudyBoardDepartment> studyBoardDepartmentList = departmentList.stream()
                 .map(department -> {
                     StudyBoardDepartmentId studyBoardDepartmentId = new StudyBoardDepartmentId(studyBoard, department);
@@ -60,12 +60,10 @@ public class StudyBoardServiceImpl implements StudyBoardService {
 
         studyBoardDepartmentRepository.saveAll(studyBoardDepartmentList);
 
-        createAndLinkChatRoom(studyBoard);
-
         return studyBoard;
     }
 
-    private void createAndLinkChatRoom(StudyBoard studyBoard) {
+    private StudyBoard createAndLinkChatRoom(StudyBoard studyBoard) {
         Member author = studyBoard.getAuthor();
         String chatRoomTitle = String.format("[스터디] %s", studyBoard.getTitle());
 
@@ -74,7 +72,7 @@ public class StudyBoardServiceImpl implements StudyBoardService {
         ChatRoom chatRoom = chatService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
 
         studyBoard.assignChatRoom(chatRoom.getRoomId());
-        studyBoardRepository.save(studyBoard);
+        return studyBoardRepository.save(studyBoard);
     }
 
     public List<RecruitmentOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType, Pageable pageable) {

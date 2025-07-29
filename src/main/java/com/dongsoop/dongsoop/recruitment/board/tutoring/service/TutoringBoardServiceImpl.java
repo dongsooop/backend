@@ -53,14 +53,10 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
     @Transactional
     public TutoringBoard create(CreateTutoringBoardRequest request) {
         TutoringBoard tutoringBoard = transformToTutoringBoard(request);
-        TutoringBoard savedBoard = tutoringBoardRepository.save(tutoringBoard);
-
-        createAndLinkChatRoom(savedBoard);
-
-        return savedBoard;
+        return createAndLinkChatRoom(tutoringBoard);
     }
 
-    private void createAndLinkChatRoom(TutoringBoard tutoringBoard) {
+    private TutoringBoard createAndLinkChatRoom(TutoringBoard tutoringBoard) {
         Member author = tutoringBoard.getAuthor();
         String chatRoomTitle = String.format("[튜터링] %s", tutoringBoard.getTitle());
 
@@ -69,7 +65,7 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
         ChatRoom chatRoom = chatService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
 
         tutoringBoard.assignChatRoom(chatRoom.getRoomId());
-        tutoringBoardRepository.save(tutoringBoard);
+        return tutoringBoardRepository.save(tutoringBoard);
     }
 
     public RecruitmentDetails getBoardDetailsById(Long boardId) {

@@ -5,6 +5,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.dongsoop.dongsoop.chat.entity.ChatRoom;
+import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
@@ -46,6 +48,9 @@ class TutoringBoardCreateTest {
     @Mock
     private DepartmentRepository departmentRepository;
 
+    @Mock
+    private ChatService chatService;
+
     private CreateTutoringBoardRequest request;
 
     @BeforeEach
@@ -67,6 +72,12 @@ class TutoringBoardCreateTest {
                 .thenReturn(
                         Member.builder()
                                 .id(1L)
+                                .build());
+
+        when(chatService.createGroupChatRoom(any(), any(), any()))
+                .thenReturn(
+                        ChatRoom.builder()
+                                .roomId("")
                                 .build());
 
         when(tutoringBoardRepository.save(any()))
