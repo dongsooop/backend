@@ -37,6 +37,11 @@
         </encoder>
     </appender>
 
+    <!-- 파일 저장 비동기 처리 설정 -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE"/>
+    </appender>
+
     <logger name="com.github.napstr.logback" level="DEBUG"/>
 
     <!-- 루트 로거 설정 -->
