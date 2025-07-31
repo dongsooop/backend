@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.notice.service;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
 import com.dongsoop.dongsoop.notice.dto.CrawledNotice;
+import com.dongsoop.dongsoop.notice.dto.NoticeRecentIdByDepartment;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
 import com.dongsoop.dongsoop.notice.repository.NoticeDetailsRepository;
@@ -17,6 +18,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,7 +49,8 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
     public void scheduled() {
         log.info("notice crawling scheduler started");
         // 학과별 최신 공지 번호(가장 높은 번호) 가져오기
-        Map<Department, Long> noticeRecentIdMap = noticeRepository.findRecentIdGroupByType();
+        List<NoticeRecentIdByDepartment> noticeRecentIdByDepartmentList = noticeRepository.findRecentIdGroupByType();
+        Map<Department, Long> noticeRecentIdMap = transformNoticeRecentIdListToMap(noticeRecentIdByDepartmentList);
 
         // 학과 전체 가져오기
         List<Department> departmentList = departmentRepository.findAll();
@@ -139,6 +142,21 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
             executor.shutdownNow();
             Thread.currentThread().interrupt();
         }
+    }
+
+    /**
+     * 학과별 최신 공지 ID List를 Map으로 변환
+     *
+     * @param noticeRecentIdByDepartmentList [학과, 최신 공지 ID] 목록
+     * @return { 학과: 최신 공지 ID } 구조 반환
+     */
+    private Map<Department, Long> transformNoticeRecentIdListToMap(
+            List<NoticeRecentIdByDepartment> noticeRecentIdByDepartmentList) {
+        return noticeRecentIdByDepartmentList.stream()
+                .collect(Collectors.toMap(
+                        NoticeRecentIdByDepartment::getDepartment,
+                        NoticeRecentIdByDepartment::getRecentId
+                ));
     }
 
     /**
