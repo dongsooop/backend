@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -28,6 +29,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class NoticeSchedulerImpl implements NoticeScheduler {
 
@@ -40,6 +42,7 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
 
     @Scheduled(cron = "0 0 10,14,18 * * *", zone = "Asia/Seoul")
     public void scheduled() {
+        log.info("notice crawling scheduler started");
         // 학과별 최신 공지 번호(가장 높은 번호) 가져오기
         List<NoticeMaxIdByType> noticeMaxIdList = noticeRepository.findMaxIdGroupByType();
         Map<Department, Long> noticeMaxIdMap = transformNoticeMaxIdListToMap(noticeMaxIdList);
@@ -56,6 +59,7 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
 
         noticeDetailsRepository.saveAll(noticeDetailsSet);
         noticeRepository.saveAll(noticeList);
+        log.info("notice crawling scheduler ended");
     }
 
     private void updateNotices(Department department, Map<Department, Long> noticeMaxIdMap, List<Notice> noticeList,
