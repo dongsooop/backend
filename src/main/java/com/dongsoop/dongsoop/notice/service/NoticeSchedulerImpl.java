@@ -35,6 +35,15 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
     @Value("${notice.thread.count}")
     private int threadCount;
 
+    @Value("${notice.crawl.timeout}")
+    private int crawlTimeout;
+
+    @Value("${notice.terminate.force-time}")
+    private int terminateForceTimeout;
+
+    @Value("${notice.terminate.grace-time}")
+    private int terminateGraceTimeout;
+
     public void scheduled() {
         log.info("notice crawling scheduler started");
         // 학과별 최신 공지 번호(가장 높은 번호) 가져오기
@@ -75,7 +84,7 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
                     futures.toArray(new CompletableFuture[0])
             );
 
-            allFutures.get(10, TimeUnit.SECONDS);
+            allFutures.get(crawlTimeout, TimeUnit.SECONDS);
             saveResults(noticeDetailSet, noticeSet, departmentList.size());
         } catch (InterruptedException exception) {
             log.error("Notice crawling interrupted", exception);
@@ -118,9 +127,9 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
         executor.shutdown();
         try {
             // 30초 후에도 종료되지 않으면 강제 종료
-            if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+            if (!executor.awaitTermination(terminateGraceTimeout, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
-                if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+                if (!executor.awaitTermination(terminateForceTimeout, TimeUnit.SECONDS)) {
                     log.error("Executor did not terminate gracefully");
                 }
             }
