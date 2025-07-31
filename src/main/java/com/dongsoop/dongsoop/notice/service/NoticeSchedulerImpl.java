@@ -76,6 +76,8 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
         // 최신화
         noticeDetailsSet.addAll(newNoticeDetailsSet);
         noticeList.addAll(newNoticeList);
+        log.info("Updated notices for department: {}, new count: {}", department.getId().name(),
+                newNoticeDetailsSet.size());
     }
 
     private Set<NoticeDetails> getNewNoticeDetailsSet(Long maxId, Department department) {
