@@ -3,13 +3,11 @@ package com.dongsoop.dongsoop.notice.service;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
 import com.dongsoop.dongsoop.notice.dto.CrawledNotice;
-import com.dongsoop.dongsoop.notice.dto.NoticeMaxIdByType;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
 import com.dongsoop.dongsoop.notice.repository.NoticeDetailsRepository;
 import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
 import com.dongsoop.dongsoop.notice.util.NoticeCrawl;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,14 +38,13 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
     public void scheduled() {
         log.info("notice crawling scheduler started");
         // 학과별 최신 공지 번호(가장 높은 번호) 가져오기
-        List<NoticeMaxIdByType> noticeMaxIdList = noticeRepository.findMaxIdGroupByType();
-        Map<Department, Long> noticeMaxIdMap = transformNoticeMaxIdListToMap(noticeMaxIdList);
+        Map<Department, Long> noticeRecentIdMap = noticeRepository.findRecentIdGroupByType();
 
         // 학과 전체 가져오기
         List<Department> departmentList = departmentRepository.findAll();
 
         // 크롤링 멀티 스레딩 처리
-        multiThreading(departmentList, noticeMaxIdMap);
+        multiThreading(departmentList, noticeRecentIdMap);
 
         log.info("notice crawling scheduler ended");
     }
@@ -133,20 +130,6 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
             executor.shutdownNow();
             Thread.currentThread().interrupt();
         }
-    }
-
-    /**
-     * 학과별 최신 공지사항 ID 목록을 Map 형태로 변환
-     *
-     * @param noticeMaxIdList
-     * @return
-     */
-    private Map<Department, Long> transformNoticeMaxIdListToMap(List<NoticeMaxIdByType> noticeMaxIdList) {
-        Map<Department, Long> noticeMaxIdMap = new HashMap<>();
-
-        // { type: maxId } 형태로 변환
-        noticeMaxIdList.forEach(noticeMaxId -> noticeMaxIdMap.put(noticeMaxId.getDepartment(), noticeMaxId.getMaxId()));
-        return noticeMaxIdMap;
     }
 
     /**
