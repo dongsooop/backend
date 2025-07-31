@@ -57,7 +57,7 @@ public class NoticeCrawl {
     /**
      * 학과 공지사항을 파싱하여 최신 공지 목록을 반환
      *
-     * @param department
+     * @param department       파싱하려는 학과
      * @param recentlyNoticeId DB에 저장된 최신 공지 ID
      * @return 공지 세부 정보가 담긴 목록 반환
      * @throws NoticeParsingException 공지 파싱 중 예외 발생 시
