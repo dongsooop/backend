@@ -5,7 +5,6 @@ import com.dongsoop.dongsoop.notice.dto.CrawledNotice;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
 import com.dongsoop.dongsoop.notice.exception.NoticeParsingException;
-import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 import java.util.Objects;
@@ -61,7 +60,7 @@ public class NoticeCrawl {
      * @param department
      * @param recentlyNoticeId DB에 저장된 최신 공지 ID
      * @return 공지 세부 정보가 담긴 목록 반환
-     * @throws IOException
+     * @throws NoticeParsingException 공지 파싱 중 예외 발생 시
      */
     private Set<NoticeDetails> parseNewNotice(Department department, Long recentlyNoticeId) {
         try {
