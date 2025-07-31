@@ -9,19 +9,19 @@ import org.springframework.stereotype.Component;
 @Component
 public class NoticeLinkParser {
 
-    @Value("${parser.link.layout-header}")
+    @Value("${notice.link.layout-header}")
     private String layoutHeader;
 
-    @Value("${parser.link.department.notice-regex}")
+    @Value("${notice.link.department.notice-regex}")
     private String departmentNoticeRegex;
 
-    @Value("${parser.link.department.url-prefix}")
+    @Value("${notice.link.department.url-prefix}")
     private String departmentUrlPrefix;
 
-    @Value("${parser.link.department.url-start}")
+    @Value("${notice.link.department.url-start}")
     private String departmentUrlStart;
 
-    @Value("${parser.link.department.url-suffix}")
+    @Value("${notice.link.department.url-suffix}")
     private String departmentUrlSuffix;
 
     public String parse(String link) {

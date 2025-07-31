@@ -37,6 +37,7 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
     private final NoticeRepository noticeRepository;
     private final NoticeDetailsRepository noticeDetailsRepository;
     private final DepartmentRepository departmentRepository;
+
     @Value("${university.domain}")
     private URL universityUrl;
 
