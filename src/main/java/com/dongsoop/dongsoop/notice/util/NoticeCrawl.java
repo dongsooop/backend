@@ -13,7 +13,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
@@ -29,6 +28,12 @@ public class NoticeCrawl {
 
     @Value("${university.domain}")
     private URL universityUrl;
+
+    @Value("${notice.connect.timeout}")
+    private Integer timeout;
+
+    @Value("${notice.connect.user-agent}")
+    private String userAgent;
 
     /**
      * 학과 공지사항을 크롤링하여 최신 공지 목록을 반환
@@ -62,8 +67,11 @@ public class NoticeCrawl {
         try {
             URL url = new URL(this.universityUrl, department.getNoticeUrl());
 
-            Connection connect = Jsoup.connect(url.toExternalForm());
-            Document document = connect.get();
+            Document document = Jsoup.connect(url.toExternalForm())
+                    .timeout(timeout) // 연결 타임 아웃 설정
+                    .userAgent(userAgent)
+                    .followRedirects(true) // 리다이렉트 시 해당 페이지 크롤링
+                    .get();
 
             Elements rows = document.select("tbody tr");
 
