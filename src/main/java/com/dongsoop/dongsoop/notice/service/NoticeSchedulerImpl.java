@@ -46,6 +46,7 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
     @Value("${notice.terminate.grace-time}")
     private int terminateGraceTimeout;
 
+    @Override
     public void scheduled() {
         log.info("notice crawling scheduler started");
         // 학과별 최신 공지 번호(가장 높은 번호) 가져오기
