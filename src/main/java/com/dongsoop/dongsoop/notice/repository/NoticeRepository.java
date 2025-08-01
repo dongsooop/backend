@@ -2,7 +2,7 @@ package com.dongsoop.dongsoop.notice.repository;
 
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.notice.dto.NoticeListResponse;
-import com.dongsoop.dongsoop.notice.dto.NoticeMaxIdByType;
+import com.dongsoop.dongsoop.notice.dto.NoticeRecentIdByDepartment;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notice.entity.Notice.NoticeKey;
 import java.util.List;
@@ -13,8 +13,13 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface NoticeRepository extends JpaRepository<Notice, NoticeKey> {
 
-    @Query("SELECT n.id.department AS department, MAX(n.id.noticeDetails.id) AS maxId FROM Notice n GROUP BY n.id.department")
-    List<NoticeMaxIdByType> findMaxIdGroupByType();
+    @Query("""
+            SELECT d AS department, COALESCE(MAX(n.id.noticeDetails.id), 0) AS recentId
+            FROM Department d
+            LEFT JOIN Notice n ON n.id.department = d
+            GROUP BY d
+            """)
+    List<NoticeRecentIdByDepartment> findRecentIdGroupByType();
 
     @Query("SELECT n.id.noticeDetails.id AS id,"
             + "n.id.noticeDetails.link AS link,"

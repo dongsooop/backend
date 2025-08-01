@@ -14,7 +14,7 @@ class NoticeLinkParserTest {
     @Autowired
     NoticeLinkParser noticeLinkParser;
 
-    @Value("${parser.link.layout-header}")
+    @Value("${notice.link.layout-header}")
     private String layoutHeader;
 
     @Test

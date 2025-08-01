@@ -23,7 +23,7 @@ public class NoticeParser {
     private final Pattern UNIVERSITY_NOTICE_LINK_PATTERN;
     private final NoticeLinkParser noticeLinkParser;
 
-    public NoticeParser(NoticeLinkParser noticeLinkParser, @Value("${parser.link.layout-header}") String layoutHeader) {
+    public NoticeParser(NoticeLinkParser noticeLinkParser, @Value("${notice.link.layout-header}") String layoutHeader) {
         this.noticeLinkParser = noticeLinkParser;
         this.TD_SUBJECT_SELECTOR = ".td-subject";
         this.DEPARTMENT_NOTICE_LINK_PATTERN = Pattern.compile(
