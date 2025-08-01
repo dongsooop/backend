@@ -23,6 +23,10 @@
     <!-- 디스코드 비동기 처리 설정 (ERROR 레벨 이상만) -->
     <appender name="ASYNC_DISCORD" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="DISCORD"/>
+
+        <!-- 커스텀 인증 에러 필터 -->
+        <filter class="com.dongsoop.dongsoop.common.config.AuthErrorFilter"/>
+
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
             <level>ERROR</level>
         </filter>
