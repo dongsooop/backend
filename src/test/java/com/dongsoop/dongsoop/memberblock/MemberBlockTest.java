@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
@@ -80,8 +79,7 @@ public class MemberBlockTest {
                         """);
 
         mockMvc.perform(request)
-                .andExpect(status().isNoContent())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON));
+                .andExpect(status().isNoContent());
 
         // then
         ArgumentCaptor<MemberBlock> captor = ArgumentCaptor.forClass(MemberBlock.class);
