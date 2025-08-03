@@ -6,6 +6,7 @@ import com.dongsoop.dongsoop.role.entity.RoleType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +23,15 @@ public class MemberBlockController {
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<Void> blocked(@RequestBody MemberBlockRequest request) {
         memberBlockService.blockMember(request);
+
+        return ResponseEntity.noContent()
+                .build();
+    }
+
+    @DeleteMapping
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<Void> unblock(@RequestBody MemberBlockRequest request) {
+        memberBlockService.unblockMember(request);
 
         return ResponseEntity.noContent()
                 .build();
