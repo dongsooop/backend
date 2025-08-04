@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.recruitment.board.project.repository;
 
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.memberblock.annotation.ApplyBlockFilter;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.apply.project.entity.QProjectApply;
 import com.dongsoop.dongsoop.recruitment.board.dto.RecruitmentDetails;
@@ -47,6 +48,7 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
      * @return 모집중인 프로젝트 모집 게시판 목록
      */
     @Override
+    @ApplyBlockFilter
     public List<RecruitmentOverview> findProjectBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
                                                                                       Pageable pageable) {
         return queryFactory
@@ -107,6 +109,7 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
      * @return 프로젝트 모집 게시판 목록
      */
     @Override
+    @ApplyBlockFilter
     public List<RecruitmentOverview> findProjectBoardOverviewsByPage(Pageable pageable) {
         return queryFactory
                 .select(projection.getRecruitmentOverviewExpression())

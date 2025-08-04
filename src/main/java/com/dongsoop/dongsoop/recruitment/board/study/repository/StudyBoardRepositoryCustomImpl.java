@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.recruitment.board.study.repository;
 
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.memberblock.annotation.ApplyBlockFilter;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.apply.study.entity.QStudyApply;
 import com.dongsoop.dongsoop.recruitment.board.dto.RecruitmentDetails;
@@ -48,6 +49,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
      */
 
     @Override
+    @ApplyBlockFilter
     public List<RecruitmentOverview> findStudyBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
                                                                                     Pageable pageable) {
         return queryFactory
@@ -108,6 +110,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
      * @return 스터디 모집 게시판 목록
      */
     @Override
+    @ApplyBlockFilter
     public List<RecruitmentOverview> findStudyBoardOverviewsByPage(Pageable pageable) {
         return queryFactory
                 .select(projection.getRecruitmentOverviewExpression())

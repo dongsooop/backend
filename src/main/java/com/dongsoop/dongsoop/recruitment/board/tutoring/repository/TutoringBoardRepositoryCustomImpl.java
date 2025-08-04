@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.recruitment.board.tutoring.repository;
 
 import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.memberblock.annotation.ApplyBlockFilter;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.entity.QTutoringApply;
 import com.dongsoop.dongsoop.recruitment.board.dto.RecruitmentDetails;
@@ -40,6 +41,7 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
      * @return 모집중인 튜터링 모집 게시판 목록
      */
     @Override
+    @ApplyBlockFilter
     public List<RecruitmentOverview> findTutoringBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
                                                                                        Pageable pageable) {
         return queryFactory.select(projection.getRecruitmentOverviewExpression())
@@ -86,6 +88,7 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
      * @return 튜터링 모집 게시판 목록
      */
     @Override
+    @ApplyBlockFilter
     public List<RecruitmentOverview> findTutoringBoardOverviewsByPage(Pageable pageable) {
         return queryFactory.select(projection.getRecruitmentOverviewExpression())
                 .from(tutoringBoard)
