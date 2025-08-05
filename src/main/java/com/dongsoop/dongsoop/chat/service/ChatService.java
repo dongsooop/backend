@@ -1,14 +1,11 @@
 package com.dongsoop.dongsoop.chat.service;
 
-import com.dongsoop.dongsoop.chat.dto.ChatRoomOverview;
 import com.dongsoop.dongsoop.chat.dto.ReadStatusUpdateRequest;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
 import com.dongsoop.dongsoop.chat.entity.IncrementalSyncResponse;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
-import com.dongsoop.dongsoop.memberblock.constant.BlockType;
-import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -25,7 +22,6 @@ public class ChatService {
     private final ChatParticipantService chatParticipantService;
     private final ReadStatusService readStatusService;
     private final ChatValidator chatValidator;
-    private final MemberBlockRepository memberBlockRepository;
 
     public ChatRoomInitResponse initializeChatRoomForFirstTime(String roomId, Long userId) {
         chatValidator.validateUserForRoom(roomId, userId);
@@ -108,71 +104,8 @@ public class ChatService {
                 chatMessageService);
     }
 
-    public List<ChatRoomOverview> getRoomsForUserId(Long userId) {
-        List<ChatRoom> rooms = chatRoomService.getRoomsForUserId(userId);
-        return rooms.stream()
-                .map(chatRoom -> transformToChatRoomOverview(chatRoom, userId))
-                .toList();
-    }
-
-    /**
-     * ChatRoom -> ChatRoomOverview 변환 과정으로 차단 내역 추가
-     *
-     * @param chatRoom 채팅방 정보
-     * @param userId   요청자 ID
-     * @return
-     */
-    private ChatRoomOverview transformToChatRoomOverview(ChatRoom chatRoom, Long userId) {
-        if (chatRoom.isGroupChat()) {
-            return new ChatRoomOverview(chatRoom, BlockType.NONE);
-        }
-
-        BlockType blockType = getBlockTypeByChatRoom(chatRoom, userId);
-
-        return new ChatRoomOverview(chatRoom, blockType);
-    }
-
-    /**
-     * 채팅방의 차단 상태를 확인하는 메서드
-     *
-     * @param chatRoom
-     * @param userId
-     * @return
-     */
-    private BlockType getBlockTypeByChatRoom(ChatRoom chatRoom, Long userId) {
-        Long partnerId = getPartnerId(chatRoom, userId);
-        if (partnerId == null) {
-            return BlockType.NONE;
-        }
-
-        boolean isBlock = memberBlockRepository.existsByBlockerIdAndBlockedId(userId, partnerId);
-        if (isBlock) {
-            return BlockType.BLOCK;
-        }
-
-        boolean isBlocked = memberBlockRepository.existsByBlockerIdAndBlockedId(partnerId, userId);
-        if (isBlocked) {
-            return BlockType.BLOCKED;
-        }
-
-        return BlockType.NONE;
-    }
-
-    /**
-     * 채팅방 상대방 ID를 가져오는 메서드
-     *
-     * @param chatRoom    채팅방 정보
-     * @param requesterId 요청자 ID
-     * @return
-     */
-    private Long getPartnerId(ChatRoom chatRoom, Long requesterId) {
-        for (Long id : chatRoom.getParticipants()) {
-            if (!id.equals(requesterId)) {
-                return id;
-            }
-        }
-
-        return null;
+    public List<ChatRoom> getRoomsForUserId(Long userId) {
+        return chatRoomService.getRoomsForUserId(userId);
     }
 
     public ChatMessage inviteUserToGroupChat(String roomId, Long inviterId, Long targetUserId) {
