@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -47,6 +48,7 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
     private int terminateGraceTimeout;
 
     @Override
+    @Scheduled(cron = "0 0 10,14,18 * * *", zone = "Asia/Seoul")
     public void scheduled() {
         log.info("notice crawling scheduler started");
         // 학과별 최신 공지 번호(가장 높은 번호) 가져오기
