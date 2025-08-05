@@ -36,6 +36,6 @@ public class MemberBlockId {
 
     @Override
     public int hashCode() {
-        return Objects.hash(blocker.getId(), blockedMember.getId());
+        return Objects.hash(blocker, blockedMember);
     }
 }
