@@ -9,6 +9,7 @@ import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
 import com.dongsoop.dongsoop.notice.repository.NoticeDetailsRepository;
 import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
 import com.dongsoop.dongsoop.notice.util.NoticeCrawl;
+import com.dongsoop.dongsoop.notification.service.NotificationService;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,6 +35,7 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
     private final NoticeRepository noticeRepository;
     private final NoticeDetailsRepository noticeDetailsRepository;
     private final DepartmentRepository departmentRepository;
+    private final NotificationService notificationService;
 
     @Value("${notice.thread.count}")
     private int threadCount;
@@ -122,6 +124,10 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
         CrawledNotice crawledNotice = noticeCrawl.crawlNewNotices(department, recentlyNoticeId);
         noticeSet.addAll(crawledNotice.getNoticeList());
         noticeDetailSet.addAll(crawledNotice.getNoticeDetailSet());
+
+        if (!crawledNotice.getNoticeDetailSet().isEmpty()) {
+            notificationService.sendNotificationByDepartment(department, crawledNotice.getNoticeDetailSet());
+        }
     }
 
     /**
