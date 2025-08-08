@@ -31,7 +31,7 @@ public class MemberDevice {
     @ManyToOne
     private Member member;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String deviceToken;
 
     @Enumerated(EnumType.STRING)
