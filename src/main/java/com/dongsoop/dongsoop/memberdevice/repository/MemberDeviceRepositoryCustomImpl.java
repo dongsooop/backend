@@ -19,6 +19,14 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     private final QMember member = QMember.member;
 
     @Override
+    public List<String> getAllMemberDevice() {
+        return queryFactory.select(memberDevice.deviceToken)
+                .from(memberDevice)
+                .leftJoin(memberDevice.member, member)
+                .fetch();
+    }
+
+    @Override
     public List<String> getMemberDeviceByDepartment(Department department) {
         return queryFactory.select(memberDevice.deviceToken)
                 .from(memberDevice)

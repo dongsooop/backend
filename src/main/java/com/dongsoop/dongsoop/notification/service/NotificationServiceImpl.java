@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.notification.service;
 
 import com.dongsoop.dongsoop.department.entity.Department;
+import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepositoryCustom;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
 import com.dongsoop.dongsoop.notification.exception.NotificationSendException;
@@ -21,8 +22,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public void sendNotificationByDepartment(Department department, Set<NoticeDetails> noticeDetailsSet) {
-        List<String> deviceTokenList = memberDeviceRepositoryCustom.getMemberDeviceByDepartment(
-                department);
+        List<String> deviceTokenList = getDeviceByDepartment(department);
 
         noticeDetailsSet.forEach(noticeDetails -> {
             try {
@@ -33,6 +33,14 @@ public class NotificationServiceImpl implements NotificationService {
                 throw new NotificationSendException(exception);
             }
         });
+    }
+
+    private List<String> getDeviceByDepartment(Department department) {
+        if (department.getId().equals(DepartmentType.DEPT_1001)) {
+            return memberDeviceRepositoryCustom.getAllMemberDevice();
+        }
+
+        return memberDeviceRepositoryCustom.getMemberDeviceByDepartment(department);
     }
 
     @Override
