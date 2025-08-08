@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.notification.service;
 
 import com.dongsoop.dongsoop.notification.exception.NotificationSendException;
+import com.google.api.core.ApiFuture;
 import com.google.firebase.messaging.ApnsConfig;
 import com.google.firebase.messaging.Aps;
 import com.google.firebase.messaging.ApsAlert;
@@ -23,23 +24,6 @@ public class FCMServiceImpl implements FCMService {
     private final FirebaseMessaging firebaseMessaging;
 
     @Override
-    public void sendNotification(String fcmToken, String title, String body) {
-        // iOS용 APNs 설정
-        ApnsConfig apnsConfig = getApnsConfig(title, body);
-
-        Message message = Message.builder()
-                .setToken(fcmToken)
-                .setApnsConfig(apnsConfig)
-                .setNotification(Notification.builder()
-                        .setTitle(title)
-                        .setBody(body)
-                        .build())
-                .build();
-
-        sendMessage(message);
-    }
-
-    @Override
     public void sendNotification(List<String> fcmTokenList, String title, String body) {
         // iOS용 APNs 설정
         ApnsConfig apnsConfig = getApnsConfig(title, body);
@@ -56,7 +40,7 @@ public class FCMServiceImpl implements FCMService {
         sendMessage(message);
     }
 
-    private ApnsConfig getApnsConfig(String title, String body) {
+    public ApnsConfig getApnsConfig(String title, String body) {
         return ApnsConfig.builder()
                 .setAps(Aps.builder()
                         .setAlert(ApsAlert.builder()
@@ -85,6 +69,18 @@ public class FCMServiceImpl implements FCMService {
         } catch (FirebaseMessagingException exception) {
             log.error("Failed to send message: {}", exception.getMessage());
             throw new NotificationSendException(exception);
+        }
+    }
+
+    public void sendMessages(List<Message> messageList) {
+        ApiFuture<BatchResponse> batchResponseApiFuture = firebaseMessaging.sendEachAsync(messageList);
+        if (batchResponseApiFuture.isCancelled()) {
+            log.error("Failed to send messages: {}", batchResponseApiFuture);
+            throw new NotificationSendException();
+        }
+
+        if (batchResponseApiFuture.isDone()) {
+            log.info("Successfully sent messages: {}", batchResponseApiFuture);
         }
     }
 }

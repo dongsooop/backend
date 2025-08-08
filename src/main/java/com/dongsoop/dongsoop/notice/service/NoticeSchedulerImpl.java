@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.notice.service;
 
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
+import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepositoryCustom;
 import com.dongsoop.dongsoop.notice.dto.CrawledNotice;
 import com.dongsoop.dongsoop.notice.dto.NoticeRecentIdByDepartment;
 import com.dongsoop.dongsoop.notice.entity.Notice;
@@ -36,6 +37,7 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
     private final NoticeDetailsRepository noticeDetailsRepository;
     private final DepartmentRepository departmentRepository;
     private final NotificationService notificationService;
+    private final MemberDeviceRepositoryCustom memberDeviceRepositoryCustom;
 
     @Value("${notice.thread.count}")
     private int threadCount;
@@ -94,6 +96,7 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
 
             allFutures.get(crawlTimeout, TimeUnit.SECONDS);
             saveResults(noticeDetailSet, noticeSet, departmentList.size());
+            notificationService.sendNotificationByDepartment(noticeSet);
         } catch (InterruptedException exception) {
             log.error("Notice crawling interrupted", exception);
             Thread.currentThread().interrupt();
@@ -124,10 +127,6 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
         CrawledNotice crawledNotice = noticeCrawl.crawlNewNotices(department, recentlyNoticeId);
         noticeSet.addAll(crawledNotice.getNoticeList());
         noticeDetailSet.addAll(crawledNotice.getNoticeDetailSet());
-
-        if (!crawledNotice.getNoticeDetailSet().isEmpty()) {
-            notificationService.sendNotificationByDepartment(department, crawledNotice.getNoticeDetailSet());
-        }
     }
 
     /**
