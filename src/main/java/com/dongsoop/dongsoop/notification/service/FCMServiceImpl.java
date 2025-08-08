@@ -73,6 +73,7 @@ public class FCMServiceImpl implements FCMService {
             BatchResponse batchResponse = firebaseMessaging.sendEachForMulticast(message);
             log.info("Successfully sent message: {}", batchResponse);
         } catch (FirebaseMessagingException exception) {
+            log.error("Failed to send message: {}", exception.getMessage());
             throw new NotificationSendException(exception);
         }
     }
@@ -82,6 +83,7 @@ public class FCMServiceImpl implements FCMService {
             String response = firebaseMessaging.send(message);
             log.info("Successfully sent message: {}", response);
         } catch (FirebaseMessagingException exception) {
+            log.error("Failed to send message: {}", exception.getMessage());
             throw new NotificationSendException(exception);
         }
     }

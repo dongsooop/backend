@@ -4,8 +4,6 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepositoryCustom;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
-import com.dongsoop.dongsoop.notification.exception.NotificationSendException;
-import com.google.firebase.messaging.FirebaseMessagingException;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -24,15 +22,8 @@ public class NotificationServiceImpl implements NotificationService {
     public void sendNotificationByDepartment(Department department, Set<NoticeDetails> noticeDetailsSet) {
         List<String> deviceTokenList = getDeviceByDepartment(department);
 
-        noticeDetailsSet.forEach(noticeDetails -> {
-            try {
-                fcmService.sendNotification(deviceTokenList, noticeDetails.getTitle(), noticeDetails.getWriter());
-            } catch (FirebaseMessagingException exception) {
-                log.error("Failed to send notification for department: {}, notice: {}",
-                        department.getId().getId(), noticeDetails.getTitle(), exception);
-                throw new NotificationSendException(exception);
-            }
-        });
+        noticeDetailsSet.forEach(noticeDetails ->
+                fcmService.sendNotification(deviceTokenList, noticeDetails.getTitle(), noticeDetails.getWriter()));
     }
 
     private List<String> getDeviceByDepartment(Department department) {
@@ -49,12 +40,6 @@ public class NotificationServiceImpl implements NotificationService {
         List<String> participantsDevice = memberDeviceRepositoryCustom.getMemberDeviceTokenByMemberId(
                 chatroomMemberIdSet);
 
-        try {
-            fcmService.sendNotification(participantsDevice, senderName, message);
-        } catch (FirebaseMessagingException exception) {
-            log.error("Failed to send chat notification for participants: {}, sender: {}, message: {}",
-                    chatroomMemberIdSet, senderName, message, exception);
-            throw new NotificationSendException(exception);
-        }
+        fcmService.sendNotification(participantsDevice, senderName, message);
     }
 }
