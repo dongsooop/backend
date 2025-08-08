@@ -32,7 +32,6 @@ public class FCMService {
                                 .setBody(body)
                                 .build())
                         .setSound("default")
-                        .setBadge(1)
                         .build())
                 .build();
 
@@ -60,7 +59,6 @@ public class FCMService {
                                 .setBody(body)
                                 .build())
                         .setSound("default")
-                        .setBadge(1)
                         .build())
                 .build();
 
