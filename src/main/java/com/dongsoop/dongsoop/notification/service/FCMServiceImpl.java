@@ -25,15 +25,7 @@ public class FCMServiceImpl implements FCMService {
     @Override
     public void sendNotification(String fcmToken, String title, String body) {
         // iOS용 APNs 설정
-        ApnsConfig apnsConfig = ApnsConfig.builder()
-                .setAps(Aps.builder()
-                        .setAlert(ApsAlert.builder()
-                                .setTitle(title)
-                                .setBody(body)
-                                .build())
-                        .setSound("default")
-                        .build())
-                .build();
+        ApnsConfig apnsConfig = getApnsConfig(title, body);
 
         Message message = Message.builder()
                 .setToken(fcmToken)
@@ -50,15 +42,7 @@ public class FCMServiceImpl implements FCMService {
     @Override
     public void sendNotification(List<String> fcmTokenList, String title, String body) {
         // iOS용 APNs 설정
-        ApnsConfig apnsConfig = ApnsConfig.builder()
-                .setAps(Aps.builder()
-                        .setAlert(ApsAlert.builder()
-                                .setTitle(title)
-                                .setBody(body)
-                                .build())
-                        .setSound("default")
-                        .build())
-                .build();
+        ApnsConfig apnsConfig = getApnsConfig(title, body);
 
         MulticastMessage message = MulticastMessage.builder()
                 .addAllTokens(fcmTokenList)
@@ -70,6 +54,18 @@ public class FCMServiceImpl implements FCMService {
                 .build();
 
         sendMessage(message);
+    }
+
+    private ApnsConfig getApnsConfig(String title, String body) {
+        return ApnsConfig.builder()
+                .setAps(Aps.builder()
+                        .setAlert(ApsAlert.builder()
+                                .setTitle(title)
+                                .setBody(body)
+                                .build())
+                        .setSound("default")
+                        .build())
+                .build();
     }
 
     private void sendMessage(MulticastMessage message) {
