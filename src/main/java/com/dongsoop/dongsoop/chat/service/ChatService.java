@@ -75,7 +75,9 @@ public class ChatService {
         ChatRoom room = chatRoomService.updateRoomActivity(roomId);
         String senderName = memberService.getNicknameById(userId);
 
-        notificationService.sendNotificationForChat(room.getParticipants(), senderName, message.getContent());
+        Set<Long> receiver = room.getParticipants();
+        receiver.remove(userId);
+        notificationService.sendNotificationForChat(receiver, senderName, message.getContent());
         return processedMessage;
     }
 
