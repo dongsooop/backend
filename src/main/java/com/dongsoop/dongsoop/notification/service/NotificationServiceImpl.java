@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.notification.service;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepositoryCustom;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
+import com.dongsoop.dongsoop.notification.exception.NotificationSendException;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import java.util.List;
 import java.util.Set;
@@ -26,11 +27,26 @@ public class NotificationServiceImpl implements NotificationService {
         noticeDetailsSet.forEach(noticeDetails -> {
             try {
                 fcmService.sendNotification(deviceTokenList, noticeDetails.getTitle(), noticeDetails.getWriter());
-            } catch (FirebaseMessagingException e) {
+            } catch (FirebaseMessagingException exception) {
                 log.error("Failed to send notification for department: {}, notice: {}",
-                        department.getId().getId(), noticeDetails.getTitle(), e);
-                throw new RuntimeException(e);
+                        department.getId().getId(), noticeDetails.getTitle(), exception);
+                throw new NotificationSendException(exception);
             }
         });
+    }
+
+    @Override
+    public void sendNotificationForChat(Set<Long> chatroomMemberIdSet, String senderName, String message) {
+        // 사용자 id를 통해 FCM 토큰을 가져옴
+        List<String> participantsDevice = memberDeviceRepositoryCustom.getMemberDeviceTokenByMemberId(
+                chatroomMemberIdSet);
+
+        try {
+            fcmService.sendNotification(participantsDevice, senderName, message);
+        } catch (FirebaseMessagingException exception) {
+            log.error("Failed to send chat notification for participants: {}, sender: {}, message: {}",
+                    chatroomMemberIdSet, senderName, message, exception);
+            throw new NotificationSendException(exception);
+        }
     }
 }

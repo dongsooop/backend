@@ -9,4 +9,6 @@ import org.springframework.stereotype.Service;
 public interface NotificationService {
 
     void sendNotificationByDepartment(Department department, Set<NoticeDetails> noticeDetailsSet);
+
+    void sendNotificationForChat(Set<Long> chatroomMemberIdSet, String senderName, String message);
 }
