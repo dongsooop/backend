@@ -17,6 +17,7 @@ import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.repository.MemberRepositoryCustom;
 import com.dongsoop.dongsoop.member.validate.MemberDuplicationValidator;
+import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.report.validator.ReportValidator;
 import com.dongsoop.dongsoop.role.entity.MemberRole;
 import com.dongsoop.dongsoop.role.entity.Role;
@@ -44,22 +45,15 @@ import org.springframework.util.StringUtils;
 public class MemberServiceImpl implements MemberService {
 
     private final MemberRepository memberRepository;
-
     private final RoleRepository roleRepository;
-
     private final MemberRoleRepository memberRoleRepository;
-
     private final MemberRepositoryCustom memberRepositoryCustom;
-
     private final DepartmentService departmentService;
-
     private final PasswordEncoder passwordEncoder;
-
     private final TokenGenerator tokenGenerator;
-
     private final MemberDuplicationValidator memberDuplicationValidator;
-
     private final ReportValidator reportValidator;
+    private final MemberDeviceService memberDeviceService;
 
     @Override
     @Transactional
@@ -110,6 +104,10 @@ public class MemberServiceImpl implements MemberService {
         LoginMemberDetails loginMemberDetails = memberRepositoryCustom.findLoginMemberDetailById(
                         loginAuthenticate.getId())
                 .orElseThrow(MemberNotFoundException::new);
+
+        // 사용자 디바이스 등록
+        memberDeviceService.registerDeviceByMemberId(loginAuthenticate.getId(), loginRequest.getFcmToken(),
+                loginRequest.getDeviceType());
 
         return new LoginDetails(loginMemberDetails, issuedToken);
     }

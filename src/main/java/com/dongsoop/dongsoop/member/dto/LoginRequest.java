@@ -1,7 +1,9 @@
 package com.dongsoop.dongsoop.member.dto;
 
 import com.dongsoop.dongsoop.email.annotation.SchoolEmail;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,4 +20,10 @@ public class LoginRequest {
             message = "비밀번호 형식이 올바르지 않습니다. 영문, 숫자, 특수문자를 포함해야 하며 8자 이상 20자 이하여야 합니다.")
     @NotBlank(message = "로그인 시 비밀번호 입력은 필수입니다.")
     private String password;
+
+    @NotBlank(message = "FCM 토큰은 필수 입력값입니다.")
+    private String fcmToken;
+
+    @NotNull(message = "디바이스 타입은 필수 입력값입니다.")
+    private MemberDeviceType deviceType;
 }
