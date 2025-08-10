@@ -79,6 +79,7 @@ public class FCMServiceImpl implements FCMService {
                 log.info("Successfully sent messages: {}", batchResponse);
             } catch (ExecutionException | InterruptedException exception) {
                 log.error("Failed to send messages", exception);
+                throw new NotificationSendException(exception);
             }
         }, notificationExecutor);
     }
