@@ -1,7 +1,6 @@
 package com.dongsoop.dongsoop.notification.service;
 
 import com.dongsoop.dongsoop.department.entity.Department;
-import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepositoryCustom;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.google.firebase.messaging.ApnsConfig;
@@ -64,7 +63,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private List<String> getDeviceTokensByDepartment(Department department) {
-        if (department.getId().equals(DepartmentType.DEPT_1001)) {
+        if (department.getId().isAllDepartment()) {
             return memberDeviceRepositoryCustom.getAllMemberDevice();
         }
 
