@@ -13,6 +13,7 @@ import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -72,6 +73,6 @@ public class FCMServiceImpl implements FCMService {
             } catch (ExecutionException | InterruptedException exception) {
                 log.error("Failed to send messages: {}", exception.getMessage());
             }
-        }, Runnable::run);
+        }, ForkJoinPool.commonPool());
     }
 }
