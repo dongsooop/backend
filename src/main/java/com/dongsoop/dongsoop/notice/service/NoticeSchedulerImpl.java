@@ -2,7 +2,6 @@ package com.dongsoop.dongsoop.notice.service;
 
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
-import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepositoryCustom;
 import com.dongsoop.dongsoop.notice.dto.CrawledNotice;
 import com.dongsoop.dongsoop.notice.dto.NoticeRecentIdByDepartment;
 import com.dongsoop.dongsoop.notice.entity.Notice;
@@ -37,7 +36,6 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
     private final NoticeDetailsRepository noticeDetailsRepository;
     private final DepartmentRepository departmentRepository;
     private final NotificationService notificationService;
-    private final MemberDeviceRepositoryCustom memberDeviceRepositoryCustom;
 
     @Value("${notice.thread.count}")
     private int threadCount;
