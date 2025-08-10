@@ -24,7 +24,7 @@ public class JwtLogoutHandler implements LogoutHandler {
     public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
         // TODO: 화이트리스트 추가 시 메모리에 유효한 토큰 만료일 갱신(화이트리스트)
         String deviceToken = request.getHeader("Device-Token");
-        if (StringUtils.hasText(deviceToken)) {
+        if (!StringUtils.hasText(deviceToken)) {
             throw new DeviceInformationNotIncludedInHeaderException();
         }
         Long memberId = memberService.getMemberIdByAuthentication();
