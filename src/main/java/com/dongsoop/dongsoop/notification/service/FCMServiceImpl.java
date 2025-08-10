@@ -58,7 +58,7 @@ public class FCMServiceImpl implements FCMService {
             BatchResponse batchResponse = firebaseMessaging.sendEachForMulticast(message);
             log.info("Successfully sent message: {}", batchResponse);
         } catch (FirebaseMessagingException exception) {
-            log.error("Failed to send message: {}", exception.getMessage());
+            log.error("Failed to send message", exception);
             throw new NotificationSendException(exception);
         }
     }
@@ -67,10 +67,10 @@ public class FCMServiceImpl implements FCMService {
         ApiFuture<BatchResponse> batchResponseApiFuture = firebaseMessaging.sendEachAsync(messageList);
         batchResponseApiFuture.addListener(() -> {
             try {
-                batchResponseApiFuture.get();
-                log.info("Successfully sent messages: {}", batchResponseApiFuture);
+                BatchResponse batchResponse = batchResponseApiFuture.get();
+                log.info("Successfully sent messages: {}", batchResponse);
             } catch (ExecutionException | InterruptedException exception) {
-                log.error("Failed to send messages: {}", batchResponseApiFuture);
+                log.error("Failed to send messages: {}", exception.getMessage());
             }
         }, Runnable::run);
     }
