@@ -85,7 +85,7 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public LoginDetails login(LoginRequest loginRequest) {
         validateMemberExists(loginRequest.getEmail());
         LoginAuthenticate loginAuthenticate = getLoginAuthenticate(loginRequest.getEmail());
