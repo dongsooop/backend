@@ -22,7 +22,6 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     public List<String> getAllMemberDevice() {
         return queryFactory.select(memberDevice.deviceToken)
                 .from(memberDevice)
-                .leftJoin(memberDevice.member, member)
                 .fetch();
     }
 
