@@ -7,9 +7,9 @@ import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.google.firebase.messaging.ApnsConfig;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
-import io.jsonwebtoken.lang.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -44,7 +44,7 @@ public class NotificationServiceImpl implements NotificationService {
                     String writer = notice.getNoticeDetails().getWriter();
                     List<String> deviceTokens = getDeviceTokensByDepartment(department);
                     if (deviceTokens.isEmpty()) {
-                        return Collections.<Message>emptyList().stream();
+                        return Stream.empty();
                     }
 
                     ApnsConfig apnsConfig = fcmService.getApnsConfig(title, writer);
