@@ -7,7 +7,6 @@ import com.google.firebase.messaging.Aps;
 import com.google.firebase.messaging.ApsAlert;
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
@@ -16,6 +15,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -24,6 +24,8 @@ import org.springframework.stereotype.Service;
 public class FCMServiceImpl implements FCMService {
 
     private final FirebaseMessaging firebaseMessaging;
+
+    @Qualifier("notificationExecutor")
     private final ExecutorService notificationExecutor;
 
     @Override
@@ -56,13 +58,17 @@ public class FCMServiceImpl implements FCMService {
     }
 
     private void sendMessage(MulticastMessage message) {
-        try {
-            BatchResponse batchResponse = firebaseMessaging.sendEachForMulticast(message);
-            log.info("Successfully sent message: {}", batchResponse);
-        } catch (FirebaseMessagingException exception) {
-            log.error("Failed to send message", exception);
-            throw new NotificationSendException(exception);
-        }
+        ApiFuture<BatchResponse> batchResponseApiFuture = firebaseMessaging.sendEachForMulticastAsync(message);
+        batchResponseApiFuture.addListener(() -> {
+            try {
+                BatchResponse batchResponse = batchResponseApiFuture.get();
+                log.info("Successfully sent message: {}", batchResponse);
+            } catch (ExecutionException | InterruptedException exception) {
+                log.error("Failed to send message", exception);
+                throw new NotificationSendException(exception);
+            }
+        }, notificationExecutor);
+
     }
 
     public void sendMessages(List<Message> messageList) {
