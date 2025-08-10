@@ -23,6 +23,14 @@ public class Notice {
         this.id = new NoticeKey(department, noticeDetails);
     }
 
+    public Department getDepartment() {
+        return id.department;
+    }
+
+    public NoticeDetails getNoticeDetails() {
+        return id.noticeDetails;
+    }
+
     @Embeddable
     @AllArgsConstructor
     @NoArgsConstructor

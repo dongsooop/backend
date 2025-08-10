@@ -16,10 +16,12 @@ public class NoticeDetails {
     @Getter
     private Long id;
 
+    @Getter
     private String writer;
 
+    @Getter
     private String title;
-    
+
     private String link;
 
     private LocalDate createdAt;

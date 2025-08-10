@@ -49,10 +49,10 @@ public class ChatRoomService {
         redisChatRepository.deleteRoom(roomId);
     }
 
-    public void updateRoomActivity(String roomId) {
+    public ChatRoom updateRoomActivity(String roomId) {
         ChatRoom room = getChatRoomById(roomId);
         room.updateActivity();
-        saveRoom(room);
+        return saveRoom(room);
     }
 
     public void deleteRoomIfEmpty(ChatRoom room) {

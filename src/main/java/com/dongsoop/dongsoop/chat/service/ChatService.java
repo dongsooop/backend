@@ -6,7 +6,10 @@ import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
 import com.dongsoop.dongsoop.chat.entity.IncrementalSyncResponse;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
+import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.notification.service.NotificationService;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +25,8 @@ public class ChatService {
     private final ChatParticipantService chatParticipantService;
     private final ReadStatusService readStatusService;
     private final ChatValidator chatValidator;
+    private final NotificationService notificationService;
+    private final MemberService memberService;
 
     public ChatRoomInitResponse initializeChatRoomForFirstTime(String roomId, Long userId) {
         chatValidator.validateUserForRoom(roomId, userId);
@@ -66,7 +71,12 @@ public class ChatService {
 
     public ChatMessage processWebSocketMessage(ChatMessage message, Long userId, String roomId) {
         ChatMessage processedMessage = chatMessageService.processWebSocketMessage(message, userId, roomId);
-        chatRoomService.updateRoomActivity(roomId);
+        ChatRoom room = chatRoomService.updateRoomActivity(roomId);
+        String senderName = memberService.getNicknameById(userId);
+
+        Set<Long> receiver = new HashSet<>(room.getParticipants());
+        receiver.remove(userId);
+        notificationService.sendNotificationForChat(receiver, senderName, message.getContent());
         return processedMessage;
     }
 
