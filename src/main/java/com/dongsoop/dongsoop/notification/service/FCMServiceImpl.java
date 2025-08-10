@@ -71,7 +71,7 @@ public class FCMServiceImpl implements FCMService {
                 BatchResponse batchResponse = batchResponseApiFuture.get();
                 log.info("Successfully sent messages: {}", batchResponse);
             } catch (ExecutionException | InterruptedException exception) {
-                log.error("Failed to send messages: {}", exception.getMessage());
+                log.error("Failed to send messages", exception);
             }
         }, ForkJoinPool.commonPool());
     }
