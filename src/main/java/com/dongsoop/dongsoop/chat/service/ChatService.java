@@ -7,7 +7,6 @@ import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
 import com.dongsoop.dongsoop.chat.entity.IncrementalSyncResponse;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.member.service.MemberService;
-import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepositoryCustom;
 import com.dongsoop.dongsoop.notification.service.NotificationService;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,7 +24,6 @@ public class ChatService {
     private final ChatParticipantService chatParticipantService;
     private final ReadStatusService readStatusService;
     private final ChatValidator chatValidator;
-    private final MemberDeviceRepositoryCustom memberDeviceRepositoryCustom;
     private final NotificationService notificationService;
     private final MemberService memberService;
 
