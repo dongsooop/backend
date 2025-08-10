@@ -12,6 +12,7 @@ import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -62,25 +63,15 @@ public class FCMServiceImpl implements FCMService {
         }
     }
 
-    private void sendMessage(Message message) {
-        try {
-            String response = firebaseMessaging.send(message);
-            log.info("Successfully sent message: {}", response);
-        } catch (FirebaseMessagingException exception) {
-            log.error("Failed to send message: {}", exception.getMessage());
-            throw new NotificationSendException(exception);
-        }
-    }
-
     public void sendMessages(List<Message> messageList) {
         ApiFuture<BatchResponse> batchResponseApiFuture = firebaseMessaging.sendEachAsync(messageList);
-        if (batchResponseApiFuture.isCancelled()) {
-            log.error("Failed to send messages: {}", batchResponseApiFuture);
-            throw new NotificationSendException();
-        }
-
-        if (batchResponseApiFuture.isDone()) {
-            log.info("Successfully sent messages: {}", batchResponseApiFuture);
-        }
+        batchResponseApiFuture.addListener(() -> {
+            try {
+                batchResponseApiFuture.get();
+                log.info("Successfully sent messages: {}", batchResponseApiFuture);
+            } catch (ExecutionException | InterruptedException exception) {
+                log.error("Failed to send messages: {}", batchResponseApiFuture);
+            }
+        }, Runnable::run);
     }
 }
