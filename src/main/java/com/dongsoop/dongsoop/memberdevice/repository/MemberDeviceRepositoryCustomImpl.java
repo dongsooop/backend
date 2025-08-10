@@ -1,7 +1,6 @@
 package com.dongsoop.dongsoop.memberdevice.repository;
 
 import com.dongsoop.dongsoop.department.entity.Department;
-import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.memberdevice.entity.QMemberDevice;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
@@ -16,7 +15,6 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     private final JPAQueryFactory queryFactory;
 
     private final QMemberDevice memberDevice = QMemberDevice.memberDevice;
-    private final QMember member = QMember.member;
 
     @Override
     public List<String> getAllMemberDevice() {
@@ -29,8 +27,7 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     public List<String> getMemberDeviceByDepartment(Department department) {
         return queryFactory.select(memberDevice.deviceToken)
                 .from(memberDevice)
-                .leftJoin(memberDevice.member, member)
-                .where(member.department.eq(department))
+                .where(memberDevice.member.department.eq(department))
                 .fetch();
     }
 
