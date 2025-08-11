@@ -16,9 +16,10 @@ import com.dongsoop.dongsoop.memberblock.exception.AlreadyBlockedByBlockerExcept
 import com.dongsoop.dongsoop.memberblock.exception.BlockNotFoundException;
 import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepository;
 import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepositoryCustom;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -44,7 +45,7 @@ public class MemberBlockServiceImpl implements MemberBlockService {
         MemberBlock memberBlock = new MemberBlock(memberBlockId);
         memberBlockRepository.save(memberBlock);
 
-        sendBlockNotification(blocker, blockedMember, BlockStatus.I_BLOCKED);
+        sendBlockWebsocketEvent(blocker, blockedMember, BlockStatus.I_BLOCKED);
     }
 
 
@@ -61,7 +62,7 @@ public class MemberBlockServiceImpl implements MemberBlockService {
         MemberBlock memberBlock = memberBlockRepository.getReferenceById(memberBlockId);
         memberBlockRepository.delete(memberBlock);
 
-        sendBlockNotification(blocker, blockedMember, BlockStatus.NONE);
+        sendBlockWebsocketEvent(blocker, blockedMember, BlockStatus.NONE);
     }
 
     @Override
@@ -70,7 +71,7 @@ public class MemberBlockServiceImpl implements MemberBlockService {
         return memberBlockRepositoryCustom.findByBlockerId(requesterId);
     }
 
-    private void sendBlockNotification(Member blocker, Member blockedMember, BlockStatus blockStatus) {
+    private void sendBlockWebsocketEvent(Member blocker, Member blockedMember, BlockStatus blockStatus) {
         ChatRoom room = redisChatRepository.findRoomByParticipants(blocker.getId(), blockedMember.getId())
                 .orElseThrow(ChatRoomNotFoundException::new);
         String roomId = room.getRoomId();
