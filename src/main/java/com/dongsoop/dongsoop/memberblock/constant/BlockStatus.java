@@ -1,4 +1,4 @@
-package com.dongsoop.dongsoop.chat.entity;
+package com.dongsoop.dongsoop.memberblock.constant;
 
 public enum BlockStatus {
     NONE,

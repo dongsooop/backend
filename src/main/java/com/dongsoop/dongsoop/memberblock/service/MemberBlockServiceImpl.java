@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.memberblock.service;
 
-import com.dongsoop.dongsoop.chat.entity.BlockStatus;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.exception.ChatRoomNotFoundException;
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
@@ -8,6 +7,7 @@ import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.memberblock.constant.BlockStatus;
 import com.dongsoop.dongsoop.memberblock.dto.BlockedMember;
 import com.dongsoop.dongsoop.memberblock.dto.MemberBlockRequest;
 import com.dongsoop.dongsoop.memberblock.entity.MemberBlock;
