@@ -1,16 +1,18 @@
 package com.dongsoop.dongsoop.chat.controller;
 
+import com.dongsoop.dongsoop.chat.entity.BlockStatus;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.service.ChatService;
+import java.security.Principal;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.security.Principal;
-
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 public class ChatSocketController {
@@ -19,23 +21,29 @@ public class ChatSocketController {
 
     @MessageMapping("/message/{roomId}")
     @SendTo("/topic/chat/room/{roomId}")
-    public ChatMessage sendMessage(
-            @Payload ChatMessage message,
-            @DestinationVariable("roomId") String roomId,
-            Principal principal) {
+    public ChatMessage sendMessage(@Payload ChatMessage message, @DestinationVariable("roomId") String roomId,
+                                   Principal principal) {
 
         Long userId = extractUserIdFromPrincipal(principal);
+        BlockStatus status = chatService.getBlockStatus(roomId, userId);
+
+        if (status == BlockStatus.I_BLOCKED) {
+            return null;
+        }
+
         return chatService.processWebSocketMessage(message, userId, roomId);
     }
 
     @MessageMapping("/enter/{roomId}")
     @SendTo("/topic/chat/room/{roomId}")
-    public ChatMessage enterChatRoom(
-            @DestinationVariable("roomId") String roomId,
-            Principal principal) {
-
+    public ChatMessage enterChatRoom(@DestinationVariable("roomId") String roomId, Principal principal) {
         Long userId = extractUserIdFromPrincipal(principal);
-        return chatService.processWebSocketEnter(roomId, userId);
+
+        ChatMessage enterMsg = chatService.processWebSocketEnter(roomId, userId);
+        BlockStatus blockStatus = chatService.getBlockStatus(roomId, userId);
+        chatService.sendBlockStatusToUser(roomId, userId, blockStatus);
+
+        return enterMsg;
     }
 
     private Long extractUserIdFromPrincipal(Principal principal) {
