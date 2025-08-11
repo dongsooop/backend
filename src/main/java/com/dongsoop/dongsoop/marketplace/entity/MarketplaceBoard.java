@@ -16,6 +16,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 import org.springframework.util.StringUtils;
@@ -26,6 +29,18 @@ import org.springframework.util.StringUtils;
 @SequenceGenerator(name = "marketplace_board_sequence_generator")
 @SQLRestriction("is_deleted = false")
 @SQLDelete(sql = "UPDATE marketplace_board SET is_deleted = true WHERE id = ?")
+@FilterDef(
+        name = "blockFilter",
+        parameters = @ParamDef(name = "blockerId", type = Long.class)
+)
+@Filter(
+        name = "blockFilter",
+        condition = "NOT EXISTS ( " +
+                "SELECT 1 FROM member_block mb " +
+                "WHERE mb.blocker_id = :blockerId " +
+                "AND mb.blocked_member_id = author " +
+                ")"
+)
 public class MarketplaceBoard extends Board {
 
     @Id

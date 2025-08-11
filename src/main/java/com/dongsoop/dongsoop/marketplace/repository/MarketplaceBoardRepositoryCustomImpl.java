@@ -8,6 +8,7 @@ import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
 import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceBoard;
 import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceContact;
 import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceImage;
+import com.dongsoop.dongsoop.memberblock.annotation.ApplyBlockFilter;
 import com.dongsoop.dongsoop.mypage.dto.OpenedMarketplace;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
@@ -33,6 +34,7 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
 
     private final JPAQueryFactory queryFactory;
 
+    @ApplyBlockFilter
     public List<MarketplaceBoardOverview> findMarketplaceBoardOverviewByPage(Pageable pageable, MarketplaceType type) {
         return queryFactory.select(Projections.constructor(MarketplaceBoardOverview.class,
                         marketplaceBoard.id,

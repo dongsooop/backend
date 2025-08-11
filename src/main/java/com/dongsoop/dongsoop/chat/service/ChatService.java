@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.chat.service;
 
+import com.dongsoop.dongsoop.chat.dto.BlockStatusMessage;
 import com.dongsoop.dongsoop.chat.dto.ReadStatusUpdateRequest;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
@@ -7,14 +8,18 @@ import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
 import com.dongsoop.dongsoop.chat.entity.IncrementalSyncResponse;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.memberblock.constant.BlockStatus;
+import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepository;
 import com.dongsoop.dongsoop.notification.service.NotificationService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
@@ -25,6 +30,8 @@ public class ChatService {
     private final ChatParticipantService chatParticipantService;
     private final ReadStatusService readStatusService;
     private final ChatValidator chatValidator;
+    private final MemberBlockRepository memberBlockRepository;
+    private final SimpMessagingTemplate messagingTemplate;
     private final NotificationService notificationService;
     private final MemberService memberService;
 
@@ -186,5 +193,46 @@ public class ChatService {
 
         List<ChatMessage> unreadMessages = chatMessageService.loadMessagesAfterJoinTime(roomId, lastReadTime);
         return chatMessageService.countUnreadMessages(unreadMessages, userId);
+    }
+
+    public BlockStatus getBlockStatus(String roomId, Long userId) {
+        ChatRoom room = chatRoomService.getChatRoomById(roomId);
+
+        if (room.isGroupChat()) {
+            return BlockStatus.NONE;
+        }
+        Long otherUserId = findOtherUserId(room, userId);
+
+        boolean iBlockedOther = memberBlockRepository.existsByBlockerIdAndBlockedId(userId, otherUserId);
+        boolean otherBlockedMe = memberBlockRepository.existsByBlockerIdAndBlockedId(otherUserId, userId);
+
+        if (iBlockedOther) {
+            return BlockStatus.I_BLOCKED;
+        }
+
+        if (otherBlockedMe) {
+            return BlockStatus.BLOCKED_BY_OTHER;
+        }
+
+        return BlockStatus.NONE;
+    }
+
+    private Long findOtherUserId(ChatRoom room, Long userId) {
+        for (Long participantId : room.getParticipants()) {
+            if (!participantId.equals(userId)) {
+                return participantId;
+            }
+        }
+        return null;
+    }
+
+    public void sendBlockStatusToUser(String roomId, Long userId, BlockStatus blockStatus) {
+        BlockStatusMessage msg = new BlockStatusMessage(roomId, blockStatus.name());
+
+        messagingTemplate.convertAndSendToUser(
+                userId.toString(),
+                "/topic/chat/room/" + roomId,
+                msg
+        );
     }
 }

@@ -17,6 +17,7 @@ import com.dongsoop.dongsoop.marketplace.repository.MarketplaceImageRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.memberblock.annotation.ApplyBlockFilter;
 import com.dongsoop.dongsoop.s3.S3Service;
 import com.dongsoop.dongsoop.s3.exception.S3UnknownException;
 import java.io.IOException;
@@ -141,6 +142,7 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
 
     @Override
     @Transactional
+    @ApplyBlockFilter
     public void close(Long boardId) {
         Long memberId = memberService.getMemberIdByAuthentication();
 
