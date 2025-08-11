@@ -50,9 +50,6 @@ public enum DepartmentType {
     // 교양과
     DEPT_9001("GENERAL_EDUCATION");
 
-    @Getter
-    private final String id;
-
     private static final Map<String, DepartmentType> idMap = new HashMap<>();
 
     static {
@@ -61,11 +58,18 @@ public enum DepartmentType {
         }
     }
 
+    @Getter
+    private final String id;
+
     DepartmentType(String id) {
         this.id = id;
     }
 
     public static DepartmentType from(String id) {
         return idMap.get(id);
+    }
+
+    public boolean isAllDepartment() {
+        return this == DEPT_1001;
     }
 }

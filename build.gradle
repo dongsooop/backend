@@ -46,6 +46,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.jsoup:jsoup:1.15.3'
     implementation 'com.github.napstr:logback-discord-appender:1.0.0'
+    implementation 'com.google.firebase:firebase-admin:9.2.0'
 
     compileOnly 'org.projectlombok:lombok'
 
