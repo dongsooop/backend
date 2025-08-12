@@ -26,6 +26,13 @@ public class MailVerifyController {
                 .build();
     }
 
+    @PostMapping("/send")
+    public ResponseEntity<Void> sendPasswordChangeMail(@RequestBody @Valid MailSendRequest request) {
+        mailVerifyService.sendPasswordChangeMail(request.userEmail());
+        return ResponseEntity.noContent()
+                .build();
+    }
+
     @PostMapping
     public ResponseEntity<Void> verifyMail(@RequestBody @Valid MailVerifyRequest request) {
         mailVerifyService.validateVerificationCode(request.userEmail(), request.code());

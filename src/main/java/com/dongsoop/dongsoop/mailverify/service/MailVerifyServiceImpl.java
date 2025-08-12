@@ -4,6 +4,8 @@ import com.dongsoop.dongsoop.mailverify.exception.UnknownEmailEncodeException;
 import com.dongsoop.dongsoop.mailverify.exception.UnknownMailMessagingException;
 import com.dongsoop.dongsoop.mailverify.exception.UsingAllMailVerifyOpportunityException;
 import com.dongsoop.dongsoop.mailverify.exception.VerifyMailCodeNotAvailableException;
+import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
+import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.nio.charset.StandardCharsets;
@@ -18,6 +20,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -35,9 +38,20 @@ public class MailVerifyServiceImpl implements MailVerifyService {
     private final JavaMailSender sender;
     private final MailTextGenerator mailTextGenerator;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final MemberRepository memberRepository;
 
     @Value("${mail.sender}")
     private String senderEmail;
+
+    @Override
+    @Transactional(readOnly = true)
+    public void sendPasswordChangeMail(String userEmail) {
+        if (memberRepository.existsByEmail(userEmail)) {
+            throw new MemberNotFoundException();
+        }
+
+        sendMail(userEmail);
+    }
 
     @Override
     public void sendMail(String userEmail) {
