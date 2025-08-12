@@ -1,10 +1,12 @@
 package com.dongsoop.dongsoop.jwt.handler;
 
+import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.exception.DeviceInformationNotIncludedInHeaderException;
-import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.jwt.exception.TokenNotFoundException;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -17,8 +19,12 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class JwtLogoutHandler implements LogoutHandler {
 
+    private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final int TOKEN_START_INDEX = BEARER_PREFIX.length();
+
     private final MemberDeviceRepository memberDeviceRepository;
-    private final MemberService memberService;
+    private final JwtUtil jwtUtil;
 
     @Override
     public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
@@ -27,11 +33,26 @@ public class JwtLogoutHandler implements LogoutHandler {
         if (!StringUtils.hasText(deviceToken)) {
             throw new DeviceInformationNotIncludedInHeaderException();
         }
-        Long memberId = memberService.getMemberIdByAuthentication();
+
+        String token = extractTokenFromHeader(request);
+        Claims claims = jwtUtil.getClaims(token);
+        Long memberId = Long.valueOf(claims.getSubject());
 
         MemberDevice device = memberDeviceRepository.findByMemberIdAndDeviceToken(memberId, deviceToken)
                 .orElseThrow(UnregisteredDeviceException::new);
 
         memberDeviceRepository.delete(device);
+    }
+
+    private String extractTokenFromHeader(HttpServletRequest request) throws TokenNotFoundException {
+        String tokenHeader = request.getHeader(AUTHORIZATION_HEADER);
+
+        if (!StringUtils.hasText(tokenHeader) ||
+                tokenHeader.length() <= TOKEN_START_INDEX ||
+                !tokenHeader.startsWith(BEARER_PREFIX)) {
+            throw new TokenNotFoundException();
+        }
+
+        return tokenHeader.substring(TOKEN_START_INDEX);
     }
 }
