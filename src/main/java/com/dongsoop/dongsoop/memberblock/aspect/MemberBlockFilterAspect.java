@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.memberblock.aspect;
 
+import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -22,18 +23,23 @@ public class MemberBlockFilterAspect {
 
     @Around("@annotation(com.dongsoop.dongsoop.memberblock.annotation.ApplyBlockFilter)")
     public Object around(ProceedingJoinPoint pjp) throws Throwable {
-        Long blockerId = memberService.getMemberIdByAuthentication();
-        Session session = em.unwrap(Session.class);
-
-        // 필터 활성화
-        session.enableFilter("blockFilter")
-                .setParameter("blockerId", blockerId);
-
         try {
+            Long blockerId = memberService.getMemberIdByAuthentication();
+            Session session = em.unwrap(Session.class);
+
+            // 필터 활성화
+            session.enableFilter("blockFilter")
+                    .setParameter("blockerId", blockerId);
+
+            try {
+                return pjp.proceed();
+            } finally {
+                // 메서드 실행 완료 후 필터 비활성화
+                session.disableFilter("blockFilter");
+            }
+        } catch (NotAuthenticationException exception) {
+            // 인증되지 않은 사용자의 경우 필터 없이 실행
             return pjp.proceed();
-        } finally {
-            // 메서드 종료 후 필터 비활성화
-            session.disableFilter("blockFilter");
         }
     }
 }
