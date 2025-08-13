@@ -7,6 +7,7 @@ import com.dongsoop.dongsoop.member.dto.LoginRequest;
 import com.dongsoop.dongsoop.member.dto.LoginResponse;
 import com.dongsoop.dongsoop.member.dto.NicknameValidateRequest;
 import com.dongsoop.dongsoop.member.dto.SignupRequest;
+import com.dongsoop.dongsoop.member.dto.UpdatePasswordRequest;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.member.validate.MemberDuplicationValidator;
 import jakarta.validation.Valid;
@@ -29,8 +30,16 @@ public class MemberController {
 
     private final MemberDuplicationValidator memberDuplicationValidator;
 
+    @PostMapping("/password")
+    public ResponseEntity<Void> updatePassword(@RequestBody @Valid UpdatePasswordRequest request) {
+        memberService.updatePassword(request);
+
+        return ResponseEntity.noContent()
+                .build();
+    }
+
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@RequestBody @Valid SignupRequest signupRequest) {
+    public ResponseEntity<Void> signup(@RequestBody @Valid SignupRequest signupRequest) {
         memberService.signup(signupRequest);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }

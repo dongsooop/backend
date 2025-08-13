@@ -11,6 +11,7 @@ import com.dongsoop.dongsoop.member.dto.LoginDetails;
 import com.dongsoop.dongsoop.member.dto.LoginMemberDetails;
 import com.dongsoop.dongsoop.member.dto.LoginRequest;
 import com.dongsoop.dongsoop.member.dto.SignupRequest;
+import com.dongsoop.dongsoop.member.dto.UpdatePasswordRequest;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.exception.InvalidPasswordFormatException;
 import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
@@ -36,6 +37,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -216,5 +218,14 @@ public class MemberServiceImpl implements MemberService {
         return UUID.randomUUID()
                 .toString()
                 .replace("-", "");
+    }
+
+    @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public void updatePassword(UpdatePasswordRequest request) {
+        Member member = memberRepository.findByEmail(request.email())
+                .orElseThrow(MemberNotFoundException::new);
+
+        member.updatePassword(passwordEncoder.encode(request.password()));
     }
 }
