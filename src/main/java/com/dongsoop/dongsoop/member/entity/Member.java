@@ -44,4 +44,8 @@ public class Member extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
     private Department department;
+
+    public void updatePassword(String password) {
+        this.password = password;
+    }
 }

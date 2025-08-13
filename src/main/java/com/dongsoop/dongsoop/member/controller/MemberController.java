@@ -1,12 +1,15 @@
 package com.dongsoop.dongsoop.member.controller;
 
 import com.dongsoop.dongsoop.jwt.dto.IssuedToken;
+import com.dongsoop.dongsoop.mailverify.passwordupdate.PasswordUpdateMailValidator;
+import com.dongsoop.dongsoop.mailverify.register.RegisterMailValidator;
 import com.dongsoop.dongsoop.member.dto.EmailValidateRequest;
 import com.dongsoop.dongsoop.member.dto.LoginDetails;
 import com.dongsoop.dongsoop.member.dto.LoginRequest;
 import com.dongsoop.dongsoop.member.dto.LoginResponse;
 import com.dongsoop.dongsoop.member.dto.NicknameValidateRequest;
 import com.dongsoop.dongsoop.member.dto.SignupRequest;
+import com.dongsoop.dongsoop.member.dto.UpdatePasswordRequest;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.member.validate.MemberDuplicationValidator;
 import jakarta.validation.Valid;
@@ -26,12 +29,26 @@ import org.springframework.web.bind.annotation.RestController;
 public class MemberController {
 
     private final MemberService memberService;
-
     private final MemberDuplicationValidator memberDuplicationValidator;
+    private final PasswordUpdateMailValidator passwordUpdateMailValidator;
+    private final RegisterMailValidator registerMailValidator;
+
+    @PostMapping("/password")
+    public ResponseEntity<Void> updatePassword(@RequestBody @Valid UpdatePasswordRequest request) {
+        passwordUpdateMailValidator.validateVerifySuccess(request.email());
+        memberService.updatePassword(request);
+        passwordUpdateMailValidator.removeVerificationCode(request.email());
+
+        return ResponseEntity.noContent()
+                .build();
+    }
 
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@RequestBody @Valid SignupRequest signupRequest) {
+    public ResponseEntity<Void> signup(@RequestBody @Valid SignupRequest signupRequest) {
+        registerMailValidator.validateVerifySuccess(signupRequest.getEmail());
         memberService.signup(signupRequest);
+        registerMailValidator.removeVerificationCode(signupRequest.getEmail());
+        
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
