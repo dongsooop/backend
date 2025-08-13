@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.member.controller;
 
 import com.dongsoop.dongsoop.jwt.dto.IssuedToken;
 import com.dongsoop.dongsoop.mailverify.passwordupdate.PasswordUpdateMailValidator;
+import com.dongsoop.dongsoop.mailverify.register.RegisterMailValidator;
 import com.dongsoop.dongsoop.member.dto.EmailValidateRequest;
 import com.dongsoop.dongsoop.member.dto.LoginDetails;
 import com.dongsoop.dongsoop.member.dto.LoginRequest;
@@ -28,14 +29,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class MemberController {
 
     private final MemberService memberService;
-
     private final MemberDuplicationValidator memberDuplicationValidator;
-
     private final PasswordUpdateMailValidator passwordUpdateMailValidator;
+    private final RegisterMailValidator registerMailValidator;
 
     @PostMapping("/password")
     public ResponseEntity<Void> updatePassword(@RequestBody @Valid UpdatePasswordRequest request) {
-        passwordUpdateMailValidator.validateVerificationCode(request.email(), request.code());
+        passwordUpdateMailValidator.validateVerifySuccess(request.email());
         memberService.updatePassword(request);
         passwordUpdateMailValidator.removeVerificationCode(request.email());
 
@@ -45,8 +45,10 @@ public class MemberController {
 
     @PostMapping("/signup")
     public ResponseEntity<Void> signup(@RequestBody @Valid SignupRequest signupRequest) {
+        registerMailValidator.validateVerifySuccess(signupRequest.getEmail());
         memberService.signup(signupRequest);
-        passwordUpdateMailValidator.removeVerificationCode(signupRequest.getEmail());
+        registerMailValidator.removeVerificationCode(signupRequest.getEmail());
+        
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 

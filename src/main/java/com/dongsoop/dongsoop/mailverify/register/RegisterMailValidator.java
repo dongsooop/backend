@@ -12,11 +12,12 @@ public class RegisterMailValidator extends MailVerifier {
     private final String verifyCodeKeyPrefix;
 
     public RegisterMailValidator(RedisTemplate<String, Object> redisTemplate,
-                                 MailVerifyNumberGenerator mailVerifyService,
+                                 MailVerifyNumberGenerator mailVerifyNumberGenerator,
                                  @Value("${mail.redis.key.opportunity}") String opportunityKey,
                                  @Value("${mail.redis.key.code}") String codeKey,
+                                 @Value("${mail.redis.key.success}") String successKey,
                                  @Value("${mail.verify.register.redis.prefix}") String verifyCodeKeyPrefix) {
-        super(redisTemplate, mailVerifyService, opportunityKey, codeKey);
+        super(redisTemplate, mailVerifyNumberGenerator, opportunityKey, codeKey, successKey);
         this.verifyCodeKeyPrefix = verifyCodeKeyPrefix;
     }
 

@@ -19,12 +19,14 @@ public class PasswordUpdateMailSender extends VerifyMailSender {
 
     public PasswordUpdateMailSender(RedisTemplate<String, Object> redisTemplate,
                                     JavaMailSender mailSender,
-                                    MailVerifyNumberGenerator mailVerifyService,
+                                    MailVerifyNumberGenerator mailVerifyNumberGenerator,
                                     MailTextGenerator mailTextGenerator,
                                     @Value("${mail.redis.key.opportunity}") String opportunityKey,
                                     @Value("${mail.redis.key.code}") String codeKey,
+                                    @Value("${mail.redis.key.success}") String successKey,
                                     @Value("${mail.verify.password-update.redis.prefix}") String verifyCodeKeyPrefix) {
-        super(redisTemplate, mailSender, mailVerifyService, mailTextGenerator, opportunityKey, codeKey);
+        super(redisTemplate, mailSender, mailVerifyNumberGenerator, mailTextGenerator, opportunityKey, codeKey,
+                successKey);
         this.verifyCodeKeyPrefix = verifyCodeKeyPrefix;
     }
 

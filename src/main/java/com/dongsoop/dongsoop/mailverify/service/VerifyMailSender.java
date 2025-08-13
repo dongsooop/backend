@@ -18,9 +18,10 @@ public abstract class VerifyMailSender {
 
     protected final String opportunityKey;
     protected final String codeKey;
+    protected final String successKey;
     protected final RedisTemplate<String, Object> redisTemplate;
     protected final JavaMailSender mailSender;
-    protected final MailVerifyNumberGenerator mailVerifyService;
+    protected final MailVerifyNumberGenerator mailVerifyNumberGenerator;
     protected final MailTextGenerator mailTextGenerator;
 
     @Value("${mail.sender}")
@@ -28,16 +29,18 @@ public abstract class VerifyMailSender {
 
     protected VerifyMailSender(RedisTemplate<String, Object> redisTemplate,
                                JavaMailSender mailSender,
-                               MailVerifyNumberGenerator mailVerifyService,
+                               MailVerifyNumberGenerator mailVerifyNumberGenerator,
                                MailTextGenerator mailTextGenerator,
                                String opportunityKey,
-                               String codeKey) {
+                               String codeKey,
+                               String successKey) {
         this.redisTemplate = redisTemplate;
         this.mailSender = mailSender;
-        this.mailVerifyService = mailVerifyService;
+        this.mailVerifyNumberGenerator = mailVerifyNumberGenerator;
         this.mailTextGenerator = mailTextGenerator;
         this.opportunityKey = opportunityKey;
         this.codeKey = codeKey;
+        this.successKey = successKey;
     }
 
     protected abstract String getSubject();
@@ -51,11 +54,14 @@ public abstract class VerifyMailSender {
     protected abstract Integer getVerifyCodeExpirationTime();
 
     public void send(String userEmail) {
-        String verifyCode = mailVerifyService.generateVerificationCode(getCodeLength());
-        String redisKey = mailVerifyService.getRedisKeyByHashed(getVerifyCodeKeyPrefix(), userEmail);
+        String verifyCode = mailVerifyNumberGenerator.generateVerificationCode(getCodeLength());
+        String redisKey = mailVerifyNumberGenerator.getRedisKeyByHashed(getVerifyCodeKeyPrefix(), userEmail);
 
         redisTemplate.opsForHash()
-                .putAll(redisKey, Map.of(codeKey, verifyCode, opportunityKey, getOpportunityCount()));
+                .putAll(redisKey,
+                        Map.of(codeKey, verifyCode,
+                                opportunityKey, getOpportunityCount(),
+                                successKey, false));
         redisTemplate.expire(redisKey, Duration.ofSeconds(getVerifyCodeExpirationTime()));
 
         try {
