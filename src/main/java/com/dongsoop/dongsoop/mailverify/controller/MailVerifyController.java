@@ -39,7 +39,7 @@ public class MailVerifyController {
 
     @PostMapping
     public ResponseEntity<Void> verifyMail(@RequestBody @Valid MailVerifyRequest request) {
-        registerMailValidator.validateVerificationCode(request.userEmail(), request.code());
+        registerMailValidator.validateVerificationCodeWithOpportunity(request.userEmail(), request.code());
 
         return ResponseEntity.noContent()
                 .build();

@@ -5,7 +5,7 @@ import com.dongsoop.dongsoop.mailverify.exception.VerifyMailCodeNotAvailableExce
 import org.springframework.data.redis.core.RedisTemplate;
 
 public abstract class MailVerifier {
-    
+
     protected final String opportunityKey;
     protected final String codeKey;
     protected final RedisTemplate<String, Object> redisTemplate;
@@ -23,12 +23,9 @@ public abstract class MailVerifier {
 
     protected abstract String getVerifyCodeKeyPrefix();
 
-    public void validateVerificationCode(String userEmail, String code) {
+    public void validateVerificationCodeWithOpportunity(String userEmail, String code) {
         String redisKey = mailVerifyService.getRedisKeyByHashed(getVerifyCodeKeyPrefix(), userEmail);
-        Integer storedOpportunity = getTypedValueFromRedisHashAsType(redisKey, opportunityKey, Integer.class);
-        if (storedOpportunity == null || storedOpportunity <= 0) {
-            throw new UsingAllMailVerifyOpportunityException();
-        }
+        validateOpportunity(redisKey);
 
         String storedCode = getTypedValueFromRedisHashAsType(redisKey, codeKey, String.class);
         if (storedCode == null || !storedCode.equals(code)) {
@@ -36,8 +33,24 @@ public abstract class MailVerifier {
                     .increment(redisKey, opportunityKey, -1);
             throw new VerifyMailCodeNotAvailableException();
         }
+    }
 
-        redisTemplate.delete(redisKey);
+    private void validateOpportunity(String redisKey) {
+        Integer storedOpportunity = getTypedValueFromRedisHashAsType(redisKey, opportunityKey, Integer.class);
+        if (storedOpportunity == null || storedOpportunity <= 0) {
+            throw new UsingAllMailVerifyOpportunityException();
+        }
+    }
+
+    public void validateVerificationCode(String userEmail, String code) {
+        String redisKey = mailVerifyService.getRedisKeyByHashed(getVerifyCodeKeyPrefix(), userEmail);
+
+        String storedCode = getTypedValueFromRedisHashAsType(redisKey, codeKey, String.class);
+        if (storedCode == null || !storedCode.equals(code)) {
+            redisTemplate.opsForHash()
+                    .increment(redisKey, opportunityKey, -1);
+            throw new VerifyMailCodeNotAvailableException();
+        }
     }
 
     protected <T> T getTypedValueFromRedisHashAsType(String redisKey, String hashKey, Class<T> type) {
@@ -49,5 +62,10 @@ public abstract class MailVerifier {
         }
 
         return null;
+    }
+
+    public void removeVerificationCode(String userEmail) {
+        String redisKey = mailVerifyService.getRedisKeyByHashed(getVerifyCodeKeyPrefix(), userEmail);
+        redisTemplate.delete(redisKey);
     }
 }

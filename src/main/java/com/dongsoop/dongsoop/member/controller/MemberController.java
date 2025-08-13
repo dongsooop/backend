@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.member.controller;
 
 import com.dongsoop.dongsoop.jwt.dto.IssuedToken;
+import com.dongsoop.dongsoop.mailverify.passwordupdate.PasswordUpdateMailValidator;
 import com.dongsoop.dongsoop.member.dto.EmailValidateRequest;
 import com.dongsoop.dongsoop.member.dto.LoginDetails;
 import com.dongsoop.dongsoop.member.dto.LoginRequest;
@@ -30,9 +31,13 @@ public class MemberController {
 
     private final MemberDuplicationValidator memberDuplicationValidator;
 
+    private final PasswordUpdateMailValidator passwordUpdateMailValidator;
+
     @PostMapping("/password")
     public ResponseEntity<Void> updatePassword(@RequestBody @Valid UpdatePasswordRequest request) {
+        passwordUpdateMailValidator.validateVerificationCode(request.email(), request.code());
         memberService.updatePassword(request);
+        passwordUpdateMailValidator.removeVerificationCode(request.email());
 
         return ResponseEntity.noContent()
                 .build();
@@ -41,6 +46,7 @@ public class MemberController {
     @PostMapping("/signup")
     public ResponseEntity<Void> signup(@RequestBody @Valid SignupRequest signupRequest) {
         memberService.signup(signupRequest);
+        passwordUpdateMailValidator.removeVerificationCode(signupRequest.getEmail());
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
