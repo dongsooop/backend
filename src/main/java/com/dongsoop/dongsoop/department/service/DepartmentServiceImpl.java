@@ -4,8 +4,10 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.exception.DepartmentNotFoundException;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -25,5 +27,10 @@ public class DepartmentServiceImpl implements DepartmentService {
         if (!isExists) {
             throw new DepartmentNotFoundException(departmentType);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<Department> getAllDepartments() {
+        return departmentRepository.findAll();
     }
 }

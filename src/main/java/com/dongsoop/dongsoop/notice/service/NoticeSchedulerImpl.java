@@ -1,9 +1,8 @@
 package com.dongsoop.dongsoop.notice.service;
 
 import com.dongsoop.dongsoop.department.entity.Department;
-import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
+import com.dongsoop.dongsoop.department.service.DepartmentService;
 import com.dongsoop.dongsoop.notice.dto.CrawledNotice;
-import com.dongsoop.dongsoop.notice.dto.NoticeRecentIdByDepartment;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
 import com.dongsoop.dongsoop.notice.repository.NoticeDetailsRepository;
@@ -19,7 +18,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,8 +32,9 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
     private final NoticeCrawl noticeCrawl;
     private final NoticeRepository noticeRepository;
     private final NoticeDetailsRepository noticeDetailsRepository;
-    private final DepartmentRepository departmentRepository;
+    private final DepartmentService departmentService;
     private final NotificationService notificationService;
+    private final NoticeService noticeService;
 
     @Value("${notice.thread.count}")
     private int threadCount;
@@ -54,14 +53,10 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
     public void scheduled() {
         log.info("notice crawling scheduler started");
         // 학과별 최신 공지 번호(가장 높은 번호) 가져오기
-        List<NoticeRecentIdByDepartment> noticeRecentIdByDepartmentList = noticeRepository.findRecentIdGroupByType();
-        Map<Department, Long> noticeRecentIdMap = transformNoticeRecentIdListToMap(noticeRecentIdByDepartmentList);
-
-        // 학과 전체 가져오기
-        List<Department> departmentList = departmentRepository.findAll();
+        Map<Department, Long> noticeRecentIdMap = noticeService.getNoticeRecentIdMap();
 
         // 크롤링 멀티 스레딩 처리
-        multiThreading(departmentList, noticeRecentIdMap);
+        multiThreading(noticeRecentIdMap);
 
         log.info("notice crawling scheduler ended");
     }
@@ -69,11 +64,12 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
     /**
      * 학과별 공지 크롤링에 대한 멀티 스레딩 처리
      *
-     * @param departmentList 학과 목록
      * @param noticeMaxIdMap 학과별 최신 공지 ID 맵
      */
-    private void multiThreading(List<Department> departmentList,
-                                Map<Department, Long> noticeMaxIdMap) {
+    private void multiThreading(Map<Department, Long> noticeMaxIdMap) {
+        // 전체 학과
+        List<Department> departmentList = departmentService.getAllDepartments();
+
         // 저장할 최신 공지사항 리스트 변수 초기화
         Set<Notice> noticeSet = ConcurrentHashMap.newKeySet();
         Set<NoticeDetails> noticeDetailSet = ConcurrentHashMap.newKeySet();
@@ -150,21 +146,6 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
             executor.shutdownNow();
             Thread.currentThread().interrupt();
         }
-    }
-
-    /**
-     * 학과별 최신 공지 ID List를 Map으로 변환
-     *
-     * @param noticeRecentIdByDepartmentList [학과, 최신 공지 ID] 목록
-     * @return { 학과: 최신 공지 ID } 구조 반환
-     */
-    private Map<Department, Long> transformNoticeRecentIdListToMap(
-            List<NoticeRecentIdByDepartment> noticeRecentIdByDepartmentList) {
-        return noticeRecentIdByDepartmentList.stream()
-                .collect(Collectors.toMap(
-                        NoticeRecentIdByDepartment::getDepartment,
-                        NoticeRecentIdByDepartment::getRecentId
-                ));
     }
 
     /**
