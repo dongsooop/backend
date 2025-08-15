@@ -121,6 +121,8 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
                        Set<Notice> noticeSet, Set<NoticeDetails> noticeDetailSet) {
         // 학과 최신 공지 번호(가장 높은 번호)
         Long recentlyNoticeId = noticeMaxIdMap.getOrDefault(department, 0L);
+        log.info("Starting crawl for department: {}, recent notice ID: {}",
+                department.getId().name(), recentlyNoticeId);
 
         CrawledNotice crawledNotice = noticeCrawl.crawlNewNotices(department, recentlyNoticeId);
         noticeSet.addAll(crawledNotice.getNoticeList());
