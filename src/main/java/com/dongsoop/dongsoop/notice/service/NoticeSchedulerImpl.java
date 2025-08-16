@@ -23,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
@@ -50,6 +51,7 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
 
     @Override
     @Scheduled(cron = "0 0 10,14,18 * * *", zone = "Asia/Seoul")
+    @Transactional
     public void scheduled() {
         log.info("notice crawling scheduler started");
         // 학과별 최신 공지 번호(가장 높은 번호) 가져오기
