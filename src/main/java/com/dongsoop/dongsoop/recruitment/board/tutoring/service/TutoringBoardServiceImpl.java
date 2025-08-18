@@ -9,7 +9,7 @@ import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
-import com.dongsoop.dongsoop.recruitment.apply.tutoring.repository.TutoringApplyRepositoryCustom;
+import com.dongsoop.dongsoop.recruitment.apply.tutoring.repository.TutoringApplyRepository;
 import com.dongsoop.dongsoop.recruitment.board.dto.RecruitmentDetails;
 import com.dongsoop.dongsoop.recruitment.board.dto.RecruitmentOverview;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.dto.CreateTutoringBoardRequest;
@@ -32,7 +32,7 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
 
     private final TutoringBoardRepositoryCustom tutoringBoardRepositoryCustom;
 
-    private final TutoringApplyRepositoryCustom tutoringApplyRepositoryCustom;
+    private final TutoringApplyRepository tutoringApplyRepository;
 
     private final DepartmentRepository departmentRepository;
 
@@ -76,7 +76,7 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
                 return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
             }
 
-            boolean isAlreadyApplied = tutoringApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
+            boolean isAlreadyApplied = tutoringApplyRepository.existsByBoardIdAndMemberId(boardId, memberId);
 
             return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
         } catch (NotAuthenticationException exception) {

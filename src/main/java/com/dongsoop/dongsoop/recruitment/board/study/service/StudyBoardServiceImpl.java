@@ -9,7 +9,7 @@ import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
-import com.dongsoop.dongsoop.recruitment.apply.study.repository.StudyApplyRepositoryCustom;
+import com.dongsoop.dongsoop.recruitment.apply.study.repository.StudyApplyRepository;
 import com.dongsoop.dongsoop.recruitment.board.dto.RecruitmentDetails;
 import com.dongsoop.dongsoop.recruitment.board.dto.RecruitmentOverview;
 import com.dongsoop.dongsoop.recruitment.board.study.dto.CreateStudyBoardRequest;
@@ -41,7 +41,7 @@ public class StudyBoardServiceImpl implements StudyBoardService {
 
     private final StudyBoardDepartmentRepository studyBoardDepartmentRepository;
 
-    private final StudyApplyRepositoryCustom studyApplyRepositoryCustom;
+    private final StudyApplyRepository studyApplyRepository;
 
     private final ChatService chatService;
 
@@ -91,7 +91,7 @@ public class StudyBoardServiceImpl implements StudyBoardService {
                 return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
             }
 
-            boolean isAlreadyApplied = studyApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
+            boolean isAlreadyApplied = studyApplyRepository.existsByBoardIdAndMemberId(boardId, memberId);
 
             return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
         } catch (NotAuthenticationException exception) {

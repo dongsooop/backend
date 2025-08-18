@@ -15,7 +15,6 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.apply.study.dto.ApplyStudyBoardRequest;
 import com.dongsoop.dongsoop.recruitment.apply.study.entity.StudyApply;
 import com.dongsoop.dongsoop.recruitment.apply.study.repository.StudyApplyRepository;
-import com.dongsoop.dongsoop.recruitment.apply.study.repository.StudyApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.apply.study.service.StudyApplyServiceImpl;
 import com.dongsoop.dongsoop.recruitment.board.study.entity.StudyBoard;
 import com.dongsoop.dongsoop.recruitment.board.study.entity.StudyBoardDepartment;
@@ -48,9 +47,6 @@ class StudyRecruitmentDepartmentEligibilityValidatorTest {
     private StudyBoardDepartmentRepository studyBoardDepartmentRepository;
 
     @Mock
-    private StudyApplyRepositoryCustom studyApplyRepositoryCustom;
-
-    @Mock
     private MemberService memberService;
 
     @Test
@@ -70,7 +66,7 @@ class StudyRecruitmentDepartmentEligibilityValidatorTest {
         when(memberService.getMemberReferenceByContext())
                 .thenReturn(member);
 
-        when(studyApplyRepositoryCustom.existsByBoardIdAndMemberId(eq(boardId), eq(memberId))) // null은 회원 ID를 의미
+        when(studyApplyRepository.existsByBoardIdAndMemberId(eq(boardId), eq(memberId))) // null은 회원 ID를 의미
                 .thenReturn(false);
 
         // 게시판 조회 시 Id가 1인 게시판 조회

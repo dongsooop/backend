@@ -16,7 +16,6 @@ import com.dongsoop.dongsoop.recruitment.apply.project.exception.ProjectApplyNot
 import com.dongsoop.dongsoop.recruitment.apply.project.exception.ProjectOwnerCannotApplyException;
 import com.dongsoop.dongsoop.recruitment.apply.project.exception.ProjectRecruitmentAlreadyAppliedException;
 import com.dongsoop.dongsoop.recruitment.apply.project.repository.ProjectApplyRepository;
-import com.dongsoop.dongsoop.recruitment.apply.project.repository.ProjectApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.board.project.entity.ProjectBoard;
 import com.dongsoop.dongsoop.recruitment.board.project.entity.ProjectBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.board.project.exception.ProjectBoardDepartmentMismatchException;
@@ -42,8 +41,6 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
     private final ProjectBoardRepository projectBoardRepository;
 
     private final ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
-
-    private final ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
 
     private final ChatService chatService;
 
@@ -77,7 +74,7 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
     }
 
     private void validateAlreadyApplied(Long memberId, Long boardId) {
-        boolean isAlreadyApplied = projectApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
+        boolean isAlreadyApplied = projectApplyRepository.existsByBoardIdAndMemberId(boardId, memberId);
         if (isAlreadyApplied) {
             throw new ProjectRecruitmentAlreadyAppliedException(memberId, boardId);
         }
@@ -112,7 +109,7 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
             return;
         }
 
-        projectApplyRepositoryCustom.updateApplyStatus(request.applierId(), boardId, request.status());
+        projectApplyRepository.updateApplyStatus(request.applierId(), boardId, request.status());
 
         if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
             inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
@@ -152,7 +149,7 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
             throw new ProjectBoardNotFound(boardId);
         }
 
-        return projectApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
+        return projectApplyRepository.findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
                 .orElseThrow(() -> new ProjectApplyNotFoundException(boardId, applierId));
     }
 
@@ -160,7 +157,7 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
     public ApplyDetails getRecruitmentApplyDetails(Long boardId) {
         Long requester = memberService.getMemberIdByAuthentication();
 
-        return projectApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, requester)
+        return projectApplyRepository.findApplyDetailsByBoardIdAndApplierId(boardId, requester)
                 .orElseThrow(() -> new ProjectApplyNotFoundException(boardId, requester));
     }
 }

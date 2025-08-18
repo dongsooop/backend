@@ -15,7 +15,6 @@ import com.dongsoop.dongsoop.recruitment.apply.tutoring.exception.TutoringApplyN
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.exception.TutoringOwnerCannotApplyException;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.exception.TutoringRecruitmentAlreadyAppliedException;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.repository.TutoringApplyRepository;
-import com.dongsoop.dongsoop.recruitment.apply.tutoring.repository.TutoringApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.entity.TutoringBoard;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.exception.TutoringBoardDepartmentMismatchException;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.exception.TutoringBoardNotFound;
@@ -36,8 +35,6 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
     private final TutoringApplyRepository tutoringApplyRepository;
 
     private final TutoringBoardRepository tutoringBoardRepository;
-
-    private final TutoringApplyRepositoryCustom tutoringApplyRepositoryCustom;
 
     private final ChatService chatService;
 
@@ -63,7 +60,7 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
     }
 
     private void validateAlreadyApplied(Long memberId, Long boardId) {
-        boolean isAlreadyApplied = tutoringApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
+        boolean isAlreadyApplied = tutoringApplyRepository.existsByBoardIdAndMemberId(boardId, memberId);
         if (isAlreadyApplied) {
             throw new TutoringRecruitmentAlreadyAppliedException(memberId, boardId);
         }
@@ -90,7 +87,7 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
             return;
         }
 
-        tutoringApplyRepositoryCustom.updateApplyStatus(request.applierId(), boardId, request.status());
+        tutoringApplyRepository.updateApplyStatus(request.applierId(), boardId, request.status());
 
         if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
             inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
@@ -130,7 +127,7 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
             throw new TutoringBoardNotFound(boardId);
         }
 
-        return tutoringApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
+        return tutoringApplyRepository.findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
                 .orElseThrow(() -> new TutoringApplyNotFoundException(boardId, applierId));
     }
 
@@ -138,7 +135,7 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
     public ApplyDetails getRecruitmentApplyDetails(Long boardId) {
         Long requester = memberService.getMemberIdByAuthentication();
 
-        return tutoringApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, requester)
+        return tutoringApplyRepository.findApplyDetailsByBoardIdAndApplierId(boardId, requester)
                 .orElseThrow(() -> new TutoringApplyNotFoundException(boardId, requester));
     }
 }

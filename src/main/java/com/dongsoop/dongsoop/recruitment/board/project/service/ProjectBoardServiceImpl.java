@@ -9,7 +9,7 @@ import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
-import com.dongsoop.dongsoop.recruitment.apply.project.repository.ProjectApplyRepositoryCustom;
+import com.dongsoop.dongsoop.recruitment.apply.project.repository.ProjectApplyRepository;
 import com.dongsoop.dongsoop.recruitment.board.dto.RecruitmentDetails;
 import com.dongsoop.dongsoop.recruitment.board.dto.RecruitmentOverview;
 import com.dongsoop.dongsoop.recruitment.board.project.dto.CreateProjectBoardRequest;
@@ -41,7 +41,7 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
 
     private final ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
 
-    private final ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
+    private final ProjectApplyRepository projectApplyRepository;
 
     private final ChatService chatService;
 
@@ -93,7 +93,7 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
                 return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
             }
 
-            boolean isAlreadyApplied = projectApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
+            boolean isAlreadyApplied = projectApplyRepository.existsByBoardIdAndMemberId(boardId, memberId);
 
             return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
         } catch (NotAuthenticationException exception) {

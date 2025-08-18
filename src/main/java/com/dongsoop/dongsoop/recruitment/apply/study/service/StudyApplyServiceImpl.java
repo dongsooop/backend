@@ -16,7 +16,6 @@ import com.dongsoop.dongsoop.recruitment.apply.study.exception.StudyApplyNotFoun
 import com.dongsoop.dongsoop.recruitment.apply.study.exception.StudyOwnerCannotApplyException;
 import com.dongsoop.dongsoop.recruitment.apply.study.exception.StudyRecruitmentAlreadyAppliedException;
 import com.dongsoop.dongsoop.recruitment.apply.study.repository.StudyApplyRepository;
-import com.dongsoop.dongsoop.recruitment.apply.study.repository.StudyApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.board.study.entity.StudyBoard;
 import com.dongsoop.dongsoop.recruitment.board.study.entity.StudyBoardDepartment;
 import com.dongsoop.dongsoop.recruitment.board.study.exception.StudyBoardDepartmentMismatchException;
@@ -42,8 +41,6 @@ public class StudyApplyServiceImpl implements StudyApplyService {
     private final StudyBoardRepository studyBoardRepository;
 
     private final StudyBoardDepartmentRepository studyBoardDepartmentRepository;
-
-    private final StudyApplyRepositoryCustom studyApplyRepositoryCustom;
 
     private final ChatService chatService;
 
@@ -77,7 +74,7 @@ public class StudyApplyServiceImpl implements StudyApplyService {
     }
 
     private void validateAlreadyApplied(Long memberId, Long boardId) {
-        boolean isAlreadyApplied = studyApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
+        boolean isAlreadyApplied = studyApplyRepository.existsByBoardIdAndMemberId(boardId, memberId);
         if (isAlreadyApplied) {
             throw new StudyRecruitmentAlreadyAppliedException(memberId, boardId);
         }
@@ -112,7 +109,7 @@ public class StudyApplyServiceImpl implements StudyApplyService {
             return;
         }
 
-        studyApplyRepositoryCustom.updateApplyStatus(request.applierId(), boardId, request.status());
+        studyApplyRepository.updateApplyStatus(request.applierId(), boardId, request.status());
 
         if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
             inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
@@ -153,7 +150,7 @@ public class StudyApplyServiceImpl implements StudyApplyService {
             throw new StudyBoardNotFound(boardId);
         }
 
-        return studyApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
+        return studyApplyRepository.findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
                 .orElseThrow(() -> new StudyApplyNotFoundException(boardId, applierId));
     }
 
@@ -161,7 +158,7 @@ public class StudyApplyServiceImpl implements StudyApplyService {
     public ApplyDetails getRecruitmentApplyDetails(Long boardId) {
         Long requester = memberService.getMemberIdByAuthentication();
 
-        return studyApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, requester)
+        return studyApplyRepository.findApplyDetailsByBoardIdAndApplierId(boardId, requester)
                 .orElseThrow(() -> new StudyApplyNotFoundException(boardId, requester));
     }
 }

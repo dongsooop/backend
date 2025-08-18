@@ -8,7 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface ProjectApplyRepository extends JpaRepository<ProjectApply, ProjectApplyKey> {
+public interface ProjectApplyRepository extends JpaRepository<ProjectApply, ProjectApplyKey>,
+        ProjectApplyRepositoryCustom {
 
     @Query(
             """

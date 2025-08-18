@@ -15,7 +15,6 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.dto.ApplyTutoringBoardRequest;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.entity.TutoringApply;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.repository.TutoringApplyRepository;
-import com.dongsoop.dongsoop.recruitment.apply.tutoring.repository.TutoringApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.service.TutoringApplyServiceImpl;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.entity.TutoringBoard;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.exception.TutoringBoardDepartmentMismatchException;
@@ -41,9 +40,6 @@ class TutoringRecruitmentDepartmentEligibilityValidatorTest {
     private TutoringApplyRepository tutoringApplyRepository;
 
     @Mock
-    private TutoringApplyRepositoryCustom tutoringApplyRepositoryCustom;
-
-    @Mock
     private MemberService memberService;
 
     @Test
@@ -63,7 +59,7 @@ class TutoringRecruitmentDepartmentEligibilityValidatorTest {
         when(memberService.getMemberReferenceByContext())
                 .thenReturn(member);
 
-        when(tutoringApplyRepositoryCustom.existsByBoardIdAndMemberId(eq(boardId), eq(memberId))) // null은 회원 ID를 의미
+        when(tutoringApplyRepository.existsByBoardIdAndMemberId(eq(boardId), eq(memberId))) // null은 회원 ID를 의미
                 .thenReturn(false);
 
         // 게시판 조회 시 Id가 1인 게시판 조회
