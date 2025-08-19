@@ -50,9 +50,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void configureClientInboundChannel(ChannelRegistration registration) {
         registration.interceptors(stompHandler);
         registration.taskExecutor()
-                .corePoolSize(4)
-                .maxPoolSize(10)
-                .queueCapacity(100);
+                .corePoolSize(16)
+                .maxPoolSize(50)
+                .queueCapacity(300);
     }
 
     @Bean
