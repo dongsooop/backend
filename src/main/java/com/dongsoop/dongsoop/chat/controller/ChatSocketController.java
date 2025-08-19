@@ -24,20 +24,23 @@ public class ChatSocketController {
     private final SimpMessagingTemplate messagingTemplate;
 
     @MessageMapping("/message/{roomId}")
-    public void sendMessage(@Payload ChatMessage message,
-                            @DestinationVariable("roomId") String roomId,
-                            Principal principal) {
+    public void sendMessage(
+            @Payload ChatMessage message,
+            @DestinationVariable("roomId") String roomId,
+            Principal principal) {
 
         Long userId = extractUserIdFromPrincipal(principal);
-        BlockStatus status = chatService.getBlockStatus(roomId, userId);
 
+        BlockStatus status = chatService.getBlockStatus(roomId, userId);
         if (status == BlockStatus.I_BLOCKED) {
             return;
         }
 
         ChatMessage processedMessage = chatService.processWebSocketMessage(message, userId, roomId);
 
-        messagingTemplate.convertAndSend("/topic/chat/room/" + roomId, processedMessage);
+        if (processedMessage != null) {
+            messagingTemplate.convertAndSend("/topic/chat/room/" + roomId, processedMessage);
+        }
     }
 
     @MessageMapping("/enter/{roomId}")
