@@ -9,6 +9,7 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
@@ -20,20 +21,23 @@ import java.security.Principal;
 public class ChatSocketController {
 
     private final ChatService chatService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @MessageMapping("/message/{roomId}")
-    @SendTo("/topic/chat/room/{roomId}")
-    public ChatMessage sendMessage(@Payload ChatMessage message, @DestinationVariable("roomId") String roomId,
-                                   Principal principal) {
+    public void sendMessage(@Payload ChatMessage message,
+                            @DestinationVariable("roomId") String roomId,
+                            Principal principal) {
 
         Long userId = extractUserIdFromPrincipal(principal);
         BlockStatus status = chatService.getBlockStatus(roomId, userId);
 
         if (status == BlockStatus.I_BLOCKED) {
-            return null;
+            return;
         }
 
-        return chatService.processWebSocketMessage(message, userId, roomId);
+        ChatMessage processedMessage = chatService.processWebSocketMessage(message, userId, roomId);
+
+        messagingTemplate.convertAndSend("/topic/chat/room/" + roomId, processedMessage);
     }
 
     @MessageMapping("/enter/{roomId}")
