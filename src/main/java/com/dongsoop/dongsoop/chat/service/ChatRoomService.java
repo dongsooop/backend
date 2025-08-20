@@ -4,6 +4,9 @@ import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
+import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepository;
+import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepository;
+import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoardRepository;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +18,9 @@ public class ChatRoomService {
     private final RedisChatRepository redisChatRepository;
     private final ChatValidator chatValidator;
     private final ChatSyncService chatSyncService;
+    private final ProjectBoardRepository projectBoardRepository;
+    private final StudyBoardRepository studyBoardRepository;
+    private final TutoringBoardRepository tutoringBoardRepository;
 
     public ChatRoom createOneToOneChatRoom(Long userId, Long targetUserId, String title) {
         validateOneToOneChatCreation(userId, targetUserId);
@@ -93,11 +99,23 @@ public class ChatRoomService {
 
     public ChatRoom createContactChatRoom(Long userId, Long targetUserId, String boardType, Long boardId,
                                           String boardTitle) {
+        validateBoardExists(boardType, boardId);
+
         String title = String.format("[문의] %s", boardTitle);
-
         ChatRoom room = createNewOneToOneRoom(userId, targetUserId, title);
-
         return saveRoom(room);
+    }
+
+    private void validateBoardExists(String boardType, Long boardId) {
+        boolean projectExists = "PROJECT".equals(boardType) && projectBoardRepository.existsById(boardId);
+        boolean studyExists = "STUDY".equals(boardType) && studyBoardRepository.existsById(boardId);
+        boolean tutoringExists = "TUTORING".equals(boardType) && tutoringBoardRepository.existsById(boardId);
+
+        boolean boardExists = projectExists || studyExists || tutoringExists;
+
+        if (!boardExists) {
+            throw new IllegalArgumentException("존재하지 않는 글입니다.");
+        }
     }
 
     private ChatRoom createGroupRoom(Set<Long> participants, Long creatorId, String title) {
