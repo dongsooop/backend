@@ -8,4 +8,6 @@ public interface MemberDeviceRepository extends JpaRepository<MemberDevice, Long
     boolean existsByDeviceToken(String deviceToken);
 
     Optional<MemberDevice> findByMemberIdAndDeviceToken(Long memberId, String deviceToken);
+
+    Optional<MemberDevice> findByDeviceToken(String deviceToken);
 }

@@ -41,7 +41,7 @@ public class JwtLogoutHandler implements LogoutHandler {
         MemberDevice device = memberDeviceRepository.findByMemberIdAndDeviceToken(memberId, deviceToken)
                 .orElseThrow(UnregisteredDeviceException::new);
 
-        memberDeviceRepository.delete(device);
+        device.bindMember(null);
     }
 
     private String extractTokenFromHeader(HttpServletRequest request) throws TokenNotFoundException {
