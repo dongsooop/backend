@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.recruitment.board.study.service;
 
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
+import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.department.entity.Department;
@@ -44,6 +45,7 @@ public class StudyBoardServiceImpl implements StudyBoardService {
     private final StudyApplyRepositoryCustom studyApplyRepositoryCustom;
 
     private final ChatService chatService;
+    private final ChatRoomService chatRoomService;
 
     @Transactional
     public StudyBoard create(CreateStudyBoardRequest request) {
@@ -69,7 +71,7 @@ public class StudyBoardServiceImpl implements StudyBoardService {
 
         Set<Long> initialParticipants = Set.of(author.getId());
 
-        ChatRoom chatRoom = chatService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
+        ChatRoom chatRoom = chatRoomService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
 
         studyBoard.assignChatRoom(chatRoom.getRoomId());
         return studyBoardRepository.save(studyBoard);
