@@ -81,7 +81,7 @@ public class NotificationServiceImpl implements NotificationService {
     public void sendNotificationForChat(Set<Long> chatroomMemberIdSet, String chatRoomId, String senderName,
                                         String message) {
         // 사용자 id를 통해 FCM 토큰을 가져옴
-        List<String> participantsDevice = memberDeviceRepositoryCustom.getMemberDeviceTokenByMemberId(
+        List<String> participantsDevice = memberDeviceRepositoryCustom.getMemberDeviceTokenByMemberIds(
                 chatroomMemberIdSet);
 
         fcmService.sendNotification(participantsDevice, senderName, message, NotificationType.CHAT, chatRoomId);

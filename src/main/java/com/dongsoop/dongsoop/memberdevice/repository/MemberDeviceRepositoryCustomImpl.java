@@ -32,10 +32,18 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     }
 
     @Override
-    public List<String> getMemberDeviceTokenByMemberId(Set<Long> memberIdList) {
+    public List<String> getMemberDeviceTokenByMemberIds(Set<Long> memberIds) {
         return queryFactory.select(memberDevice.deviceToken)
                 .from(memberDevice)
-                .where(memberDevice.member.id.in(memberIdList))
+                .where(memberDevice.member.id.in(memberIds))
+                .fetch();
+    }
+
+    @Override
+    public List<String> getMemberDeviceTokenByMemberId(Long memberId) {
+        return queryFactory.select(memberDevice.deviceToken)
+                .from(memberDevice)
+                .where(memberDevice.member.id.eq(memberId))
                 .fetch();
     }
 }

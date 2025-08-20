@@ -14,6 +14,7 @@ import com.dongsoop.dongsoop.recruitment.apply.tutoring.entity.TutoringApply.Tut
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.exception.TutoringApplyNotFoundException;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.exception.TutoringOwnerCannotApplyException;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.exception.TutoringRecruitmentAlreadyAppliedException;
+import com.dongsoop.dongsoop.recruitment.apply.tutoring.notification.TutoringApplyNotification;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.repository.TutoringApplyRepository;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.repository.TutoringApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.entity.TutoringBoard;
@@ -32,14 +33,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class TutoringApplyServiceImpl implements TutoringApplyService {
 
     private final MemberService memberService;
-
     private final TutoringApplyRepository tutoringApplyRepository;
-
     private final TutoringBoardRepository tutoringBoardRepository;
-
     private final TutoringApplyRepositoryCustom tutoringApplyRepositoryCustom;
-
     private final ChatService chatService;
+    private final TutoringApplyNotification tutoringApplyNotification;
 
     public void apply(ApplyTutoringBoardRequest request) {
         Member member = memberService.getMemberReferenceByContext();
@@ -60,6 +58,9 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
                 .build();
 
         tutoringApplyRepository.save(tutoringApply);
+
+        Long authorId = tutoringBoard.getAuthor().getId();
+        tutoringApplyNotification.sendApplyNotification(tutoringBoard.getId(), tutoringBoard.getTitle(), authorId);
     }
 
     private void validateAlreadyApplied(Long memberId, Long boardId) {
