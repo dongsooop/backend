@@ -1,20 +1,19 @@
 package com.dongsoop.dongsoop.chat.controller;
 
+import com.dongsoop.dongsoop.chat.dto.ChatRoomListResponse;
 import com.dongsoop.dongsoop.chat.dto.CreateContactRoomRequest;
 import com.dongsoop.dongsoop.chat.dto.CreateGroupRoomRequest;
 import com.dongsoop.dongsoop.chat.dto.CreateRoomRequest;
-import com.dongsoop.dongsoop.chat.dto.InviteUserRequest;
 import com.dongsoop.dongsoop.chat.dto.KickUserRequest;
 import com.dongsoop.dongsoop.chat.dto.ReadStatusUpdateRequest;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
-import com.dongsoop.dongsoop.chat.entity.IncrementalSyncResponse;
+import com.dongsoop.dongsoop.chat.service.ChatMessageService;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
-import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -25,7 +24,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -34,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ChatController {
     private final ChatService chatService;
     private final ChatRoomService chatRoomService;
+    private final ChatMessageService chatMessageService;
     private final MemberService memberService;
 
     @GetMapping("/room/{roomId}/initialize")
@@ -43,22 +42,13 @@ public class ChatController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/room/{roomId}/sync")
-    public ResponseEntity<IncrementalSyncResponse> syncNewMessages(
-            @PathVariable("roomId") String roomId,
-            @RequestParam(required = false) String lastMessageId) {
-        Long currentUserId = getCurrentUserId();
-        IncrementalSyncResponse response = chatService.syncNewMessagesOnly(roomId, currentUserId, lastMessageId);
-        return ResponseEntity.ok(response);
-    }
-
     @PostMapping("/room/{roomId}/read-status")
     public ResponseEntity<Void> updateReadStatus(
             @PathVariable("roomId") String roomId,
             @RequestBody ReadStatusUpdateRequest request) {
         Long currentUserId = getCurrentUserId();
         chatService.updateReadStatus(roomId, currentUserId, request);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/room/{roomId}/unread-count")
@@ -73,39 +63,33 @@ public class ChatController {
     public ResponseEntity<ChatRoom> createRoom(@RequestBody CreateRoomRequest request) {
         Long currentUserId = getCurrentUserId();
         Long targetUserId = request.getTargetUserId();
-        String title = request.getTitle();
-        ChatRoom createdRoom = chatRoomService.createOneToOneChatRoom(currentUserId, targetUserId, title);
+        ChatRoom createdRoom = chatRoomService.createOneToOneChatRoom(currentUserId, targetUserId, request.getTitle());
         return ResponseEntity.ok(createdRoom);
     }
 
     @GetMapping("/rooms")
-    public ResponseEntity<List<ChatRoom>> getRoomsForUser() {
+    public ResponseEntity<List<ChatRoomListResponse>> getRoomsForUser() {
         Long currentUserId = getCurrentUserId();
-        List<ChatRoom> rooms = chatService.getRoomsForUserId(currentUserId);
-        return ResponseEntity.ok(rooms);
+        List<ChatRoom> rooms = chatRoomService.getRoomsForUserId(currentUserId);
+        List<ChatRoomListResponse> roomResponses = rooms.stream()
+                .map(room -> buildRoomListResponse(room, currentUserId))
+                .toList();
+        return ResponseEntity.ok(roomResponses);
     }
 
     @PostMapping("/room/group")
     public ResponseEntity<ChatRoom> createGroupRoom(@RequestBody CreateGroupRoomRequest request) {
         Long currentUserId = getCurrentUserId();
-        ChatRoom groupRoom = chatService.createGroupChatRoom(currentUserId, request.getParticipants(),
+        ChatRoom groupRoom = chatRoomService.createGroupChatRoom(currentUserId, request.getParticipants(),
                 request.getTitle());
         return ResponseEntity.ok(groupRoom);
-    }
-
-    @GetMapping("/room/{roomId}/enter")
-    public ResponseEntity<ChatMessage> enterRoom(@PathVariable("roomId") String roomId) {
-        Long currentUserId = getCurrentUserId();
-        chatRoomService.enterChatRoom(roomId, currentUserId);
-        ChatMessage enterMessage = chatService.checkFirstTimeEntryAndCreateEnterMessage(roomId, currentUserId);
-        return ResponseEntity.ok(enterMessage);
     }
 
     @PostMapping("/room/{roomId}/leave")
     public ResponseEntity<Void> leaveRoom(@PathVariable("roomId") String roomId) {
         Long currentUserId = getCurrentUserId();
         chatService.leaveChatRoom(roomId, currentUserId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/room/{roomId}/kick")
@@ -115,13 +99,6 @@ public class ChatController {
         Long currentUserId = getCurrentUserId();
         ChatRoom updatedRoom = chatService.kickUserFromRoom(roomId, currentUserId, request.getUserId());
         return ResponseEntity.ok(updatedRoom);
-    }
-
-    @GetMapping("/room/{roomId}/messages")
-    public ResponseEntity<List<ChatMessage>> getChatHistory(@PathVariable("roomId") String roomId) {
-        Long currentUserId = getCurrentUserId();
-        List<ChatMessage> messages = chatService.getChatHistoryForUser(roomId, currentUserId);
-        return ResponseEntity.ok(messages);
     }
 
     @GetMapping("/room/{roomId}/messages/after/{messageId}")
@@ -137,7 +114,7 @@ public class ChatController {
     public ResponseEntity<Void> markAllMessagesAsRead(@PathVariable("roomId") String roomId) {
         Long currentUserId = getCurrentUserId();
         chatService.markAllMessagesAsRead(roomId, currentUserId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/room/{roomId}/messages/sync-offline")
@@ -154,7 +131,7 @@ public class ChatController {
     @GetMapping("/room/{roomId}/participants")
     public ResponseEntity<Map<Long, String>> getRoomParticipants(@PathVariable("roomId") String roomId) {
         Long currentUserId = getCurrentUserId();
-        chatRoomService.enterChatRoom(roomId, currentUserId);
+        chatService.validateUserAccess(roomId, currentUserId);
 
         ChatRoom room = chatRoomService.getChatRoomById(roomId);
 
@@ -167,30 +144,31 @@ public class ChatController {
         return ResponseEntity.ok(participants);
     }
 
-    @PostMapping("/room/{roomId}/invite")
-    public ResponseEntity<ChatMessage> inviteUserToRoom(
-            @PathVariable("roomId") String roomId,
-            @RequestBody @Valid InviteUserRequest request) {
-        Long currentUserId = getCurrentUserId();
-        Long targetUserId = request.targetUserId();
-
-        ChatMessage inviteMessage = chatService.inviteUserToGroupChat(roomId, currentUserId, targetUserId);
-        return ResponseEntity.ok(inviteMessage);
-    }
-
     @PostMapping("/room/contact")
     public ResponseEntity<ChatRoom> createContactRoom(@RequestBody CreateContactRoomRequest request) {
         Long currentUserId = getCurrentUserId();
-
-        ChatRoom createdRoom = chatRoomService.createContactChatRoom(
+        ChatRoom contactRoom = chatRoomService.createContactChatRoom(
                 currentUserId,
                 request.getTargetUserId(),
                 request.getBoardType(),
                 request.getBoardId(),
                 request.getBoardTitle()
         );
+        return ResponseEntity.ok(contactRoom);
+    }
 
-        return ResponseEntity.ok(createdRoom);
+    private ChatRoomListResponse buildRoomListResponse(ChatRoom room, Long userId) {
+        String lastMessage = chatMessageService.getLastMessageText(room.getRoomId());
+        int unreadCount = chatService.getUnreadMessageCount(room.getRoomId(), userId);
+
+        return ChatRoomListResponse.builder()
+                .roomId(room.getRoomId())
+                .title(room.getTitle())
+                .participantCount(room.getParticipants().size())
+                .lastMessage(lastMessage)
+                .unreadCount(unreadCount)
+                .lastActivityAt(room.getLastActivityAt())
+                .build();
     }
 
     private Long getCurrentUserId() {
