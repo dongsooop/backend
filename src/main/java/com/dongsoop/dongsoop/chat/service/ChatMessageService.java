@@ -75,13 +75,12 @@ public class ChatMessageService {
     }
 
     public String getLastMessageText(String roomId) {
-        List<ChatMessage> messages = getAllMessages(roomId);
+        ChatMessage lastMessage = redisChatRepository.findLastMessageByRoomId(roomId);
         
-        if (messages.isEmpty()) {
+        if (lastMessage == null) {
             return null;
         }
         
-        ChatMessage lastMessage = messages.get(messages.size() - 1);
         return lastMessage.getContent();
     }
 
