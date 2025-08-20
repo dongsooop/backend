@@ -1,11 +1,10 @@
 package com.dongsoop.dongsoop.chat.dto;
 
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
 
 @Getter
 @Builder
@@ -18,4 +17,5 @@ public class ChatRoomListResponse {
     private String lastMessage;
     private int unreadCount;
     private LocalDateTime lastActivityAt;
+    private boolean isGroupChat;
 }

@@ -168,6 +168,7 @@ public class ChatController {
                 .lastMessage(lastMessage)
                 .unreadCount(unreadCount)
                 .lastActivityAt(room.getLastActivityAt())
+                .isGroupChat(room.isGroupChat())
                 .build();
     }
 
