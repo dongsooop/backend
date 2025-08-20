@@ -91,6 +91,15 @@ public class ChatRoomService {
         return saveRoom(room);
     }
 
+    public ChatRoom createContactChatRoom(Long userId, Long targetUserId, String boardType, Long boardId,
+                                          String boardTitle) {
+        String title = String.format("[문의] %s", boardTitle);
+
+        ChatRoom room = createNewOneToOneRoom(userId, targetUserId, title);
+
+        return saveRoom(room);
+    }
+
     private ChatRoom createGroupRoom(Set<Long> participants, Long creatorId, String title) {
         return ChatRoom.createWithParticipantsAndTitle(participants, creatorId, title);
     }
