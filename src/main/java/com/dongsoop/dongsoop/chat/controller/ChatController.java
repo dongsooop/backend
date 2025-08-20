@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.chat.controller;
 
+import com.dongsoop.dongsoop.chat.dto.CreateContactRoomRequest;
 import com.dongsoop.dongsoop.chat.dto.CreateGroupRoomRequest;
 import com.dongsoop.dongsoop.chat.dto.CreateRoomRequest;
 import com.dongsoop.dongsoop.chat.dto.InviteUserRequest;
@@ -175,6 +176,21 @@ public class ChatController {
 
         ChatMessage inviteMessage = chatService.inviteUserToGroupChat(roomId, currentUserId, targetUserId);
         return ResponseEntity.ok(inviteMessage);
+    }
+
+    @PostMapping("/room/contact")
+    public ResponseEntity<ChatRoom> createContactRoom(@RequestBody CreateContactRoomRequest request) {
+        Long currentUserId = getCurrentUserId();
+
+        ChatRoom createdRoom = chatRoomService.createContactChatRoom(
+                currentUserId,
+                request.getTargetUserId(),
+                request.getBoardType(),
+                request.getBoardId(),
+                request.getBoardTitle()
+        );
+
+        return ResponseEntity.ok(createdRoom);
     }
 
     private Long getCurrentUserId() {

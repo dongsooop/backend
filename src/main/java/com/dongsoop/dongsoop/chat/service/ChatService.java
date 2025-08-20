@@ -11,15 +11,14 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberblock.constant.BlockStatus;
 import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepository;
 import com.dongsoop.dongsoop.notification.service.NotificationService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
@@ -79,11 +78,15 @@ public class ChatService {
     public ChatMessage processWebSocketMessage(ChatMessage message, Long userId, String roomId) {
         ChatMessage processedMessage = chatMessageService.processWebSocketMessage(message, userId, roomId);
         ChatRoom room = chatRoomService.updateRoomActivity(roomId);
-        String senderName = memberService.getNicknameById(userId);
 
         Set<Long> receiver = new HashSet<>(room.getParticipants());
         receiver.remove(userId);
-        notificationService.sendNotificationForChat(receiver, senderName, message.getContent());
+
+        if (!receiver.isEmpty()) {
+            String senderName = memberService.getNicknameById(userId);
+            notificationService.sendNotificationForChat(receiver, senderName, message.getContent());
+        }
+
         return processedMessage;
     }
 
