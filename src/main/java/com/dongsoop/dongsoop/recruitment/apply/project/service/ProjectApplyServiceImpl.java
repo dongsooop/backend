@@ -117,6 +117,10 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
         if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
             inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
         }
+
+        String boardTitle = projectApplyRepositoryCustom.findTitleByMemberIdAndBoardId(request.applierId(), boardId)
+                .orElseThrow(() -> new ProjectApplyNotFoundException(request.applierId(), boardId));
+        projectApplyNotification.sendOutcomeNotification(boardId, boardTitle, request.applierId());
     }
 
     private void inviteToGroupChat(Long boardId, Long applierId, Long authorId) {

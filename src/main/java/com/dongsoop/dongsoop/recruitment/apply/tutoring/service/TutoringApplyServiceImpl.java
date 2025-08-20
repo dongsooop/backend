@@ -96,6 +96,10 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
         if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
             inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
         }
+
+        String boardTitle = tutoringApplyRepositoryCustom.findTitleByMemberIdAndBoardId(request.applierId(), boardId)
+                .orElseThrow(() -> new TutoringApplyNotFoundException(request.applierId(), boardId));
+        tutoringApplyNotification.sendOutcomeNotification(boardId, boardTitle, request.applierId());
     }
 
     private void inviteToGroupChat(Long boardId, Long applierId, Long authorId) {

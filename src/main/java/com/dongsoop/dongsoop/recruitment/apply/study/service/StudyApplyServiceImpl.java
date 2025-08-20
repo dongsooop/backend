@@ -117,6 +117,10 @@ public class StudyApplyServiceImpl implements StudyApplyService {
         if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
             inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
         }
+
+        String boardTitle = studyApplyRepositoryCustom.findTitleByMemberIdAndBoardId(request.applierId(), boardId)
+                .orElseThrow(() -> new StudyApplyNotFoundException(request.applierId(), boardId));
+        studyApplyNotification.sendOutcomeNotification(boardId, boardTitle, request.applierId());
     }
 
     private void inviteToGroupChat(Long boardId, Long applierId, Long authorId) {

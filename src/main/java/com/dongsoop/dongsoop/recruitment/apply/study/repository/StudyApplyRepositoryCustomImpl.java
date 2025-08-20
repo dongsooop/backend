@@ -56,4 +56,16 @@ public class StudyApplyRepositoryCustomImpl implements StudyApplyRepositoryCusto
 
         return Optional.ofNullable(result);
     }
+
+    @Override
+    public Optional<String> findTitleByMemberIdAndBoardId(Long memberId, Long boardId) {
+        String result = queryFactory.select(studyBoard.title)
+                .from(studyApply)
+                .leftJoin(studyApply.id.studyBoard, studyBoard)
+                .where(studyApply.id.studyBoard.id.eq(boardId)
+                        .and(studyApply.id.member.id.eq(memberId)))
+                .fetchOne();
+
+        return Optional.ofNullable(result);
+    }
 }

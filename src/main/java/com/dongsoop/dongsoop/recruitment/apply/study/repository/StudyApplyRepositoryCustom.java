@@ -11,4 +11,6 @@ public interface StudyApplyRepositoryCustom {
     void updateApplyStatus(Long memberId, Long boardId, RecruitmentApplyStatus status);
 
     Optional<ApplyDetails> findApplyDetailsByBoardIdAndApplierId(Long boardId, Long applierId);
+
+    Optional<String> findTitleByMemberIdAndBoardId(Long memberId, Long boardId);
 }

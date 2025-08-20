@@ -56,4 +56,16 @@ public class TutoringApplyRepositoryCustomImpl implements TutoringApplyRepositor
 
         return Optional.ofNullable(result);
     }
+
+    @Override
+    public Optional<String> findTitleByMemberIdAndBoardId(Long memberId, Long boardId) {
+        String result = queryFactory.select(tutoringBoard.title)
+                .from(tutoringApply)
+                .leftJoin(tutoringApply.id.tutoringBoard, tutoringBoard)
+                .where(tutoringApply.id.tutoringBoard.id.eq(boardId)
+                        .and(tutoringApply.id.member.id.eq(memberId)))
+                .fetchOne();
+
+        return Optional.ofNullable(result);
+    }
 }

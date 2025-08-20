@@ -26,4 +26,13 @@ public abstract class RecruitmentApplyNotification {
 
         fcmService.sendNotification(ownerDevice, "모집 지원자 알림", body, getNotificationType(), String.valueOf(boardId));
     }
+
+    public void sendOutcomeNotification(Long boardId, String boardTitle, Long applierId) {
+        List<String> applierDevice = memberDeviceRepositoryCustom.getMemberDeviceTokenByMemberId(
+                applierId);
+
+        String body = "[" + boardTitle + "] 모집 지원 결과가 등록되었습니다. 행운을 빌어요!";
+
+        fcmService.sendNotification(applierDevice, "모집 결과 알림", body, getNotificationType(), String.valueOf(boardId));
+    }
 }

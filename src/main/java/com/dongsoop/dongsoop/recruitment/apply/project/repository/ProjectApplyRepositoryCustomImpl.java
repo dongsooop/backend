@@ -56,4 +56,16 @@ public class ProjectApplyRepositoryCustomImpl implements ProjectApplyRepositoryC
 
         return Optional.ofNullable(result);
     }
+
+    @Override
+    public Optional<String> findTitleByMemberIdAndBoardId(Long memberId, Long boardId) {
+        String result = queryFactory.select(projectBoard.title)
+                .from(projectApply)
+                .leftJoin(projectApply.id.projectBoard, projectBoard)
+                .where(projectApply.id.projectBoard.id.eq(boardId)
+                        .and(projectApply.id.member.id.eq(memberId)))
+                .fetchOne();
+
+        return Optional.ofNullable(result);
+    }
 }
