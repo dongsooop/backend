@@ -1,9 +1,11 @@
 package com.dongsoop.dongsoop.chat.service;
 
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
+import com.dongsoop.dongsoop.chat.exception.BoardNotFoundException;
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
+import com.dongsoop.dongsoop.recruitment.RecruitmentType;
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoardRepository;
@@ -97,7 +99,7 @@ public class ChatRoomService {
         return saveRoom(room);
     }
 
-    public ChatRoom createContactChatRoom(Long userId, Long targetUserId, String boardType, Long boardId,
+    public ChatRoom createContactChatRoom(Long userId, Long targetUserId, RecruitmentType boardType, Long boardId,
                                           String boardTitle) {
         validateBoardExists(boardType, boardId);
 
@@ -106,15 +108,15 @@ public class ChatRoomService {
         return saveRoom(room);
     }
 
-    private void validateBoardExists(String boardType, Long boardId) {
-        boolean projectExists = "PROJECT".equals(boardType) && projectBoardRepository.existsById(boardId);
-        boolean studyExists = "STUDY".equals(boardType) && studyBoardRepository.existsById(boardId);
-        boolean tutoringExists = "TUTORING".equals(boardType) && tutoringBoardRepository.existsById(boardId);
+    private void validateBoardExists(RecruitmentType boardType, Long boardId) {
+        boolean projectExists = boardType == RecruitmentType.PROJECT && projectBoardRepository.existsById(boardId);
+        boolean studyExists = boardType == RecruitmentType.STUDY && studyBoardRepository.existsById(boardId);
+        boolean tutoringExists = boardType == RecruitmentType.TUTORING && tutoringBoardRepository.existsById(boardId);
 
         boolean boardExists = projectExists || studyExists || tutoringExists;
 
         if (!boardExists) {
-            throw new IllegalArgumentException("존재하지 않는 글입니다.");
+            throw new BoardNotFoundException();
         }
     }
 
