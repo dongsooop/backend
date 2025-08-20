@@ -22,6 +22,7 @@ public class NoticeDetails {
     @Getter
     private String title;
 
+    @Getter
     private String link;
 
     private LocalDate createdAt;

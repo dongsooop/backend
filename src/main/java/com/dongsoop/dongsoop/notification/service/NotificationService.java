@@ -7,5 +7,5 @@ public interface NotificationService {
 
     void sendNotificationByDepartment(Set<Notice> noticeDetailSet);
 
-    void sendNotificationForChat(Set<Long> chatroomMemberIdSet, String senderName, String message);
+    void sendNotificationForChat(Set<Long> chatroomMemberIdSet, String roomId, String senderName, String message);
 }

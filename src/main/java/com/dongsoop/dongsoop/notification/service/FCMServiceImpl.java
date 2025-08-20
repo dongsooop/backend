@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.notification.service;
 
+import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.exception.NotificationSendException;
 import com.google.api.core.ApiFuture;
 import com.google.firebase.messaging.ApnsConfig;
@@ -29,9 +30,10 @@ public class FCMServiceImpl implements FCMService {
     private final ExecutorService notificationExecutor;
 
     @Override
-    public void sendNotification(List<String> fcmTokenList, String title, String body) {
+    public void sendNotification(List<String> fcmTokenList, String title, String body, NotificationType type,
+                                 String value) {
         // iOS용 APNs 설정
-        ApnsConfig apnsConfig = getApnsConfig(title, body);
+        ApnsConfig apnsConfig = getApnsConfig(title, body, type, value);
 
         MulticastMessage message = MulticastMessage.builder()
                 .addAllTokens(fcmTokenList)
@@ -45,7 +47,8 @@ public class FCMServiceImpl implements FCMService {
         sendMessage(message);
     }
 
-    public ApnsConfig getApnsConfig(String title, String body) {
+    @Override
+    public ApnsConfig getApnsConfig(String title, String body, NotificationType type, String value) {
         return ApnsConfig.builder()
                 .setAps(Aps.builder()
                         .setAlert(ApsAlert.builder()
@@ -53,6 +56,8 @@ public class FCMServiceImpl implements FCMService {
                                 .setBody(body)
                                 .build())
                         .setSound("default")
+                        .putCustomData("type", type)
+                        .putCustomData("value", value)
                         .build())
                 .build();
     }

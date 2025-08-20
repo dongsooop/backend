@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.notification.service;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepositoryCustom;
 import com.dongsoop.dongsoop.notice.entity.Notice;
+import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.google.firebase.messaging.ApnsConfig;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
@@ -11,6 +12,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,9 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final MemberDeviceRepositoryCustom memberDeviceRepositoryCustom;
     private final FCMService fcmService;
+
+    @Value("${university.domain}")
+    private String universityDomain;
 
     @Override
     @Transactional(readOnly = true)
@@ -46,7 +51,9 @@ public class NotificationServiceImpl implements NotificationService {
                         return Stream.empty();
                     }
 
-                    ApnsConfig apnsConfig = fcmService.getApnsConfig(title, writer);
+                    String noticeUrl = universityDomain + notice.getNoticeDetails().getLink();
+
+                    ApnsConfig apnsConfig = fcmService.getApnsConfig(title, writer, NotificationType.NOTICE, noticeUrl);
                     Notification notification = Notification.builder()
                             .setTitle(title)
                             .setBody(writer)
@@ -71,11 +78,12 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public void sendNotificationForChat(Set<Long> chatroomMemberIdSet, String senderName, String message) {
+    public void sendNotificationForChat(Set<Long> chatroomMemberIdSet, String chatRoomId, String senderName,
+                                        String message) {
         // 사용자 id를 통해 FCM 토큰을 가져옴
         List<String> participantsDevice = memberDeviceRepositoryCustom.getMemberDeviceTokenByMemberId(
                 chatroomMemberIdSet);
 
-        fcmService.sendNotification(participantsDevice, senderName, message);
+        fcmService.sendNotification(participantsDevice, senderName, message, NotificationType.CHAT, chatRoomId);
     }
 }

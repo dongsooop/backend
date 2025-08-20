@@ -84,7 +84,7 @@ public class ChatService {
 
         if (!receiver.isEmpty()) {
             String senderName = memberService.getNicknameById(userId);
-            notificationService.sendNotificationForChat(receiver, senderName, message.getContent());
+            notificationService.sendNotificationForChat(receiver, roomId, senderName, message.getContent());
         }
 
         return processedMessage;
