@@ -30,10 +30,10 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional(readOnly = true)
     public void sendNotificationByDepartment(Set<Notice> noticeDetailSet) {
-        if (noticeDetailSet.isEmpty()) {
+        if (noticeDetailSet == null || noticeDetailSet.isEmpty()) {
             return;
         }
-        
+
         List<Message> messageList = convertNoticeToMessage(noticeDetailSet);
         fcmService.sendMessages(messageList);
     }
