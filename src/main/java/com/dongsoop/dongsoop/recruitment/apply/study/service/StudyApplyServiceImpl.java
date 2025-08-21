@@ -112,14 +112,18 @@ public class StudyApplyServiceImpl implements StudyApplyService {
             return;
         }
 
-        studyApplyRepositoryCustom.updateApplyStatus(request.applierId(), boardId, request.status());
+        StudyApply studyApply = studyApplyRepositoryCustom.findByBoardIdAndApplierId(boardId, request.applierId())
+                .orElseThrow(() -> new StudyApplyNotFoundException(request.applierId(), boardId));
+
+        studyApply.updateStatus(request.status());
+
+        String boardTitle = studyApply.getStudyBoard()
+                .getTitle();
 
         if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
             inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
         }
 
-        String boardTitle = studyApplyRepositoryCustom.findTitleByMemberIdAndBoardId(request.applierId(), boardId)
-                .orElseThrow(() -> new StudyApplyNotFoundException(request.applierId(), boardId));
         studyApplyNotification.sendOutcomeNotification(boardId, boardTitle, request.applierId());
     }
 

@@ -112,14 +112,18 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
             return;
         }
 
-        projectApplyRepositoryCustom.updateApplyStatus(request.applierId(), boardId, request.status());
+        ProjectApply projectApply = projectApplyRepositoryCustom.findByBoardIdAndApplierId(boardId, request.applierId())
+                .orElseThrow(() -> new ProjectApplyNotFoundException(request.applierId(), boardId));
+
+        projectApply.updateStatus(request.status());
+
+        String boardTitle = projectApply.getProjectBoard()
+                .getTitle();
 
         if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
             inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
         }
 
-        String boardTitle = projectApplyRepositoryCustom.findTitleByMemberIdAndBoardId(request.applierId(), boardId)
-                .orElseThrow(() -> new ProjectApplyNotFoundException(request.applierId(), boardId));
         projectApplyNotification.sendOutcomeNotification(boardId, boardTitle, request.applierId());
     }
 

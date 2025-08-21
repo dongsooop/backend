@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.CreatedDate;
@@ -28,6 +29,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @EntityListeners(AuditingEntityListener.class)
 public class ProjectApply {
 
+    @Getter
     @EmbeddedId
     private ProjectApplyKey id;
 
@@ -45,6 +47,14 @@ public class ProjectApply {
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private RecruitmentApplyStatus status = RecruitmentApplyStatus.APPLY;
+
+    public void updateStatus(RecruitmentApplyStatus status) {
+        this.status = status;
+    }
+
+    public ProjectBoard getProjectBoard() {
+        return id.projectBoard;
+    }
 
     @Embeddable
     @NoArgsConstructor

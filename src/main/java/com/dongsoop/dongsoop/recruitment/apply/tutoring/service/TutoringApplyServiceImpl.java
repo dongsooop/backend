@@ -91,14 +91,19 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
             return;
         }
 
-        tutoringApplyRepositoryCustom.updateApplyStatus(request.applierId(), boardId, request.status());
+        TutoringApply tutoringApply = tutoringApplyRepositoryCustom.findByBoardIdAndApplierId(boardId,
+                        request.applierId())
+                .orElseThrow(() -> new TutoringApplyNotFoundException(request.applierId(), boardId));
+
+        tutoringApply.updateStatus(request.status());
+
+        String boardTitle = tutoringApply.getTutoringBoard()
+                .getTitle();
 
         if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
             inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
         }
 
-        String boardTitle = tutoringApplyRepositoryCustom.findTitleByMemberIdAndBoardId(request.applierId(), boardId)
-                .orElseThrow(() -> new TutoringApplyNotFoundException(request.applierId(), boardId));
         tutoringApplyNotification.sendOutcomeNotification(boardId, boardTitle, request.applierId());
     }
 

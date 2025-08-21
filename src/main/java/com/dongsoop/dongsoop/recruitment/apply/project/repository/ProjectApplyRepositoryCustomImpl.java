@@ -3,7 +3,7 @@ package com.dongsoop.dongsoop.recruitment.apply.project.repository;
 import com.dongsoop.dongsoop.department.entity.QDepartment;
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.recruitment.apply.dto.ApplyDetails;
-import com.dongsoop.dongsoop.recruitment.apply.entity.RecruitmentApplyStatus;
+import com.dongsoop.dongsoop.recruitment.apply.project.entity.ProjectApply;
 import com.dongsoop.dongsoop.recruitment.apply.project.entity.QProjectApply;
 import com.dongsoop.dongsoop.recruitment.apply.projection.ProjectRecruitmentApplyProjection;
 import com.dongsoop.dongsoop.recruitment.board.project.entity.QProjectBoard;
@@ -35,15 +35,6 @@ public class ProjectApplyRepositoryCustomImpl implements ProjectApplyRepositoryC
     }
 
     @Override
-    public void updateApplyStatus(Long memberId, Long boardId, RecruitmentApplyStatus status) {
-        queryFactory.update(projectApply)
-                .where(projectApply.id.projectBoard.id.eq(boardId)
-                        .and(projectApply.id.member.id.eq(memberId)))
-                .set(projectApply.status, status)
-                .execute();
-    }
-
-    @Override
     public Optional<ApplyDetails> findApplyDetailsByBoardIdAndApplierId(Long boardId, Long applierId) {
         ApplyDetails result = queryFactory.select(projectRecruitmentApplyProjection.getApplyDetailsExpression())
                 .from(projectApply)
@@ -58,12 +49,10 @@ public class ProjectApplyRepositoryCustomImpl implements ProjectApplyRepositoryC
     }
 
     @Override
-    public Optional<String> findTitleByMemberIdAndBoardId(Long memberId, Long boardId) {
-        String result = queryFactory.select(projectBoard.title)
-                .from(projectApply)
-                .innerJoin(projectApply.id.projectBoard, projectBoard)
+    public Optional<ProjectApply> findByBoardIdAndApplierId(Long boardId, Long applierId) {
+        ProjectApply result = queryFactory.selectFrom(projectApply)
                 .where(projectApply.id.projectBoard.id.eq(boardId)
-                        .and(projectApply.id.member.id.eq(memberId)))
+                        .and(projectApply.id.member.id.eq(applierId)))
                 .fetchOne();
 
         return Optional.ofNullable(result);
