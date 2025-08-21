@@ -40,7 +40,7 @@ public class ChatController {
             @RequestBody ReadStatusUpdateRequest request) {
         Long currentUserId = getCurrentUserId();
         chatService.updateReadStatus(roomId, currentUserId, request);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/room/{roomId}/unread-count")
@@ -92,7 +92,7 @@ public class ChatController {
     public ResponseEntity<Void> leaveRoom(@PathVariable("roomId") String roomId) {
         Long currentUserId = getCurrentUserId();
         chatService.leaveChatRoom(roomId, currentUserId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/room/{roomId}/kick")
@@ -117,7 +117,7 @@ public class ChatController {
     public ResponseEntity<Void> markAllMessagesAsRead(@PathVariable("roomId") String roomId) {
         Long currentUserId = getCurrentUserId();
         chatService.markAllMessagesAsRead(roomId, currentUserId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/room/{roomId}/messages/sync-offline")
