@@ -61,7 +61,7 @@ public class ProjectApplyRepositoryCustomImpl implements ProjectApplyRepositoryC
     public Optional<String> findTitleByMemberIdAndBoardId(Long memberId, Long boardId) {
         String result = queryFactory.select(projectBoard.title)
                 .from(projectApply)
-                .leftJoin(projectApply.id.projectBoard, projectBoard)
+                .innerJoin(projectApply.id.projectBoard, projectBoard)
                 .where(projectApply.id.projectBoard.id.eq(boardId)
                         .and(projectApply.id.member.id.eq(memberId)))
                 .fetchOne();

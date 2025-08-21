@@ -61,7 +61,7 @@ public class TutoringApplyRepositoryCustomImpl implements TutoringApplyRepositor
     public Optional<String> findTitleByMemberIdAndBoardId(Long memberId, Long boardId) {
         String result = queryFactory.select(tutoringBoard.title)
                 .from(tutoringApply)
-                .leftJoin(tutoringApply.id.tutoringBoard, tutoringBoard)
+                .innerJoin(tutoringApply.id.tutoringBoard, tutoringBoard)
                 .where(tutoringApply.id.tutoringBoard.id.eq(boardId)
                         .and(tutoringApply.id.member.id.eq(memberId)))
                 .fetchOne();
