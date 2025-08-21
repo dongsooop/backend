@@ -7,6 +7,8 @@ import java.util.List;
 
 public abstract class RecruitmentApplyNotification {
 
+    private static final Integer TITLE_TRUNCATION_LENGTH = 8;
+
     private final MemberDeviceRepositoryCustom memberDeviceRepositoryCustom;
     private final FCMService fcmService;
 
@@ -39,10 +41,10 @@ public abstract class RecruitmentApplyNotification {
     }
 
     private String processBoardTitle(String boardTitle) {
-        if (boardTitle.length() <= 8) {
+        if (boardTitle.length() <= TITLE_TRUNCATION_LENGTH) {
             return boardTitle;
         }
 
-        return boardTitle.substring(0, 8) + "...";
+        return boardTitle.substring(0, TITLE_TRUNCATION_LENGTH) + "...";
     }
 }
