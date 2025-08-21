@@ -5,7 +5,6 @@ import com.dongsoop.dongsoop.chat.dto.ReadStatusUpdateRequest;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
-import com.dongsoop.dongsoop.chat.entity.IncrementalSyncResponse;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberblock.constant.BlockStatus;
@@ -46,15 +45,6 @@ public class ChatService {
         return buildChatRoomInitResponse(room, afterJoinMessages, userJoinTime);
     }
 
-    public IncrementalSyncResponse syncNewMessagesOnly(String roomId, Long userId, String lastMessageId) {
-        chatValidator.validateUserForRoom(roomId, userId);
-
-        List<ChatMessage> newMessages = chatMessageService.loadNewMessages(roomId, lastMessageId);
-        int unreadCount = chatMessageService.countUnreadMessages(newMessages, userId);
-
-        return IncrementalSyncResponse.create(roomId, newMessages, unreadCount);
-    }
-
     public void updateReadStatus(String roomId, Long userId, ReadStatusUpdateRequest request) {
         chatValidator.validateUserForRoom(roomId, userId);
         processReadStatusUpdate(userId, roomId, request);
@@ -65,10 +55,6 @@ public class ChatService {
 
         LocalDateTime lastReadTime = readStatusService.getLastReadTimestamp(userId, roomId);
         return calculateUnreadCount(roomId, userId, lastReadTime);
-    }
-
-    public ChatRoom createGroupChatRoom(Long creatorId, Set<Long> participants, String title) {
-        return chatRoomService.createGroupChatRoom(creatorId, participants, title);
     }
 
     public void leaveChatRoom(String roomId, Long userId) {
@@ -93,15 +79,6 @@ public class ChatService {
     public ChatMessage processWebSocketEnter(String roomId, Long userId) {
         return chatParticipantService.checkFirstTimeEntryAndCreateEnterMessage(roomId, userId, chatRoomService,
                 chatMessageService);
-    }
-
-    public List<ChatMessage> getChatHistoryForUser(String roomId, Long userId) {
-        chatValidator.validateUserForRoom(roomId, userId);
-
-        ChatRoom room = chatRoomService.getChatRoomById(roomId);
-        LocalDateTime userJoinTime = chatParticipantService.determineUserJoinTime(room, userId, chatRoomService);
-
-        return chatMessageService.loadMessagesAfterJoinTime(roomId, userJoinTime);
     }
 
     public List<ChatMessage> getMessagesAfter(String roomId, Long userId, String messageId) {
@@ -136,6 +113,10 @@ public class ChatService {
     public ChatMessage checkFirstTimeEntryAndCreateEnterMessage(String roomId, Long userId) {
         return chatParticipantService.checkFirstTimeEntryAndCreateEnterMessage(roomId, userId, chatRoomService,
                 chatMessageService);
+    }
+
+    public void validateUserAccess(String roomId, Long userId) {
+        chatValidator.validateUserForRoom(roomId, userId);
     }
 
     private ChatRoomInitResponse buildChatRoomInitResponse(ChatRoom room, List<ChatMessage> messages,
