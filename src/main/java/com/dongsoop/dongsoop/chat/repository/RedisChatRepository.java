@@ -57,6 +57,19 @@ public class RedisChatRepository implements ChatRepository {
         return loadMessagesFromIds(roomId, messageIds);
     }
 
+    public ChatMessage findLastMessageByRoomId(String roomId) {
+        String zsetKey = buildMessageZSetKey(roomId);
+        Set<Object> lastMessageIds = redisTemplate.opsForZSet().reverseRange(zsetKey, 0, 0);
+        
+        if (lastMessageIds == null || lastMessageIds.isEmpty()) {
+            return null;
+        }
+        
+        String lastMessageId = (String) lastMessageIds.iterator().next();
+        String messageKey = buildMessageKey(roomId, lastMessageId);
+        return (ChatMessage) redisTemplate.opsForValue().get(messageKey);
+    }
+
     public List<ChatMessage> findMessagesByRoomIdAfterTime(String roomId, LocalDateTime afterTime) {
         String zsetKey = buildMessageZSetKey(roomId);
         double afterTimestamp = convertToTimestamp(afterTime);

@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.recruitment.board.project.service;
 
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
+import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.department.entity.Department;
@@ -44,6 +45,7 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
     private final ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
 
     private final ChatService chatService;
+    private final ChatRoomService chatRoomService;
 
     @Transactional
     public ProjectBoard create(CreateProjectBoardRequest request) {
@@ -70,7 +72,7 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
 
         Set<Long> initialParticipants = Set.of(author.getId());
 
-        ChatRoom chatRoom = chatService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
+        ChatRoom chatRoom = chatRoomService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
 
         projectBoard.assignChatRoom(chatRoom.getRoomId());
         return projectBoardRepository.save(projectBoard);

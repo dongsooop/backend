@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.recruitment.board.tutoring.service;
 
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
+import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.department.entity.Department;
@@ -39,6 +40,7 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
     private final MemberService memberService;
 
     private final ChatService chatService;
+    private final ChatRoomService chatRoomService;
 
     public List<RecruitmentOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType,
                                                                      Pageable pageable) {
@@ -62,7 +64,7 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
 
         Set<Long> initialParticipants = Set.of(author.getId());
 
-        ChatRoom chatRoom = chatService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
+        ChatRoom chatRoom = chatRoomService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
 
         tutoringBoard.assignChatRoom(chatRoom.getRoomId());
         return tutoringBoardRepository.save(tutoringBoard);

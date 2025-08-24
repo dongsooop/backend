@@ -1,9 +1,14 @@
 package com.dongsoop.dongsoop.chat.service;
 
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
+import com.dongsoop.dongsoop.chat.exception.BoardNotFoundException;
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
+import com.dongsoop.dongsoop.recruitment.RecruitmentType;
+import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepository;
+import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepository;
+import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoardRepository;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +20,9 @@ public class ChatRoomService {
     private final RedisChatRepository redisChatRepository;
     private final ChatValidator chatValidator;
     private final ChatSyncService chatSyncService;
+    private final ProjectBoardRepository projectBoardRepository;
+    private final StudyBoardRepository studyBoardRepository;
+    private final TutoringBoardRepository tutoringBoardRepository;
 
     public ChatRoom createOneToOneChatRoom(Long userId, Long targetUserId, String title) {
         validateOneToOneChatCreation(userId, targetUserId);
@@ -91,13 +99,25 @@ public class ChatRoomService {
         return saveRoom(room);
     }
 
-    public ChatRoom createContactChatRoom(Long userId, Long targetUserId, String boardType, Long boardId,
+    public ChatRoom createContactChatRoom(Long userId, Long targetUserId, RecruitmentType boardType, Long boardId,
                                           String boardTitle) {
+        validateBoardExists(boardType, boardId);
+
         String title = String.format("[문의] %s", boardTitle);
-
         ChatRoom room = createNewOneToOneRoom(userId, targetUserId, title);
-
         return saveRoom(room);
+    }
+
+    private void validateBoardExists(RecruitmentType boardType, Long boardId) {
+        boolean projectExists = boardType == RecruitmentType.PROJECT && projectBoardRepository.existsById(boardId);
+        boolean studyExists = boardType == RecruitmentType.STUDY && studyBoardRepository.existsById(boardId);
+        boolean tutoringExists = boardType == RecruitmentType.TUTORING && tutoringBoardRepository.existsById(boardId);
+
+        boolean boardExists = projectExists || studyExists || tutoringExists;
+
+        if (!boardExists) {
+            throw new BoardNotFoundException();
+        }
     }
 
     private ChatRoom createGroupRoom(Set<Long> participants, Long creatorId, String title) {

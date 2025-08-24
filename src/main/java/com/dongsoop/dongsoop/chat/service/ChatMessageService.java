@@ -74,6 +74,16 @@ public class ChatMessageService {
         return redisChatRepository.findMessagesByRoomIdAfterId(roomId, messageId);
     }
 
+    public String getLastMessageText(String roomId) {
+        ChatMessage lastMessage = redisChatRepository.findLastMessageByRoomId(roomId);
+        
+        if (lastMessage == null) {
+            return null;
+        }
+        
+        return lastMessage.getContent();
+    }
+
     private ChatMessage buildSystemMessage(String roomId, Long userId, MessageType type) {
         return ChatMessage.builder()
                 .messageId(ChatCommonUtils.generateMessageId())
