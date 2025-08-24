@@ -7,7 +7,7 @@ import lombok.Getter;
 public enum DepartmentType {
 
     // 전체
-    DEPT_1001("UNAFFILIATED", "대학"),
+    DEPT_1001("UNAFFILIATED", "동양미래대학"),
 
     // 컴퓨터공학부
     DEPT_2001("COMPUTER_SOFTWARE", "컴퓨터소프트웨어공학과"),
