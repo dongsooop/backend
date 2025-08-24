@@ -61,11 +61,13 @@ public class NotificationServiceImpl implements NotificationService {
             return Stream.empty();
         }
 
-        return generateMessages(title, body, deviceTokens);
+        Long noticeId = notice.getNoticeDetails().getId();
+        return generateMessages(title, body, deviceTokens, NotificationType.NOTICE, String.valueOf(noticeId));
     }
 
-    private Stream<Message> generateMessages(String title, String body, List<String> deviceTokens) {
-        ApnsConfig apnsConfig = fcmService.getApnsConfig(title, body);
+    private Stream<Message> generateMessages(String title, String body, List<String> deviceTokens,
+                                             NotificationType type, String noticeId) {
+        ApnsConfig apnsConfig = fcmService.getApnsConfig(title, body, type, noticeId);
         Notification notification = Notification.builder()
                 .setTitle(title)
                 .setBody(body)
