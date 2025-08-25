@@ -27,7 +27,7 @@ public class MemberDevice {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "member_device_sequence_generator")
     private Long id;
 
-    @JoinColumn(name = "member_id", nullable = false)
+    @JoinColumn(name = "member_id")
     @ManyToOne
     private Member member;
 
@@ -37,4 +37,8 @@ public class MemberDevice {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MemberDeviceType memberDeviceType;
+
+    public void bindMember(Member member) {
+        this.member = member;
+    }
 }

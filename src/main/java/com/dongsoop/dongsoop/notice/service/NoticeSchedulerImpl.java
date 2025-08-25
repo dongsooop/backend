@@ -5,10 +5,10 @@ import com.dongsoop.dongsoop.department.service.DepartmentService;
 import com.dongsoop.dongsoop.notice.dto.CrawledNotice;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
+import com.dongsoop.dongsoop.notice.notification.NoticeNotification;
 import com.dongsoop.dongsoop.notice.repository.NoticeDetailsRepository;
 import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
 import com.dongsoop.dongsoop.notice.util.NoticeCrawl;
-import com.dongsoop.dongsoop.notification.service.NotificationService;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,8 +34,8 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
     private final NoticeRepository noticeRepository;
     private final NoticeDetailsRepository noticeDetailsRepository;
     private final DepartmentService departmentService;
-    private final NotificationService notificationService;
     private final NoticeService noticeService;
+    private final NoticeNotification noticeNotification;
 
     @Value("${notice.thread.count}")
     private int threadCount;
@@ -92,7 +92,7 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
 
             allFutures.get(crawlTimeout, TimeUnit.SECONDS);
             saveResults(noticeDetailSet, noticeSet, departmentList.size());
-            notificationService.sendNotificationByDepartment(noticeSet);
+            noticeNotification.send(noticeSet);
         } catch (InterruptedException exception) {
             log.error("Notice crawling interrupted", exception);
             Thread.currentThread().interrupt();

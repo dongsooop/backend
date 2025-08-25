@@ -49,6 +49,14 @@ public class TutoringApply extends BaseEntity {
     @Builder.Default
     private RecruitmentApplyStatus status = RecruitmentApplyStatus.APPLY;
 
+    public void updateStatus(RecruitmentApplyStatus status) {
+        this.status = status;
+    }
+
+    public TutoringBoard getTutoringBoard() {
+        return id.tutoringBoard;
+    }
+
     @Embeddable
     @NoArgsConstructor
     @AllArgsConstructor

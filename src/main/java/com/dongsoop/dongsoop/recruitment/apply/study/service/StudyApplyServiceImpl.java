@@ -15,6 +15,7 @@ import com.dongsoop.dongsoop.recruitment.apply.study.entity.StudyApply.StudyAppl
 import com.dongsoop.dongsoop.recruitment.apply.study.exception.StudyApplyNotFoundException;
 import com.dongsoop.dongsoop.recruitment.apply.study.exception.StudyOwnerCannotApplyException;
 import com.dongsoop.dongsoop.recruitment.apply.study.exception.StudyRecruitmentAlreadyAppliedException;
+import com.dongsoop.dongsoop.recruitment.apply.study.notification.StudyApplyNotification;
 import com.dongsoop.dongsoop.recruitment.apply.study.repository.StudyApplyRepository;
 import com.dongsoop.dongsoop.recruitment.apply.study.repository.StudyApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.board.study.entity.StudyBoard;
@@ -36,16 +37,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class StudyApplyServiceImpl implements StudyApplyService {
 
     private final MemberService memberService;
-
     private final StudyApplyRepository studyApplyRepository;
-
     private final StudyBoardRepository studyBoardRepository;
-
     private final StudyBoardDepartmentRepository studyBoardDepartmentRepository;
-
     private final StudyApplyRepositoryCustom studyApplyRepositoryCustom;
-
     private final ChatService chatService;
+    private final StudyApplyNotification studyApplyNotification;
 
     public void apply(ApplyStudyBoardRequest request) {
         Member member = memberService.getMemberReferenceByContext();
@@ -74,6 +71,9 @@ public class StudyApplyServiceImpl implements StudyApplyService {
                 .build();
 
         studyApplyRepository.save(studyApplication);
+
+        Long authorId = studyBoard.getAuthor().getId();
+        studyApplyNotification.sendApplyNotification(studyBoard.getId(), studyBoard.getTitle(), authorId);
     }
 
     private void validateAlreadyApplied(Long memberId, Long boardId) {
@@ -112,11 +112,19 @@ public class StudyApplyServiceImpl implements StudyApplyService {
             return;
         }
 
-        studyApplyRepositoryCustom.updateApplyStatus(request.applierId(), boardId, request.status());
+        StudyApply studyApply = studyApplyRepositoryCustom.findByBoardIdAndApplierId(boardId, request.applierId())
+                .orElseThrow(() -> new StudyApplyNotFoundException(request.applierId(), boardId));
+
+        studyApply.updateStatus(request.status());
+
+        String boardTitle = studyApply.getStudyBoard()
+                .getTitle();
 
         if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
             inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
         }
+
+        studyApplyNotification.sendOutcomeNotification(boardId, boardTitle, request.applierId());
     }
 
     private void inviteToGroupChat(Long boardId, Long applierId, Long authorId) {

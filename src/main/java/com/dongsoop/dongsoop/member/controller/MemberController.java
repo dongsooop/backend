@@ -12,6 +12,7 @@ import com.dongsoop.dongsoop.member.dto.SignupRequest;
 import com.dongsoop.dongsoop.member.dto.UpdatePasswordRequest;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.member.validate.MemberDuplicationValidator;
+import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,7 @@ public class MemberController {
     private final MemberDuplicationValidator memberDuplicationValidator;
     private final PasswordUpdateMailValidator passwordUpdateMailValidator;
     private final RegisterMailValidator registerMailValidator;
+    private final MemberDeviceService memberDeviceService;
 
     @PostMapping("/password")
     public ResponseEntity<Void> updatePassword(@RequestBody @Valid UpdatePasswordRequest request) {
@@ -48,7 +50,7 @@ public class MemberController {
         registerMailValidator.validateVerifySuccess(signupRequest.getEmail());
         memberService.signup(signupRequest);
         registerMailValidator.removeVerificationCode(signupRequest.getEmail());
-        
+
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
@@ -59,6 +61,10 @@ public class MemberController {
         IssuedToken issuedToken = loginDetail.getIssuedToken();
         String accessToken = issuedToken.getAccessToken();
         String refreshToken = issuedToken.getRefreshToken();
+
+        memberDeviceService.bindDeviceWithMemberId(
+                loginDetail.getLoginMemberDetail().getId(),
+                loginRequest.getFcmToken());
 
         LoginResponse loginResponse = new LoginResponse(loginDetail.getLoginMemberDetail(), accessToken, refreshToken);
         return ResponseEntity.ok(loginResponse);

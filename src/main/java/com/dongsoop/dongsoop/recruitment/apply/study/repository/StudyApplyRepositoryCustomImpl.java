@@ -3,9 +3,9 @@ package com.dongsoop.dongsoop.recruitment.apply.study.repository;
 import com.dongsoop.dongsoop.department.entity.QDepartment;
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.recruitment.apply.dto.ApplyDetails;
-import com.dongsoop.dongsoop.recruitment.apply.entity.RecruitmentApplyStatus;
 import com.dongsoop.dongsoop.recruitment.apply.projection.StudyRecruitmentApplyProjection;
 import com.dongsoop.dongsoop.recruitment.apply.study.entity.QStudyApply;
+import com.dongsoop.dongsoop.recruitment.apply.study.entity.StudyApply;
 import com.dongsoop.dongsoop.recruitment.board.study.entity.QStudyBoard;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.Optional;
@@ -35,21 +35,22 @@ public class StudyApplyRepositoryCustomImpl implements StudyApplyRepositoryCusto
     }
 
     @Override
-    public void updateApplyStatus(Long memberId, Long boardId, RecruitmentApplyStatus status) {
-        queryFactory.update(studyApply)
-                .where(studyApply.id.studyBoard.id.eq(boardId)
-                        .and(studyApply.id.member.id.eq(memberId)))
-                .set(studyApply.status, status)
-                .execute();
-    }
-
-    @Override
     public Optional<ApplyDetails> findApplyDetailsByBoardIdAndApplierId(Long boardId, Long applierId) {
         ApplyDetails result = queryFactory.select(studyRecruitmentApplyProjection.getApplyDetailsExpression())
                 .from(studyApply)
                 .leftJoin(studyApply.id.studyBoard, studyBoard)
                 .leftJoin(studyApply.id.member, member)
                 .leftJoin(member.department, department)
+                .where(studyApply.id.studyBoard.id.eq(boardId)
+                        .and(studyApply.id.member.id.eq(applierId)))
+                .fetchOne();
+
+        return Optional.ofNullable(result);
+    }
+
+    @Override
+    public Optional<StudyApply> findByBoardIdAndApplierId(Long boardId, Long applierId) {
+        StudyApply result = queryFactory.selectFrom(studyApply)
                 .where(studyApply.id.studyBoard.id.eq(boardId)
                         .and(studyApply.id.member.id.eq(applierId)))
                 .fetchOne();

@@ -46,6 +46,14 @@ public class StudyApply {
     @Builder.Default
     private RecruitmentApplyStatus status = RecruitmentApplyStatus.APPLY;
 
+    public void updateStatus(RecruitmentApplyStatus status) {
+        this.status = status;
+    }
+
+    public StudyBoard getStudyBoard() {
+        return id.studyBoard;
+    }
+
     @Embeddable
     @NoArgsConstructor
     @AllArgsConstructor

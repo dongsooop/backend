@@ -15,6 +15,7 @@ import com.dongsoop.dongsoop.recruitment.apply.project.entity.ProjectApply.Proje
 import com.dongsoop.dongsoop.recruitment.apply.project.exception.ProjectApplyNotFoundException;
 import com.dongsoop.dongsoop.recruitment.apply.project.exception.ProjectOwnerCannotApplyException;
 import com.dongsoop.dongsoop.recruitment.apply.project.exception.ProjectRecruitmentAlreadyAppliedException;
+import com.dongsoop.dongsoop.recruitment.apply.project.notification.ProjectApplyNotification;
 import com.dongsoop.dongsoop.recruitment.apply.project.repository.ProjectApplyRepository;
 import com.dongsoop.dongsoop.recruitment.apply.project.repository.ProjectApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.board.project.entity.ProjectBoard;
@@ -36,16 +37,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProjectApplyServiceImpl implements ProjectApplyService {
 
     private final MemberService memberService;
-
     private final ProjectApplyRepository projectApplyRepository;
-
     private final ProjectBoardRepository projectBoardRepository;
-
     private final ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
-
     private final ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
-
     private final ChatService chatService;
+    private final ProjectApplyNotification projectApplyNotification;
 
     public void apply(ApplyProjectBoardRequest request) {
         Member member = memberService.getMemberReferenceByContext();
@@ -74,6 +71,9 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
                 .build();
 
         projectApplyRepository.save(boardApply);
+
+        Long authorId = projectBoard.getAuthor().getId();
+        projectApplyNotification.sendApplyNotification(projectBoard.getId(), projectBoard.getTitle(), authorId);
     }
 
     private void validateAlreadyApplied(Long memberId, Long boardId) {
@@ -112,11 +112,19 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
             return;
         }
 
-        projectApplyRepositoryCustom.updateApplyStatus(request.applierId(), boardId, request.status());
+        ProjectApply projectApply = projectApplyRepositoryCustom.findByBoardIdAndApplierId(boardId, request.applierId())
+                .orElseThrow(() -> new ProjectApplyNotFoundException(request.applierId(), boardId));
+
+        projectApply.updateStatus(request.status());
+
+        String boardTitle = projectApply.getProjectBoard()
+                .getTitle();
 
         if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
             inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
         }
+
+        projectApplyNotification.sendOutcomeNotification(boardId, boardTitle, request.applierId());
     }
 
     private void inviteToGroupChat(Long boardId, Long applierId, Long authorId) {
