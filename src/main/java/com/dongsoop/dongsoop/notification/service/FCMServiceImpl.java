@@ -44,14 +44,14 @@ public class FCMServiceImpl implements FCMService {
     @Override
     public ApnsConfig getApnsConfig(String title, String body, NotificationType type, String value) {
         return ApnsConfig.builder()
+                .putCustomData("type", type.toString())
+                .putCustomData("value", value)
                 .setAps(Aps.builder()
                         .setAlert(ApsAlert.builder()
                                 .setTitle(title)
                                 .setBody(body)
                                 .build())
                         .setSound("default")
-                        .putCustomData("type", type.toString())
-                        .putCustomData("value", value)
                         .build())
                 .build();
     }
