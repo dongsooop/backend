@@ -5,25 +5,21 @@ import com.dongsoop.dongsoop.department.service.DepartmentService;
 import com.dongsoop.dongsoop.notice.dto.CrawledNotice;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
-import com.dongsoop.dongsoop.notice.notification.NoticeNotification;
+import com.dongsoop.dongsoop.notice.notification.NoticeNotificationService;
 import com.dongsoop.dongsoop.notice.repository.NoticeDetailsRepository;
 import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
 import com.dongsoop.dongsoop.notice.util.NoticeCrawl;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.*;
 
 @Service
 @Slf4j
@@ -35,7 +31,7 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
     private final NoticeDetailsRepository noticeDetailsRepository;
     private final DepartmentService departmentService;
     private final NoticeService noticeService;
-    private final NoticeNotification noticeNotification;
+    private final NoticeNotificationService noticeNotificationService;
 
     @Value("${notice.thread.count}")
     private int threadCount;
@@ -92,7 +88,7 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
 
             allFutures.get(crawlTimeout, TimeUnit.SECONDS);
             saveResults(noticeDetailSet, noticeSet, departmentList.size());
-            noticeNotification.send(noticeSet);
+            noticeNotificationService.send(noticeSet);
         } catch (InterruptedException exception) {
             log.error("Notice crawling interrupted", exception);
             Thread.currentThread().interrupt();
