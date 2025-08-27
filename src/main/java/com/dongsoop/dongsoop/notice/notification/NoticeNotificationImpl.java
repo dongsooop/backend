@@ -5,10 +5,8 @@ import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepositoryCustom;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
-import com.dongsoop.dongsoop.notification.entity.MemberNotification;
-import com.dongsoop.dongsoop.notification.entity.NotificationDetails;
-import com.dongsoop.dongsoop.notification.repository.NotificationRepository;
 import com.dongsoop.dongsoop.notification.service.FCMService;
+import com.dongsoop.dongsoop.notification.service.NotificationService;
 import com.google.firebase.messaging.ApnsConfig;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
@@ -26,7 +24,7 @@ public class NoticeNotificationImpl implements NoticeNotification {
 
     private final FCMService fcmService;
     private final MemberDeviceRepositoryCustom memberDeviceRepositoryCustom;
-    private final NotificationRepository notificationRepository;
+    private final NotificationService notificationService;
 
     @Value("${university.domain}")
     private String universityDomain;
@@ -57,34 +55,8 @@ public class NoticeNotificationImpl implements NoticeNotification {
             List<MemberDeviceDto> deviceTokens = getDeviceTokensByDepartment(department);
 
             String noticeLink = universityDomain + notice.getNoticeDetails().getLink();
-            NotificationDetails details = getNotificationDetails(title, body, noticeLink);
-            saveMemberNotification(deviceTokens, details);
+            notificationService.save(deviceTokens, title, body, NotificationType.NOTICE, noticeLink);
         });
-    }
-
-    private void saveMemberNotification(List<MemberDeviceDto> deviceTokens, NotificationDetails notificationDetails) {
-        List<MemberNotification> memberNotificationList = deviceTokens.stream()
-                .map(memberDevice -> new MemberNotification(notificationDetails, memberDevice.member()))
-                .toList();
-
-        notificationRepository.saveAll(memberNotificationList);
-    }
-
-    /**
-     * NotificationDetails 생성
-     *
-     * @param title      알림 제목
-     * @param body       알림 내용
-     * @param noticeLink 공지 링크
-     * @return NotificationDetails 객체
-     */
-    private NotificationDetails getNotificationDetails(String title, String body, String noticeLink) {
-        return NotificationDetails.builder()
-                .title(title)
-                .body(body)
-                .type(NotificationType.NOTICE)
-                .value(noticeLink)
-                .build();
     }
 
     /**
