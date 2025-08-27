@@ -5,8 +5,10 @@ import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.entity.NotificationDetails;
+import com.dongsoop.dongsoop.notification.exception.NotificationNotFoundException;
 import com.dongsoop.dongsoop.notification.repository.NotificationDetailsRepository;
 import com.dongsoop.dongsoop.notification.repository.NotificationRepository;
+import jakarta.transaction.Transactional;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -44,5 +46,16 @@ public class NotificationServiceImpl implements NotificationService {
         Long requesterId = memberService.getMemberIdByAuthentication();
 
         return notificationRepository.getMemberNotifications(requesterId, pageable);
+    }
+
+    @Override
+    @Transactional
+    public void deleteMemberNotification(Long id) {
+        Long requesterId = memberService.getMemberIdByAuthentication();
+
+        MemberNotification memberNotification = notificationRepository.findByMemberIdAndNotificationId(requesterId, id)
+                .orElseThrow(NotificationNotFoundException::new);
+
+        memberNotification.delete();
     }
 }

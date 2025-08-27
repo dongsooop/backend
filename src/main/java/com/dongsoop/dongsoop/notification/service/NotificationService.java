@@ -12,4 +12,6 @@ public interface NotificationService {
               String value);
 
     List<NotificationDetails> getNotifications(Pageable pageable);
+
+    void deleteMemberNotification(Long id);
 }

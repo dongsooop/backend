@@ -8,7 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -25,5 +27,14 @@ public class NotificationController {
         List<NotificationDetails> notifications = notificationService.getNotifications(pageable);
 
         return ResponseEntity.ok(notifications);
+    }
+
+    @DeleteMapping("/{id}")
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<Void> deleteNotifications(@PathVariable("id") Long id) {
+        notificationService.deleteMemberNotification(id);
+
+        return ResponseEntity.noContent()
+                .build();
     }
 }

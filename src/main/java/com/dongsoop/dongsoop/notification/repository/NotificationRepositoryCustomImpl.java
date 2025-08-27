@@ -1,11 +1,13 @@
 package com.dongsoop.dongsoop.notification.repository;
 
 import com.dongsoop.dongsoop.common.PageableUtil;
+import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.entity.NotificationDetails;
 import com.dongsoop.dongsoop.notification.entity.QMemberNotification;
 import com.dongsoop.dongsoop.notification.entity.QNotificationDetails;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
@@ -30,5 +32,15 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
                 .limit(pageable.getPageSize())
                 .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), notificationDetails))
                 .fetch();
+    }
+
+    @Override
+    public Optional<MemberNotification> findByMemberIdAndNotificationId(Long memberId, Long notificationId) {
+        MemberNotification result = queryFactory.selectFrom(memberNotice)
+                .where(memberNotice.id.member.id.eq(memberId)
+                        .and(memberNotice.id.details.id.eq(notificationId)))
+                .fetchOne();
+
+        return Optional.ofNullable(result);
     }
 }
