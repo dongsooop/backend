@@ -17,7 +17,12 @@ public class ProjectApplyNotification extends RecruitmentApplyNotification {
     }
 
     @Override
-    protected NotificationType getNotificationType() {
+    protected NotificationType getApplyNotificationType() {
         return NotificationType.RECRUITMENT_PROJECT_APPLY;
+    }
+
+    @Override
+    protected NotificationType getOutcomeNotificationType() {
+        return NotificationType.RECRUITMENT_PROJECT_APPLY_RESULT;
     }
 }

@@ -17,7 +17,12 @@ public class TutoringApplyNotification extends RecruitmentApplyNotification {
     }
 
     @Override
-    protected NotificationType getNotificationType() {
+    protected NotificationType getApplyNotificationType() {
         return NotificationType.RECRUITMENT_TUTORING_APPLY;
+    }
+
+    @Override
+    protected NotificationType getOutcomeNotificationType() {
+        return NotificationType.RECRUITMENT_TUTORING_APPLY_RESULT;
     }
 }

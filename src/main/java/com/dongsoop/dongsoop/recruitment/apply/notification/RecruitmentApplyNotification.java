@@ -23,7 +23,9 @@ public abstract class RecruitmentApplyNotification {
         this.notificationService = notificationService;
     }
 
-    protected abstract NotificationType getNotificationType();
+    protected abstract NotificationType getApplyNotificationType();
+
+    protected abstract NotificationType getOutcomeNotificationType();
 
     public void sendApplyNotification(Long boardId, String boardTitle, Long ownerId) {
         List<MemberDeviceDto> ownerDevice = memberDeviceRepositoryCustom.getMemberDeviceTokenByMemberId(
@@ -32,8 +34,9 @@ public abstract class RecruitmentApplyNotification {
         String processBoardTitle = processBoardTitle(boardTitle);
         String title = "모집 지원자 알림";
         String body = "[" + processBoardTitle + "] 새로운 지원자가 있습니다. 확인해보세요!";
+        NotificationType type = getApplyNotificationType();
 
-        saveNotification(ownerDevice, title, body, boardId);
+        saveNotification(ownerDevice, title, body, type, boardId);
     }
 
     public void sendOutcomeNotification(Long boardId, String boardTitle, Long applierId) {
@@ -43,21 +46,21 @@ public abstract class RecruitmentApplyNotification {
         String processBoardTitle = processBoardTitle(boardTitle);
         String title = "모집 결과 알림";
         String body = "[" + processBoardTitle + "] 모집 지원 결과가 등록되었습니다. 행운을 빌어요!";
+        NotificationType type = getOutcomeNotificationType();
 
-        saveNotification(applierDevice, title, body, boardId);
+        saveNotification(applierDevice, title, body, type, boardId);
     }
 
     private void saveNotification(List<MemberDeviceDto> memberDeviceDtos, String title, String body,
-                                  Long boardId) {
-        NotificationType notificationType = getNotificationType();
+                                  NotificationType type, Long boardId) {
         String value = String.valueOf(boardId);
 
         List<String> deviceTokenList = memberDeviceDtos.stream()
                 .map(MemberDeviceDto::deviceToken)
                 .toList();
 
-        fcmService.sendNotification(deviceTokenList, title, body, notificationType, value);
-        notificationService.save(memberDeviceDtos, title, body, notificationType, value);
+        fcmService.sendNotification(deviceTokenList, title, body, type, value);
+        notificationService.save(memberDeviceDtos, title, body, type, value);
     }
 
     private String processBoardTitle(String boardTitle) {
