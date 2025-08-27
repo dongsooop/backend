@@ -13,5 +13,5 @@ public interface MemberDeviceRepositoryCustom {
 
     List<MemberDeviceDto> getMemberDeviceTokenByMemberIds(Set<Long> memberIds);
 
-    List<String> getMemberDeviceTokenByMemberId(Long memberId);
+    List<MemberDeviceDto> getMemberDeviceTokenByMemberId(Long memberId);
 }

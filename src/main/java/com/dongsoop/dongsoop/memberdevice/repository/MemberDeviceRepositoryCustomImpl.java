@@ -45,8 +45,9 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     }
 
     @Override
-    public List<String> getMemberDeviceTokenByMemberId(Long memberId) {
-        return queryFactory.select(memberDevice.deviceToken)
+    public List<MemberDeviceDto> getMemberDeviceTokenByMemberId(Long memberId) {
+        return queryFactory.select(Projections.constructor(MemberDeviceDto.class,
+                        memberDevice.member, memberDevice.deviceToken))
                 .from(memberDevice)
                 .where(memberDevice.member.id.eq(memberId))
                 .fetch();
