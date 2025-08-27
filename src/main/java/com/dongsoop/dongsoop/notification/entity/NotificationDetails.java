@@ -34,7 +34,4 @@ public class NotificationDetails extends BaseEntity {
     private NotificationType type;
 
     private String value;
-
-    @Builder.Default
-    private boolean isRead = false;
 }

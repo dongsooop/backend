@@ -58,4 +58,15 @@ public class NotificationServiceImpl implements NotificationService {
 
         memberNotification.delete();
     }
+
+    @Override
+    @Transactional
+    public void read(Long id) {
+        Long requesterId = memberService.getMemberIdByAuthentication();
+
+        MemberNotification memberNotification = notificationRepository.findByMemberIdAndNotificationId(requesterId, id)
+                .orElseThrow(NotificationNotFoundException::new);
+
+        memberNotification.read();
+    }
 }

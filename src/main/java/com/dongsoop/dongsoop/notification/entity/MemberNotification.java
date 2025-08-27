@@ -18,11 +18,17 @@ public class MemberNotification extends BaseEntity {
     @EmbeddedId
     private MemberNotificationId id;
 
+    private boolean isRead = false;
+
     public MemberNotification(NotificationDetails details, Member member) {
         this.id = new MemberNotificationId(details, member);
     }
 
     public void delete() {
         super.isDeleted = true;
+    }
+
+    public void read() {
+        this.isRead = true;
     }
 }

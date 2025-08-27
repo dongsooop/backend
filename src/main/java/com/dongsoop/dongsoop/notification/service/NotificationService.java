@@ -14,4 +14,6 @@ public interface NotificationService {
     List<NotificationDetails> getNotifications(Pageable pageable);
 
     void deleteMemberNotification(Long id);
+
+    void read(Long id);
 }
