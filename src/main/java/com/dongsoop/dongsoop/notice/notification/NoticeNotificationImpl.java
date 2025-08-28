@@ -1,10 +1,12 @@
 package com.dongsoop.dongsoop.notice.notification;
 
 import com.dongsoop.dongsoop.department.entity.Department;
+import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepositoryCustom;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.service.FCMService;
+import com.dongsoop.dongsoop.notification.service.NotificationService;
 import com.google.firebase.messaging.ApnsConfig;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
@@ -13,6 +15,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -21,17 +24,39 @@ public class NoticeNotificationImpl implements NoticeNotification {
 
     private final FCMService fcmService;
     private final MemberDeviceRepositoryCustom memberDeviceRepositoryCustom;
+    private final NotificationService notificationService;
 
     @Value("${university.domain}")
     private String universityDomain;
 
+    @Async
     public void send(Set<Notice> noticeDetailSet) {
         if (noticeDetailSet == null || noticeDetailSet.isEmpty()) {
             return;
         }
 
+        saveMemberNotification(noticeDetailSet);
         List<Message> messageList = convertNoticeToMessage(noticeDetailSet);
         fcmService.sendMessages(messageList);
+    }
+
+    /**
+     * 공지사항 알림을 DB에 저장
+     *
+     * @param noticeSet { 학과: 공지사항 세부 } 구조인 Notice Set
+     */
+    private void saveMemberNotification(Set<Notice> noticeSet) {
+        noticeSet.forEach((notice) -> {
+            Department department = notice.getDepartment();
+            String departmentName = department.getId().getName();
+
+            String title = generateTitle(departmentName);
+            String body = notice.getNoticeDetails().getTitle();
+            List<MemberDeviceDto> deviceTokens = getDeviceTokensByDepartment(department);
+
+            String noticeLink = universityDomain + notice.getNoticeDetails().getLink();
+            notificationService.save(deviceTokens, title, body, NotificationType.NOTICE, noticeLink);
+        });
     }
 
     /**
@@ -52,7 +77,7 @@ public class NoticeNotificationImpl implements NoticeNotification {
 
         String title = generateTitle(departmentName);
         String body = notice.getNoticeDetails().getTitle();
-        List<String> deviceTokens = getDeviceTokensByDepartment(department);
+        List<MemberDeviceDto> deviceTokens = getDeviceTokensByDepartment(department);
         if (deviceTokens.isEmpty()) {
             return Stream.empty();
         }
@@ -61,7 +86,8 @@ public class NoticeNotificationImpl implements NoticeNotification {
         return generateMessages(title, body, deviceTokens, noticeLink);
     }
 
-    private Stream<Message> generateMessages(String title, String body, List<String> deviceTokens, String noticeId) {
+    private Stream<Message> generateMessages(String title, String body, List<MemberDeviceDto> deviceTokens,
+                                             String noticeId) {
         ApnsConfig apnsConfig = fcmService.getApnsConfig(title, body, NotificationType.NOTICE, noticeId);
         Notification notification = Notification.builder()
                 .setTitle(title)
@@ -70,7 +96,7 @@ public class NoticeNotificationImpl implements NoticeNotification {
 
         return deviceTokens.stream()
                 .map(token -> Message.builder()
-                        .setToken(token)
+                        .setToken(token.deviceToken())
                         .setApnsConfig(apnsConfig)
                         .setNotification(notification)
                         .build());
@@ -80,7 +106,7 @@ public class NoticeNotificationImpl implements NoticeNotification {
         return String.format("[%s] 공지 알림", departmentName);
     }
 
-    private List<String> getDeviceTokensByDepartment(Department department) {
+    private List<MemberDeviceDto> getDeviceTokensByDepartment(Department department) {
         if (department.getId().isAllDepartment()) {
             return memberDeviceRepositoryCustom.getAllMemberDevice();
         }

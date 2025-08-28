@@ -58,10 +58,10 @@ public class StudyApplyController {
 
     @PostMapping
     @Secured(value = RoleType.USER_ROLE)
-    public ResponseEntity<Void> applyTutoringBoard(@RequestBody ApplyStudyBoardRequest request) {
+    public ResponseEntity<Void> applyStudyBoard(@RequestBody @Valid ApplyStudyBoardRequest request) {
         studyApplyService.apply(request);
 
-        URI uri = URI.create("/tutoring-board/" + request.boardId());
+        URI uri = URI.create("/study-board/" + request.boardId());
 
         return ResponseEntity.created(uri)
                 .build();

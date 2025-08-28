@@ -1,28 +1,73 @@
 package com.dongsoop.dongsoop.notification.service;
 
-import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepositoryCustom;
+import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
+import com.dongsoop.dongsoop.notification.dto.NotificationOverview;
+import com.dongsoop.dongsoop.notification.entity.MemberNotification;
+import com.dongsoop.dongsoop.notification.entity.NotificationDetails;
+import com.dongsoop.dongsoop.notification.exception.NotificationNotFoundException;
+import com.dongsoop.dongsoop.notification.repository.NotificationDetailsRepository;
+import com.dongsoop.dongsoop.notification.repository.NotificationRepository;
+import jakarta.transaction.Transactional;
 import java.util.List;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
 
-    private final MemberDeviceRepositoryCustom memberDeviceRepositoryCustom;
-    private final FCMService fcmService;
+    private final NotificationRepository notificationRepository;
+    private final NotificationDetailsRepository notificationDetailsRepository;
+    private final MemberService memberService;
 
     @Override
-    public void sendNotificationForChat(Set<Long> chatroomMemberIdSet, String chatRoomId, String senderName,
-                                        String message) {
-        // 사용자 id를 통해 FCM 토큰을 가져옴
-        List<String> participantsDevice = memberDeviceRepositoryCustom.getMemberDeviceTokenByMemberIds(
-                chatroomMemberIdSet);
+    public void save(List<MemberDeviceDto> memberDeviceDtoList, String title, String body, NotificationType type,
+                     String value) {
+        NotificationDetails details = NotificationDetails.builder()
+                .title(title)
+                .body(body)
+                .type(type)
+                .value(value)
+                .build();
 
-        fcmService.sendNotification(participantsDevice, senderName, message, NotificationType.CHAT, chatRoomId);
+        notificationDetailsRepository.save(details);
+
+        List<MemberNotification> memberNotificationList = memberDeviceDtoList.stream()
+                .map((memberDevice) -> new MemberNotification(details, memberDevice.member()))
+                .toList();
+
+        notificationRepository.saveAll(memberNotificationList);
+    }
+
+    @Override
+    public List<NotificationOverview> getNotifications(Pageable pageable) {
+        Long requesterId = memberService.getMemberIdByAuthentication();
+
+        return notificationRepository.getMemberNotifications(requesterId, pageable);
+    }
+
+    @Override
+    @Transactional
+    public void deleteMemberNotification(Long id) {
+        Long requesterId = memberService.getMemberIdByAuthentication();
+
+        MemberNotification memberNotification = notificationRepository.findByMemberIdAndNotificationId(requesterId, id)
+                .orElseThrow(NotificationNotFoundException::new);
+
+        memberNotification.delete();
+    }
+
+    @Override
+    @Transactional
+    public void read(Long id) {
+        Long requesterId = memberService.getMemberIdByAuthentication();
+
+        MemberNotification memberNotification = notificationRepository.findByMemberIdAndNotificationId(requesterId, id)
+                .orElseThrow(NotificationNotFoundException::new);
+
+        memberNotification.read();
     }
 }

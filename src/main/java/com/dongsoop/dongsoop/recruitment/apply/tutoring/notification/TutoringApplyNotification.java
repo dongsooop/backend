@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.recruitment.apply.tutoring.notification;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepositoryCustom;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.service.FCMService;
+import com.dongsoop.dongsoop.notification.service.NotificationService;
 import com.dongsoop.dongsoop.recruitment.apply.notification.RecruitmentApplyNotification;
 import org.springframework.stereotype.Component;
 
@@ -10,12 +11,18 @@ import org.springframework.stereotype.Component;
 public class TutoringApplyNotification extends RecruitmentApplyNotification {
 
     public TutoringApplyNotification(MemberDeviceRepositoryCustom memberDeviceRepositoryCustom,
-                                     FCMService fcmService) {
-        super(memberDeviceRepositoryCustom, fcmService);
+                                     FCMService fcmService,
+                                     NotificationService notificationService) {
+        super(memberDeviceRepositoryCustom, fcmService, notificationService);
     }
 
     @Override
-    protected NotificationType getNotificationType() {
+    protected NotificationType getApplyNotificationType() {
         return NotificationType.RECRUITMENT_TUTORING_APPLY;
+    }
+
+    @Override
+    protected NotificationType getOutcomeNotificationType() {
+        return NotificationType.RECRUITMENT_TUTORING_APPLY_RESULT;
     }
 }

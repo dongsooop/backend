@@ -5,11 +5,11 @@ import com.dongsoop.dongsoop.chat.dto.ReadStatusUpdateRequest;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
+import com.dongsoop.dongsoop.chat.notification.ChatNotification;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberblock.constant.BlockStatus;
 import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepository;
-import com.dongsoop.dongsoop.notification.service.NotificationService;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -30,7 +30,7 @@ public class ChatService {
     private final ChatValidator chatValidator;
     private final MemberBlockRepository memberBlockRepository;
     private final SimpMessagingTemplate messagingTemplate;
-    private final NotificationService notificationService;
+    private final ChatNotification chatNotification;
     private final MemberService memberService;
 
     public ChatRoomInitResponse initializeChatRoomForFirstTime(String roomId, Long userId) {
@@ -70,7 +70,7 @@ public class ChatService {
 
         if (!receiver.isEmpty()) {
             String senderName = memberService.getNicknameById(userId);
-            notificationService.sendNotificationForChat(receiver, roomId, senderName, message.getContent());
+            chatNotification.send(receiver, roomId, senderName, message.getContent());
         }
 
         return processedMessage;
