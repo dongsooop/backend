@@ -34,7 +34,7 @@ public class NotificationController {
 
     @PostMapping("/read")
     @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<List<NotificationDetails>> readNotification(@RequestBody NotificationReadRequest request) {
+    public ResponseEntity<Void> readNotification(@RequestBody NotificationReadRequest request) {
         notificationService.read(request.id());
 
         return ResponseEntity.noContent()
