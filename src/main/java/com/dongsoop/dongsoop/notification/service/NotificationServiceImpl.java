@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.notification.service;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
+import com.dongsoop.dongsoop.notification.dto.NotificationOverview;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.entity.NotificationDetails;
 import com.dongsoop.dongsoop.notification.exception.NotificationNotFoundException;
@@ -42,7 +43,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public List<NotificationDetails> getNotifications(Pageable pageable) {
+    public List<NotificationOverview> getNotifications(Pageable pageable) {
         Long requesterId = memberService.getMemberIdByAuthentication();
 
         return notificationRepository.getMemberNotifications(requesterId, pageable);

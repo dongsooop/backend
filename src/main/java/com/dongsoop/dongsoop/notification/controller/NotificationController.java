@@ -1,7 +1,7 @@
 package com.dongsoop.dongsoop.notification.controller;
 
+import com.dongsoop.dongsoop.notification.dto.NotificationOverview;
 import com.dongsoop.dongsoop.notification.dto.NotificationReadRequest;
-import com.dongsoop.dongsoop.notification.entity.NotificationDetails;
 import com.dongsoop.dongsoop.notification.service.NotificationService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import java.util.List;
@@ -26,8 +26,8 @@ public class NotificationController {
 
     @GetMapping
     @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<List<NotificationDetails>> getNotifications(Pageable pageable) {
-        List<NotificationDetails> notifications = notificationService.getNotifications(pageable);
+    public ResponseEntity<List<NotificationOverview>> getNotifications(Pageable pageable) {
+        List<NotificationOverview> notifications = notificationService.getNotifications(pageable);
 
         return ResponseEntity.ok(notifications);
     }

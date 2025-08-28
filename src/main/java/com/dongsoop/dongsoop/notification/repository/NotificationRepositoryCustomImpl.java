@@ -1,10 +1,11 @@
 package com.dongsoop.dongsoop.notification.repository;
 
 import com.dongsoop.dongsoop.common.PageableUtil;
+import com.dongsoop.dongsoop.notification.dto.NotificationOverview;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
-import com.dongsoop.dongsoop.notification.entity.NotificationDetails;
 import com.dongsoop.dongsoop.notification.entity.QMemberNotification;
 import com.dongsoop.dongsoop.notification.entity.QNotificationDetails;
+import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import java.util.Optional;
@@ -23,8 +24,15 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
     private final QNotificationDetails notificationDetails = QNotificationDetails.notificationDetails;
 
     @Override
-    public List<NotificationDetails> getMemberNotifications(Long memberId, Pageable pageable) {
-        return queryFactory.select(notificationDetails)
+    public List<NotificationOverview> getMemberNotifications(Long memberId, Pageable pageable) {
+        return queryFactory.select(Projections.constructor(NotificationOverview.class,
+                        notificationDetails.id,
+                        notificationDetails.title,
+                        notificationDetails.body,
+                        notificationDetails.type,
+                        notificationDetails.value,
+                        memberNotice.isRead,
+                        notificationDetails.createdAt))
                 .from(memberNotice)
                 .leftJoin(memberNotice.id.details, notificationDetails)
                 .where(memberNotice.id.member.id.eq(memberId)
