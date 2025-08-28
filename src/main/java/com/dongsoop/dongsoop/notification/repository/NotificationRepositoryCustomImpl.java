@@ -34,7 +34,7 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
                         memberNotice.isRead,
                         notificationDetails.createdAt))
                 .from(memberNotice)
-                .leftJoin(memberNotice.id.details, notificationDetails)
+                .innerJoin(memberNotice.id.details, notificationDetails)
                 .where(memberNotice.id.member.id.eq(memberId)
                         .and(notificationDetails.isDeleted.eq(false)))
                 .offset(pageable.getOffset())
