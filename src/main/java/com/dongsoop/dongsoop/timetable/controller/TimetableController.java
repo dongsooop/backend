@@ -54,6 +54,16 @@ public class TimetableController {
         return ResponseEntity.noContent().build();
     }
 
+    @DeleteMapping("/{year}/{semester}")
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<List<TimetableView>> deleteTimetableBySemester(@PathVariable("year") Year year,
+                                                                         @PathVariable("semester") SemesterType semester) {
+        timetableService.deleteTimetable(year, semester);
+
+        return ResponseEntity.noContent()
+                .build();
+    }
+
     @PatchMapping
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<Void> updateTimetable(@RequestBody @Valid UpdateTimetableRequest request) {

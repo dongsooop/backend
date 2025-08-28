@@ -18,4 +18,6 @@ public interface TimetableRepositoryCustom {
                                                                    SemesterType semester,
                                                                    DayOfWeek week,
                                                                    LocalTime startAt, LocalTime endAt);
+
+    void deleteByMemberIdAndYearAndSemester(Long memberId, Year year, SemesterType semester);
 }

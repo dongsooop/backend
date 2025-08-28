@@ -109,4 +109,10 @@ public class TimetableServiceImpl implements TimetableService {
                     overlapTimetable.endAt());
         });
     }
+
+    public void deleteTimetable(Year year, SemesterType semester) {
+        Long memberId = memberService.getMemberIdByAuthentication();
+
+        timetableRepositoryCustom.deleteByMemberIdAndYearAndSemester(memberId, year, semester);
+    }
 }
