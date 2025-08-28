@@ -55,6 +55,7 @@ public class TimetableController {
     }
 
     @DeleteMapping("/{year}/{semester}")
+    @Secured(RoleType.USER_ROLE)
     public ResponseEntity<List<TimetableView>> deleteTimetableBySemester(@PathVariable("year") Year year,
                                                                          @PathVariable("semester") SemesterType semester) {
         timetableService.deleteTimetable(year, semester);
