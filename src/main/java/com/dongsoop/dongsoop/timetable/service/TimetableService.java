@@ -16,4 +16,6 @@ public interface TimetableService {
     void deleteTimetable(Long timetableId);
 
     void updateTimetable(UpdateTimetableRequest request);
+
+    void deleteTimetable(Year year, SemesterType semester);
 }

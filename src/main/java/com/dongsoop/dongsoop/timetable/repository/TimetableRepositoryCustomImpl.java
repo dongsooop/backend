@@ -68,4 +68,14 @@ public class TimetableRepositoryCustomImpl implements TimetableRepositoryCustom 
 
         return Optional.ofNullable(result);
     }
+
+    public void deleteByMemberIdAndYearAndSemester(Long memberId, Year year, SemesterType semester) {
+        queryFactory
+                .update(timetable)
+                .set(timetable.member.isDeleted, true)
+                .where(timetable.member.id.eq(memberId)
+                        .and(timetable.year.eq(year))
+                        .and(timetable.semester.eq(semester)))
+                .execute();
+    }
 }
