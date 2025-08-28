@@ -18,11 +18,11 @@ import lombok.NoArgsConstructor;
 public class MemberNotificationId {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "notification_details_id")
+    @JoinColumn(name = "notification_details_id", nullable = false, updatable = false)
     private NotificationDetails details;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id")
+    @JoinColumn(name = "member_id", nullable = false, updatable = false)
     private Member member;
 
     @Override
@@ -36,7 +36,17 @@ public class MemberNotificationId {
 
         MemberNotificationId that = (MemberNotificationId) o;
 
-        return that.details.getId().equals(this.details.getId()) && that.member.getId().equals(this.member.getId());
+        boolean isDetailsSame = Objects.equals( // detail null 체크
+                details != null ? details.getId() : null,
+                that.details != null ? that.details.getId() : null
+        );
+
+        boolean isMemberSame = Objects.equals( // member null 체크
+                member != null ? member.getId() : null,
+                that.member != null ? that.member.getId() : null
+        );
+
+        return isDetailsSame && isMemberSame;
     }
 
     @Override
