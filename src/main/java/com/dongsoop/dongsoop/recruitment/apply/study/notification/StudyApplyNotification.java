@@ -21,7 +21,6 @@ public class StudyApplyNotification extends RecruitmentApplyNotification {
         return NotificationType.RECRUITMENT_STUDY_APPLY;
     }
 
-
     @Override
     protected NotificationType getOutcomeNotificationType() {
         return NotificationType.RECRUITMENT_STUDY_APPLY_RESULT;
