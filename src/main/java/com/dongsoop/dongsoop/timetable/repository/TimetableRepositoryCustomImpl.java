@@ -6,6 +6,7 @@ import com.dongsoop.dongsoop.timetable.entity.SemesterType;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.transaction.Transactional;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.time.Year;
@@ -69,6 +70,7 @@ public class TimetableRepositoryCustomImpl implements TimetableRepositoryCustom 
         return Optional.ofNullable(result);
     }
 
+    @Transactional
     public void deleteByMemberIdAndYearAndSemester(Long memberId, Year year, SemesterType semester) {
         queryFactory
                 .update(timetable)
