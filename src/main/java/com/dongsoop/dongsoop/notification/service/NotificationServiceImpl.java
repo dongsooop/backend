@@ -82,7 +82,7 @@ public class NotificationServiceImpl implements NotificationService {
         List<Member> memberList = notificationEntry.getValue();
         List<String> deviceTokens = memberDeviceRepositoryCustom.getDeviceByMembers(memberList);
 
-        // 학과별 공지 알림 전송
+        // 공지별 회원 알림 전송
         Long notificationId = details.getId();
         String title = details.getTitle();
         String body = details.getBody();
