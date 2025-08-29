@@ -11,6 +11,8 @@ public interface TimetableService {
 
     void createTimetable(CreateTimetableRequest request);
 
+    List<CreateTimetableRequest> createTimetable(List<CreateTimetableRequest> request);
+
     List<TimetableView> getTimetableView(Year year, SemesterType semester);
 
     void deleteTimetable(Long timetableId);
