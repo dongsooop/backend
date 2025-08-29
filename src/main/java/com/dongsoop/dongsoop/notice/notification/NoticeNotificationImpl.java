@@ -56,7 +56,7 @@ public class NoticeNotificationImpl implements NoticeNotification {
      * @param noticeSet { 학과: 공지사항 세부 } 구조인 Notice Set
      */
     private List<MemberNotification> saveMemberNotification(Set<Notice> noticeSet) {
-        return noticeSet.parallelStream().map(this::save)
+        return noticeSet.stream().map(this::save)
                 .flatMap(Collection::stream)
                 .toList();
     }
