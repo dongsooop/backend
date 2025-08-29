@@ -14,7 +14,9 @@ import com.dongsoop.dongsoop.timetable.exception.TimetableNotOwnedException;
 import com.dongsoop.dongsoop.timetable.exception.TimetableOverlapException;
 import com.dongsoop.dongsoop.timetable.repository.TimetableRepository;
 import com.dongsoop.dongsoop.timetable.repository.TimetableRepositoryCustom;
+import jakarta.transaction.Transactional;
 import java.time.Year;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +40,30 @@ public class TimetableServiceImpl implements TimetableService {
         validateOverlapTimetable(request);
 
         timetableRepository.save(timetable);
+    }
+
+    @Override
+    @Transactional
+    public List<CreateTimetableRequest> createTimetable(List<CreateTimetableRequest> request) {
+        List<CreateTimetableRequest> failedRequests = new ArrayList<>();
+        List<CreateTimetableRequest> successRequests = new ArrayList<>();
+
+        for (CreateTimetableRequest r : request) {
+            try {
+                validateOverlapTimetable(r);
+                successRequests.add(r);
+            } catch (TimetableOverlapException e) {
+                failedRequests.add(r);
+            }
+        }
+
+        List<Timetable> timetableList = successRequests.stream()
+                .map(timetableMapper::toEntity)
+                .toList();
+
+        timetableRepository.saveAll(timetableList);
+
+        return failedRequests;
     }
 
     public List<TimetableView> getTimetableView(Year year, SemesterType semester) {

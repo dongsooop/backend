@@ -47,6 +47,26 @@ public class TimetableController {
                 .build();
     }
 
+    @PostMapping("/multiple")
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<List<CreateTimetableRequest>> createMultipleTimetable(
+            @RequestBody List<@Valid CreateTimetableRequest> request) {
+        List<CreateTimetableRequest> failedRequest = timetableService.createTimetable(request);
+
+        if (failedRequest.size() == request.size()) {
+            return ResponseEntity.status(409) // 409 Conflict
+                    .build();
+        }
+
+        if (!failedRequest.isEmpty()) {
+            return ResponseEntity.status(207) // 207 Multi-Status
+                    .body(failedRequest);
+        }
+
+        return ResponseEntity.status(201) // 201 Created
+                .build();
+    }
+
     @DeleteMapping("/{timetableId}")
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<Void> deleteTimetable(@PathVariable("timetableId") Long timetableId) {
