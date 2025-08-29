@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.notification.service;
 
-import com.dongsoop.dongsoop.notification.constant.NotificationType;
+import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.dongsoop.dongsoop.notification.exception.NotificationSendException;
 import com.google.api.core.ApiFuture;
 import com.google.firebase.messaging.ApnsConfig;
@@ -8,7 +8,6 @@ import com.google.firebase.messaging.Aps;
 import com.google.firebase.messaging.ApsAlert;
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
 import io.netty.handler.timeout.TimeoutException;
@@ -32,24 +31,25 @@ public class FCMServiceImpl implements FCMService {
     private final ExecutorService notificationExecutor;
 
     @Override
-    public void sendNotification(List<String> deviceTokenList, String title, String body, NotificationType type,
-                                 String value) {
+    public void sendNotification(List<String> deviceTokenList, NotificationSend notificationSend) {
         // iOS용 APNs 설정
-        ApnsConfig apnsConfig = getApnsConfig(title, body, type, value);
-        MulticastMessage message = getMulticastMessage(deviceTokenList, title, body, apnsConfig);
+        ApnsConfig apnsConfig = getApnsConfig(notificationSend);
+        MulticastMessage message = getMulticastMessage(deviceTokenList, notificationSend.title(),
+                notificationSend.body(), apnsConfig);
 
         sendMessages(message);
     }
 
     @Override
-    public ApnsConfig getApnsConfig(String title, String body, NotificationType type, String value) {
+    public ApnsConfig getApnsConfig(NotificationSend notificationSend) {
         return ApnsConfig.builder()
-                .putCustomData("type", type.toString())
-                .putCustomData("value", value)
+                .putCustomData("type", notificationSend.type().toString())
+                .putCustomData("value", notificationSend.value())
+                .putCustomData("id", String.valueOf(notificationSend.id()))
                 .setAps(Aps.builder()
                         .setAlert(ApsAlert.builder()
-                                .setTitle(title)
-                                .setBody(body)
+                                .setTitle(notificationSend.title())
+                                .setBody(notificationSend.body())
                                 .build())
                         .setSound("default")
                         .build())
@@ -71,13 +71,9 @@ public class FCMServiceImpl implements FCMService {
                 .build();
     }
 
-    private void sendMessages(MulticastMessage message) {
+    @Override
+    public void sendMessages(MulticastMessage message) {
         ApiFuture<BatchResponse> future = firebaseMessaging.sendEachForMulticastAsync(message);
-        future.addListener(() -> listener(future), notificationExecutor);
-    }
-
-    public void sendMessages(List<Message> messageList) {
-        ApiFuture<BatchResponse> future = firebaseMessaging.sendEachAsync(messageList);
         future.addListener(() -> listener(future), notificationExecutor);
     }
 

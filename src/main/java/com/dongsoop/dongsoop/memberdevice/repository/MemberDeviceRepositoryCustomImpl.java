@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.memberdevice.repository;
 
 import com.dongsoop.dongsoop.department.entity.Department;
+import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.entity.QMemberDevice;
 import com.querydsl.core.types.Projections;
@@ -23,6 +24,14 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
         return queryFactory.select(Projections.constructor(MemberDeviceDto.class,
                         memberDevice.member, memberDevice.deviceToken))
                 .from(memberDevice)
+                .fetch();
+    }
+
+    @Override
+    public List<String> getDeviceByMembers(List<Member> memberList) {
+        return queryFactory.select(memberDevice.deviceToken)
+                .from(memberDevice)
+                .where(memberDevice.member.in(memberList))
                 .fetch();
     }
 

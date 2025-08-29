@@ -1,15 +1,15 @@
 package com.dongsoop.dongsoop.notification.service;
 
-import com.dongsoop.dongsoop.notification.constant.NotificationType;
+import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.google.firebase.messaging.ApnsConfig;
-import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.MulticastMessage;
 import java.util.List;
 
 public interface FCMService {
 
-    void sendNotification(List<String> fcmTokenList, String title, String body, NotificationType type, String value);
+    void sendNotification(List<String> fcmTokenList, NotificationSend notificationSend);
 
-    ApnsConfig getApnsConfig(String title, String body, NotificationType type, String value);
+    void sendMessages(MulticastMessage message);
 
-    void sendMessages(List<Message> messageList);
+    ApnsConfig getApnsConfig(NotificationSend notificationSend);
 }
