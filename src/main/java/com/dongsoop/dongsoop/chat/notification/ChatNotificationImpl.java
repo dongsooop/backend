@@ -3,8 +3,8 @@ package com.dongsoop.dongsoop.chat.notification;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepositoryCustom;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
+import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.dongsoop.dongsoop.notification.service.FCMService;
-import com.dongsoop.dongsoop.notification.service.NotificationService;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -16,8 +16,7 @@ public class ChatNotificationImpl implements ChatNotification {
 
     private final MemberDeviceRepositoryCustom memberDeviceRepositoryCustom;
     private final FCMService fcmService;
-    private final NotificationService notificationService;
-
+ 
     public void send(Set<Long> chatroomMemberIdSet, String chatRoomId, String senderName,
                      String message) {
         // 사용자 id를 통해 FCM 토큰을 가져옴
@@ -28,8 +27,9 @@ public class ChatNotificationImpl implements ChatNotification {
                 .map(MemberDeviceDto::deviceToken)
                 .toList();
 
-        fcmService.sendNotification(deviceTokens, senderName, message, NotificationType.CHAT, chatRoomId);
+        NotificationSend notificationSend = new NotificationSend(null, senderName, message, NotificationType.CHAT,
+                chatRoomId);
 
-        notificationService.save(participantsDevice, senderName, message, NotificationType.CHAT, chatRoomId);
+        fcmService.sendNotification(deviceTokens, notificationSend);
     }
 }

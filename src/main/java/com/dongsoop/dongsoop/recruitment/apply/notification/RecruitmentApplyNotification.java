@@ -1,25 +1,25 @@
 package com.dongsoop.dongsoop.recruitment.apply.notification;
 
+import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepositoryCustom;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
-import com.dongsoop.dongsoop.notification.service.FCMService;
+import com.dongsoop.dongsoop.notification.entity.MemberNotification;
+import com.dongsoop.dongsoop.notification.entity.NotificationDetails;
 import com.dongsoop.dongsoop.notification.service.NotificationService;
 import java.util.List;
+import java.util.Map;
 
 public abstract class RecruitmentApplyNotification {
 
     private static final Integer TITLE_TRUNCATION_LENGTH = 8;
 
     private final MemberDeviceRepositoryCustom memberDeviceRepositoryCustom;
-    private final FCMService fcmService;
     private final NotificationService notificationService;
 
     public RecruitmentApplyNotification(MemberDeviceRepositoryCustom memberDeviceRepositoryCustom,
-                                        FCMService fcmService,
                                         NotificationService notificationService) {
         this.memberDeviceRepositoryCustom = memberDeviceRepositoryCustom;
-        this.fcmService = fcmService;
         this.notificationService = notificationService;
     }
 
@@ -36,7 +36,9 @@ public abstract class RecruitmentApplyNotification {
         String body = "[" + processBoardTitle + "] 새로운 지원자가 있습니다. 확인해보세요!";
         NotificationType type = getApplyNotificationType();
 
-        saveNotification(ownerDevice, title, body, type, boardId);
+        String value = String.valueOf(boardId);
+
+        notificationService.save(ownerDevice, title, body, type, value);
     }
 
     public void sendOutcomeNotification(Long boardId, String boardTitle, Long applierId) {
@@ -48,19 +50,16 @@ public abstract class RecruitmentApplyNotification {
         String body = "[" + processBoardTitle + "] 모집 지원 결과가 등록되었습니다. 행운을 빌어요!";
         NotificationType type = getOutcomeNotificationType();
 
-        saveNotification(applierDevice, title, body, type, boardId);
-    }
+        // 저장
+        List<MemberNotification> memberNotificationList = notificationService.save(applierDevice, title, body, type,
+                String.valueOf(boardId));
 
-    private void saveNotification(List<MemberDeviceDto> memberDeviceDtos, String title, String body,
-                                  NotificationType type, Long boardId) {
-        String value = String.valueOf(boardId);
+        // 저장된 알림 -> Map 변환
+        Map<NotificationDetails, List<Member>> memberByNotification = notificationService.listToMap(
+                memberNotificationList);
 
-        List<String> deviceTokenList = memberDeviceDtos.stream()
-                .map(MemberDeviceDto::deviceToken)
-                .toList();
-
-        fcmService.sendNotification(deviceTokenList, title, body, type, value);
-        notificationService.save(memberDeviceDtos, title, body, type, value);
+        // 알림 전송
+        notificationService.send(memberByNotification);
     }
 
     private String processBoardTitle(String boardTitle) {
