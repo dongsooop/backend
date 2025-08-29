@@ -14,9 +14,11 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ChatNotificationImpl implements ChatNotification {
 
+    private final static Long NON_SAVE_NOTIFICATION_ID = -1L;
+
     private final MemberDeviceRepositoryCustom memberDeviceRepositoryCustom;
     private final FCMService fcmService;
- 
+
     public void send(Set<Long> chatroomMemberIdSet, String chatRoomId, String senderName,
                      String message) {
         // 사용자 id를 통해 FCM 토큰을 가져옴
@@ -27,7 +29,8 @@ public class ChatNotificationImpl implements ChatNotification {
                 .map(MemberDeviceDto::deviceToken)
                 .toList();
 
-        NotificationSend notificationSend = new NotificationSend(null, senderName, message, NotificationType.CHAT,
+        NotificationSend notificationSend = new NotificationSend(NON_SAVE_NOTIFICATION_ID, senderName, message,
+                NotificationType.CHAT,
                 chatRoomId);
 
         fcmService.sendNotification(deviceTokens, notificationSend);
