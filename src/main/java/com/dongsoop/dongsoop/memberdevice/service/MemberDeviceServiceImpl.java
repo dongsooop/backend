@@ -88,7 +88,7 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
     /**
      * 캐시 삭제 (평일 8시~19시 9분 간격 공지사항 파싱 전 실시간 반영 목적)
      */
-    @Scheduled(cron = "0  */9 8-19 * * MON-FRI", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 */9 8-19 * * MON-FRI", zone = "Asia/Seoul")
     @CacheEvict(value = "deviceTokens", allEntries = true)
     public void deleteData() {
         log.info("Cache 'deviceTokens' cleared");
