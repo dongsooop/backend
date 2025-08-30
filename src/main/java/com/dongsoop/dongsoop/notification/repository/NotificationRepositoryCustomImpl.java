@@ -68,11 +68,11 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
         return queryFactory.select(Projections.constructor(NotificationUnread.class,
                         member.id, memberNotice.count()))
                 .from(member)
-                .innerJoin(memberNotice)
-                .on(member.eq(memberNotice.id.member))
-                .where(member.id.in(memberIds)
+                .leftJoin(memberNotice)
+                .on(member.eq(memberNotice.id.member)
                         .and(memberNotice.isRead.eq(false))
                         .and(memberNotice.id.details.isDeleted.eq(false)))
+                .where(member.id.in(memberIds))
                 .groupBy(member.id)
                 .fetch();
     }
