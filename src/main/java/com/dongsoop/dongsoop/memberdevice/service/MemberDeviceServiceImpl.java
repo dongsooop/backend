@@ -11,6 +11,7 @@ import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,16 +59,35 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
         }
     }
 
+    /**
+     * MemberId List로 MemberDevice 조회
+     *
+     * @param memberIdList MemberId List
+     * @return MemberId를 key로, deviceToken List를 value로 갖는 Map
+     */
     @Override
     @Cacheable(value = "deviceTokens", key = "#memberIdList", sync = true)
     public Map<Long, List<String>> getDeviceByMember(List<Long> memberIdList) {
-        return memberDeviceRepository.getMemberDeviceTokenByMemberIds(memberIdList)
-                .stream()
-                .collect(Collectors.groupingBy(
-                        memberDeviceDto -> memberDeviceDto.member().getId(),
-                        Collectors.mapping(MemberDeviceDto::deviceToken, Collectors.toList())));
+        List<MemberDeviceDto> memberDeviceDtos = memberDeviceRepository.getMemberDeviceTokenByMemberIds(memberIdList);
+
+        return memberDeviceDtos.stream()
+                .collect(deviceGroupByMemberId());
     }
 
+    /**
+     * MemberDevice에 대해 MemberId로 그룹화
+     *
+     * @return MemberId를 key로, deviceToken List를 value로 갖는 Map
+     */
+    private Collector<MemberDeviceDto, ?, Map<Long, List<String>>> deviceGroupByMemberId() {
+        return Collectors.groupingBy(
+                memberDeviceDto -> memberDeviceDto.member().getId(),
+                Collectors.mapping(MemberDeviceDto::deviceToken, Collectors.toList()));
+    }
+
+    /**
+     * 캐시 삭제 (평일 8시~19시 9분 간격 공지사항 파싱 전 실시간 반영 목적)
+     */
     @Scheduled(cron = "0  */9 8-19 * * MON-FRI", zone = "Asia/Seoul")
     @CacheEvict(value = "deviceTokens", allEntries = true)
     public void deleteData() {
