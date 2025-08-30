@@ -159,7 +159,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public void deleteMemberNotification(Long id) {
         Long requesterId = memberService.getMemberIdByAuthentication();
 
