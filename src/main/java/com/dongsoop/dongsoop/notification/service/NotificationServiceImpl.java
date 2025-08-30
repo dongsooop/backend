@@ -136,8 +136,12 @@ public class NotificationServiceImpl implements NotificationService {
 
         // 회원별 MulticastMessage 생성
         return memberIdList.stream()
-                .map(memberId -> generateMulticastMessage(memberId, title, body, deviceTokens, notification,
-                        unreadCountByMember.get(memberId), apnsConfigBuilder));
+                .map(memberId -> {
+                    Long unreadCount = unreadCountByMember.getOrDefault(memberId, 0L);
+
+                    return generateMulticastMessage(memberId, title, body, deviceTokens, notification, unreadCount,
+                            apnsConfigBuilder);
+                });
     }
 
     /**
@@ -153,9 +157,9 @@ public class NotificationServiceImpl implements NotificationService {
      */
     private MulticastMessage generateMulticastMessage(Long memberId, String title, String body,
                                                       Map<Long, List<String>> deviceByMember, Notification notification,
-                                                      Long unreadCount, ApnsConfig.Builder apnsConfigBuilder) {
+                                                      long unreadCount, ApnsConfig.Builder apnsConfigBuilder) {
         // APNS 생성
-        Aps aps = fcmService.getAps(title, body, unreadCount.intValue());
+        Aps aps = fcmService.getAps(title, body, (int) unreadCount);
         ApnsConfig apnsConfig = apnsConfigBuilder.setAps(aps)
                 .build();
 
