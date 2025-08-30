@@ -38,7 +38,16 @@ public abstract class RecruitmentApplyNotification {
 
         String value = String.valueOf(boardId);
 
-        notificationService.save(ownerDevice, title, body, type, value);
+        // 저장
+        List<MemberNotification> memberNotificationList = notificationService.save(ownerDevice, title, body, type,
+                value);
+
+        // 저장된 알림 -> Map 변환
+        Map<NotificationDetails, List<Member>> memberByNotification = notificationService.listToMap(
+                memberNotificationList);
+
+        // 알림 전송
+        notificationService.send(memberByNotification);
     }
 
     public void sendOutcomeNotification(Long boardId, String boardTitle, Long applierId) {
