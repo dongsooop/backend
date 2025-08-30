@@ -2,7 +2,7 @@ package com.dongsoop.dongsoop.recruitment.apply.notification;
 
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
-import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepositoryCustom;
+import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.entity.NotificationDetails;
@@ -14,12 +14,12 @@ public abstract class RecruitmentApplyNotification {
 
     private static final Integer TITLE_TRUNCATION_LENGTH = 8;
 
-    private final MemberDeviceRepositoryCustom memberDeviceRepositoryCustom;
+    private final MemberDeviceRepository memberDeviceRepository;
     private final NotificationService notificationService;
 
-    public RecruitmentApplyNotification(MemberDeviceRepositoryCustom memberDeviceRepositoryCustom,
+    public RecruitmentApplyNotification(MemberDeviceRepository memberDeviceRepository,
                                         NotificationService notificationService) {
-        this.memberDeviceRepositoryCustom = memberDeviceRepositoryCustom;
+        this.memberDeviceRepository = memberDeviceRepository;
         this.notificationService = notificationService;
     }
 
@@ -28,7 +28,7 @@ public abstract class RecruitmentApplyNotification {
     protected abstract NotificationType getOutcomeNotificationType();
 
     public void sendApplyNotification(Long boardId, String boardTitle, Long ownerId) {
-        List<MemberDeviceDto> ownerDevice = memberDeviceRepositoryCustom.getMemberDeviceTokenByMemberId(
+        List<MemberDeviceDto> ownerDevice = memberDeviceRepository.getMemberDeviceTokenByMemberId(
                 ownerId);
 
         String processBoardTitle = processBoardTitle(boardTitle);
@@ -51,7 +51,7 @@ public abstract class RecruitmentApplyNotification {
     }
 
     public void sendOutcomeNotification(Long boardId, String boardTitle, Long applierId) {
-        List<MemberDeviceDto> applierDevice = memberDeviceRepositoryCustom.getMemberDeviceTokenByMemberId(
+        List<MemberDeviceDto> applierDevice = memberDeviceRepository.getMemberDeviceTokenByMemberId(
                 applierId);
 
         String processBoardTitle = processBoardTitle(boardTitle);
