@@ -1,22 +1,11 @@
 package com.dongsoop.dongsoop.notification.dto;
 
-import com.dongsoop.dongsoop.notification.constant.NotificationType;
-import java.time.LocalDateTime;
+import java.util.List;
 
 public record NotificationOverview(
 
-        Long id,
+        List<NotificationList> notificationLists,
 
-        String title,
-
-        String body,
-
-        NotificationType type,
-
-        String value,
-
-        boolean isRead,
-
-        LocalDateTime createdAt
+        Long unreadCount
 ) {
 }

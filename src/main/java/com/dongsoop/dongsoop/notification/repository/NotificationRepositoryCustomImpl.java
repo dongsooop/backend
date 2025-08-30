@@ -1,7 +1,7 @@
 package com.dongsoop.dongsoop.notification.repository;
 
 import com.dongsoop.dongsoop.common.PageableUtil;
-import com.dongsoop.dongsoop.notification.dto.NotificationOverview;
+import com.dongsoop.dongsoop.notification.dto.NotificationList;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.entity.QMemberNotification;
 import com.dongsoop.dongsoop.notification.entity.QNotificationDetails;
@@ -24,8 +24,8 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
     private final QNotificationDetails notificationDetails = QNotificationDetails.notificationDetails;
 
     @Override
-    public List<NotificationOverview> getMemberNotifications(Long memberId, Pageable pageable) {
-        return queryFactory.select(Projections.constructor(NotificationOverview.class,
+    public List<NotificationList> getMemberNotifications(Long memberId, Pageable pageable) {
+        return queryFactory.select(Projections.constructor(NotificationList.class,
                         notificationDetails.id,
                         notificationDetails.title,
                         notificationDetails.body,
@@ -41,6 +41,22 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
                 .limit(pageable.getPageSize())
                 .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), notificationDetails))
                 .fetch();
+    }
+
+    @Override
+    public Long findUnreadCountByMemberId(Long memberId) {
+        Long count = queryFactory.select(memberNotice.count())
+                .from(memberNotice)
+                .where(memberNotice.id.member.id.eq(memberId)
+                        .and(memberNotice.isRead.eq(false))
+                        .and(memberNotice.id.details.isDeleted.eq(false)))
+                .fetchOne();
+
+        if (count == null) {
+            return 0L;
+        }
+
+        return count;
     }
 
     @Override

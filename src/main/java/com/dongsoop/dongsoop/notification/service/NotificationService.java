@@ -20,7 +20,7 @@ public interface NotificationService {
 
     Map<NotificationDetails, List<Member>> listToMap(List<MemberNotification> memberNotificationList);
 
-    List<NotificationOverview> getNotifications(Pageable pageable);
+    NotificationOverview getNotifications(Pageable pageable);
 
     void deleteMemberNotification(Long id);
 

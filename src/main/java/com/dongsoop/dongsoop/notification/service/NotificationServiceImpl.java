@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepositoryCustom;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
+import com.dongsoop.dongsoop.notification.dto.NotificationList;
 import com.dongsoop.dongsoop.notification.dto.NotificationOverview;
 import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
@@ -105,10 +106,14 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public List<NotificationOverview> getNotifications(Pageable pageable) {
+    public NotificationOverview getNotifications(Pageable pageable) {
         Long requesterId = memberService.getMemberIdByAuthentication();
 
-        return notificationRepository.getMemberNotifications(requesterId, pageable);
+        Long unreadCount = notificationRepository.findUnreadCountByMemberId(requesterId);
+        List<NotificationList> notificationLists = notificationRepository.getMemberNotifications(requesterId,
+                pageable);
+
+        return new NotificationOverview(notificationLists, unreadCount);
     }
 
     @Override
