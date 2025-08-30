@@ -15,7 +15,7 @@ public interface NotificationService {
                                   NotificationType type,
                                   String value);
 
-    void send(Map<NotificationDetails, List<Long>> memberByNotification);
+    void send(List<MemberNotification> memberNotificationList);
 
     Map<NotificationDetails, List<Long>> listToMap(List<MemberNotification> memberNotificationList);
 

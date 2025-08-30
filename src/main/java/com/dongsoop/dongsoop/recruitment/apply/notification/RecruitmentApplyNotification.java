@@ -4,10 +4,8 @@ import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
-import com.dongsoop.dongsoop.notification.entity.NotificationDetails;
 import com.dongsoop.dongsoop.notification.service.NotificationService;
 import java.util.List;
-import java.util.Map;
 
 public abstract class RecruitmentApplyNotification {
 
@@ -41,12 +39,8 @@ public abstract class RecruitmentApplyNotification {
         List<MemberNotification> memberNotificationList = notificationService.save(ownerDevice, title, body, type,
                 value);
 
-        // 저장된 알림 -> Map 변환
-        Map<NotificationDetails, List<Long>> memberByNotification = notificationService.listToMap(
-                memberNotificationList);
-
         // 알림 전송
-        notificationService.send(memberByNotification);
+        notificationService.send(memberNotificationList);
     }
 
     public void sendOutcomeNotification(Long boardId, String boardTitle, Long applierId) {
@@ -62,12 +56,8 @@ public abstract class RecruitmentApplyNotification {
         List<MemberNotification> memberNotificationList = notificationService.save(applierDevice, title, body, type,
                 String.valueOf(boardId));
 
-        // 저장된 알림 -> Map 변환
-        Map<NotificationDetails, List<Long>> memberByNotification = notificationService.listToMap(
-                memberNotificationList);
-
         // 알림 전송
-        notificationService.send(memberByNotification);
+        notificationService.send(memberNotificationList);
     }
 
     private String processBoardTitle(String boardTitle) {

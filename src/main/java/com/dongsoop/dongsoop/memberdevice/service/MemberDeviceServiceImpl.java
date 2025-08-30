@@ -9,15 +9,13 @@ import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.exception.AlreadyRegisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,8 +64,7 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
      * @return MemberId를 key로, deviceToken List를 value로 갖는 Map
      */
     @Override
-    @Cacheable(value = "deviceTokens", key = "#memberIdList", sync = true)
-    public Map<Long, List<String>> getDeviceByMember(List<Long> memberIdList) {
+    public Map<Long, List<String>> getDeviceByMember(Collection<Long> memberIdList) {
         List<MemberDeviceDto> memberDeviceDtos = memberDeviceRepository.getMemberDeviceTokenByMemberIds(memberIdList);
 
         return memberDeviceDtos.stream()
@@ -83,14 +80,5 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
         return Collectors.groupingBy(
                 memberDeviceDto -> memberDeviceDto.member().getId(),
                 Collectors.mapping(MemberDeviceDto::deviceToken, Collectors.toList()));
-    }
-
-    /**
-     * 캐시 삭제 (평일 8시~19시 9분 간격 공지사항 파싱 전 실시간 반영 목적)
-     */
-    @Scheduled(cron = "0 */9 8-19 * * MON-FRI", zone = "Asia/Seoul")
-    @CacheEvict(value = "deviceTokens", allEntries = true)
-    public void deleteData() {
-        log.info("Cache 'deviceTokens' cleared");
     }
 }
