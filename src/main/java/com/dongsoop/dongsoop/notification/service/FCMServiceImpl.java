@@ -57,6 +57,18 @@ public class FCMServiceImpl implements FCMService {
                 .build();
     }
 
+    @Override
+    public Aps getAps(String title, String body, int badge) {
+        return Aps.builder()
+                .setAlert(ApsAlert.builder()
+                        .setTitle(title)
+                        .setBody(body)
+                        .build())
+                .setSound("default")
+                .setBadge(badge)
+                .build();
+    }
+
     private MulticastMessage getMulticastMessage(
             List<String> deviceTokenList,
             String title,

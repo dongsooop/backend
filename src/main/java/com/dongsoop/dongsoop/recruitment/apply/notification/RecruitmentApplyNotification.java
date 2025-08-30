@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.recruitment.apply.notification;
 
-import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
@@ -43,7 +42,7 @@ public abstract class RecruitmentApplyNotification {
                 value);
 
         // 저장된 알림 -> Map 변환
-        Map<NotificationDetails, List<Member>> memberByNotification = notificationService.listToMap(
+        Map<NotificationDetails, List<Long>> memberByNotification = notificationService.listToMap(
                 memberNotificationList);
 
         // 알림 전송
@@ -64,7 +63,7 @@ public abstract class RecruitmentApplyNotification {
                 String.valueOf(boardId));
 
         // 저장된 알림 -> Map 변환
-        Map<NotificationDetails, List<Member>> memberByNotification = notificationService.listToMap(
+        Map<NotificationDetails, List<Long>> memberByNotification = notificationService.listToMap(
                 memberNotificationList);
 
         // 알림 전송

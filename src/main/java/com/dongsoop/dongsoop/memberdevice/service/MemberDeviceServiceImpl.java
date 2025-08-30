@@ -3,16 +3,25 @@ package com.dongsoop.dongsoop.memberdevice.service;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
+import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.exception.AlreadyRegisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class MemberDeviceServiceImpl implements MemberDeviceService {
 
@@ -47,5 +56,21 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
         if (memberDeviceRepository.existsByDeviceToken(deviceToken)) {
             throw new AlreadyRegisteredDeviceException();
         }
+    }
+
+    @Override
+    @Cacheable(value = "deviceTokens", key = "#memberIdList", sync = true)
+    public Map<Long, List<String>> getDeviceByMember(List<Long> memberIdList) {
+        return memberDeviceRepository.getMemberDeviceTokenByMemberIds(memberIdList)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        memberDeviceDto -> memberDeviceDto.member().getId(),
+                        Collectors.mapping(MemberDeviceDto::deviceToken, Collectors.toList())));
+    }
+
+    @Scheduled(cron = "0  */9 8-19 * * MON-FRI", zone = "Asia/Seoul")
+    @CacheEvict(value = "deviceTokens", allEntries = true)
+    public void deleteData() {
+        log.info("Cache 'deviceTokens' cleared");
     }
 }

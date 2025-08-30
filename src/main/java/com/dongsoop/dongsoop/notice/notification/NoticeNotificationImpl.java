@@ -1,7 +1,6 @@
 package com.dongsoop.dongsoop.notice.notification;
 
 import com.dongsoop.dongsoop.department.entity.Department;
-import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.notice.entity.Notice;
@@ -43,7 +42,7 @@ public class NoticeNotificationImpl implements NoticeNotification {
         List<MemberNotification> memberNotificationList = saveMemberNotification(noticeDetailSet);
 
         // 공지별 공지 그룹핑
-        Map<NotificationDetails, List<Member>> notificationByDepartment = notificationService.listToMap(
+        Map<NotificationDetails, List<Long>> notificationByDepartment = notificationService.listToMap(
                 memberNotificationList);
 
         // 공지별 메시지 변환 후 전송

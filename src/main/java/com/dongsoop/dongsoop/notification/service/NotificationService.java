@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.notification.service;
 
-import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.dto.NotificationOverview;
@@ -16,9 +15,9 @@ public interface NotificationService {
                                   NotificationType type,
                                   String value);
 
-    void send(Map<NotificationDetails, List<Member>> memberByNotification);
+    void send(Map<NotificationDetails, List<Long>> memberByNotification);
 
-    Map<NotificationDetails, List<Member>> listToMap(List<MemberNotification> memberNotificationList);
+    Map<NotificationDetails, List<Long>> listToMap(List<MemberNotification> memberNotificationList);
 
     NotificationOverview getNotifications(Pageable pageable);
 
