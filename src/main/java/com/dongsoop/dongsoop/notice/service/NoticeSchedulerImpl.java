@@ -50,7 +50,7 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
     private int terminateGraceTimeout;
 
     @Override
-    @Scheduled(cron = "0 */10 8-19 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 */10 8-19 * * MON-FRI", zone = "Asia/Seoul")
     @Transactional
     public void scheduled() {
         log.info("notice crawling scheduler started");

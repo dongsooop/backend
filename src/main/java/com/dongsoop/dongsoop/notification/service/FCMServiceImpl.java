@@ -52,7 +52,20 @@ public class FCMServiceImpl implements FCMService {
                                 .setBody(notificationSend.body())
                                 .build())
                         .setSound("default")
+                        .setBadge(1)
                         .build())
+                .build();
+    }
+
+    @Override
+    public Aps getAps(String title, String body, int badge) {
+        return Aps.builder()
+                .setAlert(ApsAlert.builder()
+                        .setTitle(title)
+                        .setBody(body)
+                        .build())
+                .setSound("default")
+                .setBadge(badge)
                 .build();
     }
 
