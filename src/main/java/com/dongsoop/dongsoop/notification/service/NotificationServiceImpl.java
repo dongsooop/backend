@@ -37,6 +37,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final MemberDeviceService memberDeviceService;
 
     @Override
+    @Transactional
     public List<MemberNotification> save(List<MemberDeviceDto> memberDeviceDtoList, String title, String body,
                                          NotificationType type,
                                          String value) {
