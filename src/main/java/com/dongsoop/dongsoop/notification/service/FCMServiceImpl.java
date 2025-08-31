@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.notification.service;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.dongsoop.dongsoop.notification.exception.NotificationSendException;
+import com.dongsoop.dongsoop.notification.exception.ResponseSizeUnmatchedToTokenSizeException;
 import com.google.api.core.ApiFuture;
 import com.google.firebase.messaging.ApnsConfig;
 import com.google.firebase.messaging.Aps;
@@ -131,7 +132,7 @@ public class FCMServiceImpl implements FCMService {
         if (tokens.size() != responses.size()) {
             log.warn("Token list size does not match response size: tokens={}, responses={}",
                     tokens.size(), responses.size());
-            return;
+            throw new ResponseSizeUnmatchedToTokenSizeException(responses.size(), tokens.size());
         }
 
         for (int i = 0; i < responses.size(); i++) {
