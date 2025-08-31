@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.notification.service;
 
-import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
+import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.dongsoop.dongsoop.notification.exception.NotificationSendException;
 import com.google.api.core.ApiFuture;
@@ -23,7 +23,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
@@ -31,13 +30,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class FCMServiceImpl implements FCMService {
 
     private final FirebaseMessaging firebaseMessaging;
-    private final MemberDeviceRepository memberDeviceRepository;
+    private final MemberDeviceService memberDeviceService;
 
     @Qualifier("notificationExecutor")
     private final ExecutorService notificationExecutor;
 
     @Override
-    @Transactional
     public void sendNotification(List<String> deviceTokenList, NotificationSend notificationSend) {
         // iOS용 APNs 설정
         ApnsConfig apnsConfig = getApnsConfig(notificationSend);
@@ -92,7 +90,6 @@ public class FCMServiceImpl implements FCMService {
     }
 
     @Override
-    @Transactional
     public void sendMessages(MulticastMessage message, List<String> tokens) {
         ApiFuture<BatchResponse> future = firebaseMessaging.sendEachForMulticastAsync(message);
         future.addListener(() -> listener(future, tokens), notificationExecutor);
@@ -151,7 +148,7 @@ public class FCMServiceImpl implements FCMService {
             // 무효한 토큰 확인
             if (isInvalidToken(exception)) {
                 String invalidToken = tokens.get(i); // 토큰 리스트와 매핑
-                memberDeviceRepository.deleteByDeviceToken(invalidToken);
+                memberDeviceService.deleteByToken(invalidToken);
                 log.warn("Invalid FCM token removed: {}", invalidToken);
             } else {
                 log.error("Error sending FCM message: {}", exception.getMessage());
