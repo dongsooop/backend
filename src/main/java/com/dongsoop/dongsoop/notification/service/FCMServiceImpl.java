@@ -101,6 +101,7 @@ public class FCMServiceImpl implements FCMService {
             BatchResponse batchResponse = future.get();
             if (batchResponse.getFailureCount() > 0) {
                 handleFailure(batchResponse, tokens);
+                throw new NotificationSendException();
             }
             log.info("Successfully sent messages: {}", batchResponse.getSuccessCount());
 
