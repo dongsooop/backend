@@ -23,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
@@ -36,6 +37,7 @@ public class FCMServiceImpl implements FCMService {
     private final ExecutorService notificationExecutor;
 
     @Override
+    @Transactional
     public void sendNotification(List<String> deviceTokenList, NotificationSend notificationSend) {
         // iOS용 APNs 설정
         ApnsConfig apnsConfig = getApnsConfig(notificationSend);
@@ -90,6 +92,7 @@ public class FCMServiceImpl implements FCMService {
     }
 
     @Override
+    @Transactional
     public void sendMessages(MulticastMessage message, List<String> tokens) {
         ApiFuture<BatchResponse> future = firebaseMessaging.sendEachForMulticastAsync(message);
         future.addListener(() -> listener(future, tokens), notificationExecutor);
