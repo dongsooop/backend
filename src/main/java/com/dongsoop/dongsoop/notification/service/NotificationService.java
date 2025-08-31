@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.notification.service;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.dto.NotificationOverview;
+import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.entity.NotificationDetails;
 import java.util.List;
@@ -14,6 +15,8 @@ public interface NotificationService {
     List<MemberNotification> save(List<MemberDeviceDto> memberDeviceDtoList, String title, String body,
                                   NotificationType type,
                                   String value);
+    
+    void send(List<String> deviceTokenList, NotificationSend notificationSend);
 
     void send(List<MemberNotification> memberNotificationList);
 

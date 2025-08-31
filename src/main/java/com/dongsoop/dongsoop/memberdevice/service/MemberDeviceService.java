@@ -12,4 +12,6 @@ public interface MemberDeviceService {
     void bindDeviceWithMemberId(Long memberId, String deviceToken);
 
     Map<Long, List<String>> getDeviceByMember(Collection<Long> memberIdList);
+
+    void deleteByToken(String deviceToken);
 }

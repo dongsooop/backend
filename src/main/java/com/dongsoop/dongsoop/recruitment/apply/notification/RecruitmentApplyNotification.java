@@ -6,6 +6,7 @@ import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.service.NotificationService;
 import java.util.List;
+import org.springframework.scheduling.annotation.Async;
 
 public abstract class RecruitmentApplyNotification {
 
@@ -24,6 +25,7 @@ public abstract class RecruitmentApplyNotification {
 
     protected abstract NotificationType getOutcomeNotificationType();
 
+    @Async
     public void sendApplyNotification(Long boardId, String boardTitle, Long ownerId) {
         List<MemberDeviceDto> ownerDevice = memberDeviceRepository.getMemberDeviceTokenByMemberId(
                 ownerId);
@@ -43,6 +45,7 @@ public abstract class RecruitmentApplyNotification {
         notificationService.send(memberNotificationList);
     }
 
+    @Async
     public void sendOutcomeNotification(Long boardId, String boardTitle, Long applierId) {
         List<MemberDeviceDto> applierDevice = memberDeviceRepository.getMemberDeviceTokenByMemberId(
                 applierId);

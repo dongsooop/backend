@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
+import com.dongsoop.dongsoop.notification.dto.MulticastMessageWithTokens;
 import com.dongsoop.dongsoop.notification.dto.NotificationList;
 import com.dongsoop.dongsoop.notification.dto.NotificationOverview;
 import com.dongsoop.dongsoop.notification.dto.NotificationSend;
@@ -67,6 +68,11 @@ public class NotificationServiceImpl implements NotificationService {
                 )));
     }
 
+    @Override
+    public void send(List<String> deviceTokenList, NotificationSend notificationSend) {
+        fcmService.sendNotification(deviceTokenList, notificationSend);
+    }
+
     /**
      * 알림 전송
      *
@@ -96,7 +102,7 @@ public class NotificationServiceImpl implements NotificationService {
         memberByNotification.entrySet().stream()
                 .flatMap((map) ->
                         toMulticastMessage(map.getKey(), map.getValue(), memberIdDevices, unreadCountByMember))
-                .forEach(fcmService::sendMessages);
+                .forEach(message -> fcmService.sendMessages(message.messages(), message.tokens()));
     }
 
     /**
@@ -106,9 +112,9 @@ public class NotificationServiceImpl implements NotificationService {
      * @param memberIdList 공지 대상 회원 ID 리스트
      * @return MulticastMessage 변환한 메시지
      */
-    private Stream<MulticastMessage> toMulticastMessage(NotificationDetails details, List<Long> memberIdList,
-                                                        Map<Long, List<String>> memberIdDevices,
-                                                        Map<Long, Long> unreadCountByMember) {
+    private Stream<MulticastMessageWithTokens> toMulticastMessage(NotificationDetails details, List<Long> memberIdList,
+                                                                  Map<Long, List<String>> memberIdDevices,
+                                                                  Map<Long, Long> unreadCountByMember) {
         // 공지별 회원 알림 전송
         Long notificationId = details.getId();
         String title = details.getTitle();
@@ -156,9 +162,11 @@ public class NotificationServiceImpl implements NotificationService {
      * @param apnsConfigBuilder APNS 설정 빌더
      * @return MulticastMessage 생성한 메시지
      */
-    private MulticastMessage generateMulticastMessage(Long memberId, String title, String body,
-                                                      Map<Long, List<String>> deviceByMember, Notification notification,
-                                                      long unreadCount, ApnsConfig.Builder apnsConfigBuilder) {
+    private MulticastMessageWithTokens generateMulticastMessage(Long memberId, String title, String body,
+                                                                Map<Long, List<String>> deviceByMember,
+                                                                Notification notification,
+                                                                long unreadCount,
+                                                                ApnsConfig.Builder apnsConfigBuilder) {
         // APNS 생성
         Aps aps = fcmService.getAps(title, body, (int) unreadCount);
         ApnsConfig apnsConfig = apnsConfigBuilder.setAps(aps)
@@ -166,12 +174,13 @@ public class NotificationServiceImpl implements NotificationService {
 
         // 회원 디바이스 목록 가져오기
         List<String> deviceList = deviceByMember.get(memberId);
-
-        return MulticastMessage.builder()
+        MulticastMessage messages = MulticastMessage.builder()
                 .addAllTokens(deviceList)
                 .setApnsConfig(apnsConfig)
                 .setNotification(notification)
                 .build();
+
+        return new MulticastMessageWithTokens(deviceList, messages);
     }
 
     @Override

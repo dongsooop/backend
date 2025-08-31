@@ -1,15 +1,20 @@
 package com.dongsoop.dongsoop.notification.service;
 
+import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.dongsoop.dongsoop.notification.exception.NotificationSendException;
+import com.dongsoop.dongsoop.notification.exception.ResponseSizeUnmatchedToTokenSizeException;
 import com.google.api.core.ApiFuture;
 import com.google.firebase.messaging.ApnsConfig;
 import com.google.firebase.messaging.Aps;
 import com.google.firebase.messaging.ApsAlert;
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.MessagingErrorCode;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
+import com.google.firebase.messaging.SendResponse;
 import io.netty.handler.timeout.TimeoutException;
 import java.util.List;
 import java.util.concurrent.CancellationException;
@@ -26,6 +31,7 @@ import org.springframework.stereotype.Service;
 public class FCMServiceImpl implements FCMService {
 
     private final FirebaseMessaging firebaseMessaging;
+    private final MemberDeviceService memberDeviceService;
 
     @Qualifier("notificationExecutor")
     private final ExecutorService notificationExecutor;
@@ -37,7 +43,7 @@ public class FCMServiceImpl implements FCMService {
         MulticastMessage message = getMulticastMessage(deviceTokenList, notificationSend.title(),
                 notificationSend.body(), apnsConfig);
 
-        sendMessages(message);
+        sendMessages(message, deviceTokenList);
     }
 
     @Override
@@ -85,16 +91,16 @@ public class FCMServiceImpl implements FCMService {
     }
 
     @Override
-    public void sendMessages(MulticastMessage message) {
+    public void sendMessages(MulticastMessage message, List<String> tokens) {
         ApiFuture<BatchResponse> future = firebaseMessaging.sendEachForMulticastAsync(message);
-        future.addListener(() -> listener(future), notificationExecutor);
+        future.addListener(() -> listener(future, tokens), notificationExecutor);
     }
 
-    private void listener(ApiFuture<BatchResponse> future) {
+    private void listener(ApiFuture<BatchResponse> future, List<String> tokens) {
         try {
             BatchResponse batchResponse = future.get();
             if (batchResponse.getFailureCount() > 0) {
-                loggedFailure(batchResponse);
+                handleFailure(batchResponse, tokens);
                 throw new NotificationSendException();
             }
             log.info("Successfully sent messages: {}", batchResponse.getSuccessCount());
@@ -122,11 +128,47 @@ public class FCMServiceImpl implements FCMService {
         }
     }
 
-    private void loggedFailure(BatchResponse batchResponse) {
-        batchResponse.getResponses()
-                .stream()
-                .filter(response -> !response.isSuccessful())
-                .forEach(response -> log.error("Error sending FCM message: {}",
-                        response.getException().getMessage()));
+    private void handleFailure(BatchResponse batchResponse, List<String> tokens) {
+        List<SendResponse> responses = batchResponse.getResponses();
+        if (tokens.size() != responses.size()) {
+            log.warn("Token list size does not match response size: tokens={}, responses={}",
+                    tokens.size(), responses.size());
+            throw new ResponseSizeUnmatchedToTokenSizeException(responses.size(), tokens.size());
+        }
+
+        for (int i = 0; i < responses.size(); i++) {
+            SendResponse response = responses.get(i);
+            if (response.isSuccessful()) {
+                continue;
+            }
+
+            FirebaseMessagingException exception = response.getException();
+            if (exception == null) {
+                continue;
+            }
+
+            // 만료된 토큰 확인
+            if (isValidToken(exception)) {
+                String invalidToken = tokens.get(i);
+                memberDeviceService.deleteByToken(invalidToken);
+                log.warn("Invalid FCM token removed: {}", invalidToken);
+
+                continue;
+            }
+
+            log.error("Error sending FCM message: {}", exception.getMessage());
+        }
+    }
+
+    private boolean isValidToken(FirebaseMessagingException exception) {
+        MessagingErrorCode messagingErrorCode = exception.getMessagingErrorCode();
+        if (messagingErrorCode == null) {
+            return false;
+        }
+
+        boolean isUnregistered = messagingErrorCode.equals(MessagingErrorCode.UNREGISTERED);
+        boolean isInvalidArgument = messagingErrorCode.equals(MessagingErrorCode.INVALID_ARGUMENT);
+
+        return isUnregistered || isInvalidArgument;
     }
 }

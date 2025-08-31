@@ -79,4 +79,10 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
                 memberDeviceDto -> memberDeviceDto.member().getId(),
                 Collectors.mapping(MemberDeviceDto::deviceToken, Collectors.toList()));
     }
+
+    @Override
+    @Transactional
+    public void deleteByToken(String deviceToken) {
+        memberDeviceRepository.deleteByDeviceToken(deviceToken);
+    }
 }
