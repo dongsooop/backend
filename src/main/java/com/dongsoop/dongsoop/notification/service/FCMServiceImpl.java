@@ -136,6 +136,9 @@ public class FCMServiceImpl implements FCMService {
             }
 
             FirebaseMessagingException exception = response.getException();
+            if (exception == null) {
+                continue;
+            }
 
             // 무효한 토큰 확인
             if (isInvalidToken(exception)) {
@@ -150,6 +153,10 @@ public class FCMServiceImpl implements FCMService {
 
     private boolean isInvalidToken(FirebaseMessagingException exception) {
         MessagingErrorCode messagingErrorCode = exception.getMessagingErrorCode();
+        if (messagingErrorCode == null) {
+            return false;
+        }
+
         boolean isUnregistered = messagingErrorCode.equals(MessagingErrorCode.UNREGISTERED);
         boolean isInvalidArgument = messagingErrorCode.equals(MessagingErrorCode.INVALID_ARGUMENT);
 
