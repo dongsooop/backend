@@ -10,7 +10,7 @@ public interface FCMService {
 
     void sendNotification(List<String> fcmTokenList, NotificationSend notificationSend);
 
-    void sendMessages(MulticastMessage message);
+    void sendMessages(MulticastMessage message, List<String> tokens);
 
     ApnsConfig getApnsConfig(NotificationSend notificationSend);
 
