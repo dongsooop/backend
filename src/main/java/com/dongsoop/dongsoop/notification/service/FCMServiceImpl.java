@@ -131,6 +131,11 @@ public class FCMServiceImpl implements FCMService {
 
     private void handleFailure(BatchResponse batchResponse, List<String> tokens) {
         List<SendResponse> responses = batchResponse.getResponses();
+        if (tokens.size() != responses.size()) {
+            log.warn("Token list size does not match response size: tokens={}, responses={}",
+                    tokens.size(), responses.size());
+            return;
+        }
 
         for (int i = 0; i < responses.size(); i++) {
             SendResponse response = responses.get(i);
