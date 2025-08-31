@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,12 +68,19 @@ public class NotificationServiceImpl implements NotificationService {
                 )));
     }
 
+    @Override
+    @Async
+    public void send(List<String> deviceTokenList, NotificationSend notificationSend) {
+        fcmService.sendNotification(deviceTokenList, notificationSend);
+    }
+
     /**
      * 알림 전송
      *
      * @param memberNotificationList 저장된 알림 리스트
      */
     @Override
+    @Async
     @Transactional(readOnly = true)
     public void send(List<MemberNotification> memberNotificationList) {
         // 알림을 보낼 대상 회원들
