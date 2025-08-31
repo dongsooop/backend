@@ -147,18 +147,20 @@ public class FCMServiceImpl implements FCMService {
                 continue;
             }
 
-            // 무효한 토큰 확인
-            if (isInvalidToken(exception)) {
-                String invalidToken = tokens.get(i); // 토큰 리스트와 매핑
+            // 만료된 토큰 확인
+            if (isValidToken(exception)) {
+                String invalidToken = tokens.get(i);
                 memberDeviceService.deleteByToken(invalidToken);
                 log.warn("Invalid FCM token removed: {}", invalidToken);
-            } else {
-                log.error("Error sending FCM message: {}", exception.getMessage());
+
+                continue;
             }
+
+            log.error("Error sending FCM message: {}", exception.getMessage());
         }
     }
 
-    private boolean isInvalidToken(FirebaseMessagingException exception) {
+    private boolean isValidToken(FirebaseMessagingException exception) {
         MessagingErrorCode messagingErrorCode = exception.getMessagingErrorCode();
         if (messagingErrorCode == null) {
             return false;
