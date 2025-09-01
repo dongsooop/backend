@@ -172,6 +172,12 @@ public class FCMServiceImpl implements FCMService {
     }
 
     public void updateNotificationBadge(List<String> deviceTokens, int badge) {
+        if (deviceTokens == null || deviceTokens.isEmpty()) {
+            log.warn(
+                    "updateNotificationBadge called with null or empty deviceTokens. No FCM operation will be performed.");
+            return;
+        }
+
         ApnsConfig apnsConfig = ApnsConfig.builder()
                 .setAps(Aps.builder()
                         .setBadge(badge)
