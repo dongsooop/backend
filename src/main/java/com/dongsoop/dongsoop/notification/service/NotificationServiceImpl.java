@@ -187,7 +187,7 @@ public class NotificationServiceImpl implements NotificationService {
     public NotificationOverview getNotifications(Pageable pageable) {
         Long requesterId = memberService.getMemberIdByAuthentication();
 
-        Long unreadCount = notificationRepository.findUnreadCountByMemberId(requesterId);
+        long unreadCount = notificationRepository.findUnreadCountByMemberId(requesterId);
         List<NotificationList> notificationLists = notificationRepository.getMemberNotifications(requesterId,
                 pageable);
 
@@ -215,9 +215,9 @@ public class NotificationServiceImpl implements NotificationService {
 
         memberNotification.read();
 
-        Long unreadCountByMemberId = notificationRepository.findUnreadCountByMemberId(requesterId);
+        long unreadCountByMemberId = notificationRepository.findUnreadCountByMemberId(requesterId);
         List<String> devices = memberDeviceService.getDeviceByMemberId(requesterId);
 
-        fcmService.updateNotificationBadge(devices, unreadCountByMemberId.intValue());
+        fcmService.updateNotificationBadge(devices, (int) unreadCountByMemberId);
     }
 }
