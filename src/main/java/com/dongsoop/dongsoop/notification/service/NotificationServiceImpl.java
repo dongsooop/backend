@@ -94,6 +94,11 @@ public class NotificationServiceImpl implements NotificationService {
 
         // 발송 전체 대상의 디바이스 토큰
         Map<Long, List<String>> memberIdDevices = memberDeviceService.getDeviceByMember(memberIds);
+        System.out.println(" map 검사 시작 ----------------------------");
+        memberIdDevices.entrySet().forEach(entry -> {
+            System.out.println("Member ID: " + entry.getKey() + ", Device Tokens: " + entry.getValue());
+        });
+        System.out.println("----------------------------");
 
         // 발송 전체 대상의 회원별 읽지 않은 알림 개수
         List<NotificationUnread> unreadCount = notificationRepository.findUnreadCountByMemberIds(memberIds);
@@ -137,6 +142,12 @@ public class NotificationServiceImpl implements NotificationService {
                 .putCustomData("value", notificationSend.value())
                 .putCustomData("id", String.valueOf(notificationSend.id()));
 
+        System.out.println(memberIdList.size() + " member id list ===================================");
+        for (Long memberId : memberIdList) {
+            System.out.println("Member ID: " + memberId);
+        }
+        System.out.println(" ===================================");
+
         // 회원별 MulticastMessage 생성
         return memberIdList.stream()
                 .map(memberId -> {
@@ -169,9 +180,11 @@ public class NotificationServiceImpl implements NotificationService {
         ApnsConfig apnsConfig = apnsConfigBuilder.setAps(aps)
                 .build();
 
+        System.out.println(deviceList.size() + " device list size ===========================================");
         for (String device : deviceList) {
             System.out.println("Device Token: " + device);
         }
+        System.out.println(" ===========================================");
 
         MulticastMessage messages = MulticastMessage.builder()
                 .addAllTokens(deviceList)
