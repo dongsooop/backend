@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +21,9 @@ public class NoticeNotificationImpl implements NoticeNotification {
 
     private final MemberDeviceRepository memberDeviceRepository;
     private final NotificationService notificationService;
+
+    @Value("${university.domain}")
+    private String universityDomain;
 
     /**
      * 공지사항 알림 전송
@@ -64,7 +68,7 @@ public class NoticeNotificationImpl implements NoticeNotification {
         String body = notice.getNoticeDetails().getTitle();
         List<MemberDeviceDto> deviceTokens = getMemberDeviceDtoByDepartment(department);
 
-        String noticeLink = notice.getNoticeDetails().getLink();
+        String noticeLink = universityDomain + notice.getNoticeDetails().getLink();
         return notificationService.save(deviceTokens, title, body, NotificationType.NOTICE, noticeLink);
     }
 
