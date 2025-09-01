@@ -58,7 +58,6 @@ public class FCMServiceImpl implements FCMService {
                                 .setBody(notificationSend.body())
                                 .build())
                         .setSound("default")
-                        .setBadge(1)
                         .build())
                 .build();
     }
