@@ -169,6 +169,10 @@ public class NotificationServiceImpl implements NotificationService {
         ApnsConfig apnsConfig = apnsConfigBuilder.setAps(aps)
                 .build();
 
+        for (String device : deviceList) {
+            System.out.println("Device Token: " + device);
+        }
+
         MulticastMessage messages = MulticastMessage.builder()
                 .addAllTokens(deviceList)
                 .setApnsConfig(apnsConfig)
