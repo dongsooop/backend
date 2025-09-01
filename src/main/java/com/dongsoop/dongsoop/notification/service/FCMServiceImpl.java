@@ -37,9 +37,9 @@ public class FCMServiceImpl implements FCMService {
     private final ExecutorService notificationExecutor;
 
     @Override
-    public void sendNotification(List<String> deviceTokenList, NotificationSend notificationSend) {
+    public void sendNotification(List<String> deviceTokenList, NotificationSend notificationSend, Integer badge) {
         // iOS용 APNs 설정
-        ApnsConfig apnsConfig = getApnsConfig(notificationSend);
+        ApnsConfig apnsConfig = getApnsConfig(notificationSend, badge);
         MulticastMessage message = getMulticastMessage(deviceTokenList, notificationSend.title(),
                 notificationSend.body(), apnsConfig);
 
@@ -47,30 +47,39 @@ public class FCMServiceImpl implements FCMService {
     }
 
     @Override
-    public ApnsConfig getApnsConfig(NotificationSend notificationSend) {
+    public ApnsConfig getApnsConfig(NotificationSend notificationSend, Integer badge) {
+        Aps aps = getAps(notificationSend.title(), notificationSend.body(), badge);
+
         return ApnsConfig.builder()
                 .putCustomData("type", notificationSend.type().toString())
                 .putCustomData("value", notificationSend.value())
                 .putCustomData("id", String.valueOf(notificationSend.id()))
-                .setAps(Aps.builder()
-                        .setAlert(ApsAlert.builder()
-                                .setTitle(notificationSend.title())
-                                .setBody(notificationSend.body())
-                                .build())
-                        .setSound("default")
-                        .build())
+                .setAps(aps)
                 .build();
     }
 
     @Override
-    public Aps getAps(String title, String body, int badge) {
-        return Aps.builder()
+    public Notification getNotification(String title, String body) {
+        return Notification.builder()
+                .setTitle(title)
+                .setBody(body)
+                .build();
+    }
+
+    @Override
+    public Aps getAps(String title, String body, Integer badge) {
+        Aps.Builder builder = Aps.builder()
                 .setAlert(ApsAlert.builder()
                         .setTitle(title)
                         .setBody(body)
                         .build())
-                .setSound("default")
-                .setBadge(badge)
+                .setSound("default");
+
+        if (badge == null) {
+            return builder.build();
+        }
+
+        return builder.setBadge(badge)
                 .build();
     }
 
@@ -79,13 +88,12 @@ public class FCMServiceImpl implements FCMService {
             String title,
             String body,
             ApnsConfig apnsConfig) {
+        Notification notification = getNotification(title, body);
+
         return MulticastMessage.builder()
                 .addAllTokens(deviceTokenList)
                 .setApnsConfig(apnsConfig)
-                .setNotification(Notification.builder()
-                        .setTitle(title)
-                        .setBody(body)
-                        .build())
+                .setNotification(notification)
                 .build();
     }
 

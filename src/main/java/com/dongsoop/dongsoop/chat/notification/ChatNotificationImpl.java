@@ -4,7 +4,7 @@ import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.dto.NotificationSend;
-import com.dongsoop.dongsoop.notification.service.NotificationService;
+import com.dongsoop.dongsoop.notification.service.NotificationSendService;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +18,7 @@ public class ChatNotificationImpl implements ChatNotification {
     private final static Long NON_SAVE_NOTIFICATION_ID = -1L;
 
     private final MemberDeviceRepository memberDeviceRepository;
-    private final NotificationService notificationService;
+    private final NotificationSendService notificationSendService;
 
     @Async
     public void send(Set<Long> chatroomMemberIdSet, String chatRoomId, String senderName,
@@ -32,9 +32,8 @@ public class ChatNotificationImpl implements ChatNotification {
                 .toList();
 
         NotificationSend notificationSend = new NotificationSend(NON_SAVE_NOTIFICATION_ID, senderName, message,
-                NotificationType.CHAT,
-                chatRoomId);
+                NotificationType.CHAT, chatRoomId);
 
-        notificationService.send(deviceTokens, notificationSend);
+        notificationSendService.send(deviceTokens, notificationSend);
     }
 }

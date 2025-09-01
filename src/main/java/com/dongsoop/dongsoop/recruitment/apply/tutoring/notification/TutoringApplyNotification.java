@@ -1,17 +1,19 @@
 package com.dongsoop.dongsoop.recruitment.apply.tutoring.notification;
 
-import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
+import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
-import com.dongsoop.dongsoop.notification.service.NotificationService;
+import com.dongsoop.dongsoop.notification.service.NotificationSaveService;
+import com.dongsoop.dongsoop.notification.service.NotificationSendService;
 import com.dongsoop.dongsoop.recruitment.apply.notification.RecruitmentApplyNotification;
 import org.springframework.stereotype.Component;
 
 @Component
 public class TutoringApplyNotification extends RecruitmentApplyNotification {
 
-    public TutoringApplyNotification(MemberDeviceRepository memberDeviceRepository,
-                                     NotificationService notificationService) {
-        super(memberDeviceRepository, notificationService);
+    public TutoringApplyNotification(NotificationSaveService notificationSaveService,
+                                     NotificationSendService notificationSendService,
+                                     MemberRepository memberRepository) {
+        super(notificationSaveService, notificationSendService, memberRepository);
     }
 
     @Override

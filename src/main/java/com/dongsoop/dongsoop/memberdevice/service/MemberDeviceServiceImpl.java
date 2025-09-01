@@ -75,9 +75,6 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
     @Override
     public Map<Long, List<String>> getDeviceByMember(Collection<Long> memberIdList) {
         List<MemberDeviceDto> memberDeviceDtos = memberDeviceRepository.getMemberDeviceTokenByMemberIds(memberIdList);
-        for (MemberDeviceDto dto : memberDeviceDtos) {
-            System.out.println("Member ID: " + dto.member().getId() + ", Device Token: " + dto.deviceToken());
-        }
 
         return memberDeviceDtos.stream()
                 .collect(deviceGroupByMemberId());

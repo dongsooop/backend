@@ -1,24 +1,27 @@
 package com.dongsoop.dongsoop.recruitment.apply.notification;
 
-import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
-import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
+import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
-import com.dongsoop.dongsoop.notification.service.NotificationService;
-import java.util.List;
+import com.dongsoop.dongsoop.notification.service.NotificationSaveService;
+import com.dongsoop.dongsoop.notification.service.NotificationSendService;
 import org.springframework.scheduling.annotation.Async;
 
 public abstract class RecruitmentApplyNotification {
 
     private static final Integer TITLE_TRUNCATION_LENGTH = 8;
 
-    private final MemberDeviceRepository memberDeviceRepository;
-    private final NotificationService notificationService;
+    private final NotificationSaveService notificationSaveService;
+    private final NotificationSendService notificationSendService;
+    private final MemberRepository memberRepository;
 
-    public RecruitmentApplyNotification(MemberDeviceRepository memberDeviceRepository,
-                                        NotificationService notificationService) {
-        this.memberDeviceRepository = memberDeviceRepository;
-        this.notificationService = notificationService;
+    public RecruitmentApplyNotification(NotificationSaveService notificationSaveService,
+                                        NotificationSendService notificationSendService,
+                                        MemberRepository memberRepository) {
+        this.notificationSaveService = notificationSaveService;
+        this.notificationSendService = notificationSendService;
+        this.memberRepository = memberRepository;
     }
 
     protected abstract NotificationType getApplyNotificationType();
@@ -27,8 +30,7 @@ public abstract class RecruitmentApplyNotification {
 
     @Async
     public void sendApplyNotification(Long boardId, String boardTitle, Long ownerId) {
-        List<MemberDeviceDto> ownerDevice = memberDeviceRepository.getMemberDeviceTokenByMemberId(
-                ownerId);
+        Member owner = memberRepository.getReferenceById(ownerId);
 
         String processBoardTitle = processBoardTitle(boardTitle);
         String title = "모집 지원자 알림";
@@ -38,17 +40,15 @@ public abstract class RecruitmentApplyNotification {
         String value = String.valueOf(boardId);
 
         // 저장
-        List<MemberNotification> memberNotificationList = notificationService.save(ownerDevice, title, body, type,
-                value);
+        MemberNotification memberNotification = notificationSaveService.save(owner, title, body, type, value);
 
         // 알림 전송
-        notificationService.send(memberNotificationList);
+        notificationSendService.send(memberNotification);
     }
 
     @Async
     public void sendOutcomeNotification(Long boardId, String boardTitle, Long applierId) {
-        List<MemberDeviceDto> applierDevice = memberDeviceRepository.getMemberDeviceTokenByMemberId(
-                applierId);
+        Member applier = memberRepository.getReferenceById(applierId);
 
         String processBoardTitle = processBoardTitle(boardTitle);
         String title = "모집 결과 알림";
@@ -56,11 +56,11 @@ public abstract class RecruitmentApplyNotification {
         NotificationType type = getOutcomeNotificationType();
 
         // 저장
-        List<MemberNotification> memberNotificationList = notificationService.save(applierDevice, title, body, type,
+        MemberNotification memberNotification = notificationSaveService.save(applier, title, body, type,
                 String.valueOf(boardId));
 
         // 알림 전송
-        notificationService.send(memberNotificationList);
+        notificationSendService.send(memberNotification);
     }
 
     private String processBoardTitle(String boardTitle) {

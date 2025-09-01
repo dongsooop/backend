@@ -1,12 +1,13 @@
 package com.dongsoop.dongsoop.notice.notification;
 
 import com.dongsoop.dongsoop.department.entity.Department;
-import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
-import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
+import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
-import com.dongsoop.dongsoop.notification.service.NotificationService;
+import com.dongsoop.dongsoop.notification.service.NotificationSaveService;
+import com.dongsoop.dongsoop.notification.service.NotificationSendService;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -19,8 +20,9 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class NoticeNotificationImpl implements NoticeNotification {
 
-    private final MemberDeviceRepository memberDeviceRepository;
-    private final NotificationService notificationService;
+    private final NotificationSaveService notificationSaveService;
+    private final NotificationSendService notificationSendService;
+    private final MemberRepository memberRepository;
 
     @Value("${university.domain}")
     private String universityDomain;
@@ -40,7 +42,7 @@ public class NoticeNotificationImpl implements NoticeNotification {
         List<MemberNotification> memberNotificationList = saveMemberNotification(noticeDetailSet);
 
         // 공지별 메시지 변환 후 전송
-        notificationService.send(memberNotificationList);
+        notificationSendService.sendAll(memberNotificationList);
     }
 
     /**
@@ -66,21 +68,21 @@ public class NoticeNotificationImpl implements NoticeNotification {
 
         String title = generateTitle(departmentName);
         String body = notice.getNoticeDetails().getTitle();
-        List<MemberDeviceDto> deviceTokens = getMemberDeviceDtoByDepartment(department);
+        List<Member> targetList = getMemberByDepartment(department);
 
         String noticeLink = universityDomain + notice.getNoticeDetails().getLink();
-        return notificationService.save(deviceTokens, title, body, NotificationType.NOTICE, noticeLink);
+        return notificationSaveService.saveAll(targetList, title, body, NotificationType.NOTICE, noticeLink);
     }
 
     private String generateTitle(String departmentName) {
         return String.format("[%s] 공지 알림", departmentName);
     }
 
-    private List<MemberDeviceDto> getMemberDeviceDtoByDepartment(Department department) {
+    private List<Member> getMemberByDepartment(Department department) {
         if (department.getId().isAllDepartment()) {
-            return memberDeviceRepository.getAllMemberDevice();
+            return memberRepository.findAll();
         }
 
-        return memberDeviceRepository.getMemberDeviceByDepartment(department);
+        return memberRepository.findByDepartment(department);
     }
 }
