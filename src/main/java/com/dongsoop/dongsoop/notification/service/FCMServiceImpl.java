@@ -58,7 +58,6 @@ public class FCMServiceImpl implements FCMService {
                                 .setBody(notificationSend.body())
                                 .build())
                         .setSound("default")
-                        .setBadge(1)
                         .build())
                 .build();
     }
@@ -170,5 +169,26 @@ public class FCMServiceImpl implements FCMService {
         boolean isInvalidArgument = messagingErrorCode.equals(MessagingErrorCode.INVALID_ARGUMENT);
 
         return isUnregistered || isInvalidArgument;
+    }
+
+    public void updateNotificationBadge(List<String> deviceTokens, int badge) {
+        if (deviceTokens == null || deviceTokens.isEmpty()) {
+            log.warn(
+                    "updateNotificationBadge called with null or empty deviceTokens. No FCM operation will be performed.");
+            return;
+        }
+
+        ApnsConfig apnsConfig = ApnsConfig.builder()
+                .setAps(Aps.builder()
+                        .setBadge(badge)
+                        .build())
+                .build();
+
+        MulticastMessage messages = MulticastMessage.builder()
+                .addAllTokens(deviceTokens)
+                .setApnsConfig(apnsConfig)
+                .build();
+
+        sendMessages(messages, deviceTokens);
     }
 }

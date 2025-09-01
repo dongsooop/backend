@@ -52,4 +52,12 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
                 .where(memberDevice.member.id.eq(memberId))
                 .fetch();
     }
+
+    @Override
+    public List<String> getDeviceByMemberId(Long memberId) {
+        return queryFactory.select(memberDevice.deviceToken)
+                .from(memberDevice)
+                .where(memberDevice.member.id.eq(memberId))
+                .fetch();
+    }
 }

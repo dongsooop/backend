@@ -18,6 +18,8 @@ import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.repository.MemberRepositoryCustom;
 import com.dongsoop.dongsoop.member.validate.MemberDuplicationValidator;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
+import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.report.validator.ReportValidator;
 import com.dongsoop.dongsoop.role.entity.MemberRole;
 import com.dongsoop.dongsoop.role.entity.Role;
@@ -54,6 +56,7 @@ public class MemberServiceImpl implements MemberService {
     private final TokenGenerator tokenGenerator;
     private final MemberDuplicationValidator memberDuplicationValidator;
     private final ReportValidator reportValidator;
+    private final MemberDeviceRepository memberDeviceRepository;
 
     @Override
     @Transactional
@@ -196,6 +199,9 @@ public class MemberServiceImpl implements MemberService {
             log.error("Member with id {} not found or already deleted", requesterId);
             throw new MemberNotFoundException();
         }
+
+        List<MemberDevice> devices = memberDeviceRepository.findByMemberId(requesterId);
+        devices.forEach(device -> device.bindMember(null));
     }
 
     private String generateEmailAlias() {

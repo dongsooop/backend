@@ -18,6 +18,7 @@ import com.google.firebase.messaging.ApnsConfig;
 import com.google.firebase.messaging.Aps;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -121,11 +122,6 @@ public class NotificationServiceImpl implements NotificationService {
         String body = details.getBody();
         String noticeId = details.getValue();
 
-        // 캐싱된 회원 id별 디바이스 토큰
-        Map<Long, List<String>> deviceTokens = memberIdDevices.entrySet().stream()
-                .filter(entry -> memberIdList.contains(entry.getKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
         // 공지 알림 전송 시 정보
         NotificationSend notificationSend = new NotificationSend(notificationId, title, body,
                 details.getType(), noticeId);
@@ -145,8 +141,10 @@ public class NotificationServiceImpl implements NotificationService {
         return memberIdList.stream()
                 .map(memberId -> {
                     Long unreadCount = unreadCountByMember.getOrDefault(memberId, 0L);
+                    List<String> deviceList = memberIdDevices.getOrDefault(memberId, Collections.emptyList());
 
-                    return generateMulticastMessage(memberId, title, body, deviceTokens, notification, unreadCount,
+                    return generateMulticastMessage(title, body, deviceList, notification,
+                            unreadCount,
                             apnsConfigBuilder);
                 });
     }
@@ -154,16 +152,15 @@ public class NotificationServiceImpl implements NotificationService {
     /**
      * MulticastMessage 생성
      *
-     * @param memberId          회원 ID
      * @param title             알림 제목
      * @param body              알림 내용
-     * @param deviceByMember    회원별 디바이스
+     * @param deviceList        디바이스 토큰 리스트
      * @param notification      알림 객체
      * @param apnsConfigBuilder APNS 설정 빌더
      * @return MulticastMessage 생성한 메시지
      */
-    private MulticastMessageWithTokens generateMulticastMessage(Long memberId, String title, String body,
-                                                                Map<Long, List<String>> deviceByMember,
+    private MulticastMessageWithTokens generateMulticastMessage(String title, String body,
+                                                                List<String> deviceList,
                                                                 Notification notification,
                                                                 long unreadCount,
                                                                 ApnsConfig.Builder apnsConfigBuilder) {
@@ -172,8 +169,6 @@ public class NotificationServiceImpl implements NotificationService {
         ApnsConfig apnsConfig = apnsConfigBuilder.setAps(aps)
                 .build();
 
-        // 회원 디바이스 목록 가져오기
-        List<String> deviceList = deviceByMember.get(memberId);
         MulticastMessage messages = MulticastMessage.builder()
                 .addAllTokens(deviceList)
                 .setApnsConfig(apnsConfig)
@@ -187,7 +182,7 @@ public class NotificationServiceImpl implements NotificationService {
     public NotificationOverview getNotifications(Pageable pageable) {
         Long requesterId = memberService.getMemberIdByAuthentication();
 
-        Long unreadCount = notificationRepository.findUnreadCountByMemberId(requesterId);
+        long unreadCount = notificationRepository.findUnreadCountByMemberId(requesterId);
         List<NotificationList> notificationLists = notificationRepository.getMemberNotifications(requesterId,
                 pageable);
 
@@ -214,5 +209,10 @@ public class NotificationServiceImpl implements NotificationService {
                 .orElseThrow(NotificationNotFoundException::new);
 
         memberNotification.read();
+
+        long unreadCountByMemberId = notificationRepository.findUnreadCountByMemberId(requesterId);
+        List<String> devices = memberDeviceService.getDeviceByMemberId(requesterId);
+
+        fcmService.updateNotificationBadge(devices, (int) unreadCountByMemberId);
     }
 }
