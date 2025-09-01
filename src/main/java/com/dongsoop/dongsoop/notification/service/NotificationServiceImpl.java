@@ -214,5 +214,10 @@ public class NotificationServiceImpl implements NotificationService {
                 .orElseThrow(NotificationNotFoundException::new);
 
         memberNotification.read();
+
+        Long unreadCountByMemberId = notificationRepository.findUnreadCountByMemberId(requesterId);
+        List<String> devices = memberDeviceService.getDeviceByMemberId(requesterId);
+
+        fcmService.updateNotificationBadge(devices, unreadCountByMemberId.intValue());
     }
 }

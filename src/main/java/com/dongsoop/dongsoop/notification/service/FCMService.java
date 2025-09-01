@@ -15,4 +15,6 @@ public interface FCMService {
     ApnsConfig getApnsConfig(NotificationSend notificationSend);
 
     Aps getAps(String title, String body, int badge);
+
+    void updateNotificationBadge(List<String> deviceTokens, int badge);
 }

@@ -171,4 +171,19 @@ public class FCMServiceImpl implements FCMService {
 
         return isUnregistered || isInvalidArgument;
     }
+
+    public void updateNotificationBadge(List<String> deviceTokens, int badge) {
+        ApnsConfig apnsConfig = ApnsConfig.builder()
+                .setAps(Aps.builder()
+                        .setBadge(badge)
+                        .build())
+                .build();
+
+        MulticastMessage messages = MulticastMessage.builder()
+                .addAllTokens(deviceTokens)
+                .setApnsConfig(apnsConfig)
+                .build();
+
+        sendMessages(messages, deviceTokens);
+    }
 }

@@ -56,6 +56,17 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
     }
 
     /**
+     * MemberId로 MemberDevice 조회
+     *
+     * @param memberId MemberId List
+     * @return MemberId를 key로, deviceToken List를 value로 갖는 Map
+     */
+    @Override
+    public List<String> getDeviceByMemberId(Long memberId) {
+        return memberDeviceRepository.getDeviceByMemberId(memberId);
+    }
+
+    /**
      * MemberId List로 MemberDevice 조회
      *
      * @param memberIdList MemberId List
