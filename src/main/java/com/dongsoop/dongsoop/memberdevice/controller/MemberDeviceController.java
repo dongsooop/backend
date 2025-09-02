@@ -27,7 +27,7 @@ public class MemberDeviceController {
     @PostMapping
     public ResponseEntity<Void> registerDevice(@RequestBody @Valid DeviceRegisterRequest request) {
         memberDeviceService.registerDevice(request.deviceToken(), request.type());
-        fcmService.subscribeTopic(List.of(anonymousTopic), anonymousTopic);
+        fcmService.subscribeTopic(List.of(request.deviceToken()), anonymousTopic);
 
         return ResponseEntity.noContent()
                 .build();
