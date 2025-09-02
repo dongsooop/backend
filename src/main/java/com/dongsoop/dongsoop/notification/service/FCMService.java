@@ -10,6 +10,8 @@ import java.util.List;
 
 public interface FCMService {
 
+    void subscribeTopic(List<String> token, String topic);
+
     void sendNotification(List<String> fcmTokenList, NotificationSend notificationSend, Number badge);
 
     void sendMessages(MulticastMessage message, List<String> tokens);
