@@ -6,10 +6,13 @@ import com.dongsoop.dongsoop.jwt.exception.TokenNotFoundException;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
+import com.dongsoop.dongsoop.notification.service.FCMService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.stereotype.Component;
@@ -26,6 +29,10 @@ public class JwtLogoutHandler implements LogoutHandler {
 
     private final MemberDeviceRepository memberDeviceRepository;
     private final JwtUtil jwtUtil;
+    private final FCMService fcmService;
+
+    @Value("${notification.topic.anonymous}")
+    private String anonymousTopic;
 
     @Override
     @Transactional
@@ -44,6 +51,7 @@ public class JwtLogoutHandler implements LogoutHandler {
                 .orElseThrow(UnregisteredDeviceException::new);
 
         device.bindMember(null);
+        fcmService.subscribeTopic(List.of(deviceToken), anonymousTopic);
     }
 
     private String extractTokenFromHeader(HttpServletRequest request) throws TokenNotFoundException {
