@@ -14,6 +14,7 @@ import jakarta.persistence.SequenceGenerator;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
@@ -27,10 +28,12 @@ public class MemberDevice {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "member_device_sequence_generator")
     private Long id;
 
+    @Getter
     @JoinColumn(name = "member_id")
     @ManyToOne
     private Member member;
 
+    @Getter
     @Column(nullable = false, unique = true)
     private String deviceToken;
 

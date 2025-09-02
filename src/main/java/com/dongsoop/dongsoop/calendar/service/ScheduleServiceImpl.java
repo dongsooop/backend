@@ -8,8 +8,7 @@ import com.dongsoop.dongsoop.calendar.entity.OfficialSchedule;
 import com.dongsoop.dongsoop.calendar.exception.MemberScheduleNotFoundException;
 import com.dongsoop.dongsoop.calendar.exception.NotScheduleOwnerException;
 import com.dongsoop.dongsoop.calendar.repository.MemberScheduleRepository;
-import com.dongsoop.dongsoop.calendar.repository.MemberScheduleRepositoryCustom;
-import com.dongsoop.dongsoop.calendar.repository.OfficialScheduleRepositoryCustom;
+import com.dongsoop.dongsoop.calendar.repository.OfficialScheduleRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import java.time.LocalDate;
@@ -26,9 +25,7 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     private final MemberScheduleRepository memberScheduleRepository;
 
-    private final MemberScheduleRepositoryCustom memberScheduleRepositoryCustom;
-
-    private final OfficialScheduleRepositoryCustom officialScheduleRepositoryCustom;
+    private final OfficialScheduleRepository officialScheduleRepository;
 
     private final MemberService memberService;
 
@@ -48,10 +45,10 @@ public class ScheduleServiceImpl implements ScheduleService {
         LocalDateTime startAt = startMonth.atStartOfDay();
         LocalDateTime endAt = endMonth.atStartOfDay();
 
-        List<OfficialSchedule> officialScheduleList = officialScheduleRepositoryCustom.findOfficialScheduleByDuration(
+        List<OfficialSchedule> officialScheduleList = officialScheduleRepository.findOfficialScheduleByDuration(
                 startMonth, endMonth);
 
-        List<MemberSchedule> memberScheduleList = memberScheduleRepositoryCustom.findMemberScheduleByDuration(
+        List<MemberSchedule> memberScheduleList = memberScheduleRepository.findMemberScheduleByDuration(
                 memberId, startAt, endAt);
 
         List<ScheduleDetails> officialScheduleDetails = officialScheduleList.stream()

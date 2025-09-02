@@ -7,4 +7,6 @@ import java.util.List;
 public interface OfficialScheduleRepositoryCustom {
 
     List<OfficialSchedule> findOfficialScheduleByDuration(LocalDate startAt, LocalDate endAt);
+
+    List<String> searchTodaySchedule();
 }
