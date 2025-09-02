@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.memberdevice.repository;
 
 import com.dongsoop.dongsoop.department.entity.Department;
+import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.entity.QMemberDevice;
 import com.querydsl.core.types.Projections;
@@ -17,6 +18,7 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     private final JPAQueryFactory queryFactory;
 
     private final QMemberDevice memberDevice = QMemberDevice.memberDevice;
+    private final QMember member = QMember.member;
 
     @Override
     public List<MemberDeviceDto> getAllMemberDevice() {
@@ -38,9 +40,10 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     @Override
     public List<MemberDeviceDto> getMemberDeviceTokenByMemberIds(Collection<Long> memberIds) {
         return queryFactory.select(Projections.constructor(MemberDeviceDto.class,
-                        memberDevice.member, memberDevice.deviceToken))
+                        member, memberDevice.deviceToken))
                 .from(memberDevice)
-                .where(memberDevice.member.id.in(memberIds))
+                .innerJoin(memberDevice.member, member)
+                .where(member.id.in(memberIds))
                 .fetch();
     }
 

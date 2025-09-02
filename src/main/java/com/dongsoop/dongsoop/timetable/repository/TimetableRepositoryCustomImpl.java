@@ -1,7 +1,7 @@
 package com.dongsoop.dongsoop.timetable.repository;
 
 import com.dongsoop.dongsoop.timetable.dto.OverlapTimetable;
-import com.dongsoop.dongsoop.timetable.dto.TimetableNotificationDto;
+import com.dongsoop.dongsoop.timetable.dto.TodayTimetable;
 import com.dongsoop.dongsoop.timetable.entity.QTimetable;
 import com.dongsoop.dongsoop.timetable.entity.SemesterType;
 import com.querydsl.core.types.Projections;
@@ -84,10 +84,10 @@ public class TimetableRepositoryCustomImpl implements TimetableRepositoryCustom 
     }
 
     @Override
-    public List<TimetableNotificationDto> getTimetableNotificationDtoList(Year year, SemesterType semester,
-                                                                          DayOfWeek week) {
+    public List<TodayTimetable> getTimetableNotificationDtoList(Year year, SemesterType semester,
+                                                                DayOfWeek week) {
         return queryFactory
-                .select(Projections.constructor(TimetableNotificationDto.class,
+                .select(Projections.constructor(TodayTimetable.class,
                         timetable.name,
                         timetable.startAt,
                         timetable.member.id))
