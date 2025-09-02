@@ -48,6 +48,16 @@ public class FCMServiceImpl implements FCMService {
     }
 
     @Override
+    public void unsubscribeTopic(List<String> token, String topic) {
+        try {
+            firebaseMessaging.unsubscribeFromTopic(token, topic);
+        } catch (FirebaseMessagingException e) {
+            log.error("Error unsubscribing from topic {}: {}", topic, e.getMessage());
+            throw new NotificationSendException(e);
+        }
+    }
+
+    @Override
     public void sendNotification(List<String> deviceTokenList, NotificationSend notificationSend, Number badge) {
         // iOS용 APNs 설정
         ApnsConfig apnsConfig = getApnsConfig(notificationSend, badge);
