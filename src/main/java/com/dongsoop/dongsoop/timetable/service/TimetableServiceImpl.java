@@ -31,6 +31,7 @@ public class TimetableServiceImpl implements TimetableService {
 
     private final TimetableMapper timetableMapper;
 
+    @Override
     public void createTimetable(CreateTimetableRequest request) {
         Timetable timetable = timetableMapper.toEntity(request);
 
@@ -63,6 +64,7 @@ public class TimetableServiceImpl implements TimetableService {
         return failedRequests;
     }
 
+    @Override
     public List<TimetableView> getTimetableView(Year year, SemesterType semester) {
         Member referenceMember = memberService.getMemberReferenceByContext();
         return timetableRepository.findAllByMemberAndYearAndSemester(referenceMember,
@@ -86,11 +88,14 @@ public class TimetableServiceImpl implements TimetableService {
         });
     }
 
+    @Override
     public void deleteTimetable(Long timetableId) {
         validateOwner(timetableId);
         timetableRepository.deleteById(timetableId);
     }
 
+    @Override
+    @Transactional
     public void updateTimetable(UpdateTimetableRequest request) {
         validateOwner(request.id());
 
@@ -103,8 +108,6 @@ public class TimetableServiceImpl implements TimetableService {
                 .orElseThrow(() -> new TimetableNotFoundException(request.id()));
 
         timetable.update(request);
-
-        timetableRepository.save(timetable);
     }
 
     private void validateOwner(Long timetableId) {
