@@ -9,8 +9,8 @@ import java.time.Year;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface TimetableRepository extends JpaRepository<Timetable, Long> {
-
+public interface TimetableRepository extends JpaRepository<Timetable, Long>, TimetableRepositoryCustom {
+    
     List<TimetableView> findAllByMemberAndYearAndSemester(Member member, Year year, SemesterType semester);
 
     YearSemester findYearSemesterById(Long id);

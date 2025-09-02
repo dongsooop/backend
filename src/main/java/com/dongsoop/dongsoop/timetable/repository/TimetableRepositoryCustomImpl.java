@@ -1,18 +1,20 @@
 package com.dongsoop.dongsoop.timetable.repository;
 
 import com.dongsoop.dongsoop.timetable.dto.OverlapTimetable;
+import com.dongsoop.dongsoop.timetable.dto.TimetableNotificationDto;
 import com.dongsoop.dongsoop.timetable.entity.QTimetable;
 import com.dongsoop.dongsoop.timetable.entity.SemesterType;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import jakarta.transaction.Transactional;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.time.Year;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 @RequiredArgsConstructor
@@ -79,5 +81,22 @@ public class TimetableRepositoryCustomImpl implements TimetableRepositoryCustom 
                         .and(timetable.year.eq(year))
                         .and(timetable.semester.eq(semester)))
                 .execute();
+    }
+
+    @Override
+    public List<TimetableNotificationDto> getTimetableNotificationDtoList(Year year, SemesterType semester,
+                                                                          DayOfWeek week) {
+        return queryFactory
+                .select(Projections.constructor(TimetableNotificationDto.class,
+                        timetable.name,
+                        timetable.startAt,
+                        timetable.member.id))
+                .from(timetable)
+                .where(timetable.year.eq(year)
+                        .and(timetable.semester.eq(semester))
+                        .and(timetable.week.eq(week))
+                        .and(timetable.isDeleted.isFalse()))
+                .orderBy(timetable.week.asc(), timetable.startAt.asc())
+                .fetch();
     }
 }

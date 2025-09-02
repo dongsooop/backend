@@ -13,22 +13,19 @@ import com.dongsoop.dongsoop.timetable.exception.TimetableNotFoundException;
 import com.dongsoop.dongsoop.timetable.exception.TimetableNotOwnedException;
 import com.dongsoop.dongsoop.timetable.exception.TimetableOverlapException;
 import com.dongsoop.dongsoop.timetable.repository.TimetableRepository;
-import com.dongsoop.dongsoop.timetable.repository.TimetableRepositoryCustom;
-import jakarta.transaction.Transactional;
 import java.time.Year;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class TimetableServiceImpl implements TimetableService {
 
     private final TimetableRepository timetableRepository;
-
-    private final TimetableRepositoryCustom timetableRepositoryCustom;
 
     private final MemberService memberService;
 
@@ -75,7 +72,7 @@ public class TimetableServiceImpl implements TimetableService {
     private void validateOverlapTimetable(CreateTimetableRequest request) {
         Long memberId = memberService.getMemberIdByAuthentication();
 
-        Optional<OverlapTimetable> optionalOverlapTimetable = timetableRepositoryCustom.findOverlapWithinRange(
+        Optional<OverlapTimetable> optionalOverlapTimetable = timetableRepository.findOverlapWithinRange(
                 memberId,
                 request.year(),
                 request.semester(),
@@ -111,7 +108,7 @@ public class TimetableServiceImpl implements TimetableService {
 
     private void validateOwner(Long timetableId) {
         Long memberId = memberService.getMemberIdByAuthentication();
-        boolean isRequesterIsOwner = timetableRepositoryCustom.existsByIdAndMemberId(timetableId, memberId);
+        boolean isRequesterIsOwner = timetableRepository.existsByIdAndMemberId(timetableId, memberId);
         if (!isRequesterIsOwner) { // 요청자가 소유자가 아닌 경우
             throw new TimetableNotOwnedException(timetableId, memberId);
         }
@@ -121,7 +118,7 @@ public class TimetableServiceImpl implements TimetableService {
 
         Long memberId = memberService.getMemberIdByAuthentication();
 
-        Optional<OverlapTimetable> optionalOverlapTimetable = timetableRepositoryCustom.findOverlapWithinRangeExcludingSelf(
+        Optional<OverlapTimetable> optionalOverlapTimetable = timetableRepository.findOverlapWithinRangeExcludingSelf(
                 request.id(),
                 memberId,
                 year,
@@ -139,6 +136,6 @@ public class TimetableServiceImpl implements TimetableService {
     public void deleteTimetable(Year year, SemesterType semester) {
         Long memberId = memberService.getMemberIdByAuthentication();
 
-        timetableRepositoryCustom.deleteByMemberIdAndYearAndSemester(memberId, year, semester);
+        timetableRepository.deleteByMemberIdAndYearAndSemester(memberId, year, semester);
     }
 }
