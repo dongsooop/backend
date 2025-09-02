@@ -2,6 +2,8 @@ package com.dongsoop.dongsoop.calendar.repository;
 
 import com.dongsoop.dongsoop.calendar.entity.OfficialSchedule;
 import com.dongsoop.dongsoop.calendar.entity.QOfficialSchedule;
+import com.querydsl.core.types.dsl.DateExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDate;
 import java.util.List;
@@ -17,6 +19,7 @@ public class OfficialScheduleRepositoryCustomImpl implements OfficialScheduleRep
 
     private final JPAQueryFactory queryFactory;
 
+    @Override
     public List<OfficialSchedule> findOfficialScheduleByDuration(LocalDate startAt, LocalDate endAt) {
         return queryFactory.selectFrom(officialSchedule)
                 .where(ScheduleDurationChecker.isDurationWithin(
@@ -24,6 +27,20 @@ public class OfficialScheduleRepositoryCustomImpl implements OfficialScheduleRep
                         officialSchedule.endAt,
                         startAt,
                         endAt))
+                .fetch();
+    }
+
+    @Override
+    public List<String> searchTodaySchedule() {
+        LocalDate now = LocalDate.now();
+
+        // startAt to LocalDate
+        DateExpression<LocalDate> startAtDate = Expressions.dateTemplate(LocalDate.class, "DATE({0})",
+                officialSchedule.startAt);
+
+        return queryFactory.select(officialSchedule.title)
+                .from(officialSchedule)
+                .where(startAtDate.eq(now))
                 .fetch();
     }
 }
