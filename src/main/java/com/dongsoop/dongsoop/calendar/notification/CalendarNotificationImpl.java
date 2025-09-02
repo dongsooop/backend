@@ -76,7 +76,10 @@ public class CalendarNotificationImpl implements CalendarNotification {
         int totalSchedulesCount = calendarList.size() + officialCalendarSize;
 
         String title = String.format(TITLE_FORMAT, totalSchedulesCount);
-        String body = generateBody(calendarList) + "\n" + integratedBody;
+        String body = generateBody(calendarList);
+        if (!integratedBody.isBlank()) {
+            body += "\n" + integratedBody;
+        }
 
         // 알림 저장 및 저장된 알림 ID 반환
         Long notificationId = saveForMember(member, title, body);
