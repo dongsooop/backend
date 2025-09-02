@@ -10,6 +10,7 @@ import com.dongsoop.dongsoop.notification.entity.NotificationDetails;
 import com.dongsoop.dongsoop.notification.repository.NotificationRepository;
 import com.google.firebase.messaging.ApnsConfig;
 import com.google.firebase.messaging.Aps;
+import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
 import java.util.Collections;
@@ -106,6 +107,19 @@ public class NotificationSendServiceImpl implements NotificationSendService {
                         notification -> notification.getId().getMember().getId(),
                         Collectors.toList()
                 )));
+    }
+
+    @Override
+    public void send(String topic, NotificationSend notificationSend) {
+        ApnsConfig apnsConfig = fcmService.getApnsConfig(notificationSend, null);
+        Notification notification = fcmService.getNotification(notificationSend.title(), notificationSend.body());
+        Message message = Message.builder()
+                .setTopic(topic)
+                .setNotification(notification)
+                .setApnsConfig(apnsConfig)
+                .build();
+
+        fcmService.sendMessage(message);
     }
 
     @Override

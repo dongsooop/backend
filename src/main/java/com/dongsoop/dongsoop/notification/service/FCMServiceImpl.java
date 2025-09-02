@@ -11,6 +11,7 @@ import com.google.firebase.messaging.ApsAlert;
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.MessagingErrorCode;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
@@ -37,7 +38,7 @@ public class FCMServiceImpl implements FCMService {
     private final ExecutorService notificationExecutor;
 
     @Override
-    public void sendNotification(List<String> deviceTokenList, NotificationSend notificationSend, Integer badge) {
+    public void sendNotification(List<String> deviceTokenList, NotificationSend notificationSend, Number badge) {
         // iOS용 APNs 설정
         ApnsConfig apnsConfig = getApnsConfig(notificationSend, badge);
         MulticastMessage message = getMulticastMessage(deviceTokenList, notificationSend.title(),
@@ -47,7 +48,7 @@ public class FCMServiceImpl implements FCMService {
     }
 
     @Override
-    public ApnsConfig getApnsConfig(NotificationSend notificationSend, Integer badge) {
+    public ApnsConfig getApnsConfig(NotificationSend notificationSend, Number badge) {
         Aps aps = getAps(notificationSend.title(), notificationSend.body(), badge);
 
         return ApnsConfig.builder()
@@ -67,7 +68,7 @@ public class FCMServiceImpl implements FCMService {
     }
 
     @Override
-    public Aps getAps(String title, String body, Integer badge) {
+    public Aps getAps(String title, String body, Number badge) {
         Aps.Builder builder = Aps.builder()
                 .setAlert(ApsAlert.builder()
                         .setTitle(title)
@@ -79,7 +80,12 @@ public class FCMServiceImpl implements FCMService {
             return builder.build();
         }
 
-        return builder.setBadge(badge)
+        long badgeValue = badge.longValue();
+        if (badgeValue < 0 || badgeValue > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Badge value out of int range: " + badgeValue);
+        }
+
+        return builder.setBadge((int) badgeValue)
                 .build();
     }
 
@@ -103,14 +109,32 @@ public class FCMServiceImpl implements FCMService {
         future.addListener(() -> listener(future, tokens), notificationExecutor);
     }
 
+    @Override
+    public void sendMessage(Message message) {
+        ApiFuture<String> future = firebaseMessaging.sendAsync(message);
+        future.addListener(() -> listener(future), notificationExecutor);
+    }
+
+    private void listener(ApiFuture<String> future) {
+        String response = getResponse(future);
+
+        log.info("Successfully sent messages: {}", response);
+    }
+
     private void listener(ApiFuture<BatchResponse> future, List<String> tokens) {
+        BatchResponse response = getResponse(future);
+
+        if (response.getFailureCount() > 0) {
+            handleFailure(response, tokens);
+            throw new NotificationSendException();
+        }
+
+        log.info("Successfully sent messages: {}", response.getSuccessCount());
+    }
+
+    private <T> T getResponse(ApiFuture<T> future) {
         try {
-            BatchResponse batchResponse = future.get();
-            if (batchResponse.getFailureCount() > 0) {
-                handleFailure(batchResponse, tokens);
-                throw new NotificationSendException();
-            }
-            log.info("Successfully sent messages: {}", batchResponse.getSuccessCount());
+            return future.get();
 
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();

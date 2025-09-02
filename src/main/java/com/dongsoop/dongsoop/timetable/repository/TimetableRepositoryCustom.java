@@ -1,10 +1,12 @@
 package com.dongsoop.dongsoop.timetable.repository;
 
 import com.dongsoop.dongsoop.timetable.dto.OverlapTimetable;
+import com.dongsoop.dongsoop.timetable.dto.TimetableNotificationDto;
 import com.dongsoop.dongsoop.timetable.entity.SemesterType;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.time.Year;
+import java.util.List;
 import java.util.Optional;
 
 public interface TimetableRepositoryCustom {
@@ -20,4 +22,6 @@ public interface TimetableRepositoryCustom {
                                                                    LocalTime startAt, LocalTime endAt);
 
     void deleteByMemberIdAndYearAndSemester(Long memberId, Year year, SemesterType semester);
+
+    List<TimetableNotificationDto> getTimetableNotificationDtoList(Year year, SemesterType semester, DayOfWeek week);
 }
