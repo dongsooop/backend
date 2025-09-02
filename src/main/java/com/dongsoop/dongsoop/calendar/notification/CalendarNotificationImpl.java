@@ -2,8 +2,8 @@ package com.dongsoop.dongsoop.calendar.notification;
 
 
 import com.dongsoop.dongsoop.calendar.dto.TodaySchedule;
-import com.dongsoop.dongsoop.calendar.repository.MemberScheduleRepositoryCustom;
-import com.dongsoop.dongsoop.calendar.repository.OfficialScheduleRepositoryCustom;
+import com.dongsoop.dongsoop.calendar.repository.MemberScheduleRepository;
+import com.dongsoop.dongsoop.calendar.repository.OfficialScheduleRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
@@ -28,8 +28,8 @@ public class CalendarNotificationImpl implements CalendarNotification {
     private static final String TITLE_FORMAT = "[일정 알림] 오늘 %d개의 일정이 있습니다";
 
     private final MemberDeviceService memberDeviceService;
-    private final MemberScheduleRepositoryCustom memberScheduleRepositoryCustom;
-    private final OfficialScheduleRepositoryCustom officialScheduleRepositoryCustom;
+    private final MemberScheduleRepository memberScheduleRepository;
+    private final OfficialScheduleRepository officialScheduleRepository;
     private final NotificationSaveService notificationSaveService;
     private final NotificationSendService notificationSendService;
 
@@ -41,8 +41,8 @@ public class CalendarNotificationImpl implements CalendarNotification {
     @Transactional
     public void send() {
         // 회원 일정 및 공통 일정 조회
-        List<TodaySchedule> memberCalendarList = memberScheduleRepositoryCustom.searchTodaySchedule();
-        List<String> officialCalendarList = officialScheduleRepositoryCustom.searchTodaySchedule();
+        List<TodaySchedule> memberCalendarList = memberScheduleRepository.searchTodaySchedule();
+        List<String> officialCalendarList = officialScheduleRepository.searchTodaySchedule();
 
         Map<Member, List<String>> membercalendarMap = memberCalendarsToMap(memberCalendarList);
         List<Long> targetIdList = memberCalendarList.stream()
