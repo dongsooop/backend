@@ -95,7 +95,8 @@ public class TimetableServiceImpl implements TimetableService {
         validateOwner(request.id());
 
         // 업데이트 시간과 겹치는 시간이 있는지
-        YearSemester yearSemester = timetableRepository.findYearSemesterById(request.id());
+        YearSemester yearSemester = timetableRepository.findYearSemesterById(request.id())
+                .orElseThrow(() -> new TimetableNotFoundException(request.id()));
         validateOverlapTimetable(request, yearSemester.getYear(), yearSemester.getSemester());
 
         Timetable timetable = timetableRepository.findById(request.id())
