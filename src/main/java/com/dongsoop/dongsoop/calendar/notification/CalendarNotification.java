@@ -5,7 +5,7 @@ import java.util.List;
 
 public interface CalendarNotification {
 
-    void sendForAnonymous(int officialCalendarSize, String integratedBody);
+    void sendForAnonymous(int officialCalendarSize, String title, String body);
 
     void saveAndSendForMember(Member member, List<String> devices, String title, String body);
 }

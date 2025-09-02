@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class CalendarNotificationImpl implements CalendarNotification {
 
     private static final Long NON_SAVE_NOTIFICATION_ID = -1L;
-    private static final String TITLE_FORMAT = "[일정 알림] 오늘 %d개의 일정이 있습니다";
 
     private final NotificationSaveService notificationSaveService;
     private final NotificationSendService notificationSendService;
@@ -30,18 +29,19 @@ public class CalendarNotificationImpl implements CalendarNotification {
      * 비회원 디바이스로 알림 전송
      *
      * @param officialCalendarSize 공통 일정 수
-     * @param integratedBody       공통 일정 내용
+     * @param title                알림 제목
+     * @param body                 알림 내용
      */
     @Override
-    public void sendForAnonymous(int officialCalendarSize, String integratedBody) {
+    public void sendForAnonymous(int officialCalendarSize, String title, String body) {
         if (officialCalendarSize == 0) {
             return;
         }
 
         NotificationSend notificationSend = new NotificationSend(
                 NON_SAVE_NOTIFICATION_ID,
-                String.format(TITLE_FORMAT, officialCalendarSize),
-                integratedBody,
+                title,
+                body,
                 NotificationType.CALENDAR,
                 null);
 

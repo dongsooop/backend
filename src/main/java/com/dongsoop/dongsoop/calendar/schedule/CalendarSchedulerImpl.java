@@ -6,13 +6,10 @@ import com.dongsoop.dongsoop.calendar.repository.MemberScheduleRepository;
 import com.dongsoop.dongsoop.calendar.repository.OfficialScheduleRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
-import com.dongsoop.dongsoop.notification.service.NotificationSaveService;
-import com.dongsoop.dongsoop.notification.service.NotificationSendService;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -20,18 +17,12 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class CalendarSchedulerImpl implements CalendarScheduler {
 
-    private static final Long NON_SAVE_NOTIFICATION_ID = -1L;
     private static final String TITLE_FORMAT = "[일정 알림] 오늘 %d개의 일정이 있습니다";
 
     private final MemberDeviceService memberDeviceService;
     private final MemberScheduleRepository memberScheduleRepository;
     private final OfficialScheduleRepository officialScheduleRepository;
-    private final NotificationSaveService notificationSaveService;
-    private final NotificationSendService notificationSendService;
     private final CalendarNotification calendarNotification;
-
-    @Value("${notification.topic.anonymous}")
-    private String anonymousTopic;
 
     @Override
     @Scheduled(cron = "0 0 8 * * *")
@@ -73,7 +64,8 @@ public class CalendarSchedulerImpl implements CalendarScheduler {
         });
 
         // 비회원 디바이스
-        calendarNotification.sendForAnonymous(officialCalendarSize, integratedBody);
+        String integratedTitle = String.format(TITLE_FORMAT, officialCalendarSize);
+        calendarNotification.sendForAnonymous(officialCalendarSize, integratedTitle, integratedBody);
     }
 
     /**
