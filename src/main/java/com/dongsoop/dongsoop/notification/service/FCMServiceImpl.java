@@ -80,7 +80,12 @@ public class FCMServiceImpl implements FCMService {
             return builder.build();
         }
 
-        return builder.setBadge((int) badge)
+        long badgeValue = badge.longValue();
+        if (badgeValue < 0 || badgeValue > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Badge value out of int range: " + badgeValue);
+        }
+
+        return builder.setBadge((int) badgeValue)
                 .build();
     }
 
@@ -123,7 +128,7 @@ public class FCMServiceImpl implements FCMService {
             handleFailure(response, tokens);
             throw new NotificationSendException();
         }
-        
+
         log.info("Successfully sent messages: {}", response.getSuccessCount());
     }
 
