@@ -5,13 +5,13 @@ import org.springframework.data.domain.Pageable;
 
 public interface NotificationService {
 
-    NotificationOverview getNotifications(Pageable pageable);
+    NotificationOverview getNotifications(Pageable pageable, Long memberId);
 
-    void deleteMemberNotification(Long id);
+    void deleteMemberNotification(Long notificationId, Long memberId);
 
-    void read(Long id);
+    void read(Long notificationId, Long memberId);
 
-    void readAll();
+    void readAll(Long memberId);
 
-    void sendUpdatedBadge();
+    void sendUpdatedBadge(Long memberId);
 }

@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.notification.controller;
 
+import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.notification.dto.NotificationOverview;
 import com.dongsoop.dongsoop.notification.dto.NotificationReadRequest;
 import com.dongsoop.dongsoop.notification.service.NotificationService;
@@ -22,11 +23,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final MemberService memberService;
 
     @GetMapping
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<NotificationOverview> getNotifications(Pageable pageable) {
-        NotificationOverview notifications = notificationService.getNotifications(pageable);
+        Long requesterId = memberService.getMemberIdByAuthentication();
+
+        NotificationOverview notifications = notificationService.getNotifications(pageable, requesterId);
 
         return ResponseEntity.ok(notifications);
     }
@@ -34,7 +38,9 @@ public class NotificationController {
     @PostMapping("/read")
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<Void> readNotification(@RequestBody NotificationReadRequest request) {
-        notificationService.read(request.id());
+        Long requesterId = memberService.getMemberIdByAuthentication();
+
+        notificationService.read(request.id(), requesterId);
 
         return ResponseEntity.noContent()
                 .build();
@@ -43,8 +49,10 @@ public class NotificationController {
     @PostMapping("/read-all")
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<Void> readAllNotification() {
-        notificationService.readAll();
-        notificationService.sendUpdatedBadge();
+        Long requesterId = memberService.getMemberIdByAuthentication();
+
+        notificationService.readAll(requesterId);
+        notificationService.sendUpdatedBadge(requesterId);
 
         return ResponseEntity.noContent()
                 .build();
@@ -53,7 +61,9 @@ public class NotificationController {
     @DeleteMapping("/{id}")
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<Void> deleteNotifications(@PathVariable("id") Long id) {
-        notificationService.deleteMemberNotification(id);
+        Long requesterId = memberService.getMemberIdByAuthentication();
+
+        notificationService.deleteMemberNotification(id, requesterId);
 
         return ResponseEntity.noContent()
                 .build();

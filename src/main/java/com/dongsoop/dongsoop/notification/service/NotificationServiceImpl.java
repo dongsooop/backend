@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.notification.service;
 
-import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.dto.NotificationList;
 import com.dongsoop.dongsoop.notification.dto.NotificationOverview;
@@ -19,27 +18,22 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
-    private final MemberService memberService;
     private final FCMService fcmService;
     private final MemberDeviceService memberDeviceService;
 
     @Override
-    public NotificationOverview getNotifications(Pageable pageable) {
-        Long requesterId = memberService.getMemberIdByAuthentication();
-
-        long unreadCount = notificationRepository.findUnreadCountByMemberId(requesterId);
-        List<NotificationList> notificationLists = notificationRepository.getMemberNotifications(requesterId,
-                pageable);
+    public NotificationOverview getNotifications(Pageable pageable, Long memberId) {
+        long unreadCount = notificationRepository.findUnreadCountByMemberId(memberId);
+        List<NotificationList> notificationLists = notificationRepository.getMemberNotifications(memberId, pageable);
 
         return new NotificationOverview(notificationLists, unreadCount);
     }
 
     @Override
     @Transactional
-    public void deleteMemberNotification(Long id) {
-        Long requesterId = memberService.getMemberIdByAuthentication();
-
-        MemberNotification memberNotification = notificationRepository.findByMemberIdAndNotificationId(requesterId, id)
+    public void deleteMemberNotification(Long notificationId, Long memberId) {
+        MemberNotification memberNotification = notificationRepository.findByMemberIdAndNotificationId(memberId,
+                        notificationId)
                 .orElseThrow(NotificationNotFoundException::new);
 
         memberNotification.delete();
@@ -47,34 +41,30 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional
-    public void read(Long id) {
-        Long requesterId = memberService.getMemberIdByAuthentication();
-
-        MemberNotification memberNotification = notificationRepository.findByMemberIdAndNotificationId(requesterId, id)
+    public void read(Long notificationId, Long memberId) {
+        MemberNotification memberNotification = notificationRepository.findByMemberIdAndNotificationId(memberId,
+                        notificationId)
                 .orElseThrow(NotificationNotFoundException::new);
 
         memberNotification.read();
 
-        long unreadCountByMemberId = notificationRepository.findUnreadCountByMemberId(requesterId);
-        List<String> devices = memberDeviceService.getDeviceByMemberId(requesterId);
+        long unreadCountByMemberId = notificationRepository.findUnreadCountByMemberId(memberId);
+        List<String> devices = memberDeviceService.getDeviceByMemberId(memberId);
 
         fcmService.updateNotificationBadge(devices, (int) unreadCountByMemberId);
     }
 
     @Override
     @Transactional
-    public void readAll() {
-        Long requesterId = memberService.getMemberIdByAuthentication();
+    public void readAll(Long memberId) {
 
-        notificationRepository.updateAllAsRead(requesterId);
+        notificationRepository.updateAllAsRead(memberId);
     }
 
     @Override
     @Async
-    public void sendUpdatedBadge() {
-        Long requesterId = memberService.getMemberIdByAuthentication();
-
-        List<String> devices = memberDeviceService.getDeviceByMemberId(requesterId);
+    public void sendUpdatedBadge(Long memberId) {
+        List<String> devices = memberDeviceService.getDeviceByMemberId(memberId);
         fcmService.updateNotificationBadge(devices, 0);
     }
 }
