@@ -17,4 +17,6 @@ public interface NotificationRepositoryCustom {
     List<NotificationUnread> findUnreadCountByMemberIds(Collection<Long> memberIds);
 
     Optional<MemberNotification> findByMemberIdAndNotificationId(Long memberId, Long notificationId);
+
+    void updateAllAsRead(Long memberId);
 }

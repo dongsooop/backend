@@ -4,10 +4,12 @@ import com.dongsoop.dongsoop.notification.dto.NotificationOverview;
 import org.springframework.data.domain.Pageable;
 
 public interface NotificationService {
-    
-    NotificationOverview getNotifications(Pageable pageable);
 
-    void deleteMemberNotification(Long id);
+    NotificationOverview getNotifications(Pageable pageable, Long memberId);
 
-    void read(Long id);
+    void deleteMemberNotification(Long notificationId, Long memberId);
+
+    void read(Long notificationId, Long memberId);
+
+    void readAll(Long memberId);
 }
