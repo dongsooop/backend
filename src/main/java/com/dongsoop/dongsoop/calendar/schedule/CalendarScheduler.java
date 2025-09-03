@@ -20,7 +20,9 @@ import org.springframework.stereotype.Component;
 public class CalendarScheduler {
 
     private static final String OFFICIAL_SCHEDULE_BODY_FORMAT = "- 학사 일정: %s 외 %d개";
+    private static final String SINGLE_OFFICIAL_SCHEDULE_BODY_FORMAT = "- 학사 일정: %s";
     private static final String MEMBER_SCHEDULE_BODY_FORMAT = "- 개인 일정: %s 외 %d개";
+    private static final String SINGLE_MEMBER_SCHEDULE_BODY_FORMAT = "- 개인 일정: %s";
     private static final String TITLE_FORMAT = "[일정 알림] 오늘 %d개의 일정이 있습니다";
 
     private final MemberDeviceService memberDeviceService;
@@ -95,6 +97,10 @@ public class CalendarScheduler {
             return "";
         }
 
+        if (todaySchedules.size() == 1) {
+            return String.format(SINGLE_MEMBER_SCHEDULE_BODY_FORMAT, todaySchedules.get(0).title());
+        }
+
         return String.format(MEMBER_SCHEDULE_BODY_FORMAT, todaySchedules.get(0).title(), todaySchedules.size() - 1);
     }
 
@@ -107,6 +113,10 @@ public class CalendarScheduler {
     private String generateOfficialScheduleBody(List<String> todaySchedules) {
         if (todaySchedules.isEmpty()) {
             return "";
+        }
+
+        if (todaySchedules.size() == 1) {
+            return String.format(SINGLE_OFFICIAL_SCHEDULE_BODY_FORMAT, todaySchedules.get(0));
         }
 
         return String.format(OFFICIAL_SCHEDULE_BODY_FORMAT, todaySchedules.get(0), todaySchedules.size() - 1);
