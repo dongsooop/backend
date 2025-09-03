@@ -19,7 +19,7 @@ public class TimetableNotificationImpl implements TimetableNotification {
     public void send(String title, String body, List<String> devices) {
         // 알림 저장용 DTO
         NotificationSend notificationSend = new NotificationSend(NON_SAVE_NOTIFICATION_ID, title, body,
-                NotificationType.TIMETABLE, null);
+                NotificationType.TIMETABLE, "");
 
         // 알림 내용 전송
         notificationSendService.send(devices, notificationSend);

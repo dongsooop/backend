@@ -43,7 +43,7 @@ public class CalendarNotificationImpl implements CalendarNotification {
                 title,
                 body,
                 NotificationType.CALENDAR,
-                null);
+                "");
 
         notificationSendService.send(anonymousTopic, notificationSend);
     }
@@ -52,14 +52,14 @@ public class CalendarNotificationImpl implements CalendarNotification {
     @Transactional
     public void saveAndSendForMember(Member member, List<String> devices, String title, String body) {
         // 알림 저장 및 저장된 알림 ID 반환
-        MemberNotification save = notificationSaveService.save(member, title, body, NotificationType.CALENDAR, null);
+        MemberNotification save = notificationSaveService.save(member, title, body, NotificationType.CALENDAR, "");
         Long notificationId = save.getId()
                 .getDetails()
                 .getId();
 
         // 알림 저장용 DTO
         NotificationSend notificationSend = new NotificationSend(notificationId, title, body,
-                NotificationType.CALENDAR, null);
+                NotificationType.CALENDAR, "");
 
         // 알림 내용 전송
         notificationSendService.send(devices, notificationSend);

@@ -13,21 +13,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
+@Slf4j
 @RequiredArgsConstructor
-public class TimetableSchedule {
+public class TimetableScheduler {
 
-    private final static String TITLE_FORMAT = "[시간표 알림] 오늘 %d개의 수업이 있습니다";
+    private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+    private static final String TITLE_FORMAT = "[시간표 알림] 오늘 %d개의 수업이 있습니다";
 
     private final TimetableRepository timetableRepository;
     private final TimetableNotification timetableNotification;
     private final MemberDeviceService memberDeviceService;
 
-    @Scheduled(cron = "0 0 8 * * ?")
+    @Scheduled(cron = "0 0 8 * * ?", zone = "Asia/Seoul")
     public void scheduled() {
+        log.info("Timetable Schedule started.");
         // 오늘의 시간표 조회
         List<TodayTimetable> allByYearAndSemester = getTodayTimetableList();
 
@@ -52,6 +56,8 @@ public class TimetableSchedule {
 
                     timetableNotification.send(title, body, devices);
                 });
+
+        log.info("Timetable Schedule ended.");
     }
 
     /**
@@ -80,8 +86,11 @@ public class TimetableSchedule {
         StringBuilder stringBuilder = new StringBuilder();
         timetables.forEach(timetable -> {
             String timeFormat = timetable.startAt()
-                    .format(DateTimeFormatter.ofPattern("HH:mm"));
-            stringBuilder.append(timeFormat)
+                    .format(dateTimeFormatter);
+
+            stringBuilder
+                    .append("- ")
+                    .append(timeFormat)
                     .append(" ")
                     .append(timetable.name())
                     .append("\n");
