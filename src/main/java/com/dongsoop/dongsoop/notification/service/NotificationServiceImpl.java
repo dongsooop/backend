@@ -64,6 +64,7 @@ public class NotificationServiceImpl implements NotificationService {
         notificationRepository.updateAllAsRead(memberId);
 
         List<String> devices = memberDeviceService.getDeviceByMemberId(memberId);
-        fcmService.updateNotificationBadge(devices, 0);
+        long unreadCountByMemberId = notificationRepository.findUnreadCountByMemberId(memberId);
+        fcmService.updateNotificationBadge(devices, (int) unreadCountByMemberId);
     }
 }
