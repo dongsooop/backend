@@ -40,6 +40,16 @@ public class NotificationController {
                 .build();
     }
 
+    @PostMapping("/read-all")
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<Void> readAllNotification() {
+        notificationService.readAll();
+        notificationService.sendUpdatedBadge();
+
+        return ResponseEntity.noContent()
+                .build();
+    }
+
     @DeleteMapping("/{id}")
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<Void> deleteNotifications(@PathVariable("id") Long id) {

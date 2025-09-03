@@ -86,4 +86,14 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
 
         return Optional.ofNullable(result);
     }
+
+    @Override
+    public void updateAllAsRead(Long memberId) {
+        queryFactory.update(memberNotice)
+                .set(memberNotice.isRead, true)
+                .where(memberNotice.id.member.id.eq(memberId)
+                        .and(memberNotice.isRead.eq(false))
+                        .and(memberNotice.id.details.isDeleted.eq(false)))
+                .execute();
+    }
 }
