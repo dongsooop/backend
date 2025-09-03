@@ -62,6 +62,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Transactional
     public void readAll() {
         Long requesterId = memberService.getMemberIdByAuthentication();
 
