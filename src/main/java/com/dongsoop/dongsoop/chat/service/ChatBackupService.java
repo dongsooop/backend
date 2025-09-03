@@ -3,16 +3,15 @@ package com.dongsoop.dongsoop.chat.service;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.repository.ChatRoomJpaRepository;
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Predicate;
 
 @Slf4j
 @Service
@@ -24,7 +23,7 @@ public class ChatBackupService {
     private final RedisChatRepository redisChatRepository;
     private final ChatRoomJpaRepository chatRoomJpaRepository;
 
-    @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(cron = "0 0 0 * * ?", zone = "Asia/Seoul")
     @Transactional
     public void performDailyMaintenance() {
         performRoomBackup();

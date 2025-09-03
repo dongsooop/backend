@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.timetable.repository;
 
+import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.timetable.dto.OverlapTimetable;
 import com.dongsoop.dongsoop.timetable.dto.TodayTimetable;
 import com.dongsoop.dongsoop.timetable.entity.QTimetable;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class TimetableRepositoryCustomImpl implements TimetableRepositoryCustom {
 
     private static final QTimetable timetable = QTimetable.timetable;
+    private static final QMember member = QMember.member;
 
     private final JPAQueryFactory queryFactory;
 
@@ -90,8 +92,9 @@ public class TimetableRepositoryCustomImpl implements TimetableRepositoryCustom 
                 .select(Projections.constructor(TodayTimetable.class,
                         timetable.name,
                         timetable.startAt,
-                        timetable.member.id))
+                        member.id))
                 .from(timetable)
+                .innerJoin(timetable.member, member)
                 .where(timetable.year.eq(year)
                         .and(timetable.semester.eq(semester))
                         .and(timetable.week.eq(week))
