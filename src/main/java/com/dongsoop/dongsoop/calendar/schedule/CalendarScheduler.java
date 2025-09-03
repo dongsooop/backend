@@ -95,7 +95,7 @@ public class CalendarScheduler {
             return "";
         }
 
-        return String.format(MEMBER_SCHEDULE_BODY_FORMAT, todaySchedules.get(0).title(), todaySchedules.size());
+        return String.format(MEMBER_SCHEDULE_BODY_FORMAT, todaySchedules.get(0).title(), todaySchedules.size() - 1);
     }
 
     /**
@@ -109,6 +109,6 @@ public class CalendarScheduler {
             return "";
         }
 
-        return String.format(OFFICIAL_SCHEDULE_BODY_FORMAT, todaySchedules.get(0), todaySchedules.size());
+        return String.format(OFFICIAL_SCHEDULE_BODY_FORMAT, todaySchedules.get(0), todaySchedules.size() - 1);
     }
 }
