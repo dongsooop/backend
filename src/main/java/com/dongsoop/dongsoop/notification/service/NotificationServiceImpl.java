@@ -9,7 +9,6 @@ import com.dongsoop.dongsoop.notification.repository.NotificationRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,16 +53,16 @@ public class NotificationServiceImpl implements NotificationService {
         fcmService.updateNotificationBadge(devices, (int) unreadCountByMemberId);
     }
 
+    /**
+     * 요청 회원의 모든 알림 읽음 처리 및 뱃지 상태 업데이트
+     *
+     * @param memberId 요청 회원 ID
+     */
     @Override
     @Transactional
     public void readAll(Long memberId) {
-
         notificationRepository.updateAllAsRead(memberId);
-    }
 
-    @Override
-    @Async
-    public void sendUpdatedBadge(Long memberId) {
         List<String> devices = memberDeviceService.getDeviceByMemberId(memberId);
         fcmService.updateNotificationBadge(devices, 0);
     }

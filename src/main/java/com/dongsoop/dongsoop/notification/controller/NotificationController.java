@@ -52,7 +52,6 @@ public class NotificationController {
         Long requesterId = memberService.getMemberIdByAuthentication();
 
         notificationService.readAll(requesterId);
-        notificationService.sendUpdatedBadge(requesterId);
 
         return ResponseEntity.noContent()
                 .build();

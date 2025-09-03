@@ -12,6 +12,4 @@ public interface NotificationService {
     void read(Long notificationId, Long memberId);
 
     void readAll(Long memberId);
-
-    void sendUpdatedBadge(Long memberId);
 }
