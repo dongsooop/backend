@@ -36,19 +36,14 @@ public class ScheduleServiceImpl implements ScheduleService {
     }
 
     @Override
-    public List<ScheduleDetails> getMemberSchedule(Long memberId, YearMonth yearMonth) {
+    public List<ScheduleDetails> getSchedule(Long memberId, YearMonth yearMonth) {
         LocalDate startDate = getStartDate(yearMonth);
         LocalDate endDate = getEndDate(yearMonth);
-
-        List<OfficialSchedule> officialScheduleList = officialScheduleRepository.findOfficialScheduleByDuration(
-                startDate, endDate);
 
         List<MemberSchedule> memberScheduleList = memberScheduleRepository.findMemberScheduleByDuration(
                 memberId, startDate.atStartOfDay(), endDate.atStartOfDay());
 
-        List<ScheduleDetails> officialScheduleDetails = officialScheduleList.stream()
-                .map(OfficialSchedule::toDetails)
-                .toList();
+        List<ScheduleDetails> officialScheduleDetails = getOfficialSchedule(startDate, endDate);
 
         List<ScheduleDetails> memberScheduleDetails = memberScheduleList.stream()
                 .map(MemberSchedule::toDetails)
@@ -61,6 +56,36 @@ public class ScheduleServiceImpl implements ScheduleService {
         totalScheduleDetails.sort(Comparator.comparing(ScheduleDetails::getStartAt));
 
         return totalScheduleDetails;
+    }
+
+    @Override
+    public List<ScheduleDetails> getSchedule(YearMonth yearMonth) {
+        LocalDate startDate = getStartDate(yearMonth);
+        LocalDate endDate = getEndDate(yearMonth);
+
+        List<ScheduleDetails> officialScheduleDetails = getOfficialSchedule(startDate, endDate);
+
+        officialScheduleDetails.sort(Comparator.comparing(ScheduleDetails::getStartAt));
+
+        return officialScheduleDetails;
+    }
+
+    private List<ScheduleDetails> getOfficialSchedule(LocalDate startDate, LocalDate endDate) {
+        List<OfficialSchedule> officialScheduleList = officialScheduleRepository.findOfficialScheduleByDuration(
+                startDate, endDate);
+
+        return officialScheduleList.stream()
+                .map(OfficialSchedule::toDetails)
+                .toList();
+    }
+
+    private List<ScheduleDetails> getMemberSchedule(Long memberId, LocalDate startDate, LocalDate endDate) {
+        List<MemberSchedule> memberScheduleList = memberScheduleRepository.findMemberScheduleByDuration(
+                memberId, startDate.atStartOfDay(), endDate.atStartOfDay());
+
+        return memberScheduleList.stream()
+                .map(MemberSchedule::toDetails)
+                .toList();
     }
 
     private LocalDate getStartDate(YearMonth yearMonth) {
