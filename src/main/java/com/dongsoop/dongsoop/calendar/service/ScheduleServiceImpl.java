@@ -12,9 +12,9 @@ import com.dongsoop.dongsoop.calendar.repository.OfficialScheduleRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -38,18 +38,14 @@ public class ScheduleServiceImpl implements ScheduleService {
     }
 
     public List<ScheduleDetails> getMemberSchedule(Long memberId, YearMonth yearMonth) {
-        LocalDate startMonth = LocalDate.of(yearMonth.getYear(), yearMonth.getMonth(), 1);
-        YearMonth oneMonthLater = yearMonth.plusMonths(1);
-        LocalDate endMonth = LocalDate.of(oneMonthLater.getYear(), oneMonthLater.getMonth(), 1);
-
-        LocalDateTime startAt = startMonth.atStartOfDay();
-        LocalDateTime endAt = endMonth.atStartOfDay();
+        LocalDate startDate = getStartDate(yearMonth);
+        LocalDate endDate = getEndDate(yearMonth);
 
         List<OfficialSchedule> officialScheduleList = officialScheduleRepository.findOfficialScheduleByDuration(
-                startMonth, endMonth);
+                startDate, endDate);
 
         List<MemberSchedule> memberScheduleList = memberScheduleRepository.findMemberScheduleByDuration(
-                memberId, startAt, endAt);
+                memberId, startDate.atStartOfDay(), endDate.atStartOfDay());
 
         List<ScheduleDetails> officialScheduleDetails = officialScheduleList.stream()
                 .map(OfficialSchedule::toDetails)
@@ -63,7 +59,31 @@ public class ScheduleServiceImpl implements ScheduleService {
         totalScheduleDetails.addAll(officialScheduleDetails);
         totalScheduleDetails.addAll(memberScheduleDetails);
 
+        totalScheduleDetails.sort(Comparator.comparing(ScheduleDetails::getStartAt));
+
         return totalScheduleDetails;
+    }
+
+    private LocalDate getStartDate(YearMonth yearMonth) {
+        // 지난달 마지막 날
+        LocalDate lastDayOfLastMonth = yearMonth.minusMonths(1L)
+                .atEndOfMonth();
+
+        int week = lastDayOfLastMonth.getDayOfWeek().getValue();
+
+        // 그 주의 시작일
+        return lastDayOfLastMonth.minusDays(week % 7);
+    }
+
+    private LocalDate getEndDate(YearMonth yearMonth) {
+        // 다음달 마지막 첫째 날
+        LocalDate firstDayOfNextMonth = yearMonth.plusMonths(1L)
+                .atEndOfMonth();
+
+        long week = firstDayOfNextMonth.getDayOfWeek().getValue();
+
+        // 그 주의 시작일
+        return firstDayOfNextMonth.plusDays(7L - week);
     }
 
     public void deleteMemberSchedule(Long scheduleId) {
