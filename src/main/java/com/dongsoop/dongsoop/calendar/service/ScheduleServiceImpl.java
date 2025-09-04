@@ -75,14 +75,13 @@ public class ScheduleServiceImpl implements ScheduleService {
     }
 
     private LocalDate getEndDate(YearMonth yearMonth) {
-        // 다음달 마지막 첫째 날
-        LocalDate firstDayOfNextMonth = yearMonth.plusMonths(1L)
-                .atEndOfMonth();
+        // 이번달 마지막 날
+        LocalDate firstDayOfNextMonth = yearMonth.atEndOfMonth();
 
         long week = firstDayOfNextMonth.getDayOfWeek().getValue();
 
         // 그 주의 시작일
-        return firstDayOfNextMonth.plusDays(7L - week);
+        return firstDayOfNextMonth.plusDays(7L - (week % 7));
     }
 
     @Override
