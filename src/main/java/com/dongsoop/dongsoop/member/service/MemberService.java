@@ -21,4 +21,6 @@ public interface MemberService {
     void deleteMember();
 
     void updatePassword(UpdatePasswordRequest request);
+
+    boolean isAuthenticated();
 }

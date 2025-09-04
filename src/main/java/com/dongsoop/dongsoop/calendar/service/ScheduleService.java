@@ -12,7 +12,9 @@ public interface ScheduleService {
 
     MemberSchedule createMemberSchedule(Member requester, CreateMemberScheduleRequest createMemberScheduleRequest);
 
-    List<ScheduleDetails> getMemberSchedule(Long memberId, YearMonth yearMonth);
+    List<ScheduleDetails> getSchedule(Long memberId, YearMonth yearMonth);
+
+    List<ScheduleDetails> getSchedule(YearMonth yearMonth);
 
     void deleteMemberSchedule(Long scheduleId, Long requesterId);
 

@@ -32,10 +32,18 @@ public class ScheduleController {
     private final MemberService memberService;
 
     @GetMapping("/year-month/{yearMonth}")
-    public ResponseEntity<List<ScheduleDetails>> getMemberSchedule(
+    public ResponseEntity<List<ScheduleDetails>> getSchedule(
             @PathVariable("yearMonth") @DateTimeFormat(pattern = "yyyy-MM") YearMonth yearMonth) {
+        // 인증되지 않은 사용자일 경우
+        if (!memberService.isAuthenticated()) {
+            List<ScheduleDetails> scheduleList = scheduleService.getSchedule(yearMonth);
+
+            return ResponseEntity.ok(scheduleList);
+        }
+        
+        // 인증된 사용자일 경우
         Long memberId = memberService.getMemberIdByAuthentication();
-        List<ScheduleDetails> scheduleList = scheduleService.getMemberSchedule(memberId, yearMonth);
+        List<ScheduleDetails> scheduleList = scheduleService.getSchedule(memberId, yearMonth);
         return ResponseEntity.ok(scheduleList);
     }
 
