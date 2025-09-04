@@ -13,7 +13,6 @@ import com.dongsoop.dongsoop.member.entity.Member;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -47,9 +46,9 @@ public class ScheduleServiceImpl implements ScheduleService {
         totalScheduleDetails.addAll(officialScheduleDetails);
         totalScheduleDetails.addAll(memberScheduleDetails);
 
-        totalScheduleDetails.sort(Comparator.comparing(ScheduleDetails::getStartAt));
-
-        return totalScheduleDetails;
+        return totalScheduleDetails.stream()
+                .sorted(this::sortedByDate)
+                .toList();
     }
 
     @Override
@@ -60,8 +59,17 @@ public class ScheduleServiceImpl implements ScheduleService {
         List<ScheduleDetails> officialScheduleDetails = getOfficialSchedule(startDate, endDate);
 
         return officialScheduleDetails.stream()
-                .sorted((a, b) -> a.getStartAt().compareTo(b.getStartAt()))
+                .sorted(this::sortedByDate)
                 .toList();
+    }
+
+    private int sortedByDate(ScheduleDetails a, ScheduleDetails b) {
+        int startAtCompareResult = a.getStartAt().compareTo(b.getStartAt());
+        if (startAtCompareResult != 0) {
+            return startAtCompareResult;
+        }
+
+        return a.getEndAt().compareTo(b.getEndAt());
     }
 
     private List<ScheduleDetails> getOfficialSchedule(LocalDate startDate, LocalDate endDate) {
