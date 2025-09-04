@@ -40,14 +40,8 @@ public class ScheduleServiceImpl implements ScheduleService {
         LocalDate startDate = getStartDate(yearMonth);
         LocalDate endDate = getEndDate(yearMonth);
 
-        List<MemberSchedule> memberScheduleList = memberScheduleRepository.findMemberScheduleByDuration(
-                memberId, startDate.atStartOfDay(), endDate.atStartOfDay());
-
         List<ScheduleDetails> officialScheduleDetails = getOfficialSchedule(startDate, endDate);
-
-        List<ScheduleDetails> memberScheduleDetails = memberScheduleList.stream()
-                .map(MemberSchedule::toDetails)
-                .toList();
+        List<ScheduleDetails> memberScheduleDetails = getMemberSchedule(memberId, startDate, endDate);
 
         List<ScheduleDetails> totalScheduleDetails = new ArrayList<>();
         totalScheduleDetails.addAll(officialScheduleDetails);
@@ -65,9 +59,9 @@ public class ScheduleServiceImpl implements ScheduleService {
 
         List<ScheduleDetails> officialScheduleDetails = getOfficialSchedule(startDate, endDate);
 
-        officialScheduleDetails.sort(Comparator.comparing(ScheduleDetails::getStartAt));
-
-        return officialScheduleDetails;
+        return officialScheduleDetails.stream()
+                .sorted((a, b) -> a.getStartAt().compareTo(b.getStartAt()))
+                .toList();
     }
 
     private List<ScheduleDetails> getOfficialSchedule(LocalDate startDate, LocalDate endDate) {

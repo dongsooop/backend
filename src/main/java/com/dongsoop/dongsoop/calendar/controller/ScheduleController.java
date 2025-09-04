@@ -14,7 +14,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -35,15 +34,16 @@ public class ScheduleController {
     @GetMapping("/year-month/{yearMonth}")
     public ResponseEntity<List<ScheduleDetails>> getSchedule(
             @PathVariable("yearMonth") @DateTimeFormat(pattern = "yyyy-MM") YearMonth yearMonth) {
-        // 인증된 사용자일 경우
-        if (SecurityContextHolder.getContext().getAuthentication().isAuthenticated()) {
-            Long memberId = memberService.getMemberIdByAuthentication();
-            List<ScheduleDetails> scheduleList = scheduleService.getSchedule(memberId, yearMonth);
+        // 인증되지 않은 사용자일 경우
+        if (!memberService.isAuthenticated()) {
+            List<ScheduleDetails> scheduleList = scheduleService.getSchedule(yearMonth);
+
             return ResponseEntity.ok(scheduleList);
         }
-
-        List<ScheduleDetails> scheduleList = scheduleService.getSchedule(yearMonth);
-
+        
+        // 인증된 사용자일 경우
+        Long memberId = memberService.getMemberIdByAuthentication();
+        List<ScheduleDetails> scheduleList = scheduleService.getSchedule(memberId, yearMonth);
         return ResponseEntity.ok(scheduleList);
     }
 
