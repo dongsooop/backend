@@ -5,6 +5,8 @@ import com.dongsoop.dongsoop.calendar.dto.MemberScheduleUpdateRequest;
 import com.dongsoop.dongsoop.calendar.dto.ScheduleDetails;
 import com.dongsoop.dongsoop.calendar.entity.MemberSchedule;
 import com.dongsoop.dongsoop.calendar.service.ScheduleService;
+import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.member.service.MemberService;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.time.YearMonth;
@@ -27,18 +29,21 @@ import org.springframework.web.bind.annotation.RestController;
 public class ScheduleController {
 
     private final ScheduleService scheduleService;
+    private final MemberService memberService;
 
-    @GetMapping("/member/{memberId}/year-month/{yearMonth}")
-    public ResponseEntity<List<ScheduleDetails>> getMemberSchedule(@PathVariable("memberId") Long memberId,
-                                                                   @PathVariable("yearMonth") @DateTimeFormat(pattern = "yyyy-MM") YearMonth yearMonth) {
+    @GetMapping("/year-month/{yearMonth}")
+    public ResponseEntity<List<ScheduleDetails>> getMemberSchedule(
+            @PathVariable("yearMonth") @DateTimeFormat(pattern = "yyyy-MM") YearMonth yearMonth) {
+        Long memberId = memberService.getMemberIdByAuthentication();
         List<ScheduleDetails> scheduleList = scheduleService.getMemberSchedule(memberId, yearMonth);
         return ResponseEntity.ok(scheduleList);
     }
 
     @PostMapping("/member")
     public ResponseEntity<Void> createMemberSchedule(@RequestBody @Valid CreateMemberScheduleRequest request) {
-        MemberSchedule schedule = scheduleService.createMemberSchedule(request);
-        
+        Member memberReferenceByContext = memberService.getMemberReferenceByContext();
+        MemberSchedule schedule = scheduleService.createMemberSchedule(memberReferenceByContext, request);
+
         Long memberId = schedule.getMember()
                 .getId();
         YearMonth startAtYearMonth = YearMonth.from(request.getStartAt());
@@ -51,7 +56,8 @@ public class ScheduleController {
 
     @DeleteMapping("/member/{scheduleId}")
     public ResponseEntity<Void> deleteMemberSchedule(@PathVariable("scheduleId") Long scheduleId) {
-        scheduleService.deleteMemberSchedule(scheduleId);
+        Long memberIdByAuthentication = memberService.getMemberIdByAuthentication();
+        scheduleService.deleteMemberSchedule(scheduleId, memberIdByAuthentication);
 
         return ResponseEntity.noContent()
                 .build();
@@ -60,7 +66,8 @@ public class ScheduleController {
     @PatchMapping("/member/{scheduleId}")
     public ResponseEntity<Void> updateMemberSchedule(@PathVariable("scheduleId") Long scheduleId,
                                                      @RequestBody @Valid MemberScheduleUpdateRequest request) {
-        scheduleService.updateMemberSchedule(scheduleId, request);
+        Long memberId = memberService.getMemberIdByAuthentication();
+        scheduleService.updateMemberSchedule(scheduleId, memberId, request);
         return ResponseEntity.noContent()
                 .build();
     }

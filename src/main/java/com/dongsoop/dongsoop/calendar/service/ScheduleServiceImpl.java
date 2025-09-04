@@ -10,7 +10,6 @@ import com.dongsoop.dongsoop.calendar.exception.NotScheduleOwnerException;
 import com.dongsoop.dongsoop.calendar.repository.MemberScheduleRepository;
 import com.dongsoop.dongsoop.calendar.repository.OfficialScheduleRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
-import com.dongsoop.dongsoop.member.service.MemberService;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -27,16 +26,16 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     private final OfficialScheduleRepository officialScheduleRepository;
 
-    private final MemberService memberService;
-
-    public MemberSchedule createMemberSchedule(CreateMemberScheduleRequest createMemberScheduleRequest) {
+    @Override
+    public MemberSchedule createMemberSchedule(Member requester,
+                                               CreateMemberScheduleRequest createMemberScheduleRequest) {
         MemberSchedule schedule = createMemberScheduleRequest.toEntity();
-        Member member = memberService.getMemberReferenceByContext();
-        schedule.setMember(member);
+        schedule.setMember(requester);
 
         return memberScheduleRepository.save(schedule);
     }
 
+    @Override
     public List<ScheduleDetails> getMemberSchedule(Long memberId, YearMonth yearMonth) {
         LocalDate startDate = getStartDate(yearMonth);
         LocalDate endDate = getEndDate(yearMonth);
@@ -86,26 +85,28 @@ public class ScheduleServiceImpl implements ScheduleService {
         return firstDayOfNextMonth.plusDays(7L - week);
     }
 
-    public void deleteMemberSchedule(Long scheduleId) {
+    @Override
+    public void deleteMemberSchedule(Long scheduleId, Long requesterId) {
         MemberSchedule schedule = memberScheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new MemberScheduleNotFoundException(scheduleId));
 
         Long scheduleOwnerId = schedule.getMember()
                 .getId();
 
-        validateScheduleOwner(scheduleOwnerId, scheduleId);
+        validateScheduleOwner(scheduleOwnerId, scheduleId, requesterId);
 
         memberScheduleRepository.deleteById(scheduleId);
     }
 
-    public void updateMemberSchedule(Long scheduleId, MemberScheduleUpdateRequest request) {
+    @Override
+    public void updateMemberSchedule(Long scheduleId, Long requesterId, MemberScheduleUpdateRequest request) {
         MemberSchedule schedule = memberScheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new MemberScheduleNotFoundException(scheduleId));
 
         Long scheduleOwnerId = schedule.getMember()
                 .getId();
 
-        validateScheduleOwner(scheduleOwnerId, scheduleId);
+        validateScheduleOwner(scheduleOwnerId, scheduleId, requesterId);
         schedule.update(request);
 
         memberScheduleRepository.save(schedule);
@@ -114,12 +115,9 @@ public class ScheduleServiceImpl implements ScheduleService {
     /**
      * 요청을 보낸 회원과 일정의 주인이 같은지 검증한다.
      */
-    private void validateScheduleOwner(Long scheduleOwnerId, Long scheduleId) {
-        Long requestMemberId = memberService.getMemberReferenceByContext()
-                .getId();
-
-        if (!scheduleOwnerId.equals(requestMemberId)) {
-            throw new NotScheduleOwnerException(requestMemberId, scheduleOwnerId, scheduleId);
+    private void validateScheduleOwner(Long scheduleOwnerId, Long scheduleId, Long requesterId) {
+        if (!scheduleOwnerId.equals(requesterId)) {
+            throw new NotScheduleOwnerException(requesterId, scheduleOwnerId, scheduleId);
         }
     }
 }
