@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.calendar.dto.TodaySchedule;
 import com.dongsoop.dongsoop.calendar.entity.MemberSchedule;
 import com.dongsoop.dongsoop.calendar.entity.QMemberSchedule;
 import com.dongsoop.dongsoop.member.entity.QMember;
+import com.dongsoop.dongsoop.memberdevice.entity.QMemberDevice;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.DateExpression;
 import com.querydsl.core.types.dsl.Expressions;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Repository;
 public class MemberScheduleRepositoryCustomImpl implements MemberScheduleRepositoryCustom {
 
     private static final QMemberSchedule memberSchedule = QMemberSchedule.memberSchedule;
+    private static final QMemberDevice memberDevice = QMemberDevice.memberDevice;
     private static final QMember member = QMember.member;
 
     private final JPAQueryFactory queryFactory;
@@ -44,12 +46,14 @@ public class MemberScheduleRepositoryCustomImpl implements MemberScheduleReposit
         DateExpression<LocalDate> startAtDate = Expressions.dateTemplate(LocalDate.class, "DATE({0})",
                 memberSchedule.startAt);
 
-        return queryFactory.select(Projections.constructor(
+        return queryFactory.selectDistinct(Projections.constructor(
                         TodaySchedule.class,
                         memberSchedule.title,
                         member))
                 .from(memberSchedule)
                 .innerJoin(memberSchedule.member, member)
+                .innerJoin(memberDevice)
+                .on(member.eq(memberDevice.member))
                 .where(startAtDate.eq(now))
                 .fetch();
     }
