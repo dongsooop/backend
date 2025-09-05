@@ -16,7 +16,6 @@ import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.exception.InvalidPasswordFormatException;
 import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
-import com.dongsoop.dongsoop.member.repository.MemberRepositoryCustom;
 import com.dongsoop.dongsoop.member.validate.MemberDuplicationValidator;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
@@ -51,7 +50,6 @@ public class MemberServiceImpl implements MemberService {
     private final MemberRepository memberRepository;
     private final RoleRepository roleRepository;
     private final MemberRoleRepository memberRoleRepository;
-    private final MemberRepositoryCustom memberRepositoryCustom;
     private final DepartmentService departmentService;
     private final PasswordEncoder passwordEncoder;
     private final TokenGenerator tokenGenerator;
@@ -105,7 +103,7 @@ public class MemberServiceImpl implements MemberService {
         String refreshToken = tokenGenerator.generateRefreshToken(authentication);
 
         IssuedToken issuedToken = new IssuedToken(accessToken, refreshToken);
-        LoginMemberDetails loginMemberDetails = memberRepositoryCustom.findLoginMemberDetailById(
+        LoginMemberDetails loginMemberDetails = memberRepository.findLoginMemberDetailById(
                         loginAuthenticate.getId())
                 .orElseThrow(MemberNotFoundException::new);
 
@@ -195,7 +193,7 @@ public class MemberServiceImpl implements MemberService {
         // 가명처리
         String emailAlias = generateEmailAlias();
         String passwordAlias = generatePasswordAlias();
-        long updatedCount = memberRepositoryCustom.softDelete(requesterId, emailAlias, passwordAlias);
+        long updatedCount = memberRepository.softDelete(requesterId, emailAlias, passwordAlias);
         if (updatedCount == 0L) {
             log.error("Member with id {} not found or already deleted", requesterId);
             throw new MemberNotFoundException();
