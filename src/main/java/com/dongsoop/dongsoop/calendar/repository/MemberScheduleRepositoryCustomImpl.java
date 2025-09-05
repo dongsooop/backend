@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.calendar.repository;
 
+import com.dongsoop.dongsoop.calendar.dto.HomeSchedule;
 import com.dongsoop.dongsoop.calendar.dto.TodaySchedule;
 import com.dongsoop.dongsoop.calendar.entity.MemberSchedule;
 import com.dongsoop.dongsoop.calendar.entity.QMemberSchedule;
@@ -55,6 +56,24 @@ public class MemberScheduleRepositoryCustomImpl implements MemberScheduleReposit
                 .innerJoin(memberDevice)
                 .on(member.eq(memberDevice.member))
                 .where(startAtDate.eq(now))
+                .fetch();
+    }
+
+    @Override
+    public List<HomeSchedule> searchHomeSchedule(Long memberId, LocalDate date) {
+        // startAt to LocalDate
+        DateExpression<LocalDate> startAtDate = Expressions.dateTemplate(LocalDate.class, "DATE({0})",
+                memberSchedule.startAt);
+
+        return queryFactory.selectDistinct(Projections.constructor(
+                        HomeSchedule.class,
+                        memberSchedule.title,
+                        memberSchedule.startAt,
+                        memberSchedule.endAt))
+                .from(memberSchedule)
+                .innerJoin(memberSchedule.member, member)
+                .where(startAtDate.eq(date)
+                        .and(member.id.eq(memberId)))
                 .fetch();
     }
 }

@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.timetable.repository;
 
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.memberdevice.entity.QMemberDevice;
+import com.dongsoop.dongsoop.timetable.dto.HomeTimetable;
 import com.dongsoop.dongsoop.timetable.dto.OverlapTimetable;
 import com.dongsoop.dongsoop.timetable.dto.TodayTimetable;
 import com.dongsoop.dongsoop.timetable.entity.QTimetable;
@@ -104,6 +105,24 @@ public class TimetableRepositoryCustomImpl implements TimetableRepositoryCustom 
                         .and(timetable.week.eq(week))
                         .and(timetable.isDeleted.isFalse()))
                 .orderBy(timetable.week.asc(), timetable.startAt.asc())
+                .fetch();
+    }
+
+    @Override
+    public List<HomeTimetable> searchHomeTimetable(Long memberId, Year year, SemesterType semester) {
+        return queryFactory
+                .selectDistinct(Projections.constructor(
+                        HomeTimetable.class,
+                        timetable.name,
+                        timetable.startAt,
+                        timetable.endAt))
+                .from(timetable)
+                .where(timetable.member.id.eq(memberId)
+                        .and(timetable.year.eq(year))
+                        .and(timetable.semester.eq(semester))
+                        .and(timetable.isDeleted.isFalse()))
+                .orderBy(timetable.startAt.asc(), timetable.endAt.asc())
+                .limit(3)
                 .fetch();
     }
 }

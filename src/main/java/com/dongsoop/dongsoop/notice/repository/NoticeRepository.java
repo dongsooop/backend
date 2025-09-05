@@ -11,7 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
-public interface NoticeRepository extends JpaRepository<Notice, NoticeKey> {
+public interface NoticeRepository extends JpaRepository<Notice, NoticeKey>, NoticeRepositoryCustom {
 
     @Query("""
             SELECT d AS department, COALESCE(MAX(n.id.noticeDetails.id), 0) AS recentId
