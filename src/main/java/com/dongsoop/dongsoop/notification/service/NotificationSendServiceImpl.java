@@ -16,6 +16,7 @@ import com.google.firebase.messaging.Notification;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
@@ -92,12 +93,18 @@ public class NotificationSendServiceImpl implements NotificationSendService {
 
         // 회원별 MulticastMessage 생성
         return memberIdList.stream().map(memberId -> {
-            Long unreadCount = unreadCountByMember.getOrDefault(memberId, 0L);
-            List<String> deviceList = memberIdDevices.getOrDefault(memberId, Collections.emptyList());
+                    Long unreadCount = unreadCountByMember.getOrDefault(memberId, 0L);
+                    List<String> deviceList = memberIdDevices.getOrDefault(memberId, Collections.emptyList());
 
-            return generateMulticastMessage(title, body, deviceList, notification, unreadCount,
-                    apnsConfigBuilder);
-        });
+                    // 알림을 보낼 디바이스가 없으면 무시
+                    if (deviceList.isEmpty()) {
+                        return null;
+                    }
+
+                    return generateMulticastMessage(title, body, deviceList, notification, unreadCount,
+                            apnsConfigBuilder);
+                })
+                .filter(Objects::nonNull);
     }
 
     private Map<NotificationDetails, List<Long>> listToMap(List<MemberNotification> memberNotificationList) {

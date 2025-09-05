@@ -4,6 +4,8 @@ import com.dongsoop.dongsoop.common.BaseEntity;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -34,6 +36,7 @@ public class NotificationDetails extends BaseEntity {
     @Column(name = "body", nullable = false)
     private String body;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
     private NotificationType type;
 

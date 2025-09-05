@@ -56,6 +56,9 @@ public class CalendarScheduler {
 
             // 타겟 회원의 디바이스 목록
             List<String> devices = targetDevices.getOrDefault(member.getId(), List.of());
+            if (devices.isEmpty()) {
+                return;
+            }
 
             // 전체 알림 수
             int totalSchedulesCount = calendarList.size() + officialCalendarSize;

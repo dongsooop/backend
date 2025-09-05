@@ -53,6 +53,9 @@ public class TimetableScheduler {
                     String body = getTimetableBody(timetables);
 
                     List<String> devices = deviceByMember.getOrDefault(memberId, List.of());
+                    if (devices.isEmpty()) {
+                        return;
+                    }
 
                     timetableNotification.send(title, body, devices);
                 });

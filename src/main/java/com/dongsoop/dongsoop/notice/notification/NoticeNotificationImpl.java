@@ -80,9 +80,9 @@ public class NoticeNotificationImpl implements NoticeNotification {
 
     private List<Member> getMemberByDepartment(Department department) {
         if (department.getId().isAllDepartment()) {
-            return memberRepository.findAll();
+            return memberRepository.searchAllByDeviceNotEmpty();
         }
 
-        return memberRepository.findByDepartment(department);
+        return memberRepository.searchAllByDepartmentAndDeviceNotEmpty(department);
     }
 }
