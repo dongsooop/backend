@@ -95,7 +95,6 @@ public class AsyncAutoSanctionService {
         return Sanction.builder()
                 .member(report.getTargetMember())
                 .admin(systemAdmin)
-                .targetMember(report.getTargetMember())
                 .report(report)
                 .sanctionType(SanctionType.CONTENT_DELETION)
                 .reason(AUTO_SANCTION_REASON)
