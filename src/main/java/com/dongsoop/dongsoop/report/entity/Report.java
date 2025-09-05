@@ -32,12 +32,8 @@ public class Report extends BaseEntity {
     private Long targetId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ReportReason reportReason;
-
-    @Enumerated(EnumType.STRING)
     @Column(name = "reason", nullable = false)
-    private ReportReason reason;
+    private ReportReason reportReason;
 
     @Column(length = 500)
     private String description;
