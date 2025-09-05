@@ -32,7 +32,7 @@ public class Report extends BaseEntity {
     private Long targetId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "reason", nullable = false)
     private ReportReason reportReason;
 
     @Column(length = 500)
@@ -56,6 +56,10 @@ public class Report extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private Boolean isProcessed = false;
+
+    @Column(name = "is_sanction_active", nullable = false)
+    @Builder.Default
+    private Boolean isSanctionActive = false;
 
     public void processSanction(Member admin, Member targetMember, Sanction sanction) {
         if (this.isProcessed) {

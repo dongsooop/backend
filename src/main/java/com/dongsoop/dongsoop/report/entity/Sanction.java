@@ -23,6 +23,18 @@ public class Sanction extends BaseEntity {
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "admin_id", nullable = false)
+    private Member admin;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "target_member_id", nullable = false)
+    private Member targetMember;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "report_id", nullable = false)
+    private Report report;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "sanction_type", nullable = false)
     private SanctionType sanctionType;

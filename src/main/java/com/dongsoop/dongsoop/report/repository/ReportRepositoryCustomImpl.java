@@ -177,4 +177,15 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     private BooleanExpression isSanctionActive() {
         return sanction.isActive.eq(true).and(report.sanction.isNotNull());
     }
+
+    @Override
+    public List<Report> findUnprocessedReports(Pageable pageable) {
+        return queryFactory
+                .selectFrom(report)
+                .where(report.isProcessed.eq(false))
+                .orderBy(report.createdAt.asc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+    }
 }
