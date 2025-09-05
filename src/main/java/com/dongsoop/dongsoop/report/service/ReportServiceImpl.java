@@ -93,6 +93,7 @@ public class ReportServiceImpl implements ReportService {
                 .reportType(request.reportType())
                 .targetId(request.targetId())
                 .reportReason(request.reason())
+                .reason(request.reason())
                 .description(request.description())
                 .targetUrl(targetUrl)
                 .targetMember(targetMember)
