@@ -1,7 +1,9 @@
 package com.dongsoop.dongsoop.calendar.repository;
 
+import com.dongsoop.dongsoop.calendar.dto.HomeSchedule;
 import com.dongsoop.dongsoop.calendar.entity.OfficialSchedule;
 import com.dongsoop.dongsoop.calendar.entity.QOfficialSchedule;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.DateExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -41,6 +43,22 @@ public class OfficialScheduleRepositoryCustomImpl implements OfficialScheduleRep
         return queryFactory.select(officialSchedule.title)
                 .from(officialSchedule)
                 .where(startAtDate.eq(now))
+                .fetch();
+    }
+
+    @Override
+    public List<HomeSchedule> searchHomeSchedule(LocalDate date) {
+        // startAt to LocalDate
+        DateExpression<LocalDate> startAtDate = Expressions.dateTemplate(LocalDate.class, "DATE({0})",
+                officialSchedule.startAt);
+
+        return queryFactory.selectDistinct(Projections.constructor(
+                        HomeSchedule.class,
+                        officialSchedule.title,
+                        officialSchedule.startAt,
+                        officialSchedule.endAt))
+                .from(officialSchedule)
+                .where(startAtDate.eq(date))
                 .fetch();
     }
 }
