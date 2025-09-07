@@ -9,6 +9,7 @@ import com.dongsoop.dongsoop.notice.entity.QNotice;
 import com.dongsoop.dongsoop.notice.entity.QNoticeDetails;
 import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
@@ -43,10 +44,9 @@ public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
     }
 
     private Expression<NoticeType> getNoticeType(QDepartment department) {
-        if (department.id.equals(DepartmentType.DEPT_1001)) {
-            return Expressions.constant(NoticeType.OFFICIAL);
-        }
-
-        return Expressions.constant(NoticeType.DEPARTMENT);
+        return new CaseBuilder()
+                .when(department.id.eq(DepartmentType.DEPT_1001))
+                .then(Expressions.constant(NoticeType.OFFICIAL))
+                .otherwise(Expressions.constant(NoticeType.DEPARTMENT));
     }
 }
