@@ -15,6 +15,7 @@ import com.dongsoop.dongsoop.timetable.entity.SemesterType;
 import com.dongsoop.dongsoop.timetable.repository.TimetableRepository;
 import java.time.LocalDate;
 import java.time.Year;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -45,6 +46,7 @@ public class HomeServiceImpl implements HomeService {
     @Value("${home.async.timeout.seconds:3}")
     private int TIMEOUT_SECONDS;
 
+    @Override
     public HomeDto getHome(Long requesterId, DepartmentType departmentType) {
         LocalDate today = LocalDate.now();
         Year year = Year.now();
@@ -77,7 +79,32 @@ public class HomeServiceImpl implements HomeService {
         return new HomeDto(timetable, schedules, notices, popularRecruitments);
     }
 
-    public <T> CompletableFuture<T> call(Supplier<T> supplier) {
+    @Override
+    public HomeDto getHome() {
+        LocalDate today = LocalDate.now();
+        int month = today.getMonthValue();
+
+        CompletableFuture<List<HomeSchedule>> fOfficialSchedules = call(
+                () -> officialScheduleRepository.searchHomeSchedule(today));
+        CompletableFuture<List<HomeNotice>> fNotices = call(noticeRepository::searchHomeNotices);
+        CompletableFuture<List<HomeRecruitment>> fRecruitments = call(recruitmentRepository::searchHomeRecruitment);
+
+        // 모든 Future 완료 대기
+        CompletableFuture.allOf(
+                fOfficialSchedules, fNotices, fRecruitments
+        ).join();
+
+        // 결과 조합
+        List<HomeSchedule> schedules = fOfficialSchedules.join().stream()
+                .sorted(Comparator.comparing(HomeSchedule::startAt).thenComparing(HomeSchedule::endAt))
+                .toList();
+        List<HomeNotice> notices = fNotices.join();
+        List<HomeRecruitment> popularRecruitments = fRecruitments.join();
+
+        return new HomeDto(Collections.emptyList(), schedules, notices, popularRecruitments);
+    }
+
+    private <T> CompletableFuture<T> call(Supplier<T> supplier) {
         return CompletableFuture.supplyAsync(supplier, homeThreadExecutor)
                 .orTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
                 .exceptionally(e -> {

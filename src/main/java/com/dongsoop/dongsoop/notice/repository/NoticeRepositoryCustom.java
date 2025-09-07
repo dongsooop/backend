@@ -7,4 +7,6 @@ import java.util.List;
 public interface NoticeRepositoryCustom {
 
     List<HomeNotice> searchHomeNotices(DepartmentType departmentType);
+
+    List<HomeNotice> searchHomeNotices();
 }
