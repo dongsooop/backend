@@ -49,4 +49,20 @@ public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
                 .then(Expressions.constant(NoticeType.OFFICIAL))
                 .otherwise(Expressions.constant(NoticeType.DEPARTMENT));
     }
+
+    @Override
+    public List<HomeNotice> searchHomeNotices() {
+        return queryFactory.select(Projections.constructor(
+                        HomeNotice.class,
+                        noticeDetails.title,
+                        noticeDetails.link,
+                        getNoticeType(department)))
+                .from(notice)
+                .innerJoin(notice.id.noticeDetails, noticeDetails)
+                .innerJoin(notice.id.department, department)
+                .where(notice.id.department.id.eq(DepartmentType.DEPT_1001)) // 대학 공지만
+                .orderBy(noticeDetails.createdAt.desc())
+                .limit(3)
+                .fetch();
+    }
 }

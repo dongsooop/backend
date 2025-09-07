@@ -6,4 +6,6 @@ import com.dongsoop.dongsoop.home.dto.HomeDto;
 public interface HomeService {
 
     HomeDto getHome(Long memberId, DepartmentType departmentType);
+
+    HomeDto getHome();
 }

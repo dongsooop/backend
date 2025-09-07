@@ -4,8 +4,10 @@ import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.home.dto.HomeDto;
 import com.dongsoop.dongsoop.home.service.HomeService;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.role.entity.RoleType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,9 +22,17 @@ public class HomeController {
     private final MemberService memberService;
 
     @GetMapping("/{departmentType}")
+    @Secured(RoleType.USER_ROLE)
     public ResponseEntity<HomeDto> getHomeData(@PathVariable("departmentType") DepartmentType departmentType) {
         Long requesterId = memberService.getMemberIdByAuthentication();
         HomeDto home = homeService.getHome(requesterId, departmentType);
+
+        return ResponseEntity.ok(home);
+    }
+
+    @GetMapping
+    public ResponseEntity<HomeDto> getHomeDataForAnonymous() {
+        HomeDto home = homeService.getHome();
 
         return ResponseEntity.ok(home);
     }
