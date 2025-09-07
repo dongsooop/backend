@@ -34,15 +34,11 @@ public class HomeServiceImpl implements HomeService {
         Year year = Year.now();
         int month = LocalDate.now().getMonthValue();
 
-        System.out.println(1);
         List<HomeTimetable> timetable = timetableRepository.searchHomeTimetable(requesterId, year,
                 SemesterType.fromMonth(month));
 
-        System.out.println(2);
         List<HomeSchedule> memberSchedules = memberScheduleRepository.searchHomeSchedule(requesterId, today);
-        System.out.println(3);
         List<HomeSchedule> officialSchedules = officialScheduleRepository.searchHomeSchedule(today);
-        System.out.println(4);
         List<HomeSchedule> schedules = new ArrayList<>();
         schedules.addAll(memberSchedules);
         schedules.addAll(officialSchedules);
@@ -56,11 +52,8 @@ public class HomeServiceImpl implements HomeService {
             return s1.endAt().compareTo(s2.endAt());
         });
 
-        System.out.println(5);
         List<HomeNotice> notices = noticeRepository.searchHomeNotices(departmentType);
-        System.out.println(6);
         List<HomeRecruitment> popular_recruitments = recruitmentRepository.searchHomeRecruitment();
-        System.out.println(7);
 
         return new HomeDto(timetable, schedules, notices, popular_recruitments);
     }
