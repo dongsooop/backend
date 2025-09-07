@@ -1,15 +1,17 @@
 package com.dongsoop.dongsoop.report.service;
 
+import com.dongsoop.dongsoop.board.Board;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoardRepository;
 import com.dongsoop.dongsoop.report.entity.ReportType;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
-import java.lang.reflect.Method;
 
 @Service
 @RequiredArgsConstructor
@@ -21,58 +23,44 @@ public class BoardContentService {
     private final MarketplaceBoardRepository marketplaceBoardRepository;
     private final TutoringBoardRepository tutoringBoardRepository;
 
+    private final Map<ReportType, Function<Long, Optional<? extends Board>>> repositoryMap = Map.of(
+            ReportType.PROJECT_BOARD, this::findProjectBoard,
+            ReportType.STUDY_BOARD, this::findStudyBoard,
+            ReportType.MARKETPLACE_BOARD, this::findMarketplaceBoard,
+            ReportType.TUTORING_BOARD, this::findTutoringBoard
+    );
+
     public String getTitle(Long targetId, ReportType reportType) {
-        return getFieldValue(targetId, reportType, "getTitle");
+        return getBoard(targetId, reportType)
+                .map(Board::getTitle)
+                .orElse("");
     }
 
     public String getContent(Long targetId, ReportType reportType) {
-        return getFieldValue(targetId, reportType, "getContent");
+        return getBoard(targetId, reportType)
+                .map(Board::getContent)
+                .orElse("");
     }
 
-    private String getFieldValue(Long targetId, ReportType reportType, String methodName) {
-        try {
-            Object board = getBoard(targetId, reportType);
-
-            if (board == null) {
-                return "";
-            }
-
-            return invokeMethod(board, methodName);
-
-        } catch (Exception e) {
-            log.error("필드 조회 실패 - Method: {}", methodName, e);
-            return "";
-        }
+    private Optional<Board> getBoard(Long targetId, ReportType reportType) {
+        return Optional.ofNullable(repositoryMap.get(reportType))
+                .flatMap(repository -> repository.apply(targetId))
+                .map(board -> (Board) board);
     }
 
-    private Object getBoard(Long targetId, ReportType reportType) {
-        if (ReportType.PROJECT_BOARD.equals(reportType)) {
-            return projectBoardRepository.findById(targetId).orElse(null);
-        }
-
-        if (ReportType.STUDY_BOARD.equals(reportType)) {
-            return studyBoardRepository.findById(targetId).orElse(null);
-        }
-
-        if (ReportType.MARKETPLACE_BOARD.equals(reportType)) {
-            return marketplaceBoardRepository.findById(targetId).orElse(null);
-        }
-
-        if (ReportType.TUTORING_BOARD.equals(reportType)) {
-            return tutoringBoardRepository.findById(targetId).orElse(null);
-        }
-
-        return null;
+    private Optional<? extends Board> findProjectBoard(Long id) {
+        return projectBoardRepository.findById(id);
     }
 
-    private String invokeMethod(Object board, String methodName) throws Exception {
-        Method method = board.getClass().getMethod(methodName);
-        Object result = method.invoke(board);
+    private Optional<? extends Board> findStudyBoard(Long id) {
+        return studyBoardRepository.findById(id);
+    }
 
-        if (result == null) {
-            return "";
-        }
+    private Optional<? extends Board> findMarketplaceBoard(Long id) {
+        return marketplaceBoardRepository.findById(id);
+    }
 
-        return result.toString();
+    private Optional<? extends Board> findTutoringBoard(Long id) {
+        return tutoringBoardRepository.findById(id);
     }
 }
