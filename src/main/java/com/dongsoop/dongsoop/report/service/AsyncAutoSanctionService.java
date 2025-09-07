@@ -8,15 +8,14 @@ import com.dongsoop.dongsoop.report.entity.SanctionType;
 import com.dongsoop.dongsoop.report.handler.ContentDeletionHandler;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
 import com.dongsoop.dongsoop.report.repository.SanctionRepository;
+import java.time.LocalDateTime;
+import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -26,27 +25,28 @@ public class AsyncAutoSanctionService {
 
     private static final String AUTO_SANCTION_REASON = "부적절한 언어 사용";
     private static final String AUTO_SANCTION_DESCRIPTION = "자동 제재에 의한 게시글 삭제";
+
     private final SanctionRepository sanctionRepository;
     private final ContentDeletionHandler contentDeletionHandler;
     private final BoardContentService boardContentService;
     private final TextFilteringService textFilteringService;
     private final ReportRepository reportRepository;
+
     @Value("${admin.id}")
     private Long SYSTEM_ADMIN_ID;
 
-    @Async
+    @Async("autoSanctionExecutor")
     public CompletableFuture<Void> processReportAsync(Report report) {
         try {
-            log.info("신고 처리 시작 - Report ID: {}", report.getId());
+            log.info("Report processing started - Report ID: {}", report.getId());
 
             validateReportType(report);
-
             checkProfanityAndExecute(report);
 
-            log.info("자동 제재 완료 - Report ID: {}", report.getId());
+            log.info("Auto sanction completed - Report ID: {}", report.getId());
 
         } catch (Exception e) {
-            log.error("자동 제재 실패 - Report ID: {}", report.getId(), e);
+            log.error("Auto sanction failed - Report ID: {}", report.getId(), e);
         }
 
         return CompletableFuture.completedFuture(null);
@@ -54,8 +54,8 @@ public class AsyncAutoSanctionService {
 
     private void validateReportType(Report report) {
         if (ReportType.MEMBER.equals(report.getReportType())) {
-            log.info("멤버 신고는 자동 처리 제외 - Report ID: {}", report.getId());
-            throw new IllegalStateException("멤버 신고는 자동 처리 대상이 아닙니다");
+            log.info("Member report excluded from auto processing - Report ID: {}", report.getId());
+            throw new IllegalStateException("Member reports are not subject to automatic processing");
         }
     }
 
@@ -65,11 +65,11 @@ public class AsyncAutoSanctionService {
 
         boolean hasProfanity = textFilteringService.hasProfanity(title, "", content);
 
-        log.info("욕설 필터링 결과 - Report ID: {}, HasProfanity: {}", report.getId(), hasProfanity);
+        log.info("Profanity filtering result - Report ID: {}, HasProfanity: {}", report.getId(), hasProfanity);
 
         if (!hasProfanity) {
-            log.info("욕설 없음 - Report ID: {}", report.getId());
-            throw new IllegalStateException("욕설이 발견되지 않음");
+            log.info("No profanity detected - Report ID: {}", report.getId());
+            throw new IllegalStateException("No profanity detected");
         }
 
         executeSanction(report);
