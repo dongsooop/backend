@@ -3,6 +3,13 @@ package com.dongsoop.dongsoop.report.scheduler;
 import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
 import com.dongsoop.dongsoop.report.service.AsyncAutoSanctionService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -10,13 +17,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
@@ -27,7 +27,7 @@ public class AutoSanctionScheduler {
     private final AsyncAutoSanctionService asyncAutoSanctionService;
     private final Set<String> processingTargets = ConcurrentHashMap.newKeySet();
 
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(fixedRate = 3600000)
     public void processAutoSanctions() {
         log.info("Auto sanction scheduler started");
 
@@ -43,7 +43,7 @@ public class AutoSanctionScheduler {
 
         List<Report> filteredReports = reports.stream()
                 .filter(this::isNotAlreadyProcessing)
-                .collect(Collectors.toList());
+                .toList();
 
         log.info("Reports after duplicate filtering: {}", filteredReports.size());
 
