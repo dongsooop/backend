@@ -8,6 +8,6 @@ import org.springframework.data.repository.query.Param;
 
 public interface MemberBlockRepository extends JpaRepository<MemberBlock, MemberBlockId> {
 
-    @Query("SELECT COUNT(mb) > 0 FROM MemberBlock mb WHERE mb.id.blocker.id = :blockerId AND mb.id.blockedMember.id = :blocked")
-    boolean existsByBlockerIdAndBlockedId(@Param("blockerId") Long blockerId, @Param("blocked") Long blockedId);
+    @Query("SELECT COUNT(mb) > 0 FROM MemberBlock mb WHERE mb.id.blocker.id = :blockerId AND mb.id.blockedMember.id = :blockedId")
+    boolean existsByBlockerIdAndBlockedId(@Param("blockerId") Long blockerId, @Param("blockedId") Long blockedId);
 }
