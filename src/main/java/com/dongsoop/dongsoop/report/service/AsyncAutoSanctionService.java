@@ -8,14 +8,15 @@ import com.dongsoop.dongsoop.report.entity.SanctionType;
 import com.dongsoop.dongsoop.report.handler.ContentDeletionHandler;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
 import com.dongsoop.dongsoop.report.repository.SanctionRepository;
-import java.time.LocalDateTime;
-import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -25,13 +26,11 @@ public class AsyncAutoSanctionService {
 
     private static final String AUTO_SANCTION_REASON = "부적절한 언어 사용";
     private static final String AUTO_SANCTION_DESCRIPTION = "자동 제재에 의한 게시글 삭제";
-
     private final SanctionRepository sanctionRepository;
     private final ContentDeletionHandler contentDeletionHandler;
     private final BoardContentService boardContentService;
     private final TextFilteringService textFilteringService;
     private final ReportRepository reportRepository;
-
     @Value("${admin.id}")
     private Long SYSTEM_ADMIN_ID;
 
@@ -55,7 +54,8 @@ public class AsyncAutoSanctionService {
     private void validateReportType(Report report) {
         if (ReportType.MEMBER.equals(report.getReportType())) {
             log.info("Member report excluded from auto processing - Report ID: {}", report.getId());
-            throw new IllegalStateException("Member reports are not subject to automatic processing");
+            report.markAsProcessedWithoutSanction();
+            reportRepository.save(report);
         }
     }
 
@@ -69,7 +69,9 @@ public class AsyncAutoSanctionService {
 
         if (!hasProfanity) {
             log.info("No profanity detected - Report ID: {}", report.getId());
-            throw new IllegalStateException("No profanity detected");
+            report.markAsProcessedWithoutSanction();
+            reportRepository.save(report);
+            return;
         }
 
         executeSanction(report);
