@@ -233,6 +233,7 @@ public class FCMServiceImpl implements FCMService {
         ApnsConfig apnsConfig = ApnsConfig.builder()
                 .setAps(Aps.builder()
                         .setBadge(badge)
+                        .setContentAvailable(true)
                         .build())
                 .build();
 
