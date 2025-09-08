@@ -235,6 +235,7 @@ public class FCMServiceImpl implements FCMService {
                         .setBadge(badge)
                         .setContentAvailable(true)
                         .build())
+                .putHeader("apns-priority", "10")
                 .build();
 
         MulticastMessage messages = MulticastMessage.builder()
