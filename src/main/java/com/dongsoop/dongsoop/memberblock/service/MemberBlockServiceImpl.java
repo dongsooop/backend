@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.memberblock.service;
 
+import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.member.entity.Member;
@@ -15,10 +16,12 @@ import com.dongsoop.dongsoop.memberblock.exception.BlockNotFoundException;
 import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepository;
 import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepositoryCustom;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MemberBlockServiceImpl implements MemberBlockService {
@@ -70,11 +73,16 @@ public class MemberBlockServiceImpl implements MemberBlockService {
     }
 
     private void sendBlockWebsocketEvent(Member blocker, Member blockedMember, BlockStatus blockStatus) {
-        redisChatRepository.findRoomByParticipants(blocker.getId(), blockedMember.getId())
-                .ifPresent(room -> {
-                    String roomId = room.getRoomId();
-                    chatService.sendBlockStatusToUser(roomId, blocker.getId(), blockStatus);
-                    chatService.sendBlockStatusToUser(roomId, blockedMember.getId(), BlockStatus.BLOCKED_BY_OTHER);
-                });
+        ChatRoom room = redisChatRepository.findRoomByParticipants(blocker.getId(), blockedMember.getId()).orElse(null);
+
+        if (room == null) {
+            log.info("채팅방이 존재하지 않습니다. 차단만 처리됩니다. Blocker: {}, Blocked: {}",
+                    blocker.getId(), blockedMember.getId());
+            return;
+        }
+
+        String roomId = room.getRoomId();
+        chatService.sendBlockStatusToUser(roomId, blocker.getId(), blockStatus);
+        chatService.sendBlockStatusToUser(roomId, blockedMember.getId(), BlockStatus.BLOCKED_BY_OTHER);
     }
 }
