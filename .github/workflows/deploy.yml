@@ -34,7 +34,7 @@ jobs:
       # main 브랜치일 때만 아티팩트 업로드
       - name: Upload build artifact
         if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: app-image-build
           path: .
@@ -46,7 +46,7 @@ jobs:
 
     steps:
       - name: Download build artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: app-image-build
 
