@@ -52,6 +52,7 @@ public class JwtLogoutHandler implements LogoutHandler {
 
         device.bindMember(null);
         fcmService.subscribeTopic(List.of(deviceToken), anonymousTopic);
+        fcmService.updateNotificationBadge(List.of(deviceToken), 0);
     }
 
     private String extractTokenFromHeader(HttpServletRequest request) throws TokenNotFoundException {
