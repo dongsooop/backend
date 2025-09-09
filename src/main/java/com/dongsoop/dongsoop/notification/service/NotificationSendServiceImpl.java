@@ -77,7 +77,7 @@ public class NotificationSendServiceImpl implements NotificationSendService {
         Long notificationId = details.getId();
         String title = details.getTitle();
         String body = details.getBody();
-        NotificationType type = details.getType();
+        String type = details.getType().name();
         String value = details.getValue();
 
         // 알림 객체 생성
