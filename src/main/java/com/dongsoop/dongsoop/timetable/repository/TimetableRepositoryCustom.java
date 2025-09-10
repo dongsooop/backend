@@ -26,5 +26,5 @@ public interface TimetableRepositoryCustom {
 
     List<TodayTimetable> getTimetableNotificationDtoList(Year year, SemesterType semester, DayOfWeek week);
 
-    List<HomeTimetable> searchHomeTimetable(Long memberId, Year year, SemesterType semester);
+    List<HomeTimetable> searchHomeTimetable(Long memberId, Year year, SemesterType semester, DayOfWeek week);
 }

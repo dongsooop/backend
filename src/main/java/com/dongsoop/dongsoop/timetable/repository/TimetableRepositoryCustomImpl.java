@@ -109,7 +109,7 @@ public class TimetableRepositoryCustomImpl implements TimetableRepositoryCustom 
     }
 
     @Override
-    public List<HomeTimetable> searchHomeTimetable(Long memberId, Year year, SemesterType semester) {
+    public List<HomeTimetable> searchHomeTimetable(Long memberId, Year year, SemesterType semester, DayOfWeek week) {
         return queryFactory
                 .selectDistinct(Projections.constructor(
                         HomeTimetable.class,
@@ -120,7 +120,8 @@ public class TimetableRepositoryCustomImpl implements TimetableRepositoryCustom 
                 .where(timetable.member.id.eq(memberId)
                         .and(timetable.year.eq(year))
                         .and(timetable.semester.eq(semester))
-                        .and(timetable.isDeleted.isFalse()))
+                        .and(timetable.isDeleted.isFalse())
+                        .and(timetable.week.eq(week)))
                 .orderBy(timetable.startAt.asc(), timetable.endAt.asc())
                 .limit(3)
                 .fetch();

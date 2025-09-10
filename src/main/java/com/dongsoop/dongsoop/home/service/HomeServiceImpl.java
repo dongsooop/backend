@@ -13,6 +13,7 @@ import com.dongsoop.dongsoop.recruitment.repository.RecruitmentRepository;
 import com.dongsoop.dongsoop.timetable.dto.HomeTimetable;
 import com.dongsoop.dongsoop.timetable.entity.SemesterType;
 import com.dongsoop.dongsoop.timetable.repository.TimetableRepository;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.Year;
 import java.util.Collections;
@@ -52,15 +53,17 @@ public class HomeServiceImpl implements HomeService {
         Year year = Year.now();
         int month = today.getMonthValue();
         SemesterType semester = SemesterType.fromMonth(month);
+        DayOfWeek week = today.getDayOfWeek();
 
         CompletableFuture<List<HomeTimetable>> fTimetable = call(
-                () -> timetableRepository.searchHomeTimetable(requesterId, year, semester));
+                () -> timetableRepository.searchHomeTimetable(requesterId, year, semester, week));
         CompletableFuture<List<HomeSchedule>> fMemberSchedules = call(
                 () -> memberScheduleRepository.searchHomeSchedule(requesterId, today));
         CompletableFuture<List<HomeSchedule>> fOfficialSchedules = call(
                 () -> officialScheduleRepository.searchHomeSchedule(today));
         CompletableFuture<List<HomeNotice>> fNotices = call(() -> noticeRepository.searchHomeNotices(departmentType));
-        CompletableFuture<List<HomeRecruitment>> fRecruitments = call(recruitmentRepository::searchHomeRecruitment);
+        CompletableFuture<List<HomeRecruitment>> fRecruitments = call(
+                () -> recruitmentRepository.searchHomeRecruitment(departmentType.name()));
 
         // 모든 Future 완료 대기
         CompletableFuture.allOf(

@@ -238,6 +238,82 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
                 WHERE NOT p.is_deleted
                     AND p.end_at > NOW()
                     AND p.start_at <= NOW()
+                    AND d.id = :departmentName
+                GROUP BY p.id)
+            
+                UNION ALL
+            
+                (SELECT
+                    s.id AS id,
+                    (SELECT COUNT(DISTINCT subsa.member_id)::BIGINT
+                        FROM study_apply subsa
+                        WHERE subsa.study_board_id = s.id) AS volunteer,
+                    s.title AS title,
+                    s.content AS content,
+                    s.tags AS tags,
+                    s.created_at AS createdAt,
+                    'STUDY' AS type
+                FROM study_board s
+                LEFT JOIN study_board_department sd ON s.id = sd.study_board_id
+                LEFT JOIN department d ON sd.department_id = d.id
+                WHERE NOT s.is_deleted
+                    AND s.end_at > NOW()
+                    AND s.start_at <= NOW()
+                    AND d.id = :departmentName
+                GROUP BY s.id)
+            
+                UNION ALL
+            
+                (SELECT
+                    t.id AS id,
+                    (SELECT COUNT(DISTINCT subta.member_id)::BIGINT
+                        FROM tutoring_apply subta
+                        WHERE subta.tutoring_board_id = t.id) AS volunteer,
+                    t.title AS title,
+                    t.content AS content,
+                    t.tags AS tags,
+                    t.created_at AS createdAt,
+                    'TUTORING' AS type
+                FROM tutoring_board t
+                LEFT JOIN department d ON t.department_id = d.id
+                WHERE NOT t.is_deleted
+                    AND t.end_at > NOW()
+                    AND t.start_at <= NOW()
+                    AND d.id = :departmentName
+                GROUP BY t.id, d.name)
+            ) AS combined_results
+            ORDER BY combined_results.createdAt DESC
+            LIMIT 3
+            """,
+            nativeQuery = true
+    )
+    List<HomeRecruitment> searchHomeRecruitment(String departmentName);
+
+    /**
+     * 홈 화면에 표시할 모집 게시판 목록을 조회합니다. (최신 3개)
+     *
+     * @return 개설한 모집 게시판 목록
+     */
+    @Query(value = """
+            SELECT
+                id, volunteer, title, content, tags, type
+            FROM (
+                (SELECT
+                    p.id AS id,
+                    (SELECT COUNT(DISTINCT subpa.member_id)::BIGINT
+                        FROM project_apply subpa
+                        WHERE subpa.project_board_id = p.id) AS volunteer,
+                    p.title AS title,
+                    p.content AS content,
+                    p.tags AS tags,
+                    p.created_at AS createdAt,
+                    'PROJECT' AS type
+                FROM project_board p
+                LEFT JOIN project_board_department pd ON p.id = pd.project_board_id
+                LEFT JOIN department d ON pd.department_id = d.id
+                WHERE NOT p.is_deleted
+                    AND p.end_at > NOW()
+                    AND p.start_at <= NOW()
                 GROUP BY p.id)
             
                 UNION ALL
