@@ -67,8 +67,13 @@ public final class ChatCommonUtils {
     public static String createContactMappingKey(Long userId, Long targetUserId, Object boardType, Long boardId) {
         Long user1 = Math.min(userId, targetUserId);
         Long user2 = Math.max(userId, targetUserId);
-        String typeStr = boardType.toString(); // RecruitmentType.PROJECT 또는 MarketplaceType.SELL
+        String typeStr = extractTypeName(boardType);
         return String.format("%s:%d:%d:%s:%d", CONTACT_MAPPING_KEY_PREFIX, user1, user2, typeStr, boardId);
+    }
+
+    private static String extractTypeName(Object boardType) {
+        boolean isEnum = boardType instanceof Enum<?>;
+        return isEnum ? ((Enum<?>) boardType).name() : boardType.toString();
     }
 
     public static String findExistingContactRoomId(RedisTemplate<String, Object> redisTemplate,
