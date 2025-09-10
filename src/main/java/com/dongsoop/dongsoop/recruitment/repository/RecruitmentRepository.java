@@ -220,16 +220,18 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
      */
     @Query(value = """
             SELECT
-                volunteer, title, content, tags
+                id, volunteer, title, content, tags, type
             FROM (
                 (SELECT
+                    p.id AS id,
                     (SELECT COUNT(DISTINCT subpa.member_id)::BIGINT
                         FROM project_apply subpa
                         WHERE subpa.project_board_id = p.id) AS volunteer,
                     p.title AS title,
                     p.content AS content,
                     p.tags AS tags,
-                    p.created_at AS createdAt
+                    p.created_at AS createdAt,
+                    'PROJECT' AS type
                 FROM project_board p
                 LEFT JOIN project_board_department pd ON p.id = pd.project_board_id
                 LEFT JOIN department d ON pd.department_id = d.id
@@ -241,13 +243,15 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
                 UNION ALL
             
                 (SELECT
+                    s.id AS id,
                     (SELECT COUNT(DISTINCT subsa.member_id)::BIGINT
                         FROM study_apply subsa
                         WHERE subsa.study_board_id = s.id) AS volunteer,
                     s.title AS title,
                     s.content AS content,
                     s.tags AS tags,
-                    s.created_at AS createdAt
+                    s.created_at AS createdAt,
+                    'STUDY' AS type
                 FROM study_board s
                 LEFT JOIN study_board_department sd ON s.id = sd.study_board_id
                 LEFT JOIN department d ON sd.department_id = d.id
@@ -259,13 +263,15 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
                 UNION ALL
             
                 (SELECT
+                    t.id AS id,
                     (SELECT COUNT(DISTINCT subta.member_id)::BIGINT
                         FROM tutoring_apply subta
                         WHERE subta.tutoring_board_id = t.id) AS volunteer,
                     t.title AS title,
                     t.content AS content,
                     t.tags AS tags,
-                    t.created_at AS createdAt
+                    t.created_at AS createdAt,
+                    'TUTORING' AS type
                 FROM tutoring_board t
                 LEFT JOIN department d ON t.department_id = d.id
                 WHERE NOT t.is_deleted
