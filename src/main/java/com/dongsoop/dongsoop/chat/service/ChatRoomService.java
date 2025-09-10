@@ -5,6 +5,8 @@ import com.dongsoop.dongsoop.chat.exception.BoardNotFoundException;
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
+import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
+import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepository;
 import com.dongsoop.dongsoop.recruitment.RecruitmentType;
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepository;
@@ -12,6 +14,7 @@ import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoard
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -23,6 +26,8 @@ public class ChatRoomService {
     private final ProjectBoardRepository projectBoardRepository;
     private final StudyBoardRepository studyBoardRepository;
     private final TutoringBoardRepository tutoringBoardRepository;
+    private final MarketplaceBoardRepository marketplaceBoardRepository;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     public ChatRoom createOneToOneChatRoom(Long userId, Long targetUserId, String title) {
         validateOneToOneChatCreation(userId, targetUserId);
@@ -99,16 +104,43 @@ public class ChatRoomService {
         return saveRoom(room);
     }
 
-    public ChatRoom createContactChatRoom(Long userId, Long targetUserId, RecruitmentType boardType, Long boardId,
+    public ChatRoom createContactChatRoom(Long userId, Long targetUserId, Object boardType, Long boardId,
                                           String boardTitle) {
         validateBoardExists(boardType, boardId);
 
+        String existingRoomId = ChatCommonUtils.findExistingContactRoomId(redisTemplate, userId, targetUserId,
+                boardType, boardId);
+        if (existingRoomId != null) {
+            return getChatRoomById(existingRoomId);
+        }
+
         String title = String.format("[문의] %s", boardTitle);
         ChatRoom room = createNewOneToOneRoom(userId, targetUserId, title);
+
+        ChatCommonUtils.saveContactRoomMapping(redisTemplate, userId, targetUserId, boardType, boardId,
+                room.getRoomId());
+
         return saveRoom(room);
     }
 
-    private void validateBoardExists(RecruitmentType boardType, Long boardId) {
+    private void validateBoardExists(Object boardType, Long boardId) {
+        boolean isRecruitmentType = boardType instanceof RecruitmentType;
+        boolean isMarketplaceType = boardType instanceof MarketplaceType;
+
+        if (isRecruitmentType) {
+            validateRecruitmentBoard((RecruitmentType) boardType, boardId);
+            return;
+        }
+
+        if (isMarketplaceType) {
+            validateMarketplaceBoard(boardId);
+            return;
+        }
+
+        throw new IllegalArgumentException("지원하지 않는 게시판 타입입니다.");
+    }
+
+    private void validateRecruitmentBoard(RecruitmentType boardType, Long boardId) {
         boolean projectExists = boardType == RecruitmentType.PROJECT && projectBoardRepository.existsById(boardId);
         boolean studyExists = boardType == RecruitmentType.STUDY && studyBoardRepository.existsById(boardId);
         boolean tutoringExists = boardType == RecruitmentType.TUTORING && tutoringBoardRepository.existsById(boardId);
@@ -116,6 +148,14 @@ public class ChatRoomService {
         boolean boardExists = projectExists || studyExists || tutoringExists;
 
         if (!boardExists) {
+            throw new BoardNotFoundException();
+        }
+    }
+
+    private void validateMarketplaceBoard(Long boardId) {
+        boolean marketplaceExists = marketplaceBoardRepository.existsById(boardId);
+
+        if (!marketplaceExists) {
             throw new BoardNotFoundException();
         }
     }
