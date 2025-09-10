@@ -60,7 +60,8 @@ public class HomeServiceImpl implements HomeService {
         CompletableFuture<List<HomeSchedule>> fOfficialSchedules = call(
                 () -> officialScheduleRepository.searchHomeSchedule(today));
         CompletableFuture<List<HomeNotice>> fNotices = call(() -> noticeRepository.searchHomeNotices(departmentType));
-        CompletableFuture<List<HomeRecruitment>> fRecruitments = call(recruitmentRepository::searchHomeRecruitment);
+        CompletableFuture<List<HomeRecruitment>> fRecruitments = call(
+                () -> recruitmentRepository.searchHomeRecruitment(departmentType.name()));
 
         // 모든 Future 완료 대기
         CompletableFuture.allOf(
