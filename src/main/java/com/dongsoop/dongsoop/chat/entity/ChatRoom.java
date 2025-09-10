@@ -158,4 +158,14 @@ public class ChatRoom {
         }
         return kickedUsers;
     }
+
+    public String getRoomType() {
+        if (title != null && title.startsWith("[문의]")) {
+            return "contact";
+        }
+        if (isGroupChat) {
+            return "group";
+        }
+        return "oneToOne";
+    }
 }
