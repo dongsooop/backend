@@ -95,6 +95,7 @@ public class TimetableRepositoryCustomImpl implements TimetableRepositoryCustom 
                 .selectDistinct(Projections.constructor(TodayTimetable.class,
                         timetable.name,
                         timetable.startAt,
+                        timetable.endAt,
                         member.id))
                 .from(timetable)
                 .innerJoin(timetable.member, member)
@@ -104,7 +105,7 @@ public class TimetableRepositoryCustomImpl implements TimetableRepositoryCustom 
                         .and(timetable.semester.eq(semester))
                         .and(timetable.week.eq(week))
                         .and(timetable.isDeleted.isFalse()))
-                .orderBy(timetable.week.asc(), timetable.startAt.asc())
+                .orderBy(timetable.startAt.asc(), timetable.endAt.asc())
                 .fetch();
     }
 
