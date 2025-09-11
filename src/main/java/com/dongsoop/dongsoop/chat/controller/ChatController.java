@@ -172,7 +172,18 @@ public class ChatController {
                 .unreadCount(unreadCount)
                 .lastActivityAt(room.getLastActivityAt())
                 .isGroupChat(room.isGroupChat())
+                .roomType(determineRoomType(room))
                 .build();
+    }
+
+    private String determineRoomType(ChatRoom room) {
+        if (room.getTitle() != null && room.getTitle().startsWith("[문의]")) {
+            return "contact";
+        }
+        if (room.isGroupChat()) {
+            return "group";
+        }
+        return "oneToOne";
     }
 
     private Long getCurrentUserId() {

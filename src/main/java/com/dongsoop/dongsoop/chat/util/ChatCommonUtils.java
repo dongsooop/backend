@@ -3,10 +3,14 @@ package com.dongsoop.dongsoop.chat.util;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.MessageType;
 import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
+import com.dongsoop.dongsoop.recruitment.RecruitmentType;
+import org.springframework.data.redis.core.RedisTemplate;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 public final class ChatCommonUtils {
+    private static final String CONTACT_MAPPING_KEY_PREFIX = "contact_mapping";
 
     private ChatCommonUtils() {
     }
@@ -60,5 +64,55 @@ public final class ChatCommonUtils {
 
     public static boolean isEmpty(String str) {
         return str == null || str.trim().isEmpty();
+    }
+
+    public static String createContactMappingKey(Long userId, Long targetUserId, RecruitmentType boardType, Long boardId) {
+        Long user1 = Math.min(userId, targetUserId);
+        Long user2 = Math.max(userId, targetUserId);
+        String typeStr = boardType.name();
+        return String.format("%s:%d:%d:%s:%d", CONTACT_MAPPING_KEY_PREFIX, user1, user2, typeStr, boardId);
+    }
+
+    public static String findExistingContactRoomId(RedisTemplate<String, Object> redisTemplate,
+                                                   Long userId, Long targetUserId,
+                                                   RecruitmentType boardType, Long boardId) {
+        String mappingKey = createContactMappingKey(userId, targetUserId, boardType, boardId);
+        Object result = redisTemplate.opsForValue().get(mappingKey);
+
+        if (result instanceof String) {
+            return (String) result;
+        }
+        return null;
+    }
+
+    public static void saveContactRoomMapping(RedisTemplate<String, Object> redisTemplate,
+                                              Long userId, Long targetUserId,
+                                              RecruitmentType boardType, Long boardId, String roomId) {
+        String mappingKey = createContactMappingKey(userId, targetUserId, boardType, boardId);
+
+        // 기존: boardInfo → roomId 매핑
+        redisTemplate.opsForValue().set(mappingKey, roomId);
+
+        // 추가: roomId → boardInfo 역매핑
+        String reverseMappingKey = "room_to_contact:" + roomId;
+        String boardInfo = String.format("%d:%d:%s:%d",
+                Math.min(userId, targetUserId),
+                Math.max(userId, targetUserId),
+                boardType.name(),
+                boardId);
+        redisTemplate.opsForValue().set(reverseMappingKey, boardInfo);
+    }
+
+    public static void deleteContactRoomMapping(RedisTemplate<String, Object> redisTemplate, String roomId) {
+        // 역매핑에서 boardInfo 조회
+        String reverseMappingKey = "room_to_contact:" + roomId;
+        String boardInfo = (String) redisTemplate.opsForValue().get(reverseMappingKey);
+
+        if (boardInfo != null) {
+            // 원래 매핑 키 생성 후 삭제
+            String originalMappingKey = CONTACT_MAPPING_KEY_PREFIX + ":" + boardInfo;
+            redisTemplate.delete(originalMappingKey);
+            redisTemplate.delete(reverseMappingKey);
+        }
     }
 }

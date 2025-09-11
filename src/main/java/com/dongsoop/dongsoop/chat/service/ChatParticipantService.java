@@ -7,11 +7,12 @@ import com.dongsoop.dongsoop.chat.exception.KickedUserInviteException;
 import com.dongsoop.dongsoop.chat.exception.UserAlreadyInRoomException;
 import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -44,6 +45,14 @@ public class ChatParticipantService {
     public void leaveChatRoom(String roomId, Long userId,
                               ChatRoomService chatRoomService, ChatMessageService chatMessageService) {
         ChatRoom room = chatRoomService.getChatRoomById(roomId);
+
+        boolean isContactRoom = room.getTitle() != null && room.getTitle().startsWith("[문의]");
+
+        if (isContactRoom) {
+            chatRoomService.handleContactRoomLeave(roomId, userId);
+            chatMessageService.createAndSaveSystemMessage(roomId, userId, MessageType.LEAVE);
+            return;
+        }
 
         processUserLeaveWithMessage(room, roomId, userId, chatMessageService);
         chatRoomService.saveRoom(room);

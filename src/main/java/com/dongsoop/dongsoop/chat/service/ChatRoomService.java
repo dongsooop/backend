@@ -5,14 +5,17 @@ import com.dongsoop.dongsoop.chat.exception.BoardNotFoundException;
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
+import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepository;
 import com.dongsoop.dongsoop.recruitment.RecruitmentType;
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoardRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.Set;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +26,8 @@ public class ChatRoomService {
     private final ProjectBoardRepository projectBoardRepository;
     private final StudyBoardRepository studyBoardRepository;
     private final TutoringBoardRepository tutoringBoardRepository;
+    private final MarketplaceBoardRepository marketplaceBoardRepository;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     public ChatRoom createOneToOneChatRoom(Long userId, Long targetUserId, String title) {
         validateOneToOneChatCreation(userId, targetUserId);
@@ -42,7 +47,7 @@ public class ChatRoomService {
 
     public List<ChatRoom> getRoomsForUserId(Long userId) {
         List<ChatRoom> allRooms = redisChatRepository.findRoomsByUserId(userId);
-        return filterNotKickedRooms(allRooms, userId);
+        return filterAccessibleRooms(allRooms, userId);
     }
 
     public void enterChatRoom(String roomId, Long userId) {
@@ -68,6 +73,19 @@ public class ChatRoomService {
         if (roomEmpty) {
             deleteRoom(room.getRoomId());
         }
+    }
+
+    public void handleContactRoomLeave(String roomId, Long userId) {
+        ChatRoom room = getChatRoomById(roomId);
+        ChatCommonUtils.deleteContactRoomMapping(redisTemplate, roomId);
+        processUserLeaveWithoutKick(room, userId);
+        saveRoom(room);
+    }
+
+    private void processUserLeaveWithoutKick(ChatRoom room, Long userId) {
+        room.getParticipants().remove(userId);
+        room.getParticipantJoinTimes().remove(userId);
+        room.updateActivity();
     }
 
     private void validateOneToOneChatCreation(Long userId, Long targetUserId) {
@@ -101,14 +119,22 @@ public class ChatRoomService {
 
     public ChatRoom createContactChatRoom(Long userId, Long targetUserId, RecruitmentType boardType, Long boardId,
                                           String boardTitle) {
-        validateBoardExists(boardType, boardId);
+        validateRecruitmentBoard(boardType, boardId);
+
+        String existingRoomId = ChatCommonUtils.findExistingContactRoomId(redisTemplate, userId, targetUserId, boardType, boardId);
+        if (existingRoomId != null) {
+            return getChatRoomById(existingRoomId);
+        }
 
         String title = String.format("[문의] %s", boardTitle);
         ChatRoom room = createNewOneToOneRoom(userId, targetUserId, title);
+
+        ChatCommonUtils.saveContactRoomMapping(redisTemplate, userId, targetUserId, boardType, boardId, room.getRoomId());
+
         return saveRoom(room);
     }
 
-    private void validateBoardExists(RecruitmentType boardType, Long boardId) {
+    private void validateRecruitmentBoard(RecruitmentType boardType, Long boardId) {
         boolean projectExists = boardType == RecruitmentType.PROJECT && projectBoardRepository.existsById(boardId);
         boolean studyExists = boardType == RecruitmentType.STUDY && studyBoardRepository.existsById(boardId);
         boolean tutoringExists = boardType == RecruitmentType.TUTORING && tutoringBoardRepository.existsById(boardId);
@@ -124,10 +150,17 @@ public class ChatRoomService {
         return ChatRoom.createWithParticipantsAndTitle(participants, creatorId, title);
     }
 
-    private List<ChatRoom> filterNotKickedRooms(List<ChatRoom> allRooms, Long userId) {
+    private List<ChatRoom> filterAccessibleRooms(List<ChatRoom> allRooms, Long userId) {
         return allRooms.stream()
-                .filter(room -> !room.isKicked(userId))
+                .filter(room -> isUserAccessibleToRoom(room, userId))
                 .toList();
+    }
+
+    private boolean isUserAccessibleToRoom(ChatRoom room, Long userId) {
+        boolean isKicked = room.isKicked(userId);
+        boolean isParticipant = room.getParticipants().contains(userId);
+
+        return !isKicked && isParticipant;
     }
 
     private void updateRoomTitleIfNeeded(ChatRoom existingRoom, String requestedTitle) {

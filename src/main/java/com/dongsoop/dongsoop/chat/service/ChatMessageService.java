@@ -5,17 +5,20 @@ import com.dongsoop.dongsoop.chat.entity.MessageType;
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
+import com.dongsoop.dongsoop.member.service.MemberService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class ChatMessageService {
     private final RedisChatRepository redisChatRepository;
     private final ChatValidator chatValidator;
+    private final MemberService memberService;
 
     public ChatMessage processMessage(ChatMessage message) {
         ChatMessage enrichedMessage = chatValidator.validateAndEnrichMessage(message);
@@ -76,23 +79,39 @@ public class ChatMessageService {
 
     public String getLastMessageText(String roomId) {
         ChatMessage lastMessage = redisChatRepository.findLastMessageByRoomId(roomId);
-        
+
         if (lastMessage == null) {
             return null;
         }
-        
+
         return lastMessage.getContent();
     }
 
     private ChatMessage buildSystemMessage(String roomId, Long userId, MessageType type) {
+        String content = createSystemMessageContent(userId, type);
+
         return ChatMessage.builder()
                 .messageId(ChatCommonUtils.generateMessageId())
                 .roomId(roomId)
                 .senderId(userId)
-                .content(ChatCommonUtils.createSystemMessageContent(userId))
+                .content(content)
                 .timestamp(ChatCommonUtils.getCurrentTime())
                 .type(type)
                 .build();
+    }
+
+    private String createSystemMessageContent(Long userId, MessageType type) {
+        String nickname = memberService.getNicknameById(userId);
+
+        if (type == MessageType.LEAVE) {
+            return nickname + "님이 나갔습니다.";
+        }
+
+        if (type == MessageType.ENTER) {
+            return nickname + "님이 입장했습니다.";
+        }
+
+        return nickname;
     }
 
     private ChatMessage enrichMessageWithUserData(ChatMessage message, Long userId, String roomId) {

@@ -18,4 +18,5 @@ public class ChatRoomListResponse {
     private int unreadCount;
     private LocalDateTime lastActivityAt;
     private boolean isGroupChat;
+    private String roomType;
 }
