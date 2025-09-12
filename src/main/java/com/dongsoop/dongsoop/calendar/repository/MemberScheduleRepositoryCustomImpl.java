@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.calendar.repository;
 
 import com.dongsoop.dongsoop.calendar.dto.HomeSchedule;
+import com.dongsoop.dongsoop.calendar.dto.ScheduleType;
 import com.dongsoop.dongsoop.calendar.dto.TodaySchedule;
 import com.dongsoop.dongsoop.calendar.entity.MemberSchedule;
 import com.dongsoop.dongsoop.calendar.entity.QMemberSchedule;
@@ -69,7 +70,8 @@ public class MemberScheduleRepositoryCustomImpl implements MemberScheduleReposit
                         HomeSchedule.class,
                         memberSchedule.title,
                         memberSchedule.startAt,
-                        memberSchedule.endAt))
+                        memberSchedule.endAt,
+                        Expressions.constant(ScheduleType.MEMBER)))
                 .from(memberSchedule)
                 .innerJoin(memberSchedule.member, member)
                 .where(startAtDate.eq(date)

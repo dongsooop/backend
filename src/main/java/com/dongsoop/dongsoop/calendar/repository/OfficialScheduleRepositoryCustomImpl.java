@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.calendar.repository;
 
 import com.dongsoop.dongsoop.calendar.dto.HomeSchedule;
+import com.dongsoop.dongsoop.calendar.dto.ScheduleType;
 import com.dongsoop.dongsoop.calendar.entity.OfficialSchedule;
 import com.dongsoop.dongsoop.calendar.entity.QOfficialSchedule;
 import com.querydsl.core.types.Projections;
@@ -56,7 +57,8 @@ public class OfficialScheduleRepositoryCustomImpl implements OfficialScheduleRep
                         HomeSchedule.class,
                         officialSchedule.title,
                         officialSchedule.startAt,
-                        officialSchedule.endAt))
+                        officialSchedule.endAt,
+                        Expressions.constant(ScheduleType.OFFICIAL)))
                 .from(officialSchedule)
                 .where(startAtDate.eq(date))
                 .fetch();
