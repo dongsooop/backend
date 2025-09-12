@@ -8,13 +8,14 @@ public record HomeSchedule(
 
         String title,
         LocalTime startAt,
-        LocalTime endAt
+        LocalTime endAt,
+        ScheduleType type
 ) {
-    public HomeSchedule(String title, LocalDateTime startAt, LocalDateTime endAt) {
-        this(title, startAt.toLocalTime(), endAt.toLocalTime());
+    public HomeSchedule(String title, LocalDateTime startAt, LocalDateTime endAt, ScheduleType type) {
+        this(title, startAt.toLocalTime(), endAt.toLocalTime(), type);
     }
 
-    public HomeSchedule(String title, LocalDate startAt, LocalDate endAt) {
-        this(title, LocalTime.MIN, LocalTime.MAX);
+    public HomeSchedule(String title, LocalDate startAt, LocalDate endAt, ScheduleType type) {
+        this(title, LocalTime.MIN, LocalTime.MAX, type);
     }
 }
