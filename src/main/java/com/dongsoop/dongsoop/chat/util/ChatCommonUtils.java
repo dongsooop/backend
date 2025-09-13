@@ -4,16 +4,15 @@ import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.MessageType;
 import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
 import com.dongsoop.dongsoop.recruitment.RecruitmentType;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Component;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
@@ -23,9 +22,8 @@ public class ChatCommonUtils {
     private static final String RECRUITMENT_END_AT_PREFIX = "recruitment:room:";
     private static final String END_AT_SUFFIX = ":end_at";
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-    
-    private final RedisTemplate<String, String> redisTemplate;
 
+    private final RedisTemplate<String, String> redisTemplate;
 
 
     public static void validatePositiveUserId(Long userId) {
@@ -79,7 +77,8 @@ public class ChatCommonUtils {
         return str == null || str.trim().isEmpty();
     }
 
-    public static String createContactMappingKey(Long userId, Long targetUserId, RecruitmentType boardType, Long boardId) {
+    public static String createContactMappingKey(Long userId, Long targetUserId, RecruitmentType boardType,
+                                                 Long boardId) {
         Long user1 = Math.min(userId, targetUserId);
         Long user2 = Math.max(userId, targetUserId);
         String typeStr = boardType.name();
@@ -132,21 +131,31 @@ public class ChatCommonUtils {
     public void saveRecruitmentEndAt(String roomId, LocalDateTime endAt) {
         String key = buildEndAtKey(roomId);
         String endAtStr = endAt.format(FORMATTER);
-        
-        Duration ttl = Duration.between(LocalDateTime.now(), endAt.plusDays(1));
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expiryTime = endAt.plusDays(1);
+
+        long secondsBetween = Duration.between(now, expiryTime).toSeconds();
+        long ttlInSeconds = Math.max(1L, secondsBetween);
+
+        Duration ttl = Duration.ofSeconds(ttlInSeconds);
+
+        if (secondsBetween < 1) {
+            log.warn("saveRecruitmentEndAt called with past endAt: roomId={}, endAt={}. Setting minimal TTL.", roomId,
+                    endAt);
+        }
+
         redisTemplate.opsForValue().set(key, endAtStr, ttl);
-        
-        log.info("모집 채팅방 종료일 저장: roomId={}, endAt={}", roomId, endAt);
+        log.info("Group ChatRoom EndDay Save: roomId={}, endAt={}, ttlSeconds={}", roomId, endAt, ttl.toSeconds());
     }
 
     public Optional<LocalDateTime> getRecruitmentEndAt(String roomId) {
         String key = buildEndAtKey(roomId);
         String endAtStr = redisTemplate.opsForValue().get(key);
-        
+
         if (endAtStr == null) {
             return Optional.empty();
         }
-        
+
         return Optional.of(LocalDateTime.parse(endAtStr, FORMATTER));
     }
 
