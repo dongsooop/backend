@@ -133,7 +133,7 @@ public class ChatCommonUtils {
         String key = buildEndAtKey(roomId);
         String endAtStr = endAt.format(FORMATTER);
         
-        Duration ttl = Duration.between(LocalDateTime.now(), endAt.plusDays(7));
+        Duration ttl = Duration.between(LocalDateTime.now(), endAt.plusDays(1));
         redisTemplate.opsForValue().set(key, endAtStr, ttl);
         
         log.info("모집 채팅방 종료일 저장: roomId={}, endAt={}", roomId, endAt);
