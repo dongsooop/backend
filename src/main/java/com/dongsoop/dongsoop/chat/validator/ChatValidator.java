@@ -166,8 +166,8 @@ public class ChatValidator {
 
     private void validateRecruitmentPeriod(String roomId) {
         Optional<LocalDateTime> endAt = chatCommonUtils.getRecruitmentEndAt(roomId);
-        
-        if (!endAt.isPresent()) {
+
+        if (endAt.isEmpty()) {
             return;
         }
 
