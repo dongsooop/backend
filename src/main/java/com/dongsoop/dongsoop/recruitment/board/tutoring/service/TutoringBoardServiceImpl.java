@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.recruitment.board.tutoring.service;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import com.dongsoop.dongsoop.chat.service.ChatService;
+import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
 import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
@@ -30,17 +31,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class TutoringBoardServiceImpl implements TutoringBoardService {
 
     private final TutoringBoardRepository tutoringBoardRepository;
-
     private final TutoringBoardRepositoryCustom tutoringBoardRepositoryCustom;
-
     private final TutoringApplyRepositoryCustom tutoringApplyRepositoryCustom;
-
     private final DepartmentRepository departmentRepository;
-
     private final MemberService memberService;
-
     private final ChatService chatService;
     private final ChatRoomService chatRoomService;
+    private final ChatCommonUtils chatCommonUtils;
 
     public List<RecruitmentOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType,
                                                                      Pageable pageable) {
@@ -55,19 +52,20 @@ public class TutoringBoardServiceImpl implements TutoringBoardService {
     @Transactional
     public TutoringBoard create(CreateTutoringBoardRequest request) {
         TutoringBoard tutoringBoard = transformToTutoringBoard(request);
-        return createAndLinkChatRoom(tutoringBoard);
+        TutoringBoard savedBoard = tutoringBoardRepository.save(tutoringBoard);
+        createAndLinkChatRoom(savedBoard);
+        return savedBoard;
     }
 
-    private TutoringBoard createAndLinkChatRoom(TutoringBoard tutoringBoard) {
+    private void createAndLinkChatRoom(TutoringBoard tutoringBoard) {
         Member author = tutoringBoard.getAuthor();
         String chatRoomTitle = String.format("[튜터링] %s", tutoringBoard.getTitle());
-
         Set<Long> initialParticipants = Set.of(author.getId());
 
         ChatRoom chatRoom = chatRoomService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
 
         tutoringBoard.assignChatRoom(chatRoom.getRoomId());
-        return tutoringBoardRepository.save(tutoringBoard);
+        chatCommonUtils.saveRecruitmentEndAt(chatRoom.getRoomId(), tutoringBoard.getEndAt());
     }
 
     public RecruitmentDetails getBoardDetailsById(Long boardId) {
