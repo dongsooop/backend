@@ -16,13 +16,16 @@ public abstract class RecruitmentBoard extends Board {
 
     @NotNull
     @Column(name = "start_at", nullable = false)
+    @Getter
     private LocalDateTime startAt;
 
     @NotNull
     @Column(name = "end_at", nullable = false)
+    @Getter
     private LocalDateTime endAt;
 
     @Column(name = "tags", length = RecruitmentValidationConstant.TAG_MAX_LENGTH, nullable = false)
+    @Getter
     private String tags;
 
     @Getter

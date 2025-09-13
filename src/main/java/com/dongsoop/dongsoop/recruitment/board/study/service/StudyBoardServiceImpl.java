@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.recruitment.board.study.service;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import com.dongsoop.dongsoop.chat.service.ChatService;
+import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
 import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
@@ -33,48 +34,43 @@ import org.springframework.transaction.annotation.Transactional;
 public class StudyBoardServiceImpl implements StudyBoardService {
 
     private final StudyBoardRepository studyBoardRepository;
-
     private final StudyBoardRepositoryCustom studyBoardRepositoryCustom;
-
     private final MemberService memberService;
-
     private final DepartmentRepository departmentRepository;
-
     private final StudyBoardDepartmentRepository studyBoardDepartmentRepository;
-
     private final StudyApplyRepositoryCustom studyApplyRepositoryCustom;
-
     private final ChatService chatService;
     private final ChatRoomService chatRoomService;
+    private final ChatCommonUtils chatCommonUtils;
 
     @Transactional
     public StudyBoard create(CreateStudyBoardRequest request) {
         StudyBoard studyBoardToSave = transformToStudyBoard(request);
         List<Department> departmentList = getDepartmentReferenceList(request.departmentTypeList());
 
-        StudyBoard studyBoard = createAndLinkChatRoom(studyBoardToSave);
+        StudyBoard savedBoard = studyBoardRepository.save(studyBoardToSave);
+        createAndLinkChatRoom(savedBoard);
+        
         List<StudyBoardDepartment> studyBoardDepartmentList = departmentList.stream()
                 .map(department -> {
-                    StudyBoardDepartmentId studyBoardDepartmentId = new StudyBoardDepartmentId(studyBoard, department);
+                    StudyBoardDepartmentId studyBoardDepartmentId = new StudyBoardDepartmentId(savedBoard, department);
                     return new StudyBoardDepartment(studyBoardDepartmentId);
                 })
                 .toList();
 
         studyBoardDepartmentRepository.saveAll(studyBoardDepartmentList);
-
-        return studyBoard;
+        return savedBoard;
     }
 
-    private StudyBoard createAndLinkChatRoom(StudyBoard studyBoard) {
+    private void createAndLinkChatRoom(StudyBoard studyBoard) {
         Member author = studyBoard.getAuthor();
         String chatRoomTitle = String.format("[스터디] %s", studyBoard.getTitle());
-
         Set<Long> initialParticipants = Set.of(author.getId());
 
         ChatRoom chatRoom = chatRoomService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
 
         studyBoard.assignChatRoom(chatRoom.getRoomId());
-        return studyBoardRepository.save(studyBoard);
+        chatCommonUtils.saveRecruitmentEndAt(chatRoom.getRoomId(), studyBoard.getEndAt());
     }
 
     public List<RecruitmentOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType, Pageable pageable) {

@@ -58,6 +58,11 @@ public class ChatService {
     }
 
     public void leaveChatRoom(String roomId, Long userId) {
+        ChatRoom room = chatRoomService.getChatRoomById(roomId);
+        
+        chatValidator.validateUserForRoom(roomId, userId);
+        chatValidator.validateManagerCanLeave(room, userId);
+        
         chatParticipantService.leaveChatRoom(roomId, userId, chatRoomService, chatMessageService);
     }
 
