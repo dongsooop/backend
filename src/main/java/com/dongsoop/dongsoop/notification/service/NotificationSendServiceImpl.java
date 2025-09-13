@@ -171,12 +171,15 @@ public class NotificationSendServiceImpl implements NotificationSendService {
     @Override
     @Transactional(readOnly = true)
     public void send(MemberNotification memberNotification) {
-        // 알림을 보낼 대상 회원들
+        // 알림을 보낼 대상 회원
         Long memberId = memberNotification.getId()
                 .getMember()
                 .getId();
 
         List<String> deviceByMemberId = memberDeviceService.getDeviceByMemberId(memberId);
+        if (deviceByMemberId.isEmpty()) {
+            return;
+        }
 
         NotificationDetails details = memberNotification.getId()
                 .getDetails();
