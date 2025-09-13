@@ -4,16 +4,29 @@ import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.MessageType;
 import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
 import com.dongsoop.dongsoop.recruitment.RecruitmentType;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 import java.util.UUID;
 
-public final class ChatCommonUtils {
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class ChatCommonUtils {
     private static final String CONTACT_MAPPING_KEY_PREFIX = "contact_mapping";
+    private static final String RECRUITMENT_END_AT_PREFIX = "recruitment:room:";
+    private static final String END_AT_SUFFIX = ":end_at";
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+    
+    private final RedisTemplate<String, String> redisTemplate;
 
-    private ChatCommonUtils() {
-    }
+
 
     public static void validatePositiveUserId(Long userId) {
         if (userId == null) {
@@ -114,5 +127,36 @@ public final class ChatCommonUtils {
             redisTemplate.delete(originalMappingKey);
             redisTemplate.delete(reverseMappingKey);
         }
+    }
+
+    public void saveRecruitmentEndAt(String roomId, LocalDateTime endAt) {
+        String key = buildEndAtKey(roomId);
+        String endAtStr = endAt.format(FORMATTER);
+        
+        Duration ttl = Duration.between(LocalDateTime.now(), endAt.plusDays(7));
+        redisTemplate.opsForValue().set(key, endAtStr, ttl);
+        
+        log.info("모집 채팅방 종료일 저장: roomId={}, endAt={}", roomId, endAt);
+    }
+
+    public Optional<LocalDateTime> getRecruitmentEndAt(String roomId) {
+        String key = buildEndAtKey(roomId);
+        String endAtStr = redisTemplate.opsForValue().get(key);
+        
+        if (endAtStr == null) {
+            return Optional.empty();
+        }
+        
+        return Optional.of(LocalDateTime.parse(endAtStr, FORMATTER));
+    }
+
+    public void removeRecruitmentInfo(String roomId) {
+        String key = buildEndAtKey(roomId);
+        redisTemplate.delete(key);
+        log.info("모집 채팅방 정보 삭제: roomId={}", roomId);
+    }
+
+    private String buildEndAtKey(String roomId) {
+        return RECRUITMENT_END_AT_PREFIX + roomId + END_AT_SUFFIX;
     }
 }
