@@ -2,7 +2,6 @@ package com.dongsoop.dongsoop.report.service;
 
 import com.dongsoop.dongsoop.report.dto.TextFilteringRequestDto;
 import com.dongsoop.dongsoop.report.dto.TextFilteringResponseDto;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -10,6 +9,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -30,10 +31,7 @@ public class TextFilteringService {
         TextFilteringRequestDto request = new TextFilteringRequestDto(text);
 
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Content-Type", "application/json");
-            headers.set("Authorization", "Bearer " + jwtSecretKey);
-
+            HttpHeaders headers = createHeaders();
             HttpEntity<TextFilteringRequestDto> httpEntity = new HttpEntity<>(request, headers);
 
             ResponseEntity<TextFilteringResponseDto> response = restTemplate.postForEntity(
@@ -46,13 +44,18 @@ public class TextFilteringService {
                 return false;
             }
 
-            return (body.getTitle() != null && body.getTitle().isHasProfanity()) ||
-                    (body.getTags() != null && body.getTags().isHasProfanity()) ||
-                    (body.getContent() != null && body.getContent().isHasProfanity());
+            return body.hasProfanity();
         } catch (Exception e) {
             log.error("Failed to call text filtering API", e);
             return false;
         }
+    }
+
+    private HttpHeaders createHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Content-Type", "application/json");
+        headers.set("Authorization", "Bearer " + jwtSecretKey);
+        return headers;
     }
 
     private String getSafeString(String value) {
