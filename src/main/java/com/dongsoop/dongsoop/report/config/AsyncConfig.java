@@ -1,4 +1,4 @@
-package com.dongsoop.dongsoop.common.config;
+package com.dongsoop.dongsoop.report.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
