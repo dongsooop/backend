@@ -117,7 +117,19 @@ public class BoardSearchService {
         }
     }
 
+    public Page<BoardDocument> searchNoticesByDepartment(String keyword, String authorName, Pageable pageable) {
+        String processedKeyword = preprocessKeyword(keyword);
+        if (processedKeyword.isEmpty()) {
+            return Page.empty(pageable);
+        }
 
+        try {
+            return boardSearchRepository.findNoticesByKeywordAndAuthorName(processedKeyword, authorName, pageable);
+        } catch (Exception e) {
+            logSearchError("searchNoticesByDepartment", processedKeyword, authorName, e);
+            return Page.empty(pageable);
+        }
+    }
 
     private void logSearchError(String operation, String keyword, String boardType, Exception e) {
         if (boardType != null) {
