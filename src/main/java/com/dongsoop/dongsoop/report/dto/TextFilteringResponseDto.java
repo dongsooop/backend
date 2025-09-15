@@ -16,4 +16,20 @@ public class TextFilteringResponseDto {
     public FieldResultDto getContent() {
         return content;
     }
+
+    public boolean hasProfanity() {
+        return hasTitleProfanity() || hasTagsProfanity() || hasContentProfanity();
+    }
+
+    private boolean hasTitleProfanity() {
+        return title != null && title.hasProfanity();
+    }
+
+    private boolean hasTagsProfanity() {
+        return tags != null && tags.hasProfanity();
+    }
+
+    private boolean hasContentProfanity() {
+        return content != null && content.hasProfanity();
+    }
 }
