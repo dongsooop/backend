@@ -18,4 +18,6 @@ public interface ReportRepositoryCustom {
     List<ReportSummaryResponse> findSummaryReportsByFilter(ReportFilterType filterType, Pageable pageable);
 
     Optional<Report> findActiveBanForMember(Long memberId, LocalDateTime currentTime, List<SanctionType> sanctionTypes);
+
+    List<Report> findUnprocessedReports(Pageable pageable);
 }

@@ -32,7 +32,7 @@ public class Report extends BaseEntity {
     private Long targetId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "reportReason", nullable = false)
     private ReportReason reportReason;
 
     @Column(length = 500)
@@ -57,6 +57,10 @@ public class Report extends BaseEntity {
     @Builder.Default
     private Boolean isProcessed = false;
 
+    @Column(name = "is_sanction_active", nullable = false)
+    @Builder.Default
+    private Boolean isSanctionActive = false;
+
     public void processSanction(Member admin, Member targetMember, Sanction sanction) {
         if (this.isProcessed) {
             throw new SanctionAlreadyExistsException(this.id);
@@ -65,6 +69,10 @@ public class Report extends BaseEntity {
         this.admin = admin;
         this.targetMember = targetMember;
         this.sanction = sanction;
+        this.isProcessed = true;
+    }
+
+    public void markAsProcessedWithoutSanction() {
         this.isProcessed = true;
     }
 }

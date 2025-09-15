@@ -21,10 +21,20 @@ import java.util.function.Consumer;
 @Slf4j
 public class SanctionExecutor {
 
-    private static final long WARNING_THRESHOLD = 3L;
-    private static final String AUTO_SUSPENSION_REASON = "경고 3회 누적으로 인한 자동 일시정지";
-    private static final String AUTO_SUSPENSION_DESCRIPTION = "경고 3회 누적으로 인한 자동 일시정지";
-    private static final int AUTO_SUSPENSION_DAYS = 7;
+    // 주의 누적 단계별 상수
+    private static final long WARNING_THRESHOLD_3 = 3L;
+    private static final long WARNING_THRESHOLD_5 = 5L;
+    private static final long WARNING_THRESHOLD_7 = 7L;
+
+    // 정지 기간 상수
+    private static final int SUSPENSION_DAYS_3 = 3;
+    private static final int SUSPENSION_DAYS_5 = 14;
+    private static final int SUSPENSION_DAYS_7 = 30;
+
+    // 제재 사유 상수
+    private static final String AUTO_SUSPENSION_DESCRIPTION_3 = "경고 3회 누적으로 인한 자동 3일 정지";
+    private static final String AUTO_SUSPENSION_DESCRIPTION_5 = "경고 5회 누적으로 인한 자동 14일 정지";
+    private static final String AUTO_SUSPENSION_DESCRIPTION_7 = "경고 7회 누적으로 인한 자동 30일 정지";
 
     private final ReportRepository reportRepository;
     private final MemberRepository memberRepository;
@@ -50,6 +60,8 @@ public class SanctionExecutor {
 
     private void executeWarning(Report report) {
         log.info("경고 제재 실행: {}", report.getId());
+
+        contentDeletionHandler.deleteContent(report);
         checkWarningAccumulation(report.getTargetMember());
     }
 
@@ -77,33 +89,70 @@ public class SanctionExecutor {
                 member.getId(),
                 SanctionType.WARNING
         );
+
+        log.info("회원 {} 주의 누적 횟수: {}회", member.getId(), warningCount);
         executeAutoSuspensionWhen(warningCount, member);
     }
 
     private void executeAutoSuspensionWhen(Long warningCount, Member member) {
-        if (warningCount >= WARNING_THRESHOLD) {
-            log.info("경고 {}회 누적으로 인한 자동 일시정지 실행: {}", WARNING_THRESHOLD, member.getId());
-            createAutoSuspensionReport(member.getId());
+        if (warningCount == WARNING_THRESHOLD_7) {
+            createAutoSuspension30Days(member.getId());
+            return;
+        }
+
+        if (warningCount == WARNING_THRESHOLD_5) {
+            createAutoSuspension14Days(member.getId());
+            return;
+        }
+
+        if (warningCount == WARNING_THRESHOLD_3) {
+            createAutoSuspension3Days(member.getId());
         }
     }
 
-    private void createAutoSuspensionReport(Long memberId) {
+    private void createAutoSuspension3Days(Long memberId) {
+        log.info("경고 3회 누적으로 인한 자동 3일 정지 실행: {}", memberId);
         Member memberRef = memberRepository.getReferenceById(memberId);
-        Sanction sanction = createAutoSuspensionSanction(memberRef);
+        Sanction sanction = createAutoSuspensionSanction(memberRef, SUSPENSION_DAYS_3,
+                AUTO_SUSPENSION_DESCRIPTION_3, AUTO_SUSPENSION_DESCRIPTION_3);
         sanctionRepository.save(sanction);
 
-        Report autoSuspensionReport = buildAutoSuspensionReport(memberRef, sanction);
+        Report autoSuspensionReport = buildAutoSuspensionReport(memberRef, sanction, AUTO_SUSPENSION_DESCRIPTION_3);
         reportRepository.save(autoSuspensionReport);
-        log.info("자동 일시정지 제재 생성 완료: 회원 ID {}", memberId);
+        log.info("자동 3일 정지 제재 생성 완료: 회원 ID {}", memberId);
     }
 
-    private Report buildAutoSuspensionReport(Member member, Sanction sanction) {
+    private void createAutoSuspension14Days(Long memberId) {
+        log.info("경고 5회 누적으로 인한 자동 14일 정지 실행: {}", memberId);
+        Member memberRef = memberRepository.getReferenceById(memberId);
+        Sanction sanction = createAutoSuspensionSanction(memberRef, SUSPENSION_DAYS_5,
+                AUTO_SUSPENSION_DESCRIPTION_5, AUTO_SUSPENSION_DESCRIPTION_5);
+        sanctionRepository.save(sanction);
+
+        Report autoSuspensionReport = buildAutoSuspensionReport(memberRef, sanction, AUTO_SUSPENSION_DESCRIPTION_5);
+        reportRepository.save(autoSuspensionReport);
+        log.info("자동 14일 정지 제재 생성 완료: 회원 ID {}", memberId);
+    }
+
+    private void createAutoSuspension30Days(Long memberId) {
+        log.info("경고 7회 누적으로 인한 자동 30일 정지 실행: {}", memberId);
+        Member memberRef = memberRepository.getReferenceById(memberId);
+        Sanction sanction = createAutoSuspensionSanction(memberRef, SUSPENSION_DAYS_7,
+                AUTO_SUSPENSION_DESCRIPTION_7, AUTO_SUSPENSION_DESCRIPTION_7);
+        sanctionRepository.save(sanction);
+
+        Report autoSuspensionReport = buildAutoSuspensionReport(memberRef, sanction, AUTO_SUSPENSION_DESCRIPTION_7);
+        reportRepository.save(autoSuspensionReport);
+        log.info("자동 30일 정지 제재 생성 완료: 회원 ID {}", memberId);
+    }
+
+    private Report buildAutoSuspensionReport(Member member, Sanction sanction, String description) {
         return Report.builder()
                 .reporter(member)
                 .reportType(ReportType.MEMBER)
                 .targetId(member.getId())
                 .reportReason(ReportReason.OTHER)
-                .description(AUTO_SUSPENSION_DESCRIPTION)
+                .description(description)
                 .targetUrl("/member/" + member.getId())
                 .admin(member)
                 .targetMember(member)
@@ -112,14 +161,14 @@ public class SanctionExecutor {
                 .build();
     }
 
-    private Sanction createAutoSuspensionSanction(Member member) {
+    private Sanction createAutoSuspensionSanction(Member member, int suspensionDays, String reason, String description) {
         return Sanction.builder()
                 .member(member)
                 .sanctionType(SanctionType.TEMPORARY_BAN)
-                .reason(AUTO_SUSPENSION_REASON)
+                .reason(reason)
                 .startDate(LocalDateTime.now())
-                .endDate(LocalDateTime.now().plusDays(AUTO_SUSPENSION_DAYS))
-                .description(AUTO_SUSPENSION_DESCRIPTION)
+                .endDate(LocalDateTime.now().plusDays(suspensionDays))
+                .description(description)
                 .build();
     }
 }
