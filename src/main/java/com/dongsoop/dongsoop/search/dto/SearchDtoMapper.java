@@ -23,6 +23,7 @@ public class SearchDtoMapper {
                 .marketplaceType(document.getMarketplaceType())
                 .noticeUrl(getNoticeUrlByBoardType(document))
                 .tags(document.getTags())
+                .price(document.getPrice())
                 .build();
     }
 
