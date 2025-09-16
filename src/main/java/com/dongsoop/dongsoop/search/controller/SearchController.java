@@ -56,8 +56,8 @@ public class SearchController {
             @RequestParam String keyword,
             @RequestParam String authorName,
             Pageable pageable) {
-        Page<BoardDocument> results = boardSearchService.searchNoticesByDepartment(keyword, authorName, pageable);
-        SearchResponse response = SearchDtoMapper.toSearchResponse(results);
+
+        SearchResponse response = boardSearchService.searchNoticesByDepartment(keyword, authorName, pageable);
         return ResponseEntity.ok(response);
     }
 }
