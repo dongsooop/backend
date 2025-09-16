@@ -1,7 +1,6 @@
 package com.dongsoop.dongsoop.search.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -41,19 +40,15 @@ public class BoardDocument {
     private String createdAt;
 
     @Field(name = "recruitment_start_at", type = FieldType.Date)
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private LocalDateTime recruitmentStartAt;
 
     @Field(name = "recruitment_end_at", type = FieldType.Date)
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private LocalDateTime recruitmentEndAt;
 
     @Field(name = "marketplace_status", type = FieldType.Keyword)
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String marketplaceStatus;
 
     @Field(name = "marketplace_type", type = FieldType.Keyword)
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String marketplaceType;
 
     @Field(name = "link", type = FieldType.Keyword)
@@ -61,11 +56,12 @@ public class BoardDocument {
     private String link;
 
     @Field(type = FieldType.Keyword)
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String tags;
 
+    @Field(type = FieldType.Integer)
+    private Long price;
+
     @JsonProperty("noticeUrl")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getNoticeUrl() {
         if (BoardType.NOTICE.getCode().equals(boardType)) {
             return link;
@@ -73,7 +69,6 @@ public class BoardDocument {
         return null;
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getContent() {
         if (BoardType.NOTICE.getCode().equals(boardType)) {
             return null;

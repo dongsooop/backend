@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.search.dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -16,22 +15,12 @@ public class BoardSearchResult {
     private Long boardId;
     private String authorName;
     private String createdAt;
-    
-    @JsonInclude(JsonInclude.Include.NON_NULL)
+
     private LocalDateTime recruitmentStartAt;
-    
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private LocalDateTime recruitmentEndAt;
-    
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String marketplaceStatus;
-    
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String marketplaceType;
-    
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String noticeUrl;
-    
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String tags;
+    private Long price;
 }

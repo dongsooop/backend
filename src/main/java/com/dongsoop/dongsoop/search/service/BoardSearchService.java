@@ -1,6 +1,8 @@
 package com.dongsoop.dongsoop.search.service;
 
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
+import com.dongsoop.dongsoop.search.dto.SearchDtoMapper;
+import com.dongsoop.dongsoop.search.dto.SearchResponse;
 import com.dongsoop.dongsoop.search.entity.BoardDocument;
 import com.dongsoop.dongsoop.search.entity.BoardType;
 import com.dongsoop.dongsoop.search.repository.BoardSearchRepository;
@@ -117,7 +119,27 @@ public class BoardSearchService {
         }
     }
 
+    public SearchResponse searchNoticesByDepartment(String keyword, String authorName, Pageable pageable) {
+        String processedKeyword = preprocessKeyword(keyword);
 
+        boolean isEmptyKeyword = processedKeyword.isEmpty();
+        if (isEmptyKeyword) {
+            return createEmptySearchResponse(pageable);
+        }
+
+        try {
+            Page<BoardDocument> results = boardSearchRepository.findNoticesByKeywordAndAuthorName(processedKeyword, authorName, pageable);
+            return SearchDtoMapper.toSearchResponse(results);
+        } catch (Exception e) {
+            logSearchError("searchNoticesByDepartment", processedKeyword, "notice", e);
+            return createEmptySearchResponse(pageable);
+        }
+    }
+
+    private SearchResponse createEmptySearchResponse(Pageable pageable) {
+        Page<BoardDocument> emptyPage = Page.empty(pageable);
+        return SearchDtoMapper.toSearchResponse(emptyPage);
+    }
 
     private void logSearchError(String operation, String keyword, String boardType, Exception e) {
         if (boardType != null) {

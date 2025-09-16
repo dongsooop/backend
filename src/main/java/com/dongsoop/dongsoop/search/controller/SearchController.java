@@ -50,4 +50,14 @@ public class SearchController {
         SearchResponse response = SearchDtoMapper.toSearchResponse(results);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/department-notice")
+    public ResponseEntity<SearchResponse> searchNoticesByDepartment(
+            @RequestParam String keyword,
+            @RequestParam String authorName,
+            Pageable pageable) {
+
+        SearchResponse response = boardSearchService.searchNoticesByDepartment(keyword, authorName, pageable);
+        return ResponseEntity.ok(response);
+    }
 }
