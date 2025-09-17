@@ -1,6 +1,13 @@
 package com.dongsoop.dongsoop.chat.controller;
 
-import com.dongsoop.dongsoop.chat.dto.*;
+import com.dongsoop.dongsoop.chat.dto.ChatRoomListResponse;
+import com.dongsoop.dongsoop.chat.dto.CreateChatRoomByAdminRequest;
+import com.dongsoop.dongsoop.chat.dto.CreateContactRoomRequest;
+import com.dongsoop.dongsoop.chat.dto.CreateGroupRoomRequest;
+import com.dongsoop.dongsoop.chat.dto.CreateRoomRequest;
+import com.dongsoop.dongsoop.chat.dto.InviteUserRequest;
+import com.dongsoop.dongsoop.chat.dto.KickUserRequest;
+import com.dongsoop.dongsoop.chat.dto.ReadStatusUpdateRequest;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
@@ -9,14 +16,20 @@ import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.role.entity.RoleType;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
@@ -56,6 +69,15 @@ public class ChatController {
         Long currentUserId = getCurrentUserId();
         Long targetUserId = request.getTargetUserId();
         ChatRoom createdRoom = chatRoomService.createOneToOneChatRoom(currentUserId, targetUserId, request.getTitle());
+        return ResponseEntity.ok(createdRoom);
+    }
+
+    @PostMapping("/room/admin")
+    @Secured(RoleType.ADMIN_ROLE)
+    public ResponseEntity<ChatRoom> createRoom(@RequestBody @Valid CreateChatRoomByAdminRequest request) {
+        Long currentUserId = request.sourceUserId();
+        Long targetUserId = request.targetUserId();
+        ChatRoom createdRoom = chatRoomService.createOneToOneChatRoom(currentUserId, targetUserId, request.title());
         return ResponseEntity.ok(createdRoom);
     }
 
