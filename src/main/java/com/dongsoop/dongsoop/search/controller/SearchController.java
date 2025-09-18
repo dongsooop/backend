@@ -22,21 +22,13 @@ public class SearchController {
 
     private final BoardSearchService boardSearchService;
 
-    @GetMapping
-    public ResponseEntity<SearchResponse> searchAll(
-            @RequestParam String keyword,
-            Pageable pageable) {
-        Page<BoardDocument> results = boardSearchService.searchAll(keyword, pageable);
-        SearchResponse response = SearchDtoMapper.toSearchResponse(results);
-        return ResponseEntity.ok(response);
-    }
-
     @GetMapping("/by-type")
     public ResponseEntity<SearchResponse> searchByType(
             @RequestParam String keyword,
             @RequestParam BoardType boardType,
+            @RequestParam(required = false) String departmentName,
             Pageable pageable) {
-        Page<BoardDocument> results = boardSearchService.searchByBoardType(keyword, boardType, pageable);
+        Page<BoardDocument> results = boardSearchService.searchByBoardType(keyword, boardType, departmentName, pageable);
         SearchResponse response = SearchDtoMapper.toSearchResponse(results);
         return ResponseEntity.ok(response);
     }
