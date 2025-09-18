@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.mailverify.service;
 
+import com.dongsoop.dongsoop.mailverify.exception.ReceiverMailNotAvailableException;
 import com.dongsoop.dongsoop.mailverify.exception.UnknownMailMessagingException;
 import com.dongsoop.dongsoop.mailverify.mailgenerator.MailTextGenerator;
 import jakarta.mail.MessagingException;
@@ -8,6 +9,7 @@ import java.time.Duration;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 
@@ -66,6 +68,8 @@ public abstract class VerifyMailSender {
 
         try {
             sendMessage(userEmail, verifyCode);
+        } catch (MailSendException exception) {
+            throw new ReceiverMailNotAvailableException(exception);
         } catch (MessagingException exception) {
             throw new UnknownMailMessagingException(exception);
         }
