@@ -8,6 +8,7 @@ import com.dongsoop.dongsoop.notification.dto.NotificationUnread;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.entity.NotificationDetails;
 import com.dongsoop.dongsoop.notification.repository.NotificationRepository;
+import com.google.firebase.messaging.AndroidConfig;
 import com.google.firebase.messaging.ApnsConfig;
 import com.google.firebase.messaging.Aps;
 import com.google.firebase.messaging.Message;
@@ -91,6 +92,11 @@ public class NotificationSendServiceImpl implements NotificationSendService {
                 .putCustomData("value", value)
                 .putCustomData("id", String.valueOf(notificationId));
 
+        AndroidConfig.Builder androidConfigBuilder = AndroidConfig.builder()
+                .putData("type", type)
+                .putData("value", value)
+                .putData("id", String.valueOf(notificationId));
+
         // 회원별 MulticastMessage 생성
         return memberIdList.stream().map(memberId -> {
                     Long unreadCount = unreadCountByMember.getOrDefault(memberId, 0L);
@@ -102,7 +108,7 @@ public class NotificationSendServiceImpl implements NotificationSendService {
                     }
 
                     return generateMulticastMessage(title, body, deviceList, notification, unreadCount,
-                            apnsConfigBuilder);
+                            apnsConfigBuilder, androidConfigBuilder);
                 })
                 .filter(Objects::nonNull);
     }
@@ -119,11 +125,13 @@ public class NotificationSendServiceImpl implements NotificationSendService {
     @Override
     public void send(String topic, NotificationSend notificationSend) {
         ApnsConfig apnsConfig = fcmService.getApnsConfig(notificationSend, null);
+        AndroidConfig androidConfig = fcmService.getAndroidConfig(notificationSend, null);
         Notification notification = fcmService.getNotification(notificationSend.title(), notificationSend.body());
         Message message = Message.builder()
                 .setTopic(topic)
                 .setNotification(notification)
                 .setApnsConfig(apnsConfig)
+                .setAndroidConfig(androidConfig)
                 .build();
 
         fcmService.sendMessage(message);
@@ -148,15 +156,21 @@ public class NotificationSendServiceImpl implements NotificationSendService {
                                                                 List<String> deviceList,
                                                                 Notification notification,
                                                                 long unreadCount,
-                                                                ApnsConfig.Builder apnsConfigBuilder) {
+                                                                ApnsConfig.Builder apnsConfigBuilder,
+                                                                AndroidConfig.Builder androidConfigBuilder) {
         // APNS 생성
         Aps aps = fcmService.getAps(title, body, (int) unreadCount);
         ApnsConfig apnsConfig = apnsConfigBuilder.setAps(aps)
                 .build();
 
+        AndroidConfig androidConfig = androidConfigBuilder
+                .putData("badge", String.valueOf(unreadCount))
+                .build();
+
         MulticastMessage messages = MulticastMessage.builder()
                 .addAllTokens(deviceList)
                 .setApnsConfig(apnsConfig)
+                .setAndroidConfig(androidConfig)
                 .setNotification(notification)
                 .build();
 
@@ -196,11 +210,14 @@ public class NotificationSendServiceImpl implements NotificationSendService {
         NotificationSend notificationSend = new NotificationSend(id, title, body, type, value);
 
         ApnsConfig apnsConfig = fcmService.getApnsConfig(notificationSend, (int) unreadCount);
+        AndroidConfig androidConfig = fcmService.getAndroidConfig(notificationSend, (int) unreadCount);
 
         MulticastMessage multicastMessage = MulticastMessage.builder()
                 .addAllTokens(deviceByMemberId)
                 .setApnsConfig(apnsConfig)
+                .setAndroidConfig(androidConfig)
                 .setNotification(notification)
+                .putData("badge", String.valueOf(unreadCount))
                 .build();
 
         fcmService.sendMessages(multicastMessage, deviceByMemberId);
