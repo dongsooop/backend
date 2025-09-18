@@ -61,6 +61,12 @@ public class BoardDocument {
     @Field(type = FieldType.Integer)
     private Long price;
 
+    @Field(name = "department_name", type = FieldType.Keyword)
+    private String departmentName;
+
+    @Field(name = "contact_count", type = FieldType.Integer)
+    private Integer contactCount;
+
     @JsonProperty("noticeUrl")
     public String getNoticeUrl() {
         if (BoardType.NOTICE.getCode().equals(boardType)) {

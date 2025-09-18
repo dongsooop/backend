@@ -39,13 +39,8 @@ public class BoardSearchService {
         }
     }
 
-    public Page<BoardDocument> searchAll(String keyword, Pageable pageable) {
-        List<BoardDocument> allResults = executeSearch(keyword);
-        return createPageFromList(allResults, pageable);
-    }
-
-    public Page<BoardDocument> searchByBoardType(String keyword, BoardType boardType, Pageable pageable) {
-        return executeSearchByBoardType(keyword, boardType, pageable);
+    public Page<BoardDocument> searchByBoardType(String keyword, BoardType boardType, String departmentName, Pageable pageable) {
+        return executeSearchByBoardType(keyword, boardType, departmentName, pageable);
     }
 
     public Page<BoardDocument> searchMarketplace(String keyword, MarketplaceType marketplaceType, Pageable pageable) {
@@ -61,13 +56,17 @@ public class BoardSearchService {
         return performMarketplaceSearch(processedKeyword, pageable);
     }
 
-    private Page<BoardDocument> executeSearchByBoardType(String keyword, BoardType boardType, Pageable pageable) {
+    private Page<BoardDocument> executeSearchByBoardType(String keyword, BoardType boardType, String departmentName, Pageable pageable) {
         String processedKeyword = preprocessKeyword(keyword);
         if (processedKeyword.isEmpty()) {
             return Page.empty(pageable);
         }
 
-        return performSearchByBoardType(processedKeyword, boardType, pageable);
+        if (departmentName == null || departmentName.isEmpty()) {
+            return performSearchByBoardType(processedKeyword, boardType, pageable);
+        }
+
+        return performSearchByBoardTypeAndDepartmentName(processedKeyword, boardType, departmentName, pageable);
     }
 
     private Page<BoardDocument> performSearchByBoardType(String keyword, BoardType boardType, Pageable pageable) {
@@ -101,29 +100,14 @@ public class BoardSearchService {
         }
     }
 
-    private List<BoardDocument> executeSearch(String keyword) {
-        String processedKeyword = preprocessKeyword(keyword);
-        if (processedKeyword.isEmpty()) {
-            return List.of();
-        }
-
-        return performSearch(processedKeyword);
-    }
-
-    private List<BoardDocument> performSearch(String keyword) {
-        try {
-            return boardSearchRepository.findByTitleContainingOrContentContaining(keyword, keyword);
-        } catch (Exception e) {
-            logSearchError("searchAll", keyword, null, e);
-            return List.of();
-        }
+    private int calculateEndIndex(int start, Pageable pageable, int totalSize) {
+        return Math.min(start + pageable.getPageSize(), totalSize);
     }
 
     public SearchResponse searchNoticesByDepartment(String keyword, String authorName, Pageable pageable) {
         String processedKeyword = preprocessKeyword(keyword);
 
-        boolean isEmptyKeyword = processedKeyword.isEmpty();
-        if (isEmptyKeyword) {
+        if (processedKeyword.isEmpty()) {
             return createEmptySearchResponse(pageable);
         }
 
@@ -162,23 +146,13 @@ public class BoardSearchService {
         return keyword.trim().replaceAll("\\s+", " ");
     }
 
-    private Page<BoardDocument> createPageFromList(List<BoardDocument> allResults, Pageable pageable) {
-        int start = calculateStartIndex(pageable);
-        int end = calculateEndIndex(start, pageable, allResults.size());
-
-        if (start > allResults.size()) {
-            return new PageImpl<>(List.of(), pageable, allResults.size());
+    private Page<BoardDocument> performSearchByBoardTypeAndDepartmentName(String keyword, BoardType boardType, String departmentName, Pageable pageable) {
+        try {
+            String lowerBoardType = boardType.getCode().toLowerCase();
+            return boardSearchRepository.findByKeywordAndBoardTypeAndDepartmentName(keyword, lowerBoardType, departmentName, pageable);
+        } catch (Exception e) {
+            logSearchError("searchByBoardTypeAndDepartmentName", keyword, boardType.getCode(), e);
+            return Page.empty(pageable);
         }
-
-        List<BoardDocument> pageContent = allResults.subList(start, end);
-        return new PageImpl<>(pageContent, pageable, allResults.size());
-    }
-
-    private int calculateStartIndex(Pageable pageable) {
-        return (int) pageable.getOffset();
-    }
-
-    private int calculateEndIndex(int start, Pageable pageable, int totalSize) {
-        return Math.min(start + pageable.getPageSize(), totalSize);
     }
 }

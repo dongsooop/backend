@@ -104,4 +104,24 @@ public interface BoardSearchRepository extends ElasticsearchRepository<BoardDocu
             }
             """)
     Page<BoardDocument> findNoticesByKeywordAndAuthorName(String keyword, String authorName, Pageable pageable);
+
+    @Query("""
+            {
+                "bool": {
+                    "must": [
+                        {
+                            "bool": {
+                                "should": [
+                                    {"match": {"title": "?0"}},
+                                    {"match": {"content": "?0"}}
+                                ]
+                            }
+                        },
+                        {"term": {"board_type": "?1"}},
+                        {"term": {"department_name": "?2"}}
+                    ]
+                }
+            }
+            """)
+    Page<BoardDocument> findByKeywordAndBoardTypeAndDepartmentName(String keyword, String boardType, String departmentName, Pageable pageable);
 }
