@@ -23,4 +23,6 @@ public class BoardSearchResult {
     private String noticeUrl;
     private String tags;
     private Long price;
+    private String departmentName;
+    private Integer contactCount;
 }
