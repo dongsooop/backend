@@ -24,6 +24,8 @@ public class SearchDtoMapper {
                 .noticeUrl(getNoticeUrlByBoardType(document))
                 .tags(document.getTags())
                 .price(document.getPrice())
+                .departmentName(document.getDepartmentName())
+                .contactCount(document.getContactCount())
                 .build();
     }
 
