@@ -9,15 +9,17 @@ public record ChatRoomUpdateDto(
         String roomId,
         String lastMessage,
         LocalDateTime timestamp,
-        Long senderId
+        Long senderId,
+        Integer unreadCount
 ) {
-    public static ChatRoomUpdateDto createRoomUpdate(String roomId, ChatMessage message) {
+    public static ChatRoomUpdateDto createRoomUpdate(String roomId, ChatMessage message, Integer unreadCount) {
         return new ChatRoomUpdateDto(
                 "ROOM_UPDATE",
                 roomId,
                 message.getContent(),
                 message.getTimestamp(),
-                message.getSenderId()
+                message.getSenderId(),
+                unreadCount
         );
     }
 }
