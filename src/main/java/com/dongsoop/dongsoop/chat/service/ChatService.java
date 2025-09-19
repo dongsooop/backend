@@ -88,7 +88,7 @@ public class ChatService {
         chatNotification.send(receiver, roomId, senderName, message.getContent());
     }
 
-    private void sendGlobalRoomUpdate(Set<Long> participants, String roomId, ChatMessage message) {  // 새로 추가
+    private void sendGlobalRoomUpdate(Set<Long> participants, String roomId, ChatMessage message) {
         for (Long participantId : participants) {
             sendRoomUpdateToUser(participantId, roomId, message);
         }
