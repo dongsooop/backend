@@ -1,23 +1,26 @@
 package com.dongsoop.dongsoop.chat.service;
 
 import com.dongsoop.dongsoop.chat.dto.BlockStatusMessage;
+import com.dongsoop.dongsoop.chat.dto.ChatRoomUpdateDto;
 import com.dongsoop.dongsoop.chat.dto.ReadStatusUpdateRequest;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
 import com.dongsoop.dongsoop.chat.notification.ChatNotification;
+import com.dongsoop.dongsoop.chat.session.WebSocketSessionManager;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberblock.constant.BlockStatus;
 import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepository;
-import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -32,6 +35,7 @@ public class ChatService {
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatNotification chatNotification;
     private final MemberService memberService;
+    private final WebSocketSessionManager sessionManager;
 
     public ChatRoomInitResponse initializeChatRoomForFirstTime(String roomId, Long userId) {
         chatValidator.validateUserForRoom(roomId, userId);
@@ -59,10 +63,10 @@ public class ChatService {
 
     public void leaveChatRoom(String roomId, Long userId) {
         ChatRoom room = chatRoomService.getChatRoomById(roomId);
-        
+
         chatValidator.validateUserForRoom(roomId, userId);
         chatValidator.validateManagerCanLeave(room, userId);
-        
+
         chatParticipantService.leaveChatRoom(roomId, userId, chatRoomService, chatMessageService);
     }
 
@@ -73,12 +77,26 @@ public class ChatService {
         Set<Long> receiver = new HashSet<>(room.getParticipants());
         receiver.remove(userId);
 
-        if (!receiver.isEmpty()) {
-            String senderName = memberService.getNicknameById(userId);
-            chatNotification.send(receiver, roomId, senderName, message.getContent());
-        }
+        sendFcmNotification(receiver, roomId, userId, message);
+        sendGlobalRoomUpdate(room.getParticipants(), roomId, processedMessage);
 
         return processedMessage;
+    }
+
+    private void sendFcmNotification(Set<Long> receiver, String roomId, Long userId, ChatMessage message) {
+        String senderName = memberService.getNicknameById(userId);
+        chatNotification.send(receiver, roomId, senderName, message.getContent());
+    }
+
+    private void sendGlobalRoomUpdate(Set<Long> participants, String roomId, ChatMessage message) {  // 새로 추가
+        for (Long participantId : participants) {
+            sendRoomUpdateToUser(participantId, roomId, message);
+        }
+    }
+
+    private void sendRoomUpdateToUser(Long userId, String roomId, ChatMessage message) {
+        ChatRoomUpdateDto updateDto = ChatRoomUpdateDto.createRoomUpdate(roomId, message);
+        messagingTemplate.convertAndSend("/topic/user/" + userId, updateDto);
     }
 
     public ChatMessage processWebSocketEnter(String roomId, Long userId) {
