@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Slf4j
@@ -95,7 +96,8 @@ public class ChatService {
     }
 
     private void sendRoomUpdateToUser(Long userId, String roomId, ChatMessage message) {
-        ChatRoomUpdateDto updateDto = ChatRoomUpdateDto.createRoomUpdate(roomId, message);
+        Integer unreadCount = getUnreadMessageCount(roomId, userId);
+        ChatRoomUpdateDto updateDto = ChatRoomUpdateDto.createRoomUpdate(roomId, message, unreadCount);
         messagingTemplate.convertAndSend("/topic/user/" + userId, updateDto);
     }
 
@@ -112,6 +114,29 @@ public class ChatService {
     public void markAllMessagesAsRead(String roomId, Long userId) {
         chatValidator.validateUserForRoom(roomId, userId);
         updateReadTimestamp(userId, roomId, LocalDateTime.now());
+
+        notifyReadStatusChanged(roomId, userId);
+    }
+
+    private void notifyReadStatusChanged(String roomId, Long readerId) {
+        ChatRoom room = chatRoomService.getChatRoomById(roomId);
+        Set<Long> otherParticipants = new HashSet<>(room.getParticipants());
+        otherParticipants.remove(readerId);
+
+        for (Long participantId : otherParticipants) {
+            sendReadStatusUpdateNotification(participantId, roomId, readerId);
+        }
+    }
+
+    private void sendReadStatusUpdateNotification(Long userId, String roomId, Long readerId) {
+        Map<String, Object> readUpdate = Map.of(
+                "type", "READ_STATUS_UPDATE",
+                "roomId", roomId,
+                "readerId", readerId,
+                "timestamp", LocalDateTime.now()
+        );
+
+        messagingTemplate.convertAndSend("/topic/user/" + userId, readUpdate);
     }
 
     public List<ChatMessage> syncOfflineMessages(String roomId, Long userId, List<ChatMessage> offlineMessages) {
