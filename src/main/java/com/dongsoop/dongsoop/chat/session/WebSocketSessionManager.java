@@ -9,12 +9,17 @@ import java.util.concurrent.ConcurrentHashMap;
 public class WebSocketSessionManager {
 
     private final Map<Long, String> userSessions = new ConcurrentHashMap<>();
+    private final Map<String, Long> sessionToUser = new ConcurrentHashMap<>();
 
     public void addUserSession(Long userId, String sessionId) {
         userSessions.put(userId, sessionId);
+        sessionToUser.put(sessionId, userId);
     }
 
     public void removeSession(String sessionId) {
-        userSessions.entrySet().removeIf(entry -> entry.getValue().equals(sessionId));
+        Long userId = sessionToUser.remove(sessionId);
+        if (userId != null) {
+            userSessions.remove(userId);
+        }
     }
 }
