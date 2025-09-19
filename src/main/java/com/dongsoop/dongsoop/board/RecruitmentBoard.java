@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+@Getter
 @MappedSuperclass
 @SuperBuilder
 @NoArgsConstructor
@@ -25,7 +26,6 @@ public abstract class RecruitmentBoard extends Board {
     @Column(name = "tags", length = RecruitmentValidationConstant.TAG_MAX_LENGTH, nullable = false)
     private String tags;
 
-    @Getter
     @Column(name = "chat_room_id", length = 50)
     private String RoomId;
 

@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.recruitment.board.project.service;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import com.dongsoop.dongsoop.chat.service.ChatService;
+import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
 import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
@@ -33,49 +34,43 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProjectBoardServiceImpl implements ProjectBoardService {
 
     private final ProjectBoardRepository projectBoardRepository;
-
     private final ProjectBoardRepositoryCustom projectBoardRepositoryCustom;
-
     private final MemberService memberService;
-
     private final DepartmentRepository departmentRepository;
-
     private final ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
-
     private final ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
-
     private final ChatService chatService;
     private final ChatRoomService chatRoomService;
+    private final ChatCommonUtils chatCommonUtils;
 
     @Transactional
     public ProjectBoard create(CreateProjectBoardRequest request) {
         ProjectBoard projectBoardToSave = transformToProjectBoard(request);
         List<Department> departmentList = getDepartmentReferenceList(request.departmentTypeList());
 
-        ProjectBoard projectBoard = createAndLinkChatRoom(projectBoardToSave);
+        ProjectBoard savedBoard = projectBoardRepository.save(projectBoardToSave);
+        createAndLinkChatRoom(savedBoard);
+
         List<ProjectBoardDepartment> projectBoardDepartmentList = departmentList.stream()
                 .map(department -> {
-                    ProjectBoardDepartmentId projectBoardDepartmentId = new ProjectBoardDepartmentId(projectBoard,
-                            department);
+                    ProjectBoardDepartmentId projectBoardDepartmentId = new ProjectBoardDepartmentId(savedBoard, department);
                     return new ProjectBoardDepartment(projectBoardDepartmentId);
                 })
                 .toList();
 
         projectBoardDepartmentRepository.saveAll(projectBoardDepartmentList);
-
-        return projectBoard;
+        return savedBoard;
     }
 
-    private ProjectBoard createAndLinkChatRoom(ProjectBoard projectBoard) {
+    private void createAndLinkChatRoom(ProjectBoard projectBoard) {
         Member author = projectBoard.getAuthor();
         String chatRoomTitle = String.format("[프로젝트] %s", projectBoard.getTitle());
-
         Set<Long> initialParticipants = Set.of(author.getId());
 
         ChatRoom chatRoom = chatRoomService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
 
         projectBoard.assignChatRoom(chatRoom.getRoomId());
-        return projectBoardRepository.save(projectBoard);
+        chatCommonUtils.saveRecruitmentEndAt(chatRoom.getRoomId(), projectBoard.getEndAt());
     }
 
     public List<RecruitmentOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType,

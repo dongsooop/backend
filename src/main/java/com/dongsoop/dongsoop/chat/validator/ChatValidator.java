@@ -2,20 +2,17 @@ package com.dongsoop.dongsoop.chat.validator;
 
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
-import com.dongsoop.dongsoop.chat.exception.GroupChatOnlyException;
-import com.dongsoop.dongsoop.chat.exception.InvalidChatRequestException;
-import com.dongsoop.dongsoop.chat.exception.ManagerKickAttemptException;
-import com.dongsoop.dongsoop.chat.exception.SelfChatException;
-import com.dongsoop.dongsoop.chat.exception.UnauthorizedManagerActionException;
-import com.dongsoop.dongsoop.chat.exception.UserKickedException;
-import com.dongsoop.dongsoop.chat.exception.UserNotInRoomException;
+import com.dongsoop.dongsoop.chat.exception.*;
 import com.dongsoop.dongsoop.chat.repository.ChatRepository;
 import com.dongsoop.dongsoop.chat.service.ChatSyncService;
 import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
-import java.util.Objects;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+
+import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.Optional;
 
 @Component
 public class ChatValidator {
@@ -23,11 +20,14 @@ public class ChatValidator {
 
     private final ChatRepository chatRepository;
     private final ChatSyncService chatSyncService;
+    private final ChatCommonUtils chatCommonUtils;
 
     public ChatValidator(@Qualifier("redisChatRepository") ChatRepository chatRepository,
-                         ChatSyncService chatSyncService) {
+                         ChatSyncService chatSyncService,
+                         ChatCommonUtils chatCommonUtils) {
         this.chatRepository = chatRepository;
         this.chatSyncService = chatSyncService;
+        this.chatCommonUtils = chatCommonUtils;
     }
 
     public void validateUserForRoom(String roomId, Long userId) {
@@ -136,5 +136,37 @@ public class ChatValidator {
         if (Objects.equals(room.getManagerId(), userToKick)) {
             throw new ManagerKickAttemptException();
         }
+    }
+
+    public void validateManagerCanLeave(ChatRoom room, Long userId) {
+        if (!isManager(room, userId)) {
+            return;
+        }
+
+        if (!isManagerAloneInRoom(room)) {
+            return;
+        }
+
+        validateRecruitmentPeriod(room.getRoomId());
+    }
+
+    private boolean isManager(ChatRoom room, Long userId) {
+        return Objects.equals(room.getManagerId(), userId);
+    }
+
+    private boolean isManagerAloneInRoom(ChatRoom room) {
+        return room.getParticipants().size() == 1;
+    }
+
+    private void validateRecruitmentPeriod(String roomId) {
+        Optional<LocalDateTime> endAt = chatCommonUtils.getRecruitmentEndAt(roomId);
+
+        if (endAt.isPresent() && isRecruitmentPeriodActive(endAt.get())) {
+            throw new ManagerLeaveRestrictedException(endAt.get());
+        }
+    }
+
+    private boolean isRecruitmentPeriodActive(LocalDateTime endAt) {
+        return LocalDateTime.now().isBefore(endAt);
     }
 }
