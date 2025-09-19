@@ -12,16 +12,15 @@ import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberblock.constant.BlockStatus;
 import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
@@ -85,6 +84,9 @@ public class ChatService {
     }
 
     private void sendFcmNotification(Set<Long> receiver, String roomId, Long userId, ChatMessage message) {
+        if (receiver == null || receiver.isEmpty()) {
+            return;
+        }
         String senderName = memberService.getNicknameById(userId);
         chatNotification.send(receiver, roomId, senderName, message.getContent());
     }
