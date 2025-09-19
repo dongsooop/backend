@@ -60,21 +60,22 @@ public class MarketplaceContactServiceImpl implements MarketplaceContactService 
     }
 
     private void createMarketplaceChatRoom(Long buyerId, Long boardId) {
-        Long sellerId = getSellerIdByBoardId(boardId);
-        String boardTitle = getBoardTitleById(boardId);
-
-        chatRoomService.createContactChatRoom(buyerId, sellerId, null, boardId, boardTitle);
+        SellerIdAndTitle sellerInfo = getSellerIdAndTitleByBoardId(boardId);
+        chatRoomService.createContactChatRoom(
+                buyerId,
+                sellerInfo.sellerId(),
+                null,
+                boardId,
+                sellerInfo.title()
+        );
     }
 
-    private Long getSellerIdByBoardId(Long boardId) {
-        return marketplaceBoardRepository.findById(boardId)
-                .map(board -> board.getAuthor().getId())
+    private SellerIdAndTitle getSellerIdAndTitleByBoardId(Long boardId) {
+        MarketplaceBoard board = marketplaceBoardRepository.findById(boardId)
                 .orElseThrow(() -> new MarketplaceBoardNotFoundException(boardId));
+        return new SellerIdAndTitle(board.getAuthor().getId(), board.getTitle());
     }
 
-    private String getBoardTitleById(Long boardId) {
-        return marketplaceBoardRepository.findById(boardId)
-                .map(MarketplaceBoard::getTitle)
-                .orElseThrow(() -> new MarketplaceBoardNotFoundException(boardId));
+    private record SellerIdAndTitle(Long sellerId, String title) {
     }
 }
