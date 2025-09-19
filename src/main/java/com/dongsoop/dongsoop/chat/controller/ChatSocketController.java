@@ -48,6 +48,8 @@ public class ChatSocketController {
     public ChatMessage enterChatRoom(@DestinationVariable("roomId") String roomId, Principal principal) {
         Long userId = extractUserIdFromPrincipal(principal);
 
+        chatService.markAllMessagesAsRead(roomId, userId);
+
         ChatMessage enterMsg = chatService.processWebSocketEnter(roomId, userId);
         BlockStatus blockStatus = chatService.getBlockStatus(roomId, userId);
         chatService.sendBlockStatusToUser(roomId, userId, blockStatus);
