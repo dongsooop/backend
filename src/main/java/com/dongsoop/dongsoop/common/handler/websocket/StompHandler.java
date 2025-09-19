@@ -44,7 +44,7 @@ public class StompHandler implements ChannelInterceptor {
         if (StompCommand.CONNECT == command) {
             authenticateConnection(accessor);
         }
-        if (StompCommand.DISCONNECT == command) {  // 추가
+        if (StompCommand.DISCONNECT == command) {
             handleDisconnect(accessor);
         }
     }
