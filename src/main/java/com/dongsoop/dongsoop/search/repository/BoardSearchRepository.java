@@ -36,7 +36,7 @@ public interface BoardSearchRepository extends ElasticsearchRepository<BoardDocu
                                 ]
                             }
                         },
-                        {"term": {"board_type": "?1"}}
+                        {"match": {"board_type": "?1"}}
                     ]
                 }
             }
@@ -113,12 +113,21 @@ public interface BoardSearchRepository extends ElasticsearchRepository<BoardDocu
                             "bool": {
                                 "should": [
                                     {"match": {"title": "?0"}},
-                                    {"match": {"content": "?0"}}
+                                    {"match": {"content": "?0"}},
+                                    {"wildcard": {"title": "*?0*"}},
+                                    {"wildcard": {"content": "*?0*"}}
                                 ]
                             }
                         },
-                        {"term": {"board_type": "?1"}},
-                        {"term": {"department_name": "?2"}}
+                        {"match": {"board_type": "?1"}},
+                        {
+                            "bool": {
+                                "should": [
+                                    {"term": {"department_name": "?2"}},
+                                    {"match_phrase": {"tags": "?2"}}
+                                ]
+                            }
+                        }
                     ]
                 }
             }
