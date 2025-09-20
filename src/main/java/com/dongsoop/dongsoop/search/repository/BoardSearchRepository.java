@@ -118,7 +118,14 @@ public interface BoardSearchRepository extends ElasticsearchRepository<BoardDocu
                             }
                         },
                         {"term": {"board_type": "?1"}},
-                        {"term": {"department_name": "?2"}}
+                        {
+                            "bool": {
+                                "should": [
+                                    {"term": {"department_name": "?2"}},
+                                    {"match_phrase": {"tags": "?2"}}
+                                ]
+                            }
+                        }
                     ]
                 }
             }
