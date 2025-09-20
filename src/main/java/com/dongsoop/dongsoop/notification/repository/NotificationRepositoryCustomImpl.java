@@ -48,7 +48,7 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
     }
 
     @Override
-    public long findUnreadCountByMemberId(Long memberId) {
+    public int findUnreadCountByMemberId(Long memberId) {
         Long count = queryFactory.select(memberNotice.count())
                 .from(memberNotice)
                 .where(memberNotice.id.member.id.eq(memberId)
@@ -57,10 +57,14 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
                 .fetchOne();
 
         if (count == null) {
-            return 0L;
+            return 0;
         }
 
-        return count;
+        if (count > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+
+        return Math.toIntExact(count);
     }
 
     @Override

@@ -12,7 +12,7 @@ public interface NotificationRepositoryCustom {
 
     List<NotificationList> getMemberNotifications(Long memberId, Pageable pageable);
 
-    long findUnreadCountByMemberId(Long memberId);
+    int findUnreadCountByMemberId(Long memberId);
 
     List<NotificationUnread> findUnreadCountByMemberIds(Collection<Long> memberIds);
 

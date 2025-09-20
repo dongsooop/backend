@@ -5,6 +5,8 @@ import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.dongsoop.dongsoop.notification.exception.NotificationSendException;
 import com.dongsoop.dongsoop.notification.exception.ResponseSizeUnmatchedToTokenSizeException;
 import com.google.api.core.ApiFuture;
+import com.google.firebase.messaging.AndroidConfig;
+import com.google.firebase.messaging.AndroidNotification;
 import com.google.firebase.messaging.ApnsConfig;
 import com.google.firebase.messaging.Aps;
 import com.google.firebase.messaging.ApsAlert;
@@ -18,6 +20,7 @@ import com.google.firebase.messaging.Notification;
 import com.google.firebase.messaging.SendResponse;
 import io.netty.handler.timeout.TimeoutException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -58,17 +61,37 @@ public class FCMServiceImpl implements FCMService {
     }
 
     @Override
-    public void sendNotification(List<String> deviceTokenList, NotificationSend notificationSend, Number badge) {
+    public void sendNotification(List<String> deviceTokenList, NotificationSend notificationSend, Integer badge) {
         // iOS용 APNs 설정
         ApnsConfig apnsConfig = getApnsConfig(notificationSend, badge);
+
+        // Android용 설정
+        AndroidConfig androidConfig = getAndroidConfig(notificationSend, badge);
+
         MulticastMessage message = getMulticastMessage(deviceTokenList, notificationSend.title(),
-                notificationSend.body(), apnsConfig);
+                notificationSend.body(), apnsConfig, androidConfig);
 
         sendMessages(message, deviceTokenList);
     }
 
     @Override
-    public ApnsConfig getApnsConfig(NotificationSend notificationSend, Number badge) {
+    public void sendToTopic(String topic, NotificationSend notificationSend) {
+        ApnsConfig apnsConfig = getApnsConfig(notificationSend, null);
+        AndroidConfig androidConfig = getAndroidConfig(notificationSend, null);
+
+        Notification notification = getNotification(notificationSend.title(), notificationSend.body());
+
+        Message message = Message.builder()
+                .setTopic(topic)
+                .setNotification(notification)
+                .setApnsConfig(apnsConfig)
+                .setAndroidConfig(androidConfig)
+                .build();
+
+        sendMessage(message);
+    }
+
+    public ApnsConfig getApnsConfig(NotificationSend notificationSend, Integer badge) {
         Aps aps = getAps(notificationSend.title(), notificationSend.body(), badge);
 
         return ApnsConfig.builder()
@@ -79,16 +102,33 @@ public class FCMServiceImpl implements FCMService {
                 .build();
     }
 
-    @Override
-    public Notification getNotification(String title, String body) {
+    private Notification getNotification(String title, String body) {
         return Notification.builder()
                 .setTitle(title)
                 .setBody(body)
                 .build();
     }
 
-    @Override
-    public Aps getAps(String title, String body, Number badge) {
+    private AndroidConfig getAndroidConfig(NotificationSend notificationSend, Integer badge) {
+        AndroidConfig.Builder builder = AndroidConfig.builder()
+                .setNotification(AndroidNotification.builder()
+                        .setChannelId(notificationSend.type().name())
+                        .build())
+                .putAllData(Map.of(
+                        "type", notificationSend.type().name(),
+                        "value", notificationSend.value(),
+                        "id", String.valueOf(notificationSend.id())
+                ));
+
+        if (isInvalidBadge(badge)) {
+            return builder.build();
+        }
+
+        return builder.putData("badge", String.valueOf(badge))
+                .build();
+    }
+
+    private Aps getAps(String title, String body, Integer badge) {
         Aps.Builder builder = Aps.builder()
                 .setAlert(ApsAlert.builder()
                         .setTitle(title)
@@ -96,29 +136,30 @@ public class FCMServiceImpl implements FCMService {
                         .build())
                 .setSound("default");
 
-        if (badge == null) {
+        if (isInvalidBadge(badge)) {
             return builder.build();
         }
 
-        long badgeValue = badge.longValue();
-        if (badgeValue < 0 || badgeValue > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("Badge value out of int range: " + badgeValue);
-        }
-
-        return builder.setBadge((int) badgeValue)
+        return builder.setBadge(badge)
                 .build();
+    }
+
+    private boolean isInvalidBadge(Integer badge) {
+        return badge == null || badge < 0;
     }
 
     private MulticastMessage getMulticastMessage(
             List<String> deviceTokenList,
             String title,
             String body,
-            ApnsConfig apnsConfig) {
+            ApnsConfig apnsConfig,
+            AndroidConfig androidConfig) {
         Notification notification = getNotification(title, body);
 
         return MulticastMessage.builder()
                 .addAllTokens(deviceTokenList)
                 .setApnsConfig(apnsConfig)
+                .setAndroidConfig(androidConfig)
                 .setNotification(notification)
                 .build();
     }
@@ -238,9 +279,15 @@ public class FCMServiceImpl implements FCMService {
                 .putHeader("apns-priority", "10")
                 .build();
 
+        AndroidConfig androidConfig = AndroidConfig.builder()
+                .setPriority(AndroidConfig.Priority.HIGH)
+                .build();
+
         MulticastMessage messages = MulticastMessage.builder()
                 .addAllTokens(deviceTokens)
                 .setApnsConfig(apnsConfig)
+                .setAndroidConfig(androidConfig)
+                .putData("badge", String.valueOf(badge))
                 .build();
 
         sendMessages(messages, deviceTokens);

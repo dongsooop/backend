@@ -47,10 +47,10 @@ public class NotificationServiceImpl implements NotificationService {
 
         memberNotification.read();
 
-        long unreadCountByMemberId = notificationRepository.findUnreadCountByMemberId(memberId);
+        int unreadCountByMemberId = notificationRepository.findUnreadCountByMemberId(memberId);
         List<String> devices = memberDeviceService.getDeviceByMemberId(memberId);
 
-        fcmService.updateNotificationBadge(devices, (int) unreadCountByMemberId);
+        fcmService.updateNotificationBadge(devices, unreadCountByMemberId);
     }
 
     /**
@@ -64,7 +64,7 @@ public class NotificationServiceImpl implements NotificationService {
         notificationRepository.updateAllAsRead(memberId);
 
         List<String> devices = memberDeviceService.getDeviceByMemberId(memberId);
-        long unreadCountByMemberId = notificationRepository.findUnreadCountByMemberId(memberId);
-        fcmService.updateNotificationBadge(devices, (int) unreadCountByMemberId);
+        int unreadCountByMemberId = notificationRepository.findUnreadCountByMemberId(memberId);
+        fcmService.updateNotificationBadge(devices, unreadCountByMemberId);
     }
 }
