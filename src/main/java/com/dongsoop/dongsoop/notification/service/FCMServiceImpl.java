@@ -75,6 +75,22 @@ public class FCMServiceImpl implements FCMService {
     }
 
     @Override
+    public void sendToTopic(String topic, NotificationSend notificationSend) {
+        ApnsConfig apnsConfig = getApnsConfig(notificationSend, null);
+        AndroidConfig androidConfig = getAndroidConfig(notificationSend, null);
+
+        Notification notification = getNotification(notificationSend.title(), notificationSend.body());
+
+        Message message = Message.builder()
+                .setTopic(topic)
+                .setNotification(notification)
+                .setApnsConfig(apnsConfig)
+                .setAndroidConfig(androidConfig)
+                .build();
+
+        sendMessage(message);
+    }
+
     public ApnsConfig getApnsConfig(NotificationSend notificationSend, Integer badge) {
         Aps aps = getAps(notificationSend.title(), notificationSend.body(), badge);
 
@@ -86,8 +102,7 @@ public class FCMServiceImpl implements FCMService {
                 .build();
     }
 
-    @Override
-    public AndroidConfig getAndroidConfig(NotificationSend notificationSend, Integer badge) {
+    private AndroidConfig getAndroidConfig(NotificationSend notificationSend, Integer badge) {
         AndroidConfig.Builder builder = AndroidConfig.builder()
                 .setNotification(AndroidNotification.builder()
                         .setChannelId(notificationSend.type().name())
@@ -106,16 +121,14 @@ public class FCMServiceImpl implements FCMService {
                 .build();
     }
 
-    @Override
-    public Notification getNotification(String title, String body) {
+    private Notification getNotification(String title, String body) {
         return Notification.builder()
                 .setTitle(title)
                 .setBody(body)
                 .build();
     }
 
-    @Override
-    public Aps getAps(String title, String body, Integer badge) {
+    private Aps getAps(String title, String body, Integer badge) {
         Aps.Builder builder = Aps.builder()
                 .setAlert(ApsAlert.builder()
                         .setTitle(title)
