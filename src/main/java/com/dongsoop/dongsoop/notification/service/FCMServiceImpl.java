@@ -280,8 +280,7 @@ public class FCMServiceImpl implements FCMService {
                 .build();
 
         AndroidConfig androidConfig = AndroidConfig.builder()
-                .setNotification(AndroidNotification.builder()
-                        .build())
+                .setPriority(AndroidConfig.Priority.HIGH)
                 .build();
 
         MulticastMessage messages = MulticastMessage.builder()
