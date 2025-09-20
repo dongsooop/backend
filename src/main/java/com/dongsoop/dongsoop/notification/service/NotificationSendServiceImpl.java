@@ -45,8 +45,8 @@ public class NotificationSendServiceImpl implements NotificationSendService {
 
         // 발송 전체 대상의 회원별 읽지 않은 알림 개수
         List<NotificationUnread> unreadCount = notificationRepository.findUnreadCountByMemberIds(memberIds);
-        Map<Long, Long> unreadCountByMember = unreadCount.stream()
-                .collect(Collectors.toMap(NotificationUnread::memberId, NotificationUnread::unreadCount));
+        Map<Long, Integer> unreadCountByMember = unreadCount.stream()
+                .collect(Collectors.toMap(NotificationUnread::getMemberId, NotificationUnread::getUnreadCount));
 
         memberByNotification.forEach((details, memberIdList) -> {
             NotificationSend notificationSend = getNotificationSendByDetails(details);
@@ -57,8 +57,8 @@ public class NotificationSendServiceImpl implements NotificationSendService {
                     return;
                 }
 
-                Long badge = unreadCountByMember.getOrDefault(memberId, 0L);
-                fcmService.sendNotification(devices, notificationSend, Math.toIntExact(badge));
+                Integer badge = unreadCountByMember.getOrDefault(memberId, 0);
+                fcmService.sendNotification(devices, notificationSend, badge);
             });
         });
     }
