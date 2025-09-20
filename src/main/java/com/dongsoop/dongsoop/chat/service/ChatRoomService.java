@@ -134,7 +134,21 @@ public class ChatRoomService {
         return saveRoom(room);
     }
 
+    private String buildChatRoomTitle(RecruitmentType boardType, String boardTitle) {
+        String prefix = "문의";
+
+        if (boardType == null) {
+            prefix = "거래";
+        }
+
+        return String.format("[%s] %s", prefix, boardTitle);
+    }
+
     private void validateRecruitmentBoard(RecruitmentType boardType, Long boardId) {
+        if (boardType == null) {
+            return;
+        }
+
         boolean projectExists = boardType == RecruitmentType.PROJECT && projectBoardRepository.existsById(boardId);
         boolean studyExists = boardType == RecruitmentType.STUDY && studyBoardRepository.existsById(boardId);
         boolean tutoringExists = boardType == RecruitmentType.TUTORING && tutoringBoardRepository.existsById(boardId);
