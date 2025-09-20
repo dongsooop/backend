@@ -102,6 +102,13 @@ public class FCMServiceImpl implements FCMService {
                 .build();
     }
 
+    private Notification getNotification(String title, String body) {
+        return Notification.builder()
+                .setTitle(title)
+                .setBody(body)
+                .build();
+    }
+
     private AndroidConfig getAndroidConfig(NotificationSend notificationSend, Integer badge) {
         AndroidConfig.Builder builder = AndroidConfig.builder()
                 .setNotification(AndroidNotification.builder()
@@ -113,18 +120,11 @@ public class FCMServiceImpl implements FCMService {
                         "id", String.valueOf(notificationSend.id())
                 ));
 
-        if (badge == null || badge < 0) {
+        if (isInvalidBadge(badge)) {
             return builder.build();
         }
 
         return builder.putData("badge", String.valueOf(badge))
-                .build();
-    }
-
-    private Notification getNotification(String title, String body) {
-        return Notification.builder()
-                .setTitle(title)
-                .setBody(body)
                 .build();
     }
 
@@ -136,12 +136,16 @@ public class FCMServiceImpl implements FCMService {
                         .build())
                 .setSound("default");
 
-        if (badge == null || badge < 0) {
+        if (isInvalidBadge(badge)) {
             return builder.build();
         }
 
         return builder.setBadge(badge)
                 .build();
+    }
+
+    private boolean isInvalidBadge(Integer badge) {
+        return badge != null && badge < 0;
     }
 
     private MulticastMessage getMulticastMessage(
