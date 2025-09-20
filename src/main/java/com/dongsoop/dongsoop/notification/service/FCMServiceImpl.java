@@ -145,7 +145,7 @@ public class FCMServiceImpl implements FCMService {
     }
 
     private boolean isInvalidBadge(Integer badge) {
-        return badge != null && badge < 0;
+        return badge == null || badge < 0;
     }
 
     private MulticastMessage getMulticastMessage(
