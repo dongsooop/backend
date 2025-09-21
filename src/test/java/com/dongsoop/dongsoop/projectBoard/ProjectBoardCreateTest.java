@@ -6,7 +6,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
-import com.dongsoop.dongsoop.chat.service.ChatService;
+import com.dongsoop.dongsoop.chat.service.ChatRoomService;
+import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
@@ -45,6 +46,9 @@ class ProjectBoardCreateTest {
     private ProjectBoardServiceImpl projectBoardService;
 
     @Mock
+    private ChatCommonUtils chatCommonUtils;
+
+    @Mock
     private MemberService memberService;
 
     @Mock
@@ -57,7 +61,7 @@ class ProjectBoardCreateTest {
     private ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
 
     @Mock
-    private ChatService chatService;
+    private ChatRoomService chatRoomService;
 
     private CreateProjectBoardRequest request;
 
@@ -86,7 +90,7 @@ class ProjectBoardCreateTest {
                                 .id(1L)
                                 .build());
 
-        when(chatService.createGroupChatRoom(any(), any(), any()))
+        when(chatRoomService.createGroupChatRoom(any(), any(), any()))
                 .thenReturn(
                         ChatRoom.builder()
                                 .roomId("")

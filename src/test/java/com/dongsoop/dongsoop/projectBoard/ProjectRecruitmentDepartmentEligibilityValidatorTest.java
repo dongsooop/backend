@@ -8,12 +8,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.apply.project.dto.ApplyProjectBoardRequest;
 import com.dongsoop.dongsoop.recruitment.apply.project.entity.ProjectApply;
+import com.dongsoop.dongsoop.recruitment.apply.project.notification.ProjectApplyNotification;
 import com.dongsoop.dongsoop.recruitment.apply.project.repository.ProjectApplyRepository;
 import com.dongsoop.dongsoop.recruitment.apply.project.repository.ProjectApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.apply.project.service.ProjectApplyServiceImpl;
@@ -35,6 +37,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ProjectRecruitmentDepartmentEligibilityValidatorTest {
 
+    private static final Long BOARD_ID = 1L;
+    private static final Long REQUESTER_ID = 1L;
+    private static final Long OWNER_ID = 2L;
+    private static final String TEST_TITLE = "This is a test title";
+    private static final String TEST_CONTENT = "This is a test title";
+
     @InjectMocks
     private ProjectApplyServiceImpl projectApplyService;
 
@@ -51,41 +59,45 @@ class ProjectRecruitmentDepartmentEligibilityValidatorTest {
     private ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
 
     @Mock
+    private ChatService chatService;
+
+    @Mock
+    private ProjectApplyNotification projectApplyNotification;
+
+    @Mock
     private MemberService memberService;
 
     @Test
     @DisplayName("게시판 학과와 회원 학과 불일치 시 ProjectBoardDepartmentMismatchException 발생")
     void should_Throw_Exception_If_Member_Department_Mismatch_Board() {
         // given
-        Long boardId = 1L;
-        Long memberId = 1L;
         Department boardDepartment = new Department(DepartmentType.DEPT_2001, null, null); // 게시판 요구 학과
         Department memberDepartment = new Department(DepartmentType.DEPT_3001, null, null); // 사용자 학과
 
         // Security Context 조회 시 학과가 DEPT_3001인 회원이 조회됨
         Member member = Member.builder()
-                .id(memberId)
+                .id(REQUESTER_ID)
                 .department(memberDepartment)
                 .build();
         when(memberService.getMemberReferenceByContext())
                 .thenReturn(member);
 
-        when(projectApplyRepositoryCustom.existsByBoardIdAndMemberId(eq(boardId), eq(memberId))) // null은 회원 ID를 의미
+        when(projectApplyRepositoryCustom.existsByBoardIdAndMemberId(eq(BOARD_ID), eq(REQUESTER_ID))) // null은 회원 ID를 의미
                 .thenReturn(false);
 
         // 게시판 조회 시 Id가 1인 게시판 조회
         ProjectBoard projectBoard = ProjectBoard.builder()
-                .id(boardId)
+                .id(BOARD_ID)
                 .build();
-        when(projectBoardRepository.findById(eq(boardId)))
+        when(projectBoardRepository.findById(eq(BOARD_ID)))
                 .thenReturn(Optional.of(projectBoard));
 
         // Id가 1인 게시판의 학과 조회 시 DEPT_2001인 학과가 등록되어 있음
         ProjectBoardDepartment projectBoardDepartment = getProjectBoardDepartment(boardDepartment, projectBoard);
-        when(projectBoardDepartmentRepository.findByProjectBoardId(boardId))
+        when(projectBoardDepartmentRepository.findByProjectBoardId(BOARD_ID))
                 .thenReturn(List.of(projectBoardDepartment));
 
-        ApplyProjectBoardRequest request = new ApplyProjectBoardRequest(boardId, "소개글", "지원동기");
+        ApplyProjectBoardRequest request = new ApplyProjectBoardRequest(BOARD_ID, TEST_TITLE, TEST_CONTENT);
 
         // when, then
         assertThrows(ProjectBoardDepartmentMismatchException.class, () -> projectApplyService.apply(request));
@@ -102,13 +114,16 @@ class ProjectRecruitmentDepartmentEligibilityValidatorTest {
         Member member = Member.builder()
                 .department(department)
                 .build();
+        Member author = getAuthor();
         when(memberService.getMemberReferenceByContext())
                 .thenReturn(member);
 
         // 게시판 조회 시 Id가 1인 게시판 조회
         ProjectBoard projectBoard = ProjectBoard.builder()
                 .id(boardId)
+                .author(author)
                 .build();
+
         when(projectBoardRepository.findById(eq(boardId)))
                 .thenReturn(Optional.of(projectBoard));
 
@@ -117,7 +132,7 @@ class ProjectRecruitmentDepartmentEligibilityValidatorTest {
         when(projectBoardDepartmentRepository.findByProjectBoardId(boardId))
                 .thenReturn(List.of(projectBoardDepartment));
 
-        ApplyProjectBoardRequest request = new ApplyProjectBoardRequest(boardId, "소개글", "지원동기");
+        ApplyProjectBoardRequest request = new ApplyProjectBoardRequest(boardId, TEST_TITLE, TEST_CONTENT);
 
         // when, then
         assertDoesNotThrow(() -> projectApplyService.apply(request));
@@ -137,5 +152,11 @@ class ProjectRecruitmentDepartmentEligibilityValidatorTest {
                 department
         );
         return new ProjectBoardDepartment(projectBoardDepartmentId);
+    }
+
+    private Member getAuthor() {
+        return Member.builder()
+                .id(OWNER_ID)
+                .build();
     }
 }

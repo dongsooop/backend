@@ -8,11 +8,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+@SpringBootTest(classes = NoticeLinkParser.class)
 class NoticeLinkParserTest {
 
     @Autowired
-    NoticeLinkParser noticeLinkParser;
+    private NoticeLinkParser noticeLinkParser;
 
     @Value("${notice.link.layout-header}")
     private String layoutHeader;

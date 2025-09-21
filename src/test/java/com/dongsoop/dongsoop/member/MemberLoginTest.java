@@ -3,20 +3,43 @@ package com.dongsoop.dongsoop.member;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
+import com.dongsoop.dongsoop.mailverify.passwordupdate.PasswordUpdateMailValidator;
+import com.dongsoop.dongsoop.mailverify.register.RegisterMailValidator;
+import com.dongsoop.dongsoop.member.controller.MemberController;
+import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.member.validate.MemberDuplicationValidator;
+import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
+import com.dongsoop.dongsoop.notification.service.FCMService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+@WebMvcTest(controllers = MemberController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class MemberLoginTest {
 
     @Autowired
-    MockMvc mockMvc;
+    private MockMvc mockMvc;
+    @MockitoBean
+    private MemberService memberService;
+    @MockitoBean
+    private MemberDuplicationValidator memberDuplicationValidator;
+    @MockitoBean
+    private PasswordUpdateMailValidator passwordUpdateMailValidator;
+    @MockitoBean
+    private RegisterMailValidator registerMailValidator;
+    @MockitoBean
+    private MemberDeviceService memberDeviceService;
+    @MockitoBean
+    private FCMService fcmService;
+    @MockitoBean
+    private JwtFilter jwtFilter;
 
     @Test
     @DisplayName("비밀번호가 8자 미만일 경우 예외 발생")
