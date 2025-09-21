@@ -41,8 +41,8 @@ class NoticeCrawlingTest {
     static final Integer MIN_NUMBER_OF_INVOCATIONS = 1;
 
     static final List<Department> TEST_DEPARTMENT_LIST = List.of(
-            new Department(DepartmentType.DEPT_1001, DepartmentType.DEPT_1001.getName(), "/dmu/4904/subview.do"),
-            new Department(DepartmentType.DEPT_2001, DepartmentType.DEPT_2001.getName(), "/dmu/4580/subview.do")
+            new Department(DepartmentType.DEPT_1001, null, "/dmu/4904/subview.do"),
+            new Department(DepartmentType.DEPT_2001, null, "/dmu/4580/subview.do")
     );
 
     // NoticeSchedulerImpl 의존성 주입
