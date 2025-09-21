@@ -5,24 +5,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.dongsoop.dongsoop.notice.util.NoticeLinkParser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.util.ReflectionTestUtils;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest(classes = NoticeLinkParser.class)
 class NoticeLinkParserTest {
 
-    @InjectMocks
+    static String layoutHeader;
+
+    @Autowired
     NoticeLinkParser noticeLinkParser;
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(noticeLinkParser, "layoutHeader", "?");
-        ReflectionTestUtils.setField(noticeLinkParser, "departmentNoticeRegex", "'([^' ]*)'");
-        ReflectionTestUtils.setField(noticeLinkParser, "departmentUrlPrefix", "/combBbs");
-        ReflectionTestUtils.setField(noticeLinkParser, "departmentUrlStart", "javascript");
-        ReflectionTestUtils.setField(noticeLinkParser, "departmentUrlSuffix", "/view.do");
+        layoutHeader = (String) ReflectionTestUtils.getField(noticeLinkParser, NoticeLinkParser.class, "layoutHeader");
     }
 
     @Test
@@ -31,7 +28,7 @@ class NoticeLinkParserTest {
 
         String parseResult = noticeLinkParser.parse(universityNoticeLink);
         assertThat(parseResult)
-                .isEqualTo("/bbs/dmu/677/248653/artclView.do" + "?");
+                .isEqualTo("/bbs/dmu/677/248653/artclView.do" + layoutHeader);
     }
 
     @Test
@@ -40,6 +37,6 @@ class NoticeLinkParserTest {
 
         String parseResult = noticeLinkParser.parse(departmentNoticeLink);
         assertThat(parseResult)
-                .isEqualTo("/combBbs/dmu/98/292/248477/view.do" + "?");
+                .isEqualTo("/combBbs/dmu/98/292/248477/view.do" + layoutHeader);
     }
 }

@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
-import com.dongsoop.dongsoop.department.service.DepartmentServiceImpl;
+import com.dongsoop.dongsoop.department.service.DepartmentService;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notice.entity.Notice.NoticeKey;
 import com.dongsoop.dongsoop.notice.notification.NoticeNotification;
@@ -19,22 +19,23 @@ import com.dongsoop.dongsoop.notice.util.NoticeCrawl;
 import com.dongsoop.dongsoop.notice.util.NoticeLinkParser;
 import com.dongsoop.dongsoop.notice.util.NoticeParser;
 import java.lang.reflect.Field;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.util.ReflectionUtils;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest(classes = {
+        NoticeCrawl.class,
+        NoticeLinkParser.class,
+        NoticeParser.class,
+        NoticeSchedulerImpl.class
+})
 class NoticeCrawlingTest {
 
     static final Integer MIN_NUMBER_OF_INVOCATIONS = 1;
@@ -44,53 +45,29 @@ class NoticeCrawlingTest {
             new Department(DepartmentType.DEPT_2001, DepartmentType.DEPT_2001.getName(), "/dmu/4580/subview.do")
     );
 
-    @Mock
+    // NoticeSchedulerImpl 의존성 주입
+    @MockitoBean
     NoticeRepository noticeRepository;
-
-    @Mock
+    @MockitoBean
     NoticeDetailsRepository noticeDetailsRepository;
-
-    @Mock
-    DepartmentServiceImpl departmentService;
-
-    @Mock
+    @MockitoBean
+    DepartmentService departmentService;
+    @MockitoBean
     NoticeService noticeService;
+    @MockitoBean
+    NoticeNotification noticeNotification;
 
+    // NoticeCrawl 의존성 주입
+    @Autowired
     NoticeLinkParser noticeLinkParser;
-
+    @Autowired
     NoticeParser noticeParser;
 
+    @Autowired
     NoticeCrawl noticeCrawl;
 
+    @Autowired
     NoticeSchedulerImpl noticeScheduler;
-
-    @Mock
-    private NoticeNotification noticeNotification;
-
-    @BeforeEach
-    void setUp() throws MalformedURLException {
-        this.noticeLinkParser = new NoticeLinkParser();
-        ReflectionTestUtils.setField(noticeLinkParser, "layoutHeader", "?");
-        ReflectionTestUtils.setField(noticeLinkParser, "departmentNoticeRegex", "'([^' ]*)'");
-        ReflectionTestUtils.setField(noticeLinkParser, "departmentUrlPrefix", "/combBbs");
-        ReflectionTestUtils.setField(noticeLinkParser, "departmentUrlStart", "javascript");
-        ReflectionTestUtils.setField(noticeLinkParser, "departmentUrlSuffix", "/view.do");
-
-        this.noticeParser = new NoticeParser(this.noticeLinkParser, "?");
-        this.noticeCrawl = new NoticeCrawl(this.noticeParser);
-
-        ReflectionTestUtils.setField(noticeCrawl, "universityUrl", new URL("https://www.dongyang.ac.kr"));
-        ReflectionTestUtils.setField(noticeCrawl, "timeout", 600);
-        ReflectionTestUtils.setField(noticeCrawl, "userAgent", "Mozilla/5.0 (Compatible; NoticeBot/1.0)");
-
-        this.noticeScheduler = new NoticeSchedulerImpl(noticeCrawl, noticeRepository,
-                noticeDetailsRepository, departmentService, noticeService, noticeNotification);
-
-        ReflectionTestUtils.setField(noticeScheduler, "threadCount", 1);
-        ReflectionTestUtils.setField(noticeScheduler, "crawlTimeout", 600);
-        ReflectionTestUtils.setField(noticeScheduler, "terminateForceTimeout", 10);
-        ReflectionTestUtils.setField(noticeScheduler, "terminateGraceTimeout", 30);
-    }
 
     @Test
     void get_at_least_one_notice_from_each_department() throws NoSuchFieldException, SecurityException {
