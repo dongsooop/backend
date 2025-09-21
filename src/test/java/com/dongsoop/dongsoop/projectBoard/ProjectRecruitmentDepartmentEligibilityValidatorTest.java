@@ -8,12 +8,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.apply.project.dto.ApplyProjectBoardRequest;
 import com.dongsoop.dongsoop.recruitment.apply.project.entity.ProjectApply;
+import com.dongsoop.dongsoop.recruitment.apply.project.notification.ProjectApplyNotification;
 import com.dongsoop.dongsoop.recruitment.apply.project.repository.ProjectApplyRepository;
 import com.dongsoop.dongsoop.recruitment.apply.project.repository.ProjectApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.apply.project.service.ProjectApplyServiceImpl;
@@ -49,6 +51,12 @@ class ProjectRecruitmentDepartmentEligibilityValidatorTest {
 
     @Mock
     private ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
+
+    @Mock
+    private ChatService chatService;
+
+    @Mock
+    private ProjectApplyNotification projectApplyNotification;
 
     @Mock
     private MemberService memberService;
@@ -102,13 +110,18 @@ class ProjectRecruitmentDepartmentEligibilityValidatorTest {
         Member member = Member.builder()
                 .department(department)
                 .build();
+        Member author = Member.builder()
+                .id(0L)
+                .build();
         when(memberService.getMemberReferenceByContext())
                 .thenReturn(member);
 
         // 게시판 조회 시 Id가 1인 게시판 조회
         ProjectBoard projectBoard = ProjectBoard.builder()
                 .id(boardId)
+                .author(author)
                 .build();
+
         when(projectBoardRepository.findById(eq(boardId)))
                 .thenReturn(Optional.of(projectBoard));
 

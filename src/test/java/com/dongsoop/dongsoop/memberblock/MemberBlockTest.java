@@ -7,13 +7,17 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
+import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
+import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberblock.controller.MemberBlockController;
 import com.dongsoop.dongsoop.memberblock.entity.MemberBlock;
 import com.dongsoop.dongsoop.memberblock.entity.MemberBlockId;
 import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepository;
+import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepositoryCustom;
 import com.dongsoop.dongsoop.memberblock.service.MemberBlockService;
 import com.dongsoop.dongsoop.memberblock.service.MemberBlockServiceImpl;
 import org.junit.jupiter.api.DisplayName;
@@ -33,21 +37,25 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 @AutoConfigureMockMvc(addFilters = false)
 public class MemberBlockTest {
 
-    @Autowired
-    private MemberBlockService memberBlockService;
-
     @MockitoBean
-    private MemberBlockRepository memberBlockRepository;
-
+    private MemberService memberService;
     @MockitoBean
     private MemberRepository memberRepository;
-
+    @MockitoBean
+    private MemberBlockRepository memberBlockRepository;
+    @MockitoBean
+    private MemberBlockRepositoryCustom memberBlockRepositoryCustom;
+    @MockitoBean
+    private ChatService chatService;
+    @MockitoBean
+    private RedisChatRepository redisChatRepository;
+    @Autowired
+    private MemberBlockService memberBlockService;
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
     private JwtFilter jwtFilter;
-
 
     @Test
     @DisplayName("멤버 차단 정보가 DB에 저장된다.")

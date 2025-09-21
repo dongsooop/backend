@@ -8,12 +8,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.dto.ApplyTutoringBoardRequest;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.entity.TutoringApply;
+import com.dongsoop.dongsoop.recruitment.apply.tutoring.notification.TutoringApplyNotification;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.repository.TutoringApplyRepository;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.repository.TutoringApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.service.TutoringApplyServiceImpl;
@@ -44,6 +46,12 @@ class TutoringRecruitmentDepartmentEligibilityValidatorTest {
     private TutoringApplyRepositoryCustom tutoringApplyRepositoryCustom;
 
     @Mock
+    private ChatService chatService;
+
+    @Mock
+    private TutoringApplyNotification tutoringApplyNotification;
+
+    @Mock
     private MemberService memberService;
 
     @Test
@@ -60,6 +68,9 @@ class TutoringRecruitmentDepartmentEligibilityValidatorTest {
                 .id(memberId)
                 .department(memberDepartment)
                 .build();
+        Member author = Member.builder()
+                .id(0L)
+                .build();
         when(memberService.getMemberReferenceByContext())
                 .thenReturn(member);
 
@@ -70,6 +81,7 @@ class TutoringRecruitmentDepartmentEligibilityValidatorTest {
         TutoringBoard tutoringBoard = TutoringBoard.builder()
                 .id(boardId)
                 .department(boardDepartment)
+                .author(author)
                 .build();
         when(tutoringBoardRepository.findById(eq(boardId)))
                 .thenReturn(Optional.of(tutoringBoard));
@@ -91,6 +103,9 @@ class TutoringRecruitmentDepartmentEligibilityValidatorTest {
         Member member = Member.builder()
                 .department(department)
                 .build();
+        Member author = Member.builder()
+                .id(0L)
+                .build();
         when(memberService.getMemberReferenceByContext())
                 .thenReturn(member);
 
@@ -98,6 +113,7 @@ class TutoringRecruitmentDepartmentEligibilityValidatorTest {
         TutoringBoard tutoringBoard = TutoringBoard.builder()
                 .id(boardId)
                 .department(department)
+                .author(author)
                 .build();
         when(tutoringBoardRepository.findById(eq(boardId)))
                 .thenReturn(Optional.of(tutoringBoard));

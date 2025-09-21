@@ -8,12 +8,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.apply.study.dto.ApplyStudyBoardRequest;
 import com.dongsoop.dongsoop.recruitment.apply.study.entity.StudyApply;
+import com.dongsoop.dongsoop.recruitment.apply.study.notification.StudyApplyNotification;
 import com.dongsoop.dongsoop.recruitment.apply.study.repository.StudyApplyRepository;
 import com.dongsoop.dongsoop.recruitment.apply.study.repository.StudyApplyRepositoryCustom;
 import com.dongsoop.dongsoop.recruitment.apply.study.service.StudyApplyServiceImpl;
@@ -51,6 +53,12 @@ class StudyRecruitmentDepartmentEligibilityValidatorTest {
     private StudyApplyRepositoryCustom studyApplyRepositoryCustom;
 
     @Mock
+    private ChatService chatService;
+
+    @Mock
+    private StudyApplyNotification studyApplyNotification;
+
+    @Mock
     private MemberService memberService;
 
     @Test
@@ -67,6 +75,9 @@ class StudyRecruitmentDepartmentEligibilityValidatorTest {
                 .id(memberId)
                 .department(memberDepartment)
                 .build();
+        Member author = Member.builder()
+                .id(0L)
+                .build();
         when(memberService.getMemberReferenceByContext())
                 .thenReturn(member);
 
@@ -76,6 +87,7 @@ class StudyRecruitmentDepartmentEligibilityValidatorTest {
         // 게시판 조회 시 Id가 1인 게시판 조회
         StudyBoard studyBoard = StudyBoard.builder()
                 .id(boardId)
+                .author(author)
                 .build();
         when(studyBoardRepository.findById(eq(boardId)))
                 .thenReturn(Optional.of(studyBoard));
@@ -104,12 +116,16 @@ class StudyRecruitmentDepartmentEligibilityValidatorTest {
         Member member = Member.builder()
                 .department(department)
                 .build();
+        Member author = Member.builder()
+                .id(0L)
+                .build();
         when(memberService.getMemberReferenceByContext())
                 .thenReturn(member);
 
         // 게시판 조회 시 Id가 1인 게시판 조회
         StudyBoard studyBoard = StudyBoard.builder()
                 .id(boardId)
+                .author(author)
                 .build();
         when(studyBoardRepository.findById(eq(boardId)))
                 .thenReturn(Optional.of(studyBoard));
