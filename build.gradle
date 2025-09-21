@@ -21,7 +21,7 @@ configurations {
 
 repositories {
     mavenCentral()
-    maven { url 'https://jitpack.io' }
+    maven { url = 'https://jitpack.io' }
 }
 
 def querydslDir = layout.buildDirectory.dir("generated/sources/annotationProcessor/java/main").get().asFile
