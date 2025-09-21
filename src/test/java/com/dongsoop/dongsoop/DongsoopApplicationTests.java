@@ -10,7 +10,7 @@ class DongsoopApplicationTests {
 
     // elasticsearch를 연결하지 않은 상태에서 테스트하기 위해 MockitoBean 사용
     @MockitoBean
-    BoardSearchRepository boardSearchRepository;
+    private BoardSearchRepository boardSearchRepository;
 
     @Test
     void contextLoads() {

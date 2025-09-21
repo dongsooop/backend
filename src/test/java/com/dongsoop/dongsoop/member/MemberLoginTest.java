@@ -25,7 +25,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class MemberLoginTest {
 
     @Autowired
-    MockMvc mockMvc;
+    private MockMvc mockMvc;
     @MockitoBean
     private MemberService memberService;
     @MockitoBean

@@ -38,36 +38,36 @@ import org.springframework.util.ReflectionUtils;
 })
 class NoticeCrawlingTest {
 
-    static final Integer MIN_NUMBER_OF_INVOCATIONS = 1;
+    private static final Integer MIN_NUMBER_OF_INVOCATIONS = 1;
 
-    static final List<Department> TEST_DEPARTMENT_LIST = List.of(
+    private static final List<Department> TEST_DEPARTMENT_LIST = List.of(
             new Department(DepartmentType.DEPT_1001, null, "/dmu/4904/subview.do"),
             new Department(DepartmentType.DEPT_2001, null, "/dmu/4580/subview.do")
     );
 
     // NoticeSchedulerImpl 의존성 주입
     @MockitoBean
-    NoticeRepository noticeRepository;
+    private NoticeRepository noticeRepository;
     @MockitoBean
-    NoticeDetailsRepository noticeDetailsRepository;
+    private NoticeDetailsRepository noticeDetailsRepository;
     @MockitoBean
-    DepartmentService departmentService;
+    private DepartmentService departmentService;
     @MockitoBean
-    NoticeService noticeService;
+    private NoticeService noticeService;
     @MockitoBean
-    NoticeNotification noticeNotification;
+    private NoticeNotification noticeNotification;
 
     // NoticeCrawl 의존성 주입
     @Autowired
-    NoticeLinkParser noticeLinkParser;
+    private NoticeLinkParser noticeLinkParser;
     @Autowired
-    NoticeParser noticeParser;
+    private NoticeParser noticeParser;
 
     @Autowired
-    NoticeCrawl noticeCrawl;
+    private NoticeCrawl noticeCrawl;
 
     @Autowired
-    NoticeSchedulerImpl noticeScheduler;
+    private NoticeSchedulerImpl noticeScheduler;
 
     @Test
     void get_at_least_one_notice_from_each_department() throws NoSuchFieldException, SecurityException {

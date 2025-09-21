@@ -12,10 +12,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 class NoticeLinkParserTest {
 
     @Autowired
-    NoticeLinkParser noticeLinkParser;
+    private NoticeLinkParser noticeLinkParser;
 
     @Value("${notice.link.layout-header}")
-    String layoutHeader;
+    private String layoutHeader;
 
     @Test
     void parse_university_notice_link_to_available_link() {
