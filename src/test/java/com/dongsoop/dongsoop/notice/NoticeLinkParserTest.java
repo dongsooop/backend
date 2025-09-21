@@ -3,24 +3,19 @@ package com.dongsoop.dongsoop.notice;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dongsoop.dongsoop.notice.util.NoticeLinkParser;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @SpringBootTest(classes = NoticeLinkParser.class)
 class NoticeLinkParserTest {
 
-    static String layoutHeader;
-
     @Autowired
     NoticeLinkParser noticeLinkParser;
 
-    @BeforeEach
-    void setUp() {
-        layoutHeader = (String) ReflectionTestUtils.getField(noticeLinkParser, NoticeLinkParser.class, "layoutHeader");
-    }
+    @Value("${notice.link.layout-header}")
+    String layoutHeader;
 
     @Test
     void parse_university_notice_link_to_available_link() {
