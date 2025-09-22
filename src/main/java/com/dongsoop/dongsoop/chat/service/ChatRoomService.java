@@ -126,7 +126,7 @@ public class ChatRoomService {
             return getChatRoomById(existingRoomId);
         }
 
-        String title = String.format("[문의] %s", boardTitle);
+        String title = buildChatRoomTitle(boardType, boardTitle);
         ChatRoom room = createNewOneToOneRoom(userId, targetUserId, title);
 
         ChatCommonUtils.saveContactRoomMapping(redisTemplate, userId, targetUserId, boardType, boardId, room.getRoomId());
