@@ -6,7 +6,7 @@ import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepository;
-import com.dongsoop.dongsoop.recruitment.RecruitmentType;
+import com.dongsoop.dongsoop.search.entity.BoardType;
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoardRepository;
@@ -117,9 +117,9 @@ public class ChatRoomService {
         return saveRoom(room);
     }
 
-    public ChatRoom createContactChatRoom(Long userId, Long targetUserId, RecruitmentType boardType, Long boardId,
+    public ChatRoom createContactChatRoom(Long userId, Long targetUserId, BoardType boardType, Long boardId,
                                           String boardTitle) {
-        validateRecruitmentBoard(boardType, boardId);
+        validateBoard(boardType, boardId);
 
         String existingRoomId = ChatCommonUtils.findExistingContactRoomId(redisTemplate, userId, targetUserId, boardType, boardId);
         if (existingRoomId != null) {
@@ -134,24 +134,19 @@ public class ChatRoomService {
         return saveRoom(room);
     }
 
-    private String buildChatRoomTitle(RecruitmentType boardType, String boardTitle) {
-        String prefix = "문의";
-
-        if (boardType == null) {
-            prefix = "거래";
-        }
-
+    private String buildChatRoomTitle(BoardType boardType, String boardTitle) {
+        String prefix = boardType == BoardType.MARKETPLACE ? "거래" : "문의";
         return String.format("[%s] %s", prefix, boardTitle);
     }
 
-    private void validateRecruitmentBoard(RecruitmentType boardType, Long boardId) {
-        if (boardType == null) {
+    private void validateBoard(BoardType boardType, Long boardId) {
+        if (boardType == BoardType.MARKETPLACE) {
             return;
         }
 
-        boolean projectExists = boardType == RecruitmentType.PROJECT && projectBoardRepository.existsById(boardId);
-        boolean studyExists = boardType == RecruitmentType.STUDY && studyBoardRepository.existsById(boardId);
-        boolean tutoringExists = boardType == RecruitmentType.TUTORING && tutoringBoardRepository.existsById(boardId);
+        boolean projectExists = boardType == BoardType.PROJECT && projectBoardRepository.existsById(boardId);
+        boolean studyExists = boardType == BoardType.STUDY && studyBoardRepository.existsById(boardId);
+        boolean tutoringExists = boardType == BoardType.TUTORING && tutoringBoardRepository.existsById(boardId);
 
         boolean boardExists = projectExists || studyExists || tutoringExists;
 

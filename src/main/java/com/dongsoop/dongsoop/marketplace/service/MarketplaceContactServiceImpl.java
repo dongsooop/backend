@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.marketplace.service;
 
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
+import com.dongsoop.dongsoop.search.entity.BoardType;
 import com.dongsoop.dongsoop.marketplace.dto.ContactMarketplaceRequest;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoard;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceContact;
@@ -64,7 +65,7 @@ public class MarketplaceContactServiceImpl implements MarketplaceContactService 
         chatRoomService.createContactChatRoom(
                 buyerId,
                 sellerInfo.sellerId(),
-                null,
+                BoardType.MARKETPLACE,
                 boardId,
                 sellerInfo.title()
         );
