@@ -82,7 +82,11 @@ public class ChatCommonUtils {
         String boardTypeName = Optional.ofNullable(boardType)
                 .map(RecruitmentType::name)
                 .orElse("MARKETPLACE");
-        return String.format("contact:%d:%d:%s:%d", userId, targetUserId, boardTypeName, boardId);
+
+        Long minUserId = Math.min(userId, targetUserId);
+        Long maxUserId = Math.max(userId, targetUserId);
+
+        return String.format("contact:%d:%d:%s:%d", minUserId, maxUserId, boardTypeName, boardId);
     }
 
     public static String findExistingContactRoomId(RedisTemplate<String, Object> redisTemplate,
