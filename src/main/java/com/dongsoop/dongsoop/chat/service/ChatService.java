@@ -1,11 +1,14 @@
 package com.dongsoop.dongsoop.chat.service;
 
 import com.dongsoop.dongsoop.chat.dto.BlockStatusMessage;
+import com.dongsoop.dongsoop.chat.dto.ChatRoomUpdateDto;
 import com.dongsoop.dongsoop.chat.dto.ReadStatusUpdateRequest;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
+import com.dongsoop.dongsoop.chat.entity.ChatNotificationType;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
 import com.dongsoop.dongsoop.chat.notification.ChatNotification;
+import com.dongsoop.dongsoop.chat.session.WebSocketSessionManager;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberblock.constant.BlockStatus;
@@ -13,6 +16,7 @@ import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepository;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +36,7 @@ public class ChatService {
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatNotification chatNotification;
     private final MemberService memberService;
+    private final WebSocketSessionManager sessionManager;
 
     public ChatRoomInitResponse initializeChatRoomForFirstTime(String roomId, Long userId) {
         chatValidator.validateUserForRoom(roomId, userId);
@@ -59,10 +64,10 @@ public class ChatService {
 
     public void leaveChatRoom(String roomId, Long userId) {
         ChatRoom room = chatRoomService.getChatRoomById(roomId);
-        
+
         chatValidator.validateUserForRoom(roomId, userId);
         chatValidator.validateManagerCanLeave(room, userId);
-        
+
         chatParticipantService.leaveChatRoom(roomId, userId, chatRoomService, chatMessageService);
     }
 
@@ -73,12 +78,30 @@ public class ChatService {
         Set<Long> receiver = new HashSet<>(room.getParticipants());
         receiver.remove(userId);
 
-        if (!receiver.isEmpty()) {
-            String senderName = memberService.getNicknameById(userId);
-            chatNotification.send(receiver, roomId, senderName, message.getContent());
-        }
+        sendFcmNotification(receiver, roomId, userId, message);
+        sendGlobalRoomUpdate(room.getParticipants(), roomId, processedMessage);
 
         return processedMessage;
+    }
+
+    private void sendFcmNotification(Set<Long> receiver, String roomId, Long userId, ChatMessage message) {
+        if (receiver == null || receiver.isEmpty()) {
+            return;
+        }
+        String senderName = memberService.getNicknameById(userId);
+        chatNotification.send(receiver, roomId, senderName, message.getContent());
+    }
+
+    private void sendGlobalRoomUpdate(Set<Long> participants, String roomId, ChatMessage message) {
+        for (Long participantId : participants) {
+            sendRoomUpdateToUser(participantId, roomId, message);
+        }
+    }
+
+    private void sendRoomUpdateToUser(Long userId, String roomId, ChatMessage message) {
+        Integer unreadCount = getUnreadMessageCount(roomId, userId);
+        ChatRoomUpdateDto updateDto = ChatRoomUpdateDto.createRoomUpdate(roomId, message, unreadCount);
+        messagingTemplate.convertAndSend("/topic/user/" + userId, updateDto);
     }
 
     public ChatMessage processWebSocketEnter(String roomId, Long userId) {
@@ -94,6 +117,29 @@ public class ChatService {
     public void markAllMessagesAsRead(String roomId, Long userId) {
         chatValidator.validateUserForRoom(roomId, userId);
         updateReadTimestamp(userId, roomId, LocalDateTime.now());
+
+        notifyReadStatusChanged(roomId, userId);
+    }
+
+    private void notifyReadStatusChanged(String roomId, Long readerId) {
+        ChatRoom room = chatRoomService.getChatRoomById(roomId);
+        Set<Long> otherParticipants = new HashSet<>(room.getParticipants());
+        otherParticipants.remove(readerId);
+
+        for (Long participantId : otherParticipants) {
+            sendReadStatusUpdateNotification(participantId, roomId, readerId);
+        }
+    }
+
+    private void sendReadStatusUpdateNotification(Long userId, String roomId, Long readerId) {
+        Map<String, Object> readUpdate = Map.of(
+                "type", ChatNotificationType.READ_STATUS_UPDATE,
+                "roomId", roomId,
+                "readerId", readerId,
+                "timestamp", LocalDateTime.now()
+        );
+
+        messagingTemplate.convertAndSend("/topic/user/" + userId, readUpdate);
     }
 
     public List<ChatMessage> syncOfflineMessages(String roomId, Long userId, List<ChatMessage> offlineMessages) {

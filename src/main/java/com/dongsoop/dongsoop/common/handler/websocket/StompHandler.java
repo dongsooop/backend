@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.common.handler.websocket;
 
 import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
+import com.dongsoop.dongsoop.chat.session.WebSocketSessionManager;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import com.dongsoop.dongsoop.jwt.dto.AuthenticationInformationByToken;
@@ -26,22 +27,25 @@ public class StompHandler implements ChannelInterceptor {
 
     private final JwtValidator jwtValidator;
     private final JwtUtil jwtUtil;
+    private final WebSocketSessionManager sessionManager;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
-
-        if (accessor == null) {
-            return message;
-        }
 
         processCommand(accessor, accessor.getCommand());
         return message;
     }
 
     private void processCommand(StompHeaderAccessor accessor, StompCommand command) {
+        if (accessor == null) {
+            return;
+        }
         if (StompCommand.CONNECT == command) {
             authenticateConnection(accessor);
+        }
+        if (StompCommand.DISCONNECT == command) {
+            handleDisconnect(accessor);
         }
     }
 
@@ -49,6 +53,24 @@ public class StompHandler implements ChannelInterceptor {
         String token = extractToken(accessor);
         validateToken(token);
         setAuthentication(accessor, token);
+
+        Long userId = getUserIdFromToken(token);
+        String sessionId = accessor.getSessionId();
+
+        if (sessionId != null) {
+            sessionManager.addUserSession(userId, sessionId);
+        }
+    }
+
+    private void handleDisconnect(StompHeaderAccessor accessor) {
+        String sessionId = accessor.getSessionId();
+        if (sessionId != null) {
+            sessionManager.removeSession(sessionId);
+        }
+    }
+
+    private Long getUserIdFromToken(String token) {
+        return jwtUtil.getTokenInformation(token).getId();
     }
 
     private String extractToken(StompHeaderAccessor accessor) {

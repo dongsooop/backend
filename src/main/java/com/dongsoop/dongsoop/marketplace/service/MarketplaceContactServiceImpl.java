@@ -1,6 +1,8 @@
 package com.dongsoop.dongsoop.marketplace.service;
 
+import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import com.dongsoop.dongsoop.marketplace.dto.ContactMarketplaceRequest;
+import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoard;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceContact;
 import com.dongsoop.dongsoop.marketplace.exception.MarketplaceAlreadyContactException;
 import com.dongsoop.dongsoop.marketplace.exception.MarketplaceBoardNotFoundException;
@@ -25,6 +27,8 @@ public class MarketplaceContactServiceImpl implements MarketplaceContactService 
 
     private final MemberService memberService;
 
+    private final ChatRoomService chatRoomService;
+
     public void contact(ContactMarketplaceRequest request) {
         Long boardId = request.boardId();
 
@@ -32,6 +36,8 @@ public class MarketplaceContactServiceImpl implements MarketplaceContactService 
 
         Long memberId = memberService.getMemberIdByAuthentication();
         validateAlreadyContact(memberId, boardId);
+
+        createMarketplaceChatRoom(memberId, boardId);
 
         MarketplaceContact marketplaceContact = marketplaceContactMapper.toEntity(request);
         marketplaceContactRepository.save(marketplaceContact);
@@ -51,5 +57,25 @@ public class MarketplaceContactServiceImpl implements MarketplaceContactService 
         if (isAlreadyApplied) {
             throw new MarketplaceAlreadyContactException(memberId, boardId);
         }
+    }
+
+    private void createMarketplaceChatRoom(Long buyerId, Long boardId) {
+        SellerIdAndTitle sellerInfo = getSellerIdAndTitleByBoardId(boardId);
+        chatRoomService.createContactChatRoom(
+                buyerId,
+                sellerInfo.sellerId(),
+                null,
+                boardId,
+                sellerInfo.title()
+        );
+    }
+
+    private SellerIdAndTitle getSellerIdAndTitleByBoardId(Long boardId) {
+        MarketplaceBoard board = marketplaceBoardRepository.findById(boardId)
+                .orElseThrow(() -> new MarketplaceBoardNotFoundException(boardId));
+        return new SellerIdAndTitle(board.getAuthor().getId(), board.getTitle());
+    }
+
+    private record SellerIdAndTitle(Long sellerId, String title) {
     }
 }
