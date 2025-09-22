@@ -4,15 +4,16 @@ import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.MessageType;
 import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
 import com.dongsoop.dongsoop.recruitment.RecruitmentType;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Component;
+
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
@@ -77,12 +78,11 @@ public class ChatCommonUtils {
         return str == null || str.trim().isEmpty();
     }
 
-    public static String createContactMappingKey(Long userId, Long targetUserId, RecruitmentType boardType,
-                                                 Long boardId) {
-        Long user1 = Math.min(userId, targetUserId);
-        Long user2 = Math.max(userId, targetUserId);
-        String typeStr = boardType.name();
-        return String.format("%s:%d:%d:%s:%d", CONTACT_MAPPING_KEY_PREFIX, user1, user2, typeStr, boardId);
+    private static String createContactMappingKey(Long userId, Long targetUserId, RecruitmentType boardType, Long boardId) {
+        String boardTypeName = Optional.ofNullable(boardType)
+                .map(RecruitmentType::name)
+                .orElse("MARKETPLACE");
+        return String.format("contact:%d:%d:%s:%d", userId, targetUserId, boardTypeName, boardId);
     }
 
     public static String findExistingContactRoomId(RedisTemplate<String, Object> redisTemplate,
