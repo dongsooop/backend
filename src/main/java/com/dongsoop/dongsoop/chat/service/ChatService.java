@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.chat.dto.BlockStatusMessage;
 import com.dongsoop.dongsoop.chat.dto.ChatRoomUpdateDto;
 import com.dongsoop.dongsoop.chat.dto.ReadStatusUpdateRequest;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
+import com.dongsoop.dongsoop.chat.entity.ChatNotificationType;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
 import com.dongsoop.dongsoop.chat.notification.ChatNotification;
@@ -132,7 +133,7 @@ public class ChatService {
 
     private void sendReadStatusUpdateNotification(Long userId, String roomId, Long readerId) {
         Map<String, Object> readUpdate = Map.of(
-                "type", "READ_STATUS_UPDATE",
+                "type", ChatNotificationType.READ_STATUS_UPDATE,
                 "roomId", roomId,
                 "readerId", readerId,
                 "timestamp", LocalDateTime.now()
