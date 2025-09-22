@@ -23,6 +23,7 @@ public class ChatCommonUtils {
     private static final String RECRUITMENT_END_AT_PREFIX = "recruitment:room:";
     private static final String END_AT_SUFFIX = ":end_at";
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+    private static final String MARKETPLACE = "MARKETPLACE";
 
     private final RedisTemplate<String, String> redisTemplate;
 
@@ -81,7 +82,7 @@ public class ChatCommonUtils {
     private static String createContactMappingKey(Long userId, Long targetUserId, RecruitmentType boardType, Long boardId) {
         String boardTypeName = Optional.ofNullable(boardType)
                 .map(RecruitmentType::name)
-                .orElse("MARKETPLACE");
+                .orElse(MARKETPLACE);
 
         Long minUserId = Math.min(userId, targetUserId);
         Long maxUserId = Math.max(userId, targetUserId);
