@@ -3,7 +3,7 @@ package com.dongsoop.dongsoop.chat.util;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.MessageType;
 import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
-import com.dongsoop.dongsoop.recruitment.RecruitmentType;
+import com.dongsoop.dongsoop.search.entity.BoardType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -79,10 +79,8 @@ public class ChatCommonUtils {
         return str == null || str.trim().isEmpty();
     }
 
-    private static String createContactMappingKey(Long userId, Long targetUserId, RecruitmentType boardType, Long boardId) {
-        String boardTypeName = Optional.ofNullable(boardType)
-                .map(RecruitmentType::name)
-                .orElse(MARKETPLACE);
+    private static String createContactMappingKey(Long userId, Long targetUserId, BoardType boardType, Long boardId) {
+        String boardTypeName = boardType != null ? boardType.getCode() : MARKETPLACE;
 
         Long minUserId = Math.min(userId, targetUserId);
         Long maxUserId = Math.max(userId, targetUserId);
@@ -92,7 +90,7 @@ public class ChatCommonUtils {
 
     public static String findExistingContactRoomId(RedisTemplate<String, Object> redisTemplate,
                                                    Long userId, Long targetUserId,
-                                                   RecruitmentType boardType, Long boardId) {
+                                                   BoardType boardType, Long boardId) {
         String mappingKey = createContactMappingKey(userId, targetUserId, boardType, boardId);
         Object result = redisTemplate.opsForValue().get(mappingKey);
 
@@ -104,7 +102,7 @@ public class ChatCommonUtils {
 
     public static void saveContactRoomMapping(RedisTemplate<String, Object> redisTemplate,
                                               Long userId, Long targetUserId,
-                                              RecruitmentType boardType, Long boardId, String roomId) {
+                                              BoardType boardType, Long boardId, String roomId) {
         String mappingKey = createContactMappingKey(userId, targetUserId, boardType, boardId);
 
         // 기존: boardInfo → roomId 매핑
@@ -115,7 +113,7 @@ public class ChatCommonUtils {
         String boardInfo = String.format("%d:%d:%s:%d",
                 Math.min(userId, targetUserId),
                 Math.max(userId, targetUserId),
-                boardType.name(),
+                boardType.getCode(),
                 boardId);
         redisTemplate.opsForValue().set(reverseMappingKey, boardInfo);
     }
