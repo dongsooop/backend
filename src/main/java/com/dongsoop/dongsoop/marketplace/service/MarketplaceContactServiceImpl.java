@@ -1,7 +1,7 @@
 package com.dongsoop.dongsoop.marketplace.service;
 
+import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
-import com.dongsoop.dongsoop.search.entity.BoardType;
 import com.dongsoop.dongsoop.marketplace.dto.ContactMarketplaceRequest;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoard;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceContact;
@@ -11,6 +11,7 @@ import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepository;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceContactRepository;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceContactRepositoryCustom;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.search.entity.BoardType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -30,7 +31,7 @@ public class MarketplaceContactServiceImpl implements MarketplaceContactService 
 
     private final ChatRoomService chatRoomService;
 
-    public void contact(ContactMarketplaceRequest request) {
+    public String contact(ContactMarketplaceRequest request) {
         Long boardId = request.boardId();
 
         validateBoardExists(boardId);
@@ -38,10 +39,12 @@ public class MarketplaceContactServiceImpl implements MarketplaceContactService 
         Long memberId = memberService.getMemberIdByAuthentication();
         validateAlreadyContact(memberId, boardId);
 
-        createMarketplaceChatRoom(memberId, boardId);
+        String roomId = createMarketplaceChatRoom(memberId, boardId);
 
         MarketplaceContact marketplaceContact = marketplaceContactMapper.toEntity(request);
         marketplaceContactRepository.save(marketplaceContact);
+
+        return roomId;
     }
 
     private void validateBoardExists(Long boardId) {
@@ -60,15 +63,17 @@ public class MarketplaceContactServiceImpl implements MarketplaceContactService 
         }
     }
 
-    private void createMarketplaceChatRoom(Long buyerId, Long boardId) {
+    private String createMarketplaceChatRoom(Long buyerId, Long boardId) {
         SellerIdAndTitle sellerInfo = getSellerIdAndTitleByBoardId(boardId);
-        chatRoomService.createContactChatRoom(
+
+        ChatRoom chatRoom = chatRoomService.createContactChatRoom(
                 buyerId,
                 sellerInfo.sellerId(),
                 BoardType.MARKETPLACE,
                 boardId,
                 sellerInfo.title()
         );
+        return chatRoom.getRoomId();
     }
 
     private SellerIdAndTitle getSellerIdAndTitleByBoardId(Long boardId) {
