@@ -9,6 +9,7 @@ import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.Arrays;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -54,7 +55,15 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
-                                    @NonNull FilterChain filterChain) {
+                                    @NonNull FilterChain filterChain) throws IOException {
+        try {
+            firebaseAppCheck.updateCache();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        String deviceToken = extractDeviceAuthTokenFromHeader(request);
+        firebaseAppCheck.validate(deviceToken);
+
         try {
             String token = extractTokenFromHeader(request);
             Claims claims = jwtUtil.getClaims(token);
@@ -68,9 +77,6 @@ public class JwtFilter extends OncePerRequestFilter {
             exceptionResolver.resolveException(request, response, null, exception);
             return;
         }
-
-        String token = extractDeviceAuthTokenFromHeader(request);
-        firebaseAppCheck.validate(token);
 
         try {
             filterChain.doFilter(request, response);
@@ -91,9 +97,7 @@ public class JwtFilter extends OncePerRequestFilter {
     private String extractDeviceAuthTokenFromHeader(HttpServletRequest request) throws TokenNotFoundException {
         String deviceAuthToken = request.getHeader(DEVICE_AUTH_HEADER);
 
-        if (!StringUtils.hasText(deviceAuthToken) ||
-                deviceAuthToken.length() <= TOKEN_START_INDEX ||
-                !deviceAuthToken.startsWith(BEARER_PREFIX)) {
+        if (!StringUtils.hasText(deviceAuthToken)) {
             throw new TokenNotFoundException();
         }
 

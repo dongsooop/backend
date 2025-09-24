@@ -1,11 +1,14 @@
 package com.dongsoop.dongsoop.appcheck;
 
 import com.dongsoop.dongsoop.appcheck.dto.FirebaseDeviceData;
+import com.dongsoop.dongsoop.appcheck.dto.FirebaseKeys;
 import com.dongsoop.dongsoop.appcheck.exception.UnknownFirebaseFetchJWKException;
+import com.dongsoop.dongsoop.jwt.exception.TokenNotFoundException;
 import com.dongsoop.dongsoop.jwt.exception.TokenSignatureException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.micrometer.common.util.StringUtils;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
@@ -16,7 +19,6 @@ import java.security.KeyFactory;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.Base64;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,24 +41,28 @@ public class FirebaseAppCheckImpl implements FirebaseAppCheck {
 
     @Override
     public void validate(String token) {
+        if (token == null || StringUtils.isBlank(token)) {
+            throw new TokenNotFoundException();
+        }
+
         ObjectMapper mapper = new ObjectMapper();
         try {
-            String payload = token.split("\\.")[0];
-            String decoded = new String(Base64.getDecoder()
-                    .decode(payload));
+            String header = token.split("\\.")[0];
+            String decoded = new String(Base64.getUrlDecoder()
+                    .decode(header));
 
             FirebaseDeviceData requesterData = mapper.readValue(decoded, FirebaseDeviceData.class);
             String kid = requesterData.getKid();
 
-            FirebaseDeviceData data = cache.get(kid);
+            FirebaseDeviceData data = cache.get(kid.toLowerCase());
 
             byte[] modulusBytes = Base64.getUrlDecoder().decode(data.getN());
             byte[] exponentBytes = Base64.getUrlDecoder().decode(data.getE());
             BigInteger modulus = new BigInteger(1, modulusBytes);
             BigInteger exponent = new BigInteger(1, exponentBytes);
             RSAPublicKeySpec publicKeySpec = new RSAPublicKeySpec(modulus, exponent);
-            RSAPublicKey publicKey =
-                    (RSAPublicKey) KeyFactory.getInstance("RSA").generatePublic(publicKeySpec);
+            RSAPublicKey publicKey = (RSAPublicKey) KeyFactory.getInstance("RSA")
+                    .generatePublic(publicKeySpec);
 
             cache.getOrDefault(kid, null);
             Claims claims = Jwts.parser()
@@ -96,13 +102,8 @@ public class FirebaseAppCheckImpl implements FirebaseAppCheck {
         }
 
         ObjectMapper mapper = new ObjectMapper();
-        Map<String, List<FirebaseDeviceData>> keyMap = mapper.readValue(
-                firebaseResponse.body(),
-                mapper.getTypeFactory().constructMapType(Map.class, String.class, FirebaseDeviceData.class));
-        List<FirebaseDeviceData> keys = keyMap.get("keys");
-
-        cache = keys.stream().collect(Collectors.toMap(
-                FirebaseDeviceData::getKid,
-                data -> data));
+        FirebaseKeys firebaseKeys = mapper.readValue(firebaseResponse.body(), FirebaseKeys.class);
+        cache = firebaseKeys.getKeys().stream()
+                .collect(Collectors.toMap(data -> data.getKid().toLowerCase(), data -> data));
     }
 }
