@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.jwt.filter;
 
+import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import com.dongsoop.dongsoop.jwt.exception.JWTException;
@@ -26,6 +27,7 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 @Slf4j
 public class JwtFilter extends OncePerRequestFilter {
 
+    private static final String DEVICE_AUTH_HEADER = "X-Firebase-AppCheck";
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
     private static final int TOKEN_START_INDEX = BEARER_PREFIX.length();
@@ -35,13 +37,16 @@ public class JwtFilter extends OncePerRequestFilter {
     private final JwtValidator jwtValidator;
     private final HandlerExceptionResolver exceptionResolver;
     private final String[] ignorePaths;
+    private final FirebaseAppCheck firebaseAppCheck;
 
     public JwtFilter(JwtUtil jwtUtil,
                      JwtValidator jwtValidator,
+                     FirebaseAppCheck firebaseAppCheck,
                      @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver,
                      @Value("${authentication.filter.ignore.paths}") String[] ignorePaths) {
         this.jwtUtil = jwtUtil;
         this.jwtValidator = jwtValidator;
+        this.firebaseAppCheck = firebaseAppCheck;
         this.exceptionResolver = exceptionResolver;
         this.ignorePaths = ignorePaths;
     }
@@ -64,6 +69,9 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
+        String token = extractDeviceAuthTokenFromHeader(request);
+        firebaseAppCheck.validate(token);
+
         try {
             filterChain.doFilter(request, response);
         } catch (Exception exception) {
@@ -78,6 +86,18 @@ public class JwtFilter extends OncePerRequestFilter {
 
         return Arrays.stream(ignorePaths)
                 .anyMatch(allowPath -> PATH_MATCHER.match(allowPath, path));
+    }
+
+    private String extractDeviceAuthTokenFromHeader(HttpServletRequest request) throws TokenNotFoundException {
+        String deviceAuthToken = request.getHeader(DEVICE_AUTH_HEADER);
+
+        if (!StringUtils.hasText(deviceAuthToken) ||
+                deviceAuthToken.length() <= TOKEN_START_INDEX ||
+                !deviceAuthToken.startsWith(BEARER_PREFIX)) {
+            throw new TokenNotFoundException();
+        }
+
+        return deviceAuthToken;
     }
 
     private String extractTokenFromHeader(HttpServletRequest request) throws TokenNotFoundException {
