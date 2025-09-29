@@ -15,4 +15,5 @@ public class FirebaseDeviceData {
     String kid;
     String n;
     String e;
+    String typ;
 }

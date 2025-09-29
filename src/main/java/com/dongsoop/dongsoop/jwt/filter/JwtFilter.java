@@ -58,11 +58,13 @@ public class JwtFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain filterChain) throws IOException {
         try {
             firebaseAppCheck.updateCache();
+            String deviceToken = extractDeviceAuthTokenFromHeader(request);
+            firebaseAppCheck.validate(deviceToken);
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            System.out.println("Firebase App Check cache update interrupted: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Firebase App Check validation failed: " + e.getMessage());
         }
-        String deviceToken = extractDeviceAuthTokenFromHeader(request);
-        firebaseAppCheck.validate(deviceToken);
 
         try {
             String token = extractTokenFromHeader(request);

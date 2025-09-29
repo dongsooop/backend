@@ -54,7 +54,7 @@ public class FirebaseAppCheckImpl implements FirebaseAppCheck {
             FirebaseDeviceData requesterData = mapper.readValue(decoded, FirebaseDeviceData.class);
             String kid = requesterData.getKid();
 
-            FirebaseDeviceData data = cache.get(kid.toLowerCase());
+            FirebaseDeviceData data = cache.get(kid);
 
             byte[] modulusBytes = Base64.getUrlDecoder().decode(data.getN());
             byte[] exponentBytes = Base64.getUrlDecoder().decode(data.getE());
@@ -104,6 +104,6 @@ public class FirebaseAppCheckImpl implements FirebaseAppCheck {
         ObjectMapper mapper = new ObjectMapper();
         FirebaseKeys firebaseKeys = mapper.readValue(firebaseResponse.body(), FirebaseKeys.class);
         cache = firebaseKeys.getKeys().stream()
-                .collect(Collectors.toMap(data -> data.getKid().toLowerCase(), data -> data));
+                .collect(Collectors.toMap(data -> data.getKid(), data -> data));
     }
 }
