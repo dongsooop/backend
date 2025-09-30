@@ -1,7 +1,6 @@
 package com.dongsoop.dongsoop.jwt.filter;
 
 import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
-import com.dongsoop.dongsoop.appcheck.exception.UnknownFirebaseFetchJWKException;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import com.dongsoop.dongsoop.jwt.exception.JWTException;
@@ -75,7 +74,8 @@ public class JwtFilter extends OncePerRequestFilter {
 //            firebaseAppCheck.validate(deviceToken);
             log.info("Firebase App Check validation succeeded");
         } catch (FirebaseAuthException exception) {
-            throw new UnknownFirebaseFetchJWKException(exception);
+            log.error("Firebase App Check validation failed: {}", exception.getMessage(), exception);
+//            throw new UnknownFirebaseFetchJWKException(exception);
         }
 
         try {
