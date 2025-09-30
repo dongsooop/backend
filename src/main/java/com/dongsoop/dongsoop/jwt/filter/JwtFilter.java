@@ -5,8 +5,6 @@ import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import com.dongsoop.dongsoop.jwt.exception.JWTException;
 import com.dongsoop.dongsoop.jwt.exception.TokenNotFoundException;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseAuthException;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
@@ -68,14 +66,13 @@ public class JwtFilter extends OncePerRequestFilter {
             System.out.println("Firebase App Check validation failed: " + e.getMessage());
         }
 
+        String deviceToken = extractDeviceAuthTokenFromHeader(request);
         try {
-            String deviceToken = extractDeviceAuthTokenFromHeader(request);
-            FirebaseAuth.getInstance().verifyIdToken(deviceToken);
-//            firebaseAppCheck.validate(deviceToken);
-            log.info("Firebase App Check validation succeeded");
-        } catch (FirebaseAuthException exception) {
-            log.error("Firebase App Check validation failed: {}", exception.getMessage(), exception);
-//            throw new UnknownFirebaseFetchJWKException(exception);
+            firebaseAppCheck.validate(deviceToken);
+        } catch (Exception e) {
+            // 실제 적용 전 로그처리
+            log.error("Firebase App Check validation failed: {}", e.getMessage(), e);
+            return;
         }
 
         try {
