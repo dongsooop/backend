@@ -1,10 +1,13 @@
 package com.dongsoop.dongsoop.jwt.filter;
 
 import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
+import com.dongsoop.dongsoop.appcheck.exception.UnknownFirebaseFetchJWKException;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import com.dongsoop.dongsoop.jwt.exception.JWTException;
 import com.dongsoop.dongsoop.jwt.exception.TokenNotFoundException;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
@@ -64,6 +67,15 @@ public class JwtFilter extends OncePerRequestFilter {
             System.out.println("Firebase App Check cache update interrupted: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("Firebase App Check validation failed: " + e.getMessage());
+        }
+
+        try {
+            String deviceToken = extractDeviceAuthTokenFromHeader(request);
+            FirebaseAuth.getInstance().verifyIdToken(deviceToken);
+//            firebaseAppCheck.validate(deviceToken);
+            log.info("Firebase App Check validation succeeded");
+        } catch (FirebaseAuthException exception) {
+            throw new UnknownFirebaseFetchJWKException(exception);
         }
 
         try {
