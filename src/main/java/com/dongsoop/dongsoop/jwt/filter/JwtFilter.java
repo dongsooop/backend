@@ -60,19 +60,9 @@ public class JwtFilter extends OncePerRequestFilter {
             firebaseAppCheck.updateCache();
             String deviceToken = extractDeviceAuthTokenFromHeader(request);
             firebaseAppCheck.validate(deviceToken);
-        } catch (InterruptedException e) {
-            System.out.println("Firebase App Check cache update interrupted: " + e.getMessage());
-        } catch (Exception e) {
-            System.out.println("Firebase App Check validation failed: " + e.getMessage());
-        }
-
-        String deviceToken = extractDeviceAuthTokenFromHeader(request);
-        try {
-            firebaseAppCheck.validate(deviceToken);
         } catch (Exception e) {
             // 실제 적용 전 로그처리
             log.error("Firebase App Check validation failed: {}", e.getMessage(), e);
-            return;
         }
 
         try {
