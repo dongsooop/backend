@@ -119,7 +119,7 @@
 
 <br/>
 
-## 5.4 Cooperation
+## 5.7 Cooperation
 | 툴 | - |
 |-----------------|-----------------|
 | Git    |  <img src="https://github.com/user-attachments/assets/483abc38-ed4d-487c-b43a-3963b33430e6" alt="git" width="100">    |
