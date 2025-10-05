@@ -9,11 +9,11 @@
 <br/>
 
 # 2. Team Members (팀원 및 팀 소개)
-| 주성준 | 백승민 | 유제승 | 우승원 | 전승빈 |
+
+| [주성준](https://github.com/rdyjun) | [백승민](https://github.com/alpin87) | [유제승](https://github.com/Yu-JeSeung) | [우승원](https://github.com/wsw0922) | [전승빈](https://github.com/JEON-SEUNGBHIN) |
 |:------:|:------:|:------:|:------:|:------:|
-| <img width="150" height="150" alt="image" src="https://github.com/user-attachments/assets/9026c7ce-f063-4377-9a43-044e72598056" /> | <img width="150" height="150" alt="image" src="https://github.com/user-attachments/assets/9026c7ce-f063-4377-9a43-044e72598056" /> | <img width="150" height="150" alt="image" src="https://github.com/user-attachments/assets/9026c7ce-f063-4377-9a43-044e72598056" /> | <img width="150" height="150" alt="image" src="https://github.com/user-attachments/assets/9026c7ce-f063-4377-9a43-044e72598056" /> | <img width="150" height="150" alt="image" src="https://github.com/user-attachments/assets/9026c7ce-f063-4377-9a43-044e72598056" />
+| <img width="150" height="150" alt="image" src="https://github.com/user-attachments/assets/9026c7ce-f063-4377-9a43-044e72598056" /> | <img width="150" height="150" alt="image" src="https://github.com/user-attachments/assets/9026c7ce-f063-4377-9a43-044e72598056" /> | <img width="150" height="150" alt="image" src="https://github.com/user-attachments/assets/9026c7ce-f063-4377-9a43-044e72598056" /> | <img width="150" height="150" alt="image" src="https://github.com/user-attachments/assets/9026c7ce-f063-4377-9a43-044e72598056" /> | <img width="150" height="150" alt="image" src="https://github.com/user-attachments/assets/9026c7ce-f063-4377-9a43-044e72598056" /> |
 | BE | BE | BE | FE | FE |
-| [GitHub](https://github.com/rdyjun) | [GitHub](https://github.com/alpin87) | [GitHub](https://github.com/Yu-JeSeung) | [GitHub](https://github.com/wsw0922) | [GitHub](https://github.com/JEON-SEUNGBHIN) |
 
 <br/>
 <br/>
@@ -55,76 +55,49 @@
 <br/>
 
 # 4. Tasks & Responsibilities (작업 및 역할 분담)
-| 이름 | - | 분담 |
-|-----------------|-----------------|-----------------|
-| 주성준   |  <img width="150" height="150" alt="image" src="https://github.com/user-attachments/assets/9026c7ce-f063-4377-9a43-044e72598056" /> | <ul><li>메인 로직 설계</li><li>팀 리딩 및 커뮤니케이션</li><li>어플리케이션 배포</li></ul>     |
-| 백승민   |  <img width="150" height="150" alt="image" src="https://github.com/user-attachments/assets/9026c7ce-f063-4377-9a43-044e72598056" /> | <ul><li>서버 인프라 구축 </li><li>학식, 채팅, 신고, 검색기능 구현</li><li>편의성 파이프라인 구축</li></ul> |
-| 유제승   |  <img width="150" height="150" alt="image" src="https://github.com/user-attachments/assets/9026c7ce-f063-4377-9a43-044e72598056" /> |<ul><li>언어 필터링 구현</li><li>AI 챗봇 LLM 구현</li> <li>OpenCV를 통한 이미지 분석 및 시간표 생성</li>  |
-| 우승원   |  <img width="150" height="150" alt="image" src="https://github.com/user-attachments/assets/9026c7ce-f063-4377-9a43-044e72598056" /> | <ul><li>UI/UX 설계</li> <li>API 연동</li></ul>    |
-| 전승빈   |  <img width="150" height="150" alt="image" src="https://github.com/user-attachments/assets/9026c7ce-f063-4377-9a43-044e72598056" /> | <ul><li>UI/UX 설계</li> <li>API 연동</li></ul> |
+| 이름 | 분담 |
+|-----------------|-----------------|
+| 주성준   |  <ul><li>메인 로직 설계</li><li>팀 리딩 및 커뮤니케이션</li><li>어플리케이션 배포</li></ul>     |
+| 백승민   |  <ul><li>서버 인프라 구축 </li><li>학식, 채팅, 신고, 검색기능 구현</li><li>편의성 파이프라인 구축</li></ul> |
+| 유제승   |  <ul><li>언어 필터링 구현</li><li>AI 챗봇 LLM 구현</li> <li>OpenCV를 통한 이미지 분석 및 시간표 생성</li>  |
+| 우승원   |  <ul><li>UI/UX 설계</li> <li>API 연동</li></ul>    |
+| 전승빈   |  <ul><li>UI/UX 설계</li> <li>API 연동</li></ul> |
 
 <br/>
 <br/>
 
 # 5. Technology Stack (기술 스택)
 
-## 5.1 Language
-| 기술 | 로고 |
-|-----------------|-----------------|
-| Java    |<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg" alt="Java" width="100">| 
-| Python    |<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" alt="Python" width="100">|
-| Dart    |<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/dart/dart-original.svg" alt="Dart" width="100">| 
-| JavaScript    |<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg" alt="JavaScript" width="100">| 
+## 5.1 Frontend
+- **Flutter** 3.x (Dart)
 
-<br/>
+## 5.2 Backend
+- **Spring Boot** 3.x (Java 17)
+- **NestJS** 10.x (TypeScript)
+- **FastAPI** 0.x (Python)
 
-## 5.2 Frontend
-| 기술 | 로고 | 버전 |
-|-----------------|-----------------|-----------------|
-| Flutter    |<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/flutter/flutter-original.svg" alt="Flutter" width="100"> | 3.x    |
+## 5.3 Database
+- **PostgreSQL** 14.x
+- **Redis** 7.x
 
-<br/>
+## 5.4 Infrastructure & DevOps
+- **Oracle Cloud** - 클라우드 인프라
+- **Docker** - 컨테이너화
+- **Nginx** - 리버스 프록시 및 웹 서버
+- **GitHub Actions** - CI/CD
 
-## 5.3 Backend
-| 기술 | 로고 | 버전 |
-|-----------------|-----------------|-----------------|
-| Spring Boot    |<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/spring/spring-original.svg" alt="Spring Boot" width="100">    | 3.x    |
-| FastAPI    |<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/fastapi/fastapi-original.svg" alt="FastAPI" width="100">    | 0.x    |
-| Nest.js    |<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nestjs/nestjs-original.svg" alt="Nest.js" width="100">    | 10.x    |
+## 5.5 Monitoring & Logging
+- **New Relic** - APM 모니터링
+- **Elasticsearch** - 로그 분석 및 검색
 
-<br/>
+## 5.6 External Services
+- **Firebase** - FCM 푸시 알림
+- **AWS S3** - 파일 스토리지
 
-## 5.4 Database
-| 기술 | 로고 | 버전 |
-|-----------------|-----------------|-----------------|
-| PostgreSQL    |<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg" alt="PostgreSQL" width="100">    | 14.x    |
-| Redis    |<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redis/redis-original.svg" alt="Redis" width="100">    | 7.x    |
-
-<br/>
-
-## 5.5 Infrastructure & DevOps
-| 기술 | 로고 | 버전 |
-|-----------------|-----------------|-----------------|
-| Docker    |<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" alt="Docker" width="100">    | -    |
-| Nginx    |<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nginx/nginx-original.svg" alt="Nginx" width="100">    | -    |
-| Oracle Cloud    |<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/oracle/oracle-original.svg" alt="Oracle Cloud" width="100">    | -    |
-
-<br/>
-
-## 5.6 Monitoring & Logging
-| 기술 | 로고 | 버전 |
-|-----------------|-----------------|-----------------|
-| Elasticsearch    |<img src="https://www.vectorlogo.zone/logos/elastic/elastic-icon.svg" alt="Elasticsearch" width="100">    | -    |
-| New Relic    |<img src="https://www.vectorlogo.zone/logos/newrelic/newrelic-icon.svg" alt="New Relic" width="100">    | -    |
-
-<br/>
-
-## 5.7 Cooperation
-| 툴 | - |
-|-----------------|-----------------|
-| Git    |  <img src="https://github.com/user-attachments/assets/483abc38-ed4d-487c-b43a-3963b33430e6" alt="git" width="100">    |
-| Notion    |  <img src="https://github.com/user-attachments/assets/34141eb9-deca-416a-a83f-ff9543cc2f9a" alt="Notion" width="100">    |
-| Discord    |  <img src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Discord" width="100">    |
+## 5.7 Collaboration Tools
+- **Git** - 버전 관리
+- **Notion** - 문서화 및 협업
+- **Discord** - 팀 커뮤니케이션 및 편의성 파이프라인
 
 <br/>
 
@@ -173,6 +146,9 @@ backend/
 - 동숲 프로젝트는 마이크로서비스 기반 아키텍처로 설계되었으며, Oracle Cloud 인프라 위에서 구동됩니다.
 
 <img width="1000" height="700" alt="image" src="https://github.com/user-attachments/assets/2b088207-9c65-4065-baaf-7dfb09d34d7d" />
+
+<br/>
+<br/>
 
 **Client Layer**
 - **Flutter**: Android, iOS 크로스 플랫폼 지원
