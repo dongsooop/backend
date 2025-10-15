@@ -100,11 +100,16 @@ public class CalendarScheduler {
             return "";
         }
 
+        String title = todaySchedules.get(0).title();
+
         if (todaySchedules.size() == 1) {
-            return String.format(SINGLE_MEMBER_SCHEDULE_BODY_FORMAT, todaySchedules.get(0).title());
+            if (title == null) {
+                return "";
+            }
+            return String.format(SINGLE_MEMBER_SCHEDULE_BODY_FORMAT, title);
         }
 
-        return String.format(MEMBER_SCHEDULE_BODY_FORMAT, todaySchedules.get(0).title(), todaySchedules.size() - 1);
+        return String.format(MEMBER_SCHEDULE_BODY_FORMAT, title, todaySchedules.size() - 1);
     }
 
     /**

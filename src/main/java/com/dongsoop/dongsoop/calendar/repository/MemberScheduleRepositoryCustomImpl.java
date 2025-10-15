@@ -53,7 +53,7 @@ public class MemberScheduleRepositoryCustomImpl implements MemberScheduleReposit
                         memberSchedule.title,
                         member))
                 .from(memberSchedule)
-                .innerJoin(memberSchedule.member, member)
+                .rightJoin(memberSchedule.member, member)
                 .innerJoin(memberDevice)
                 .on(member.eq(memberDevice.member))
                 .where(startAtDate.eq(now))
