@@ -34,7 +34,7 @@ public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
                 .innerJoin(notice.id.noticeDetails, noticeDetails)
                 .innerJoin(notice.id.department, department)
                 .where(notice.id.department.id.in(List.of(DepartmentType.DEPT_1001, departmentType))) // 사용자 학과 및 대학 공지
-                .orderBy(noticeDetails.createdAt.desc())
+                .orderBy(noticeDetails.id.desc())
                 .limit(3)
                 .fetch();
     }
@@ -50,7 +50,7 @@ public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
                 .innerJoin(notice.id.noticeDetails, noticeDetails)
                 .innerJoin(notice.id.department, department)
                 .where(notice.id.department.id.eq(DepartmentType.DEPT_1001)) // 대학 공지만
-                .orderBy(noticeDetails.createdAt.desc())
+                .orderBy(noticeDetails.id.desc())
                 .limit(3)
                 .fetch();
     }
