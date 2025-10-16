@@ -6,6 +6,7 @@ import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.notice.dto.HomeNotice;
 import com.dongsoop.dongsoop.notice.entity.QNotice;
 import com.dongsoop.dongsoop.notice.entity.QNoticeDetails;
+import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
@@ -34,7 +35,7 @@ public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
                 .innerJoin(notice.id.noticeDetails, noticeDetails)
                 .innerJoin(notice.id.department, department)
                 .where(notice.id.department.id.in(List.of(DepartmentType.DEPT_1001, departmentType))) // 사용자 학과 및 대학 공지
-                .orderBy(noticeDetails.createdAt.desc())
+                .orderBy(orderLeastId())
                 .limit(3)
                 .fetch();
     }
@@ -50,8 +51,12 @@ public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
                 .innerJoin(notice.id.noticeDetails, noticeDetails)
                 .innerJoin(notice.id.department, department)
                 .where(notice.id.department.id.eq(DepartmentType.DEPT_1001)) // 대학 공지만
-                .orderBy(noticeDetails.createdAt.desc())
+                .orderBy(orderLeastId())
                 .limit(3)
                 .fetch();
+    }
+
+    private OrderSpecifier<Long> orderLeastId() {
+        return noticeDetails.id.desc();
     }
 }
