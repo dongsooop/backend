@@ -50,13 +50,14 @@ public class MemberScheduleRepositoryCustomImpl implements MemberScheduleReposit
 
         return queryFactory.selectDistinct(Projections.constructor(
                         TodaySchedule.class,
+                        memberSchedule.id,
                         memberSchedule.title,
                         member))
-                .from(memberSchedule)
-                .rightJoin(memberSchedule.member, member)
+                .from(member)
+                .leftJoin(memberSchedule)
+                .on(member.eq(memberSchedule.member).and(startAtDate.eq(now)))
                 .innerJoin(memberDevice)
                 .on(member.eq(memberDevice.member))
-                .where(startAtDate.eq(now))
                 .fetch();
     }
 

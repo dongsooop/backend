@@ -64,12 +64,14 @@ public class CalendarScheduler {
             int totalSchedulesCount = calendarList.size() + officialCalendarSize;
 
             String title = String.format(TITLE_FORMAT, totalSchedulesCount);
-            String body = generateMemberScheduleBody(calendarList);
+            StringBuilder body = new StringBuilder();
+            body.append(generateMemberScheduleBody(calendarList));
             if (!integratedBody.isBlank()) {
-                body += "\n" + integratedBody;
+                body.append("\n");
+                body.append(integratedBody);
             }
 
-            calendarNotification.saveAndSendForMember(member, devices, title, body);
+            calendarNotification.saveAndSendForMember(member, devices, title, body.toString().trim());
         });
 
         // 비회원 디바이스
@@ -86,7 +88,8 @@ public class CalendarScheduler {
      */
     private Map<Member, List<TodaySchedule>> memberCalendarsToMap(List<TodaySchedule> memberCalendarList) {
         return memberCalendarList.stream()
-                .collect(Collectors.groupingBy(TodaySchedule::member));
+                .collect(Collectors.groupingBy(TodaySchedule::member,
+                        Collectors.filtering(schedule -> schedule.title() != null, Collectors.toList())));
     }
 
     /**
