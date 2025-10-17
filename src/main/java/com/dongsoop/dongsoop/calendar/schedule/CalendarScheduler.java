@@ -62,6 +62,9 @@ public class CalendarScheduler {
 
             // 전체 알림 수
             int totalSchedulesCount = calendarList.size() + officialCalendarSize;
+            if (totalSchedulesCount <= 0) {
+                return;
+            }
 
             String title = String.format(TITLE_FORMAT, totalSchedulesCount);
             StringBuilder body = new StringBuilder();
