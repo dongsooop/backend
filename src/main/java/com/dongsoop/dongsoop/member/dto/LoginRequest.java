@@ -19,6 +19,5 @@ public class LoginRequest {
     @NotBlank(message = "로그인 시 비밀번호 입력은 필수입니다.")
     private String password;
 
-    @NotBlank(message = "FCM 토큰은 필수 입력값입니다.")
     private String fcmToken;
 }

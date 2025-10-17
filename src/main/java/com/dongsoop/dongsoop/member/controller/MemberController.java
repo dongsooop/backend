@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -69,11 +70,13 @@ public class MemberController {
         String accessToken = issuedToken.getAccessToken();
         String refreshToken = issuedToken.getRefreshToken();
 
-        memberDeviceService.bindDeviceWithMemberId(
-                loginDetail.getLoginMemberDetail().getId(),
-                loginRequest.getFcmToken());
+        if (StringUtils.hasText(loginRequest.getFcmToken())) {
+            memberDeviceService.bindDeviceWithMemberId(
+                    loginDetail.getLoginMemberDetail().getId(),
+                    loginRequest.getFcmToken());
 
-        fcmService.unsubscribeTopic(List.of(loginRequest.getFcmToken()), anonymousTopic);
+            fcmService.unsubscribeTopic(List.of(loginRequest.getFcmToken()), anonymousTopic);
+        }
 
         LoginResponse loginResponse = new LoginResponse(loginDetail.getLoginMemberDetail(), accessToken, refreshToken);
         return ResponseEntity.ok(loginResponse);
