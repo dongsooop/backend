@@ -135,8 +135,15 @@ public class ChatRoomService {
     }
 
     private String buildChatRoomTitle(BoardType boardType, String boardTitle) {
-        String prefix = boardType == BoardType.MARKETPLACE ? "거래" : "문의";
-        return String.format("[%s] %s", prefix, boardTitle);
+        if (boardType == BoardType.MARKETPLACE) {
+            return String.format("[거래] %s", boardTitle);
+        }
+
+        if (boardType == BoardType.BLINDDATE) {
+            return String.format("[과팅] %s", boardTitle);
+        }
+
+        return String.format("[문의] %s", boardTitle);
     }
 
     private void validateBoard(BoardType boardType, Long boardId) {
