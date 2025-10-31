@@ -6,10 +6,10 @@ import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepository;
-import com.dongsoop.dongsoop.search.entity.BoardType;
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoardRepository;
+import com.dongsoop.dongsoop.search.entity.BoardType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -140,7 +140,7 @@ public class ChatRoomService {
     }
 
     private void validateBoard(BoardType boardType, Long boardId) {
-        if (boardType == BoardType.MARKETPLACE) {
+        if (boardType == BoardType.MARKETPLACE || boardType == BoardType.BLINDDATE) {
             return;
         }
 
