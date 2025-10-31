@@ -10,7 +10,8 @@ public enum BoardType {
     STUDY("STUDY", "스터디"),
     TUTORING("TUTORING", "튜터링"),
     MARKETPLACE("MARKETPLACE", "마켓플레이스"),
-    NOTICE("NOTICE", "공지사항");
+    NOTICE("NOTICE", "공지사항"),
+    BLINDDATE("BLINDDATE", "과팅");
 
     private final String code;
     private final String displayName;
