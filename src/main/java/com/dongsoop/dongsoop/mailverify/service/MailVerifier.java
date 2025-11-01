@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.mailverify.service;
 
+import com.dongsoop.dongsoop.mailverify.exception.MissingMailVerifyException;
 import com.dongsoop.dongsoop.mailverify.exception.UsingAllMailVerifyOpportunityException;
 import com.dongsoop.dongsoop.mailverify.exception.VerifyMailCodeNotAvailableException;
 import java.time.Duration;
@@ -41,9 +42,10 @@ public abstract class MailVerifier {
         }
 
         // 인증 완료 후 만료 시간 추가
-        redisTemplate.expire(redisKey, Duration.ofSeconds(AUTH_SUCCESS_TTL_SECONDS));
         redisTemplate.opsForHash()
                 .put(redisKey, successKey, true);
+
+        redisTemplate.expire(redisKey, Duration.ofSeconds(AUTH_SUCCESS_TTL_SECONDS));
     }
 
     private void validateOpportunity(String redisKey) {
@@ -74,7 +76,7 @@ public abstract class MailVerifier {
         Boolean isSuccess = getTypedValueFromRedisHashAsType(redisKey, successKey, Boolean.class);
 
         if (isSuccess == null || !isSuccess) {
-            throw new VerifyMailCodeNotAvailableException();
+            throw new MissingMailVerifyException(AUTH_SUCCESS_TTL_SECONDS / 60);
         }
     }
 }
