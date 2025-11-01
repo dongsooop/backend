@@ -6,6 +6,7 @@ import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.service.DepartmentService;
 import com.dongsoop.dongsoop.jwt.TokenGenerator;
 import com.dongsoop.dongsoop.jwt.dto.IssuedToken;
+import com.dongsoop.dongsoop.member.dto.DeleteMember;
 import com.dongsoop.dongsoop.member.dto.LoginAuthenticate;
 import com.dongsoop.dongsoop.member.dto.LoginDetails;
 import com.dongsoop.dongsoop.member.dto.LoginMemberDetails;
@@ -191,9 +192,10 @@ public class MemberServiceImpl implements MemberService {
         Long requesterId = getMemberIdByAuthentication();
 
         // 가명처리
-        String emailAlias = generateEmailAlias();
         String passwordAlias = generatePasswordAlias();
-        long updatedCount = memberRepository.softDelete(requesterId, emailAlias, passwordAlias);
+
+        DeleteMember deleteMember = new DeleteMember(requesterId, passwordAlias);
+        long updatedCount = memberRepository.softDelete(deleteMember);
         if (updatedCount == 0L) {
             log.error("Member with id {} not found or already deleted", requesterId);
             throw new MemberNotFoundException();

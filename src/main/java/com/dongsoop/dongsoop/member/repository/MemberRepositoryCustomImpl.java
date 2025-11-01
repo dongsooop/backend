@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.member.repository;
 
 import com.dongsoop.dongsoop.department.entity.Department;
+import com.dongsoop.dongsoop.member.dto.DeleteMember;
 import com.dongsoop.dongsoop.member.dto.LoginMemberDetails;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.entity.QMember;
@@ -51,16 +52,15 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
     }
 
     @Override
-    public long softDelete(Long id, String emailAlias, String passwordAlias) {
+    public long softDelete(DeleteMember deleteMember) {
         return queryFactory.update(member)
-                .set(member.email, emailAlias)
-                .set(member.nickname, this.nicknameAliasPrefix + id)
-                .set(member.password, passwordAlias)
+                .set(member.nickname, this.nicknameAliasPrefix + deleteMember.memberId())
+                .set(member.password, deleteMember.passwordAlias())
                 .setNull(member.studentId)
                 .set(member.isDeleted, true)
                 .set(member.updatedAt, LocalDateTime.now())
                 .where(member.isDeleted.eq(false)
-                        .and(member.id.eq(id)))
+                        .and(member.id.eq(deleteMember.memberId())))
                 .execute();
     }
 
