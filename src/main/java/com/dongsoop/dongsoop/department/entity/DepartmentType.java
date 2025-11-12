@@ -16,11 +16,11 @@ public enum DepartmentType {
 
     // 기계공학부
     DEPT_3001("MECHANICAL_ENGINEERING", "기계공학과"),
-    DEPT_3002("MECHANICAL_DESIGN_ENGINEERING", "로봇소프트웨어과"),
+    DEPT_3002("MECHANICAL_DESIGN_ENGINEERING", "기계설계공학과"),
 
     // 로봇자동화공학부
     DEPT_4001("AUTOMATION_ENGINEERING", "자동화공학과"),
-    DEPT_4002("ROBOTICS_SOFTWARE", "기계설계공학과"),
+    DEPT_4002("ROBOTICS_SOFTWARE", "로봇소프트웨어과"),
 
     // 전기전자통신공학부
     DEPT_5001("ELECTRICAL_ENGINEERING", "전기공학과"),
