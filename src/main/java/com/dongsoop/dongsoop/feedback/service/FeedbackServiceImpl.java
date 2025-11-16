@@ -1,8 +1,10 @@
 package com.dongsoop.dongsoop.feedback.service;
 
 import com.dongsoop.dongsoop.feedback.dto.FeedbackCreate;
+import com.dongsoop.dongsoop.feedback.dto.FeedbackDetail;
 import com.dongsoop.dongsoop.feedback.entity.Feedback;
 import com.dongsoop.dongsoop.feedback.entity.Feedback.FeedbackBuilder;
+import com.dongsoop.dongsoop.feedback.exception.FeedbackNotFoundException;
 import com.dongsoop.dongsoop.feedback.repository.FeedbackRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
@@ -17,6 +19,7 @@ public class FeedbackServiceImpl implements FeedbackService {
     private final FeedbackRepository feedbackRepository;
     private final MemberService memberService;
 
+    @Override
     public Long submitFeedback(FeedbackCreate request) {
         FeedbackBuilder feedbackBuilder = Feedback.builder()
                 .content(request.content());
@@ -31,5 +34,11 @@ public class FeedbackServiceImpl implements FeedbackService {
         Feedback feedback = feedbackRepository.save(feedbackBuilder.build());
 
         return feedback.getId();
+    }
+
+    @Override
+    public FeedbackDetail getFeedbackDetail(Long id) {
+        return feedbackRepository.searchFeedbackById(id)
+                .orElseThrow(FeedbackNotFoundException::new);
     }
 }

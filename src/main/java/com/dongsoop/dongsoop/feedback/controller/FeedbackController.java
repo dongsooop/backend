@@ -1,11 +1,14 @@
 package com.dongsoop.dongsoop.feedback.controller;
 
 import com.dongsoop.dongsoop.feedback.dto.FeedbackCreate;
+import com.dongsoop.dongsoop.feedback.dto.FeedbackDetail;
 import com.dongsoop.dongsoop.feedback.service.FeedbackService;
 import jakarta.validation.Valid;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,5 +26,11 @@ public class FeedbackController {
         Long id = feedbackService.submitFeedback(request);
         return ResponseEntity.created(URI.create("/feedback/" + id))
                 .build();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<FeedbackDetail> getFeedbackDetail(@PathVariable Long id) {
+        FeedbackDetail detail = feedbackService.getFeedbackDetail(id);
+        return ResponseEntity.ok(detail);
     }
 }
