@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.member.dto;
 
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.email.annotation.SchoolEmail;
+import com.dongsoop.dongsoop.member.constant.MemberPassword;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -24,7 +25,7 @@ public class SignupRequest {
 
     @NotNull
     @NotBlank(message = "비밀번호는 필수 입력값입니다.")
-    @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,}$",
+    @Pattern(regexp = MemberPassword.regex,
             message = "비밀번호는 8자 이상, 영문, 숫자, 특수문자를 포함해야 합니다.")
     private String password;
 
