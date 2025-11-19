@@ -14,9 +14,7 @@ public interface RestaurantService {
 
     List<RestaurantOverview> getNearbyRestaurants(Long memberId, Pageable pageable);
 
-    void addLike(Long restaurantId, Long memberId);
-
-    void removeLike(Long restaurantId, Long memberId);
+    void toggleLike(Long restaurantId, Long memberId, boolean isAdding);
 
     List<RestaurantOverview> getRestaurantsByStatus(RestaurantStatus status, Long memberId, Pageable pageable);
 
@@ -25,4 +23,6 @@ public interface RestaurantService {
     void rejectRestaurant(Long restaurantId);
 
     void createRestaurantReport(Long restaurantId, Long reporterId, RestaurantReportReason reason, String description);
+
+    boolean checkDuplicateByExternalId(String externalMapId);
 }
