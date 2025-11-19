@@ -29,9 +29,6 @@ public class Restaurant extends BaseEntity {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, length = 512)
-    private String address;
-
     @Column(nullable = false)
     private String placeUrl;
 
@@ -44,9 +41,6 @@ public class Restaurant extends BaseEntity {
 
     @Column(nullable = false, unique = true)
     private String externalMapId;
-
-    @Column(length = 20)
-    private String phone;
 
     @Column(name = "like_count", nullable = false)
     @Builder.Default

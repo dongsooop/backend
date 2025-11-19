@@ -13,10 +13,8 @@ public class RestaurantMapper {
         return Restaurant.builder()
                 .externalMapId(request.externalMapId())
                 .name(request.name())
-                .address(request.address())
                 .category(request.category())
                 .placeUrl(request.placeUrl())
-                .phone(request.phone())
                 .tags(request.tags())
                 .distance(request.distance())
                 .build();
