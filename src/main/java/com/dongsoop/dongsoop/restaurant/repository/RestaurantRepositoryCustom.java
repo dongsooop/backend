@@ -7,8 +7,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 public interface RestaurantRepositoryCustom {
-    List<RestaurantOverview> findNearbyRestaurants(
-            double latitude, double longitude, double distanceKm, Long memberId, Pageable pageable);
+    List<RestaurantOverview> findNearbyRestaurants(Long memberId, Pageable pageable);
 
     List<RestaurantOverview> findRestaurantsByStatus(
             RestaurantStatus status, Pageable pageable, Long memberId);
