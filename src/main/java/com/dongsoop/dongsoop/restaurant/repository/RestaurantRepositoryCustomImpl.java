@@ -5,9 +5,10 @@ import com.dongsoop.dongsoop.restaurant.dto.RestaurantOverview;
 import com.dongsoop.dongsoop.restaurant.entity.QRestaurant;
 import com.dongsoop.dongsoop.restaurant.entity.QRestaurantLike;
 import com.dongsoop.dongsoop.restaurant.entity.RestaurantStatus;
+import com.dongsoop.dongsoop.restaurant.entity.RestaurantTag;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.EnumPath;
 import com.querydsl.core.types.dsl.Expressions;
-import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -25,16 +26,10 @@ public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCusto
     private final QRestaurant restaurant = QRestaurant.restaurant;
     private final QRestaurantLike restaurantLike = QRestaurantLike.restaurantLike;
 
-    @Override
-    public List<RestaurantOverview> findNearbyRestaurants(
-            double latitude, double longitude, double distanceKm, Long memberId, Pageable pageable) {
+    private final EnumPath<RestaurantTag> tagAlias = Expressions.enumPath(RestaurantTag.class, "T");
 
-        NumberExpression<Double> distanceExpression = Expressions.numberTemplate(Double.class,
-                "6371 * acos(cos(radians({0})) * cos(radians(restaurant.latitude)) * " +
-                        "cos(radians(restaurant.longitude) - radians({1})) + " +
-                        "sin(radians({0})) * sin(radians(restaurant.latitude)))",
-                latitude, longitude
-        );
+    @Override
+    public List<RestaurantOverview> findNearbyRestaurants(Long memberId, Pageable pageable) {
 
         BooleanExpression isLikedByMe = Optional.ofNullable(memberId)
                 .map(id -> JPAExpressions
@@ -52,22 +47,22 @@ public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCusto
                         restaurant.name,
                         restaurant.phone,
                         restaurant.category,
-                        restaurant.latitude,
-                        restaurant.longitude,
-                        JPAExpressions
-                                .select(restaurantLike.count())
-                                .from(restaurantLike)
-                                .where(restaurantLike.id.restaurant.id.eq(restaurant.id)),
-                        isLikedByMe,
-                        restaurant.tags,
-                        restaurant.externalMapId
+                        restaurant.distance,
+                        restaurant.likeCount,
+                        Expressions.stringTemplate("STRING_AGG({0}, ',')", tagAlias),
+                        restaurant.externalMapId,
+                        isLikedByMe
                 ))
                 .from(restaurant)
+                .leftJoin(restaurant.tags, tagAlias)
                 .where(
-                        distanceExpression.loe(distanceKm),
                         restaurant.status.eq(RestaurantStatus.APPROVED)
                 )
-                .orderBy(distanceExpression.asc())
+                .groupBy(
+                        restaurant.id, restaurant.name, restaurant.phone, restaurant.category,
+                        restaurant.distance, restaurant.likeCount, restaurant.externalMapId
+                )
+                .orderBy(restaurant.distance.asc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
@@ -93,18 +88,19 @@ public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCusto
                         restaurant.name,
                         restaurant.phone,
                         restaurant.category,
-                        restaurant.latitude,
-                        restaurant.longitude,
-                        JPAExpressions
-                                .select(restaurantLike.count())
-                                .from(restaurantLike)
-                                .where(restaurantLike.id.restaurant.id.eq(restaurant.id)),
-                        isLikedByMe,
-                        restaurant.tags,
-                        restaurant.externalMapId
+                        restaurant.distance,
+                        restaurant.likeCount,
+                        Expressions.stringTemplate("STRING_AGG({0}, ',')", tagAlias),
+                        restaurant.externalMapId,
+                        isLikedByMe
                 ))
                 .from(restaurant)
+                .leftJoin(restaurant.tags, tagAlias)
                 .where(restaurant.status.eq(status))
+                .groupBy(
+                        restaurant.id, restaurant.name, restaurant.phone, restaurant.category,
+                        restaurant.distance, restaurant.likeCount, restaurant.externalMapId
+                )
                 .orderBy(restaurant.createdAt.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
