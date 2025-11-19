@@ -1,7 +1,6 @@
 package com.dongsoop.dongsoop.restaurant.entity;
 
 import com.dongsoop.dongsoop.common.BaseEntity;
-import com.dongsoop.dongsoop.recruitment.validation.constant.RecruitmentValidationConstant;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -11,6 +10,7 @@ import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
+import java.util.List;
 import java.util.Objects;
 
 @Entity
@@ -33,13 +33,10 @@ public class Restaurant extends BaseEntity {
     private String address;
 
     @Column(nullable = false)
-    private Double latitude;
-
-    @Column(nullable = false)
-    private Double longitude;
-
-    @Column(nullable = false)
     private String placeUrl;
+
+    @Column(name = "distance", nullable = false)
+    private Double distance;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
@@ -51,8 +48,15 @@ public class Restaurant extends BaseEntity {
     @Column(length = 20)
     private String phone;
 
-    @Column(name = "tags", length = RecruitmentValidationConstant.TAG_MAX_LENGTH, nullable = false)
-    private String tags;
+    @Column(name = "like_count", nullable = false)
+    @Builder.Default
+    private long likeCount = 0;
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "restaurant_tags", joinColumns = @JoinColumn(name = "restaurant_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tag", nullable = false)
+    private List<RestaurantTag> tags;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -63,11 +67,15 @@ public class Restaurant extends BaseEntity {
         this.status = RestaurantStatus.APPROVED;
     }
 
-    public void reject() {
-        this.status = RestaurantStatus.REJECTED;
-    }
-
     public boolean equalsId(Restaurant that) {
         return Objects.equals(this.id, that.id);
+    }
+
+    public void increaseLikeCount() {
+        this.likeCount++;
+    }
+
+    public void decreaseLikeCount() {
+        this.likeCount = Math.max(0, this.likeCount - 1);
     }
 }
