@@ -45,7 +45,6 @@ public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCusto
                 .select(new QRestaurantOverview(
                         restaurant.id,
                         restaurant.name,
-                        restaurant.phone,
                         restaurant.category,
                         restaurant.distance,
                         restaurant.likeCount,
@@ -59,7 +58,7 @@ public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCusto
                         restaurant.status.eq(RestaurantStatus.APPROVED)
                 )
                 .groupBy(
-                        restaurant.id, restaurant.name, restaurant.phone, restaurant.category,
+                        restaurant.id, restaurant.name, restaurant.category,
                         restaurant.distance, restaurant.likeCount, restaurant.externalMapId
                 )
                 .orderBy(restaurant.distance.asc())
@@ -86,7 +85,6 @@ public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCusto
                 .select(new QRestaurantOverview(
                         restaurant.id,
                         restaurant.name,
-                        restaurant.phone,
                         restaurant.category,
                         restaurant.distance,
                         restaurant.likeCount,
@@ -98,7 +96,7 @@ public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCusto
                 .leftJoin(restaurant.tags, tagAlias)
                 .where(restaurant.status.eq(status))
                 .groupBy(
-                        restaurant.id, restaurant.name, restaurant.phone, restaurant.category,
+                        restaurant.id, restaurant.name, restaurant.category,
                         restaurant.distance, restaurant.likeCount, restaurant.externalMapId
                 )
                 .orderBy(restaurant.createdAt.desc())

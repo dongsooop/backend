@@ -18,10 +18,6 @@ public record RestaurantRegisterRequest(
         @Length(max = 255)
         String name,
 
-        @NotBlank
-        @Length(max = 512)
-        String address,
-
         @Length(max = 512)
         String placeUrl,
 
@@ -31,9 +27,6 @@ public record RestaurantRegisterRequest(
 
         @NotNull
         RestaurantCategory category,
-
-        @Length(max = 20)
-        String phone,
 
         @Size(max = 3, message = "태그는 최대 3개까지 선택 가능합니다.")
         List<RestaurantTag> tags

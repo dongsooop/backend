@@ -12,24 +12,20 @@ import java.util.List;
 public final class RestaurantOverview {
     private final Long id;
     private final String name;
-    private final String phone;
     private final String category;
-
     private final Double distance;
-
     private final long likeCount;
     private final boolean isLikedByMe;
     private final List<String> tags;
     private final String externalMapId;
 
     @QueryProjection
-    public RestaurantOverview(Long id, String name, String phone, RestaurantCategory categoryEnum,
+    public RestaurantOverview(Long id, String name, RestaurantCategory categoryEnum,
                               Double distance,
                               long likeCount, String tags,
                               String externalMapId, boolean isLikedByMe) {
         this.id = id;
         this.name = name;
-        this.phone = phone;
         this.category = categoryEnum.getDisplayName();
         this.distance = distance;
         this.likeCount = likeCount;
