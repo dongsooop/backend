@@ -35,9 +35,17 @@ public final class RestaurantOverview {
     }
 
     private static List<String> parseTags(String tags) {
-        if (tags == null || tags.isEmpty()) {
+        if (tags == null) {
             return Collections.emptyList();
         }
-        return Arrays.asList(tags.split(","));
+
+        if (tags.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return Arrays.stream(tags.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
     }
 }
