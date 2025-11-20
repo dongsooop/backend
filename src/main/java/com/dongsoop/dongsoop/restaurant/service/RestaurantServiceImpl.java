@@ -16,9 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 @Service
 @RequiredArgsConstructor
@@ -62,28 +60,25 @@ public class RestaurantServiceImpl implements RestaurantService {
 
         boolean isCurrentlyLiked = restaurantLikeRepository.existsById(key);
 
-        Map<Boolean, Map<Boolean, Consumer<Restaurant>>> actionMap = Map.of(
-                true, Map.of(
-                        false, r -> {
-                            RestaurantLike restaurantLike = RestaurantLike.builder().id(key).build();
-                            restaurantLikeRepository.save(restaurantLike);
-                            r.increaseLikeCount();
-                        },
-                        true, r -> {
-                        }
-                ),
-                false, Map.of(
-                        true, r -> {
-                            restaurantLikeRepository.deleteById(key);
-                            r.decreaseLikeCount();
-                        },
-                        false, r -> {
-                        }
-                )
-        );
+        if (isAdding && !isCurrentlyLiked) {
+            addLike(restaurant, key);
+            return;
+        }
 
-        actionMap.getOrDefault(isAdding, Map.of()).getOrDefault(isCurrentlyLiked, r -> {
-        }).accept(restaurant);
+        if (!isAdding && isCurrentlyLiked) {
+            removeLike(restaurant, key);
+        }
+    }
+
+    private void addLike(Restaurant restaurant, RestaurantLike.RestaurantLikeKey key) {
+        RestaurantLike restaurantLike = RestaurantLike.builder().id(key).build();
+        restaurantLikeRepository.save(restaurantLike);
+        restaurant.increaseLikeCount();
+    }
+
+    private void removeLike(Restaurant restaurant, RestaurantLike.RestaurantLikeKey key) {
+        restaurantLikeRepository.deleteById(key);
+        restaurant.decreaseLikeCount();
     }
 
     private Restaurant findRestaurantById(Long restaurantId) {
