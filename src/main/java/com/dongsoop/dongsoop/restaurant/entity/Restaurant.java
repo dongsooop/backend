@@ -1,0 +1,75 @@
+package com.dongsoop.dongsoop.restaurant.entity;
+
+import com.dongsoop.dongsoop.common.BaseEntity;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
+import java.util.List;
+import java.util.Objects;
+
+@Entity
+@Getter
+@SuperBuilder
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SQLRestriction("is_deleted = false")
+@SQLDelete(sql = "UPDATE restaurant SET is_deleted = true, external_map_id = external_map_id || '_' || id WHERE id = ?")
+@SequenceGenerator(name = "restaurant_sequence_generator", sequenceName = "restaurant_sequence", allocationSize = 1)
+public class Restaurant extends BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "restaurant_sequence_generator")
+    private Long id;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false)
+    private String placeUrl;
+
+    @Column(name = "distance", nullable = false)
+    private Double distance;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private RestaurantCategory category;
+
+    @Column(nullable = false, unique = true)
+    private String externalMapId;
+
+    @Column(name = "like_count", nullable = false)
+    @Builder.Default
+    private long likeCount = 0;
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "restaurant_tags", joinColumns = @JoinColumn(name = "restaurant_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tag", nullable = false)
+    private List<RestaurantTag> tags;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private RestaurantStatus status = RestaurantStatus.PENDING;
+
+    public void approve() {
+        this.status = RestaurantStatus.APPROVED;
+    }
+
+    public boolean equalsId(Restaurant that) {
+        return Objects.equals(this.id, that.id);
+    }
+
+    public void increaseLikeCount() {
+        this.likeCount++;
+    }
+
+    public void decreaseLikeCount() {
+        this.likeCount = Math.max(0, this.likeCount - 1);
+    }
+}
