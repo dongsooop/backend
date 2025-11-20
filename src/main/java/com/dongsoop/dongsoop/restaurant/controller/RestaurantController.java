@@ -1,9 +1,9 @@
 package com.dongsoop.dongsoop.restaurant.controller;
 
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.restaurant.dto.ReportWrongInfoRequest;
 import com.dongsoop.dongsoop.restaurant.dto.RestaurantOverview;
 import com.dongsoop.dongsoop.restaurant.dto.RestaurantRegisterRequest;
-import com.dongsoop.dongsoop.restaurant.entity.Restaurant;
 import com.dongsoop.dongsoop.restaurant.entity.RestaurantReportReason;
 import com.dongsoop.dongsoop.restaurant.entity.RestaurantStatus;
 import com.dongsoop.dongsoop.restaurant.service.RestaurantService;
@@ -31,7 +31,7 @@ public class RestaurantController {
     @PostMapping("/register")
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<Void> registerRestaurant(@RequestBody @Valid RestaurantRegisterRequest request) {
-        Restaurant restaurant = restaurantService.registerRestaurant(request);
+        restaurantService.registerRestaurant(request);
         return ResponseEntity.accepted().build();
     }
 
@@ -93,12 +93,16 @@ public class RestaurantController {
 
     @PostMapping("/{restaurantId}/report-wrong-info")
     @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> reportWrongInfo(@PathVariable Long restaurantId, @RequestBody(required = false) Map<String, String> body) {
+    public ResponseEntity<Void> reportWrongInfo(
+            @PathVariable Long restaurantId,
+            @RequestBody @Valid ReportWrongInfoRequest request
+    ) {
         Long reporterId = memberService.getMemberIdByAuthentication();
+        String description = "잘못된 정보 신고";
 
-        String description = Optional.ofNullable(body)
-                .map(map -> map.getOrDefault("description", "잘못된 정보 신고"))
-                .orElse("잘못된 정보 신고");
+        if (request.description() != null && !request.description().isBlank()) {
+            description = request.description();
+        }
 
         restaurantService.createRestaurantReport(
                 restaurantId,
