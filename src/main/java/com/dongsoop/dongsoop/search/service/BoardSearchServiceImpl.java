@@ -9,18 +9,17 @@ import com.dongsoop.dongsoop.search.repository.BoardSearchRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.List;
-
 @Slf4j
 @Service
+@Profile("!dev")
 @RequiredArgsConstructor
-public class BoardSearchService {
+public class BoardSearchServiceImpl {
 
     private static final String ELASTICSEARCH_WARMUP_KEYWORD = "__warmup__";
 
@@ -39,7 +38,8 @@ public class BoardSearchService {
         }
     }
 
-    public Page<BoardDocument> searchByBoardType(String keyword, BoardType boardType, String departmentName, Pageable pageable) {
+    public Page<BoardDocument> searchByBoardType(String keyword, BoardType boardType, String departmentName,
+                                                 Pageable pageable) {
         return executeSearchByBoardType(keyword, boardType, departmentName, pageable);
     }
 
@@ -56,7 +56,8 @@ public class BoardSearchService {
         return performMarketplaceSearch(processedKeyword, pageable);
     }
 
-    private Page<BoardDocument> executeSearchByBoardType(String keyword, BoardType boardType, String departmentName, Pageable pageable) {
+    private Page<BoardDocument> executeSearchByBoardType(String keyword, BoardType boardType, String departmentName,
+                                                         Pageable pageable) {
         String processedKeyword = preprocessKeyword(keyword);
         if (processedKeyword.isEmpty()) {
             return Page.empty(pageable);
@@ -89,7 +90,8 @@ public class BoardSearchService {
         }
     }
 
-    private Page<BoardDocument> performMarketplaceSearchByType(String keyword, MarketplaceType marketplaceType, Pageable pageable) {
+    private Page<BoardDocument> performMarketplaceSearchByType(String keyword, MarketplaceType marketplaceType,
+                                                               Pageable pageable) {
         try {
             // MarketplaceType을 소문자로 변환 (SELL -> sell, BUY -> buy)
             String lowerMarketplaceType = marketplaceType.name().toLowerCase();
@@ -112,7 +114,8 @@ public class BoardSearchService {
         }
 
         try {
-            Page<BoardDocument> results = boardSearchRepository.findNoticesByKeywordAndAuthorName(processedKeyword, authorName, pageable);
+            Page<BoardDocument> results = boardSearchRepository.findNoticesByKeywordAndAuthorName(processedKeyword,
+                    authorName, pageable);
             return SearchDtoMapper.toSearchResponse(results);
         } catch (Exception e) {
             logSearchError("searchNoticesByDepartment", processedKeyword, "notice", e);
@@ -146,10 +149,12 @@ public class BoardSearchService {
         return keyword.trim().replaceAll("\\s+", " ");
     }
 
-    private Page<BoardDocument> performSearchByBoardTypeAndDepartmentName(String keyword, BoardType boardType, String departmentName, Pageable pageable) {
+    private Page<BoardDocument> performSearchByBoardTypeAndDepartmentName(String keyword, BoardType boardType,
+                                                                          String departmentName, Pageable pageable) {
         try {
             String lowerBoardType = boardType.getCode().toLowerCase();
-            return boardSearchRepository.findByKeywordAndBoardTypeAndDepartmentName(keyword, lowerBoardType, departmentName, pageable);
+            return boardSearchRepository.findByKeywordAndBoardTypeAndDepartmentName(keyword, lowerBoardType,
+                    departmentName, pageable);
         } catch (Exception e) {
             logSearchError("searchByBoardTypeAndDepartmentName", keyword, boardType.getCode(), e);
             return Page.empty(pageable);

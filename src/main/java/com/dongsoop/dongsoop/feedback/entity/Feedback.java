@@ -34,8 +34,11 @@ public class Feedback extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     private Member member;
 
-    @Column(nullable = false, length = 500)
-    private String content;
+    @Column(nullable = false, length = 150)
+    private String improvementSuggestions;
+
+    @Column(nullable = false, length = 150)
+    private String featureRequests;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
