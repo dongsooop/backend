@@ -4,25 +4,32 @@ import com.dongsoop.dongsoop.feedback.dto.FeedbackCreate;
 import com.dongsoop.dongsoop.feedback.dto.FeedbackDetail;
 import com.dongsoop.dongsoop.feedback.entity.Feedback;
 import com.dongsoop.dongsoop.feedback.entity.Feedback.FeedbackBuilder;
+import com.dongsoop.dongsoop.feedback.entity.FeedbackServiceFeature;
 import com.dongsoop.dongsoop.feedback.exception.FeedbackNotFoundException;
 import com.dongsoop.dongsoop.feedback.repository.FeedbackRepository;
+import com.dongsoop.dongsoop.feedback.repository.FeedbackServiceFeatureRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class FeedbackServiceImpl implements FeedbackService {
 
     private final FeedbackRepository feedbackRepository;
+    private final FeedbackServiceFeatureRepository feedbackServiceFeatureRepository;
     private final MemberService memberService;
 
     @Override
+    @Transactional
     public Long submitFeedback(FeedbackCreate request) {
         FeedbackBuilder feedbackBuilder = Feedback.builder()
-                .content(request.content());
+                .improvementSuggestions(request.improvementSuggestions())
+                .featureRequests(request.featureRequests());
         try {
             Member member = memberService.getMemberReferenceByContext();
 
@@ -32,6 +39,12 @@ public class FeedbackServiceImpl implements FeedbackService {
         }
 
         Feedback feedback = feedbackRepository.save(feedbackBuilder.build());
+        List<FeedbackServiceFeature> feedbackServiceFeature = request.feature()
+                .stream()
+                .map((feature) -> new FeedbackServiceFeature(feedback.getId(), feature))
+                .toList();
+
+        feedbackServiceFeatureRepository.saveAll(feedbackServiceFeature);
 
         return feedback.getId();
     }
