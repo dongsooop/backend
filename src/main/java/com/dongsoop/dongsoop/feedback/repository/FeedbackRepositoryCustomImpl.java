@@ -89,6 +89,10 @@ public class FeedbackRepositoryCustomImpl implements FeedbackRepositoryCustom {
         List<String> featureRequests = new ArrayList<>();
 
         for (String[] contents : contentList) {
+            if (contents == null || contents.length < 2) {
+                continue;
+            }
+            
             improvementSuggestions.add(contents[0]);
             featureRequests.add(contents[1]);
         }
