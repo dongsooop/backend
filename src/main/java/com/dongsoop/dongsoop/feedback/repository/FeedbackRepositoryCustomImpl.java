@@ -41,7 +41,7 @@ public class FeedbackRepositoryCustomImpl implements FeedbackRepositoryCustom {
                         feedback.createdAt
                 ))
                 .from(feedback)
-                .join(feedback.member, member)
+                .leftJoin(feedback.member, member)
                 .where(feedback.id.eq(id))
                 .groupBy(feedback, member)
                 .fetchOne();
