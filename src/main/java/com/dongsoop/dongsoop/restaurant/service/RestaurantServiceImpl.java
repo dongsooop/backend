@@ -6,7 +6,10 @@ import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.restaurant.dto.RestaurantOverview;
 import com.dongsoop.dongsoop.restaurant.dto.RestaurantRegisterRequest;
-import com.dongsoop.dongsoop.restaurant.entity.*;
+import com.dongsoop.dongsoop.restaurant.entity.Restaurant;
+import com.dongsoop.dongsoop.restaurant.entity.RestaurantLike;
+import com.dongsoop.dongsoop.restaurant.entity.RestaurantReport;
+import com.dongsoop.dongsoop.restaurant.entity.RestaurantReportReason;
 import com.dongsoop.dongsoop.restaurant.exception.RestaurantAlreadyExistsException;
 import com.dongsoop.dongsoop.restaurant.exception.RestaurantNotFoundException;
 import com.dongsoop.dongsoop.restaurant.repository.RestaurantLikeRepository;
@@ -51,7 +54,6 @@ public class RestaurantServiceImpl implements RestaurantService {
         try {
             memberId = memberService.getMemberIdByAuthentication();
         } catch (NotAuthenticationException e) {
-
         }
         return restaurantRepository.findNearbyRestaurants(memberId, pageable);
     }
@@ -93,26 +95,6 @@ public class RestaurantServiceImpl implements RestaurantService {
     private Restaurant findRestaurantById(Long restaurantId) {
         return restaurantRepository.findById(restaurantId)
                 .orElseThrow(RestaurantNotFoundException::new);
-    }
-
-    @Transactional(readOnly = true)
-    @Override
-    public List<RestaurantOverview> getRestaurantsByStatus(RestaurantStatus status, Long memberId, Pageable pageable) {
-        return restaurantRepository.findRestaurantsByStatus(status, pageable, memberId);
-    }
-
-    @Transactional
-    @Override
-    public void approveRestaurant(Long restaurantId) {
-        Restaurant restaurant = findRestaurantById(restaurantId);
-        restaurant.approve();
-    }
-
-    @Transactional
-    @Override
-    public void rejectRestaurant(Long restaurantId) {
-        Restaurant restaurant = findRestaurantById(restaurantId);
-        restaurantRepository.delete(restaurant);
     }
 
     @Transactional

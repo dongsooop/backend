@@ -51,11 +51,7 @@ public class Restaurant extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private RestaurantStatus status = RestaurantStatus.PENDING;
-
-    public void approve() {
-        this.status = RestaurantStatus.APPROVED;
-    }
+    private RestaurantStatus status = RestaurantStatus.APPROVED;
 
     public boolean equalsId(Restaurant that) {
         return Objects.equals(this.id, that.id);

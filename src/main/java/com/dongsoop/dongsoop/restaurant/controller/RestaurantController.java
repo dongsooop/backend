@@ -5,7 +5,6 @@ import com.dongsoop.dongsoop.restaurant.dto.ReportWrongInfoRequest;
 import com.dongsoop.dongsoop.restaurant.dto.RestaurantOverview;
 import com.dongsoop.dongsoop.restaurant.dto.RestaurantRegisterRequest;
 import com.dongsoop.dongsoop.restaurant.entity.RestaurantReportReason;
-import com.dongsoop.dongsoop.restaurant.entity.RestaurantStatus;
 import com.dongsoop.dongsoop.restaurant.service.RestaurantService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import jakarta.validation.Valid;
@@ -31,7 +30,7 @@ public class RestaurantController {
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<Void> registerRestaurant(@RequestBody @Valid RestaurantRegisterRequest request) {
         restaurantService.registerRestaurant(request);
-        return ResponseEntity.accepted().build();
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @GetMapping("/nearby")
@@ -46,28 +45,6 @@ public class RestaurantController {
         Long memberId = memberService.getMemberIdByAuthentication();
         restaurantService.toggleLike(restaurantId, memberId, isAdding);
         return ResponseEntity.ok().build();
-    }
-
-    @GetMapping("/admin/pending")
-    @Secured(RoleType.ADMIN_ROLE)
-    public ResponseEntity<List<RestaurantOverview>> getPendingRestaurants(Pageable pageable) {
-        Long adminId = memberService.getMemberIdByAuthentication();
-        List<RestaurantOverview> restaurants = restaurantService.getRestaurantsByStatus(RestaurantStatus.PENDING, adminId, pageable);
-        return ResponseEntity.ok(restaurants);
-    }
-
-    @PostMapping("/admin/approve/{restaurantId}")
-    @Secured(RoleType.ADMIN_ROLE)
-    public ResponseEntity<Void> approveRestaurant(@PathVariable Long restaurantId) {
-        restaurantService.approveRestaurant(restaurantId);
-        return ResponseEntity.ok().build();
-    }
-
-    @DeleteMapping("/admin/reject/{restaurantId}")
-    @Secured(RoleType.ADMIN_ROLE)
-    public ResponseEntity<Void> rejectRestaurant(@PathVariable Long restaurantId) {
-        restaurantService.rejectRestaurant(restaurantId);
-        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{restaurantId}/report-closed")
