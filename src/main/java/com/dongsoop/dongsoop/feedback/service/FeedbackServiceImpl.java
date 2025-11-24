@@ -14,6 +14,7 @@ import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,5 +60,15 @@ public class FeedbackServiceImpl implements FeedbackService {
     @Override
     public FeedbackOverview getFeedbackOverview() {
         return feedbackRepository.searchFeedbackOverview();
+    }
+
+    @Override
+    public List<String> getImprovementSuggestions(Pageable pageable) {
+        return feedbackRepository.searchAllImprovementSuggestions(pageable);
+    }
+
+    @Override
+    public List<String> getFeatureRequests(Pageable pageable) {
+        return feedbackRepository.searchAllFeatureRequests(pageable);
     }
 }

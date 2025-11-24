@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.feedback.repository;
 
+import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.feedback.dto.FeedbackDetail;
 import com.dongsoop.dongsoop.feedback.dto.FeedbackOverview;
 import com.dongsoop.dongsoop.feedback.dto.ServiceFeatureFeedback;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -25,6 +27,7 @@ public class FeedbackRepositoryCustomImpl implements FeedbackRepositoryCustom {
     private static final QMember member = QMember.member;
 
     private final JPAQueryFactory queryFactory;
+    private final PageableUtil pageableUtil;
 
     @Override
     public Optional<FeedbackDetail> searchFeedbackById(Long id) {
@@ -97,5 +100,27 @@ public class FeedbackRepositoryCustomImpl implements FeedbackRepositoryCustom {
         }
 
         return new FeedbackOverview(serviceFeatureList, improvementSuggestions, featureRequests);
+    }
+
+    @Override
+    public List<String> searchAllImprovementSuggestions(Pageable pageable) {
+        return queryFactory
+                .select(feedback.improvementSuggestions)
+                .from(feedback)
+                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), feedback))
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+    }
+
+    @Override
+    public List<String> searchAllFeatureRequests(Pageable pageable) {
+        return queryFactory
+                .select(feedback.featureRequests)
+                .from(feedback)
+                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), feedback))
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
     }
 }
