@@ -8,6 +8,7 @@ import com.dongsoop.dongsoop.feedback.entity.QFeedback;
 import com.dongsoop.dongsoop.feedback.entity.QFeedbackServiceFeature;
 import com.dongsoop.dongsoop.feedback.entity.ServiceFeature;
 import com.dongsoop.dongsoop.member.entity.QMember;
+import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.ArrayList;
@@ -71,11 +72,7 @@ public class FeedbackRepositoryCustomImpl implements FeedbackRepositoryCustom {
                 .groupBy(feedbackServiceFeature.id.serviceFeature)
                 .fetch()
                 .stream()
-                .map(tuple -> {
-                    String serviceFeature = tuple.get(0, ServiceFeature.class).getDescription();
-                    Long count = tuple.get(1, Long.class);
-                    return new ServiceFeatureFeedback(serviceFeature, count);
-                })
+                .map(this::parseServiceFeature)
                 .toList();
 
         List<String[]> contentList = queryFactory
@@ -119,5 +116,17 @@ public class FeedbackRepositoryCustomImpl implements FeedbackRepositoryCustom {
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
+    }
+
+    private ServiceFeatureFeedback parseServiceFeature(Tuple tuple) {
+        ServiceFeature serviceFeature = tuple.get(0, ServiceFeature.class);
+        if (serviceFeature == null) {
+            return null;
+        }
+
+        String description = serviceFeature.getDescription();
+
+        Long count = tuple.get(1, Long.class);
+        return new ServiceFeatureFeedback(description, count);
     }
 }
