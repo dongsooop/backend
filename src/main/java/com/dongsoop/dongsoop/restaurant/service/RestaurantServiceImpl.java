@@ -54,6 +54,7 @@ public class RestaurantServiceImpl implements RestaurantService {
         try {
             memberId = memberService.getMemberIdByAuthentication();
         } catch (NotAuthenticationException e) {
+
         }
         return restaurantRepository.findNearbyRestaurants(memberId, pageable);
     }
