@@ -1,5 +1,7 @@
 package com.dongsoop.dongsoop.feedback.entity;
 
+import lombok.Getter;
+
 public enum ServiceFeature {
 
     NOTICE_ALERT("교내 공지 알림 서비스"),
@@ -10,6 +12,7 @@ public enum ServiceFeature {
     MARKETPLACE("장터(교재 등 중고 거래)"),
     CHATBOT_CAMPUS_INFO("챗봇을 통한 교내 정보 확인");
 
+    @Getter
     private final String description;
 
     ServiceFeature(String description) {

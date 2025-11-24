@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.feedback.controller;
 
 import com.dongsoop.dongsoop.feedback.dto.FeedbackCreate;
 import com.dongsoop.dongsoop.feedback.dto.FeedbackDetail;
+import com.dongsoop.dongsoop.feedback.dto.FeedbackOverview;
 import com.dongsoop.dongsoop.feedback.service.FeedbackService;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -31,6 +32,12 @@ public class FeedbackController {
     @GetMapping("/{id}")
     public ResponseEntity<FeedbackDetail> getFeedbackDetail(@PathVariable Long id) {
         FeedbackDetail detail = feedbackService.getFeedbackDetail(id);
+        return ResponseEntity.ok(detail);
+    }
+
+    @GetMapping
+    public ResponseEntity<FeedbackOverview> getFeedbackOverview() {
+        FeedbackOverview detail = feedbackService.getFeedbackOverview();
         return ResponseEntity.ok(detail);
     }
 }

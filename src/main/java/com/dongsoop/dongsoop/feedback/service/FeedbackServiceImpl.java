@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.feedback.service;
 
 import com.dongsoop.dongsoop.feedback.dto.FeedbackCreate;
 import com.dongsoop.dongsoop.feedback.dto.FeedbackDetail;
+import com.dongsoop.dongsoop.feedback.dto.FeedbackOverview;
 import com.dongsoop.dongsoop.feedback.entity.Feedback;
 import com.dongsoop.dongsoop.feedback.entity.Feedback.FeedbackBuilder;
 import com.dongsoop.dongsoop.feedback.entity.FeedbackServiceFeature;
@@ -53,5 +54,10 @@ public class FeedbackServiceImpl implements FeedbackService {
     public FeedbackDetail getFeedbackDetail(Long id) {
         return feedbackRepository.searchFeedbackById(id)
                 .orElseThrow(FeedbackNotFoundException::new);
+    }
+
+    @Override
+    public FeedbackOverview getFeedbackOverview() {
+        return feedbackRepository.searchFeedbackOverview();
     }
 }
