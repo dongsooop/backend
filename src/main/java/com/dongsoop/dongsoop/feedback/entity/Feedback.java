@@ -31,7 +31,7 @@ public class Feedback extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "feedback_sequence_generator")
     private Long id;
 
-    @JoinColumn(nullable = true)
+    @JoinColumn
     @ManyToOne(fetch = FetchType.LAZY)
     private Member member;
 
