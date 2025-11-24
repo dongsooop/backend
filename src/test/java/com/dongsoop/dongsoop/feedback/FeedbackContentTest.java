@@ -79,6 +79,29 @@ class FeedbackContentTest {
     }
 
     @Test
+    @DisplayName("마음에 드는 기능이 4개 이상일 때 예외를 던진다.")
+    void feedback_WhenTooManyFeaturesSelected_ReturnsBadRequest() throws Exception {
+        // given
+        String[] features = new String[]{ServiceFeature.ACADEMIC_SCHEDULE.name(),
+                ServiceFeature.MARKETPLACE.name(),
+                ServiceFeature.NOTICE_ALERT.name(),
+                ServiceFeature.MEAL_INFORMATION.name()};
+        String improvementSuggestions = "텍스트 크기가 좀 더 컸으면 좋겠습니다.";
+        String featureRequests = "앱 잘 쓰고있습니다.";
+
+        // when
+        ResultActions resultActions = request(features, improvementSuggestions, featureRequests);
+
+        // then
+        resultActions.andExpect(status().isBadRequest())
+                .andExpect(result -> {
+                    Throwable resolved = result.getResolvedException();
+                    assertNotNull(resolved);
+                    Assertions.assertInstanceOf(MethodArgumentNotValidException.class, resolved);
+                });
+    }
+
+    @Test
     @DisplayName("마음에 드는 기능이 없을 때 예외를 던진다.")
     void feedback_WhenNoFeatureSelected_ReturnsBadRequest() throws Exception {
         // given
