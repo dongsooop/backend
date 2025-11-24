@@ -43,7 +43,6 @@ public class FeedbackRepositoryCustomImpl implements FeedbackRepositoryCustom {
                 .from(feedback)
                 .leftJoin(feedback.member, member)
                 .where(feedback.id.eq(id))
-                .groupBy(feedback, member)
                 .fetchOne();
 
         if (base == null) {
@@ -55,7 +54,6 @@ public class FeedbackRepositoryCustomImpl implements FeedbackRepositoryCustom {
                 .from(feedbackServiceFeature)
                 .join(feedback).on(feedbackServiceFeature.id.feedbackId.eq(feedback.id))
                 .where(feedback.id.eq(id))
-                .groupBy(feedbackServiceFeature.id.serviceFeature)
                 .fetch();
 
         FeedbackDetail result = base.fromBase(serviceFeatureList);
