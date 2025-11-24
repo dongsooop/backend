@@ -4,7 +4,6 @@ import com.dongsoop.dongsoop.restaurant.dto.QRestaurantOverview;
 import com.dongsoop.dongsoop.restaurant.dto.RestaurantOverview;
 import com.dongsoop.dongsoop.restaurant.entity.QRestaurant;
 import com.dongsoop.dongsoop.restaurant.entity.QRestaurantLike;
-import com.dongsoop.dongsoop.restaurant.entity.RestaurantStatus;
 import com.dongsoop.dongsoop.restaurant.entity.RestaurantTag;
 import com.querydsl.core.types.ExpressionUtils;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -43,40 +42,12 @@ public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCusto
                 ))
                 .from(restaurant)
                 .leftJoin(restaurant.tags, tagAlias)
-                .where(restaurant.status.eq(RestaurantStatus.APPROVED))
+                .where(restaurant.isDeleted.isFalse())
                 .groupBy(
                         restaurant.id, restaurant.name, restaurant.category,
                         restaurant.distance, restaurant.externalMapId
                 )
                 .orderBy(restaurant.distance.asc())
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .fetch();
-    }
-
-    @Override
-    public List<RestaurantOverview> findRestaurantsByStatus(
-            RestaurantStatus status, Pageable pageable, Long memberId) {
-
-        return queryFactory
-                .select(new QRestaurantOverview(
-                        restaurant.id,
-                        restaurant.name,
-                        restaurant.category,
-                        restaurant.distance,
-                        getLikeCountSubQuery(),
-                        Expressions.stringTemplate("STRING_AGG({0}, ',')", tagAlias),
-                        restaurant.externalMapId,
-                        isLikedByMember(memberId)
-                ))
-                .from(restaurant)
-                .leftJoin(restaurant.tags, tagAlias)
-                .where(restaurant.status.eq(status))
-                .groupBy(
-                        restaurant.id, restaurant.name, restaurant.category,
-                        restaurant.distance, restaurant.externalMapId
-                )
-                .orderBy(restaurant.createdAt.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
