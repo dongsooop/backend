@@ -3,7 +3,6 @@ package com.dongsoop.dongsoop.restaurant.entity;
 import com.dongsoop.dongsoop.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -47,11 +46,6 @@ public class Restaurant extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "tag", nullable = false)
     private List<RestaurantTag> tags;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    @Builder.Default
-    private RestaurantStatus status = RestaurantStatus.APPROVED;
 
     public boolean equalsId(Restaurant that) {
         return Objects.equals(this.id, that.id);
