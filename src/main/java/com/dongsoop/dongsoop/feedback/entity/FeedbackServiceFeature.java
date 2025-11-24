@@ -53,7 +53,7 @@ public class FeedbackServiceFeature {
 
         @Override
         public int hashCode() {
-            return Objects.hash(feedback.getId(), serviceFeature);
+            return Objects.hash(feedback, serviceFeature);
         }
     }
 }
