@@ -38,7 +38,7 @@ class FeedbackContentTest {
     void feedback_WhenContentTooShort_ReturnsBadRequest() throws Exception {
         // given
 
-        // 5 글자 미만
+        // 1 글자 미만
         String improvementSuggestions = "";
         String featureRequests = "";
 
@@ -76,7 +76,7 @@ class FeedbackContentTest {
     }
 
     @Test
-    @DisplayName("피드백이 5글자 이상 500글자 이하일 때 201과 그에 맞는 경로가 반환되어야 한다.")
+    @DisplayName("피드백이 1글자 이상 150글자 이하일 때 201과 그에 맞는 경로가 반환되어야 한다.")
     void feedback_WhenContentValid_ReturnsCreated() throws Exception {
         // given
         String improvementSuggestions = "텍스트 크기가 좀 더 컸으면 좋겠습니다.";
