@@ -12,7 +12,7 @@ import java.util.List;
 public interface RestaurantService {
     Restaurant registerRestaurant(RestaurantRegisterRequest request);
 
-    List<RestaurantOverview> getNearbyRestaurants(Long memberId, Pageable pageable);
+    List<RestaurantOverview> getNearbyRestaurants(Pageable pageable);
 
     void toggleLike(Long restaurantId, Long memberId, boolean isAdding);
 
