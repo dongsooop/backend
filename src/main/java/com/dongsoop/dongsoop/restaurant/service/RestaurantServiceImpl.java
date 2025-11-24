@@ -1,7 +1,9 @@
 package com.dongsoop.dongsoop.restaurant.service;
 
+import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
+import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.restaurant.dto.RestaurantOverview;
 import com.dongsoop.dongsoop.restaurant.dto.RestaurantRegisterRequest;
 import com.dongsoop.dongsoop.restaurant.entity.*;
@@ -27,6 +29,7 @@ public class RestaurantServiceImpl implements RestaurantService {
     private final MemberRepository memberRepository;
     private final RestaurantMapper restaurantMapper;
     private final RestaurantReportRepository restaurantReportRepository;
+    private final MemberService memberService;
 
     @Transactional
     @Override
@@ -43,7 +46,13 @@ public class RestaurantServiceImpl implements RestaurantService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<RestaurantOverview> getNearbyRestaurants(Long memberId, Pageable pageable) {
+    public List<RestaurantOverview> getNearbyRestaurants(Pageable pageable) {
+        Long memberId = null;
+        try {
+            memberId = memberService.getMemberIdByAuthentication();
+        } catch (NotAuthenticationException e) {
+
+        }
         return restaurantRepository.findNearbyRestaurants(memberId, pageable);
     }
 
@@ -61,24 +70,24 @@ public class RestaurantServiceImpl implements RestaurantService {
         boolean isCurrentlyLiked = restaurantLikeRepository.existsById(key);
 
         if (isAdding && !isCurrentlyLiked) {
-            addLike(restaurant, key);
+            addLike(key);
             return;
         }
 
         if (!isAdding && isCurrentlyLiked) {
-            removeLike(restaurant, key);
+            removeLike(key);
         }
     }
 
-    private void addLike(Restaurant restaurant, RestaurantLike.RestaurantLikeKey key) {
-        RestaurantLike restaurantLike = RestaurantLike.builder().id(key).build();
+    private void addLike(RestaurantLike.RestaurantLikeKey key) {
+        RestaurantLike restaurantLike = RestaurantLike.builder()
+                .id(key)
+                .build();
         restaurantLikeRepository.save(restaurantLike);
-        restaurant.increaseLikeCount();
     }
 
-    private void removeLike(Restaurant restaurant, RestaurantLike.RestaurantLikeKey key) {
+    private void removeLike(RestaurantLike.RestaurantLikeKey key) {
         restaurantLikeRepository.deleteById(key);
-        restaurant.decreaseLikeCount();
     }
 
     private Restaurant findRestaurantById(Long restaurantId) {
