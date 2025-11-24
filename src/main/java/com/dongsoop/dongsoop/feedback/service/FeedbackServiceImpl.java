@@ -14,11 +14,13 @@ import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class FeedbackServiceImpl implements FeedbackService {
 
@@ -38,6 +40,7 @@ public class FeedbackServiceImpl implements FeedbackService {
             feedbackBuilder.member(member);
         } catch (MemberNotFoundException e) {
             // 회원이 존재하지 않으면 익명 피드백으로 처리
+            log.debug("Anonymous feedback submitted - member not found in context");
         }
 
         Feedback feedback = feedbackRepository.save(feedbackBuilder.build());
