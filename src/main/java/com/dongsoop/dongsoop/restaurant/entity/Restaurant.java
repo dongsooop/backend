@@ -42,10 +42,6 @@ public class Restaurant extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String externalMapId;
 
-    @Column(name = "like_count", nullable = false)
-    @Builder.Default
-    private long likeCount = 0;
-
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "restaurant_tags", joinColumns = @JoinColumn(name = "restaurant_id"))
     @Enumerated(EnumType.STRING)
@@ -63,13 +59,5 @@ public class Restaurant extends BaseEntity {
 
     public boolean equalsId(Restaurant that) {
         return Objects.equals(this.id, that.id);
-    }
-
-    public void increaseLikeCount() {
-        this.likeCount++;
-    }
-
-    public void decreaseLikeCount() {
-        this.likeCount = Math.max(0, this.likeCount - 1);
     }
 }
