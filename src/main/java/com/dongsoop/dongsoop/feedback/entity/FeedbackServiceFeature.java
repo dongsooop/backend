@@ -6,6 +6,9 @@ import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
@@ -17,8 +20,8 @@ public class FeedbackServiceFeature {
     @EmbeddedId
     private FeedbackServiceFeatureId id;
 
-    public FeedbackServiceFeature(Long feedbackId, ServiceFeature serviceFeature) {
-        this.id = new FeedbackServiceFeatureId(feedbackId, serviceFeature);
+    public FeedbackServiceFeature(Feedback feedback, ServiceFeature serviceFeature) {
+        this.id = new FeedbackServiceFeatureId(feedback, serviceFeature);
     }
 
     @Embeddable
@@ -26,8 +29,9 @@ public class FeedbackServiceFeature {
     @AllArgsConstructor
     public static class FeedbackServiceFeatureId {
 
-        @Column(name = "feedback_id")
-        private Long feedbackId;
+        @JoinColumn(name = "feedback_id")
+        @ManyToOne(fetch = FetchType.LAZY)
+        private Feedback feedback;
 
         @Column(name = "service_feature")
         @Enumerated(EnumType.STRING)

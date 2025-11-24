@@ -52,7 +52,7 @@ public class FeedbackRepositoryCustomImpl implements FeedbackRepositoryCustom {
         List<ServiceFeature> serviceFeatureList = queryFactory
                 .select(feedbackServiceFeature.id.serviceFeature)
                 .from(feedbackServiceFeature)
-                .join(feedback).on(feedbackServiceFeature.id.feedbackId.eq(feedback.id))
+                .join(feedback).on(feedbackServiceFeature.id.feedback.eq(feedback))
                 .where(feedback.id.eq(id))
                 .fetch();
 
