@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/restaurants")
@@ -37,12 +36,7 @@ public class RestaurantController {
 
     @GetMapping("/nearby")
     public ResponseEntity<List<RestaurantOverview>> getNearbyRestaurants(Pageable pageable) {
-        Long memberId = Optional.of(memberService.isAuthenticated())
-                .filter(Boolean::booleanValue)
-                .map(isAuthenticated -> memberService.getMemberIdByAuthentication())
-                .orElse(null);
-
-        List<RestaurantOverview> restaurants = restaurantService.getNearbyRestaurants(memberId, pageable);
+        List<RestaurantOverview> restaurants = restaurantService.getNearbyRestaurants(pageable);
         return ResponseEntity.ok(restaurants);
     }
 
