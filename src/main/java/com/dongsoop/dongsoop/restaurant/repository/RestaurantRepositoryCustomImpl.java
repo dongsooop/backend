@@ -6,6 +6,7 @@ import com.dongsoop.dongsoop.restaurant.entity.QRestaurant;
 import com.dongsoop.dongsoop.restaurant.entity.QRestaurantLike;
 import com.dongsoop.dongsoop.restaurant.entity.RestaurantStatus;
 import com.dongsoop.dongsoop.restaurant.entity.RestaurantTag;
+import com.querydsl.core.types.ExpressionUtils;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.EnumPath;
 import com.querydsl.core.types.dsl.Expressions;
@@ -16,7 +17,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -30,36 +30,23 @@ public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCusto
 
     @Override
     public List<RestaurantOverview> findNearbyRestaurants(Long memberId, Pageable pageable) {
-
-        BooleanExpression isLikedByMe = Optional.ofNullable(memberId)
-                .map(id -> JPAExpressions
-                        .selectOne()
-                        .from(restaurantLike)
-                        .where(restaurantLike.id.restaurant.id.eq(restaurant.id),
-                                restaurantLike.id.member.id.eq(id))
-                        .exists()
-                )
-                .orElse(Expressions.asBoolean(false));
-
         return queryFactory
                 .select(new QRestaurantOverview(
                         restaurant.id,
                         restaurant.name,
                         restaurant.category,
                         restaurant.distance,
-                        restaurant.likeCount,
+                        getLikeCountSubQuery(),
                         Expressions.stringTemplate("STRING_AGG({0}, ',')", tagAlias),
                         restaurant.externalMapId,
-                        isLikedByMe
+                        isLikedByMember(memberId)
                 ))
                 .from(restaurant)
                 .leftJoin(restaurant.tags, tagAlias)
-                .where(
-                        restaurant.status.eq(RestaurantStatus.APPROVED)
-                )
+                .where(restaurant.status.eq(RestaurantStatus.APPROVED))
                 .groupBy(
                         restaurant.id, restaurant.name, restaurant.category,
-                        restaurant.distance, restaurant.likeCount, restaurant.externalMapId
+                        restaurant.distance, restaurant.externalMapId
                 )
                 .orderBy(restaurant.distance.asc())
                 .offset(pageable.getOffset())
@@ -71,37 +58,60 @@ public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCusto
     public List<RestaurantOverview> findRestaurantsByStatus(
             RestaurantStatus status, Pageable pageable, Long memberId) {
 
-        BooleanExpression isLikedByMe = Optional.ofNullable(memberId)
-                .map(id -> JPAExpressions
-                        .selectOne()
-                        .from(restaurantLike)
-                        .where(restaurantLike.id.restaurant.id.eq(restaurant.id),
-                                restaurantLike.id.member.id.eq(id))
-                        .exists()
-                )
-                .orElse(Expressions.asBoolean(false));
-
         return queryFactory
                 .select(new QRestaurantOverview(
                         restaurant.id,
                         restaurant.name,
                         restaurant.category,
                         restaurant.distance,
-                        restaurant.likeCount,
+                        getLikeCountSubQuery(),
                         Expressions.stringTemplate("STRING_AGG({0}, ',')", tagAlias),
                         restaurant.externalMapId,
-                        isLikedByMe
+                        isLikedByMember(memberId)
                 ))
                 .from(restaurant)
                 .leftJoin(restaurant.tags, tagAlias)
                 .where(restaurant.status.eq(status))
                 .groupBy(
                         restaurant.id, restaurant.name, restaurant.category,
-                        restaurant.distance, restaurant.likeCount, restaurant.externalMapId
+                        restaurant.distance, restaurant.externalMapId
                 )
                 .orderBy(restaurant.createdAt.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
+    }
+
+    @Override
+    public boolean existsActiveByExternalMapId(String externalMapId) {
+        Integer fetchOne = queryFactory
+                .selectOne()
+                .from(restaurant)
+                .where(restaurant.externalMapId.eq(externalMapId)
+                        .and(restaurant.isDeleted.isFalse()))
+                .fetchFirst();
+        return fetchOne != null;
+    }
+
+    private BooleanExpression isLikedByMember(Long memberId) {
+        if (memberId == null) {
+            return Expressions.asBoolean(false);
+        }
+
+        return JPAExpressions
+                .selectOne()
+                .from(restaurantLike)
+                .where(restaurantLike.id.restaurant.id.eq(restaurant.id),
+                        restaurantLike.id.member.id.eq(memberId))
+                .exists();
+    }
+
+    private com.querydsl.core.types.Expression<Long> getLikeCountSubQuery() {
+        return ExpressionUtils.as(
+                JPAExpressions.select(restaurantLike.count())
+                        .from(restaurantLike)
+                        .where(restaurantLike.id.restaurant.id.eq(restaurant.id)),
+                "likeCount"
+        );
     }
 }
