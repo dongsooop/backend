@@ -52,8 +52,7 @@ public class FeedbackRepositoryCustomImpl implements FeedbackRepositoryCustom {
         List<ServiceFeature> serviceFeatureList = queryFactory
                 .select(feedbackServiceFeature.id.serviceFeature)
                 .from(feedbackServiceFeature)
-                .join(feedback).on(feedbackServiceFeature.id.feedback.eq(feedback))
-                .where(feedback.id.eq(id))
+                .where(feedbackServiceFeature.id.feedback.id.eq(id))
                 .fetch();
 
         FeedbackDetail result = base.fromBase(serviceFeatureList);
