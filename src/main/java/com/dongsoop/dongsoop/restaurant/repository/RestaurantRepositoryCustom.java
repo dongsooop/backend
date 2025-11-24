@@ -11,4 +11,6 @@ public interface RestaurantRepositoryCustom {
 
     List<RestaurantOverview> findRestaurantsByStatus(
             RestaurantStatus status, Pageable pageable, Long memberId);
+
+    boolean existsActiveByExternalMapId(String externalMapId);
 }
