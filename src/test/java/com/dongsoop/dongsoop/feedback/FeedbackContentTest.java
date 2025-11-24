@@ -152,8 +152,6 @@ class FeedbackContentTest {
                 "{\"feature\":[%s],\"improvementSuggestions\":\"%s\",\"featureRequests\":\"%s\"}",
                 builder, improvementSuggestions, featureRequests);
 
-        System.out.println(content);
-
         return mockMvc.perform(post("/feedback")
                 .contentType("application/json")
                 .content(content));
