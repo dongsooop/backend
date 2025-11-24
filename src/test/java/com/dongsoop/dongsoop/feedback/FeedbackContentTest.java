@@ -139,7 +139,8 @@ class FeedbackContentTest {
                 .andExpect(header().string("Location", matchesPattern(".*/feedback/\\d+$")));
     }
 
-    ResultActions request(String[] features, String improvementSuggestions, String featureRequests) throws Exception {
+    private ResultActions request(String[] features, String improvementSuggestions, String featureRequests)
+            throws Exception {
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < features.length; i++) {
             builder.append(String.format("\"%s\"", features[i]));
