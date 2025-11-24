@@ -55,22 +55,26 @@ public class FeedbackServiceImpl implements FeedbackService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public FeedbackDetail getFeedbackDetail(Long id) {
         return feedbackRepository.searchFeedbackById(id)
                 .orElseThrow(FeedbackNotFoundException::new);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public FeedbackOverview getFeedbackOverview() {
         return feedbackRepository.searchFeedbackOverview();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<String> getImprovementSuggestions(Pageable pageable) {
         return feedbackRepository.searchAllImprovementSuggestions(pageable);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<String> getFeatureRequests(Pageable pageable) {
         return feedbackRepository.searchAllFeatureRequests(pageable);
     }
