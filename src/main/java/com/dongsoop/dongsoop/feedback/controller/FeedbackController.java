@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequestMapping("/feedback")
@@ -27,7 +28,14 @@ public class FeedbackController {
     @PostMapping
     public ResponseEntity<Void> feedback(@Valid @RequestBody FeedbackCreate request) {
         Long id = feedbackService.submitFeedback(request);
-        return ResponseEntity.created(URI.create("/feedback/" + id))
+
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()           // 현재 요청(/feedback)의 스킴/호스트/포트/컨텍스트를 유지
+                .path("/{id}")                  // 상대 경로 확장
+                .buildAndExpand(id)             // {id} 변수 치환
+                .toUri();                       // 절대 URI 생성
+
+        return ResponseEntity.created(location)
                 .build();
     }
 
