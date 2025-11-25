@@ -27,9 +27,11 @@ import java.util.concurrent.ExecutorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 @Service
+@Profile("!dev")
 @Slf4j
 @RequiredArgsConstructor
 public class FCMServiceImpl implements FCMService {
