@@ -18,6 +18,7 @@ public record RestaurantRegisterRequest(
         @Length(max = 255)
         String name,
 
+        @NotNull
         @Length(max = 512)
         String placeUrl,
 

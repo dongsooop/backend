@@ -18,10 +18,11 @@ public final class RestaurantOverview {
     private final boolean isLikedByMe;
     private final List<String> tags;
     private final String externalMapId;
+    private final String placeUrl;
 
     @QueryProjection
     public RestaurantOverview(Long id, String name, RestaurantCategory categoryEnum,
-                              Double distance,
+                              Double distance, String placeUrl,
                               long likeCount, String tags,
                               String externalMapId, boolean isLikedByMe) {
         this.id = id;
@@ -32,6 +33,7 @@ public final class RestaurantOverview {
         this.isLikedByMe = isLikedByMe;
         this.tags = parseTags(tags);
         this.externalMapId = externalMapId;
+        this.placeUrl = placeUrl;
     }
 
     private static List<String> parseTags(String tags) {

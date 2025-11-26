@@ -6,10 +6,7 @@ import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.restaurant.dto.RestaurantOverview;
 import com.dongsoop.dongsoop.restaurant.dto.RestaurantRegisterRequest;
-import com.dongsoop.dongsoop.restaurant.entity.Restaurant;
-import com.dongsoop.dongsoop.restaurant.entity.RestaurantLike;
-import com.dongsoop.dongsoop.restaurant.entity.RestaurantReport;
-import com.dongsoop.dongsoop.restaurant.entity.RestaurantReportReason;
+import com.dongsoop.dongsoop.restaurant.entity.*;
 import com.dongsoop.dongsoop.restaurant.exception.RestaurantAlreadyExistsException;
 import com.dongsoop.dongsoop.restaurant.exception.RestaurantNotFoundException;
 import com.dongsoop.dongsoop.restaurant.repository.RestaurantLikeRepository;
@@ -49,14 +46,13 @@ public class RestaurantServiceImpl implements RestaurantService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<RestaurantOverview> getNearbyRestaurants(Pageable pageable) {
+    public List<RestaurantOverview> getNearbyRestaurants(RestaurantCategory category, Pageable pageable) {
         Long memberId = null;
         try {
             memberId = memberService.getMemberIdByAuthentication();
         } catch (NotAuthenticationException e) {
-
         }
-        return restaurantRepository.findNearbyRestaurants(memberId, pageable);
+        return restaurantRepository.findNearbyRestaurants(memberId, category, pageable);
     }
 
     @Transactional

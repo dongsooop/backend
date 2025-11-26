@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.restaurant.dto.QRestaurantOverview;
 import com.dongsoop.dongsoop.restaurant.dto.RestaurantOverview;
 import com.dongsoop.dongsoop.restaurant.entity.QRestaurant;
 import com.dongsoop.dongsoop.restaurant.entity.QRestaurantLike;
+import com.dongsoop.dongsoop.restaurant.entity.RestaurantCategory;
 import com.dongsoop.dongsoop.restaurant.entity.RestaurantTag;
 import com.querydsl.core.types.ExpressionUtils;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -28,13 +29,14 @@ public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCusto
     private final EnumPath<RestaurantTag> tagAlias = Expressions.enumPath(RestaurantTag.class, "T");
 
     @Override
-    public List<RestaurantOverview> findNearbyRestaurants(Long memberId, Pageable pageable) {
+    public List<RestaurantOverview> findNearbyRestaurants(Long memberId, RestaurantCategory category, Pageable pageable) {
         return queryFactory
                 .select(new QRestaurantOverview(
                         restaurant.id,
                         restaurant.name,
                         restaurant.category,
                         restaurant.distance,
+                        restaurant.placeUrl,
                         getLikeCountSubQuery(),
                         Expressions.stringTemplate("STRING_AGG({0}, ',')", tagAlias),
                         restaurant.externalMapId,
@@ -42,15 +44,23 @@ public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCusto
                 ))
                 .from(restaurant)
                 .leftJoin(restaurant.tags, tagAlias)
-                .where(restaurant.isDeleted.isFalse())
+                .where(restaurant.isDeleted.isFalse()
+                        .and(eqCategory(category)))
                 .groupBy(
                         restaurant.id, restaurant.name, restaurant.category,
-                        restaurant.distance, restaurant.externalMapId
+                        restaurant.distance, restaurant.externalMapId, restaurant.placeUrl
                 )
                 .orderBy(restaurant.distance.asc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
+    }
+
+    private BooleanExpression eqCategory(RestaurantCategory category) {
+        if (category == null) {
+            return null;
+        }
+        return restaurant.category.eq(category);
     }
 
     @Override
