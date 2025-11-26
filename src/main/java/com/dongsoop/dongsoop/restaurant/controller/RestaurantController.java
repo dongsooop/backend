@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.restaurant.dto.ReportWrongInfoRequest;
 import com.dongsoop.dongsoop.restaurant.dto.RestaurantOverview;
 import com.dongsoop.dongsoop.restaurant.dto.RestaurantRegisterRequest;
+import com.dongsoop.dongsoop.restaurant.entity.RestaurantCategory;
 import com.dongsoop.dongsoop.restaurant.entity.RestaurantReportReason;
 import com.dongsoop.dongsoop.restaurant.service.RestaurantService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
@@ -34,8 +35,9 @@ public class RestaurantController {
     }
 
     @GetMapping("/nearby")
-    public ResponseEntity<List<RestaurantOverview>> getNearbyRestaurants(Pageable pageable) {
-        List<RestaurantOverview> restaurants = restaurantService.getNearbyRestaurants(pageable);
+    public ResponseEntity<List<RestaurantOverview>> getNearbyRestaurants(
+            @RequestParam(required = false) RestaurantCategory category, Pageable pageable) {
+        List<RestaurantOverview> restaurants = restaurantService.getNearbyRestaurants(category, pageable);
         return ResponseEntity.ok(restaurants);
     }
 
