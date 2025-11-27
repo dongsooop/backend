@@ -8,7 +8,7 @@ import java.util.List;
 @Getter
 @RequiredArgsConstructor
 public class SearchResponse {
-    private final List<BoardSearchResult> results;
+    private final List<?> results;
     private final int totalElements;
     private final int totalPages;
     private final int currentPage;
