@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.search.service;
 
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
+import com.dongsoop.dongsoop.search.dto.BoardSearchResult;
 import com.dongsoop.dongsoop.search.dto.RestaurantSearchResult;
 import com.dongsoop.dongsoop.search.dto.SearchDtoMapper;
 import com.dongsoop.dongsoop.search.dto.SearchResponse;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.function.BiFunction;
 
 @Slf4j
 @Service
@@ -44,7 +46,12 @@ public class BoardSearchService {
         }
     }
 
-    public SearchResponse searchRestaurantsByName(String keyword, Pageable pageable) {
+    private SearchResponse<RestaurantSearchResult> searchRestaurants(
+            String keyword,
+            Pageable pageable,
+            BiFunction<String, Pageable, Page<RestaurantDocument>> searchFunction,
+            String operationName
+    ) {
         String processedKeyword = preprocessKeyword(keyword);
         if (processedKeyword.isEmpty()) {
             return createEmptySearchResponse(pageable);
@@ -57,43 +64,25 @@ public class BoardSearchService {
                     Sort.by(Sort.Direction.DESC, "likeCount")
             );
 
-            Page<RestaurantDocument> results = restaurantSearchRepository.searchByName(processedKeyword, sortedPageable);
+            Page<RestaurantDocument> results = searchFunction.apply(processedKeyword, sortedPageable);
 
             List<RestaurantSearchResult> dtos = results.getContent().stream()
                     .map(RestaurantSearchResult::from)
                     .toList();
 
-            return new SearchResponse(dtos, (int) results.getTotalElements(), results.getTotalPages(), results.getNumber(), results.getSize());
+            return new SearchResponse<>(dtos, (int) results.getTotalElements(), results.getTotalPages(), results.getNumber(), results.getSize());
         } catch (Exception e) {
-            logSearchError("searchRestaurantsByName", processedKeyword, "restaurant", e);
+            logSearchError(operationName, processedKeyword, "restaurant", e);
             return createEmptySearchResponse(pageable);
         }
     }
 
-    public SearchResponse searchRestaurantsByTag(String keyword, Pageable pageable) {
-        String processedKeyword = preprocessKeyword(keyword);
-        if (processedKeyword.isEmpty()) {
-            return createEmptySearchResponse(pageable);
-        }
+    public SearchResponse<RestaurantSearchResult> searchRestaurantsByName(String keyword, Pageable pageable) {
+        return searchRestaurants(keyword, pageable, restaurantSearchRepository::searchByName, "searchRestaurantsByName");
+    }
 
-        try {
-            Pageable sortedPageable = PageRequest.of(
-                    pageable.getPageNumber(),
-                    pageable.getPageSize(),
-                    Sort.by(Sort.Direction.DESC, "likeCount")
-            );
-
-            Page<RestaurantDocument> results = restaurantSearchRepository.searchByTag(processedKeyword, sortedPageable);
-
-            List<RestaurantSearchResult> dtos = results.getContent().stream()
-                    .map(RestaurantSearchResult::from)
-                    .toList();
-
-            return new SearchResponse(dtos, (int) results.getTotalElements(), results.getTotalPages(), results.getNumber(), results.getSize());
-        } catch (Exception e) {
-            logSearchError("searchRestaurantsByTag", processedKeyword, "restaurant", e);
-            return createEmptySearchResponse(pageable);
-        }
+    public SearchResponse<RestaurantSearchResult> searchRestaurantsByTag(String keyword, Pageable pageable) {
+        return searchRestaurants(keyword, pageable, restaurantSearchRepository::searchByTag, "searchRestaurantsByTag");
     }
 
     public Page<BoardDocument> searchByBoardType(String keyword, BoardType boardType, String departmentName, Pageable pageable) {
@@ -105,17 +94,21 @@ public class BoardSearchService {
         if (processedKeyword.isEmpty()) {
             return Page.empty(pageable);
         }
+
         if (marketplaceType != null) {
             return performMarketplaceSearchByType(processedKeyword, marketplaceType, pageable);
         }
+
         return performMarketplaceSearch(processedKeyword, pageable);
     }
 
-    public SearchResponse searchNoticesByDepartment(String keyword, String authorName, Pageable pageable) {
+    public SearchResponse<BoardSearchResult> searchNoticesByDepartment(String keyword, String authorName, Pageable pageable) {
         String processedKeyword = preprocessKeyword(keyword);
+
         if (processedKeyword.isEmpty()) {
             return createEmptySearchResponse(pageable);
         }
+
         try {
             Page<BoardDocument> results = boardSearchRepository.findNoticesByKeywordAndAuthorName(processedKeyword, authorName, pageable);
             return SearchDtoMapper.toSearchResponse(results);
@@ -130,9 +123,11 @@ public class BoardSearchService {
         if (processedKeyword.isEmpty()) {
             return Page.empty(pageable);
         }
+
         if (departmentName == null || departmentName.isEmpty()) {
             return performSearchByBoardType(processedKeyword, boardType, pageable);
         }
+
         return performSearchByBoardTypeAndDepartmentName(processedKeyword, boardType, departmentName, pageable);
     }
 
@@ -175,9 +170,8 @@ public class BoardSearchService {
         }
     }
 
-    private SearchResponse createEmptySearchResponse(Pageable pageable) {
-        Page<BoardDocument> emptyPage = Page.empty(pageable);
-        return SearchDtoMapper.toSearchResponse(emptyPage);
+    private <T> SearchResponse<T> createEmptySearchResponse(Pageable pageable) {
+        return new SearchResponse<>(List.of(), 0, 0, pageable.getPageNumber(), pageable.getPageSize());
     }
 
     private void logSearchError(String operation, String keyword, String boardType, Exception e) {
@@ -197,6 +191,7 @@ public class BoardSearchService {
         if (!StringUtils.hasText(keyword)) {
             return "";
         }
+
         return keyword.trim().replaceAll("\\s+", " ");
     }
 }
