@@ -50,7 +50,8 @@ public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCusto
                         restaurant.id, restaurant.name, restaurant.category,
                         restaurant.distance, restaurant.externalMapId, restaurant.placeUrl
                 )
-                .orderBy(restaurant.distance.asc())
+                .orderBy(Expressions.numberPath(Long.class, "likeCount").desc(),
+                        restaurant.distance.asc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();

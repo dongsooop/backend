@@ -1,21 +1,27 @@
 package com.dongsoop.dongsoop.search.service;
 
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
+import com.dongsoop.dongsoop.search.dto.BoardSearchResult;
+import com.dongsoop.dongsoop.search.dto.RestaurantSearchResult;
 import com.dongsoop.dongsoop.search.dto.SearchDtoMapper;
 import com.dongsoop.dongsoop.search.dto.SearchResponse;
 import com.dongsoop.dongsoop.search.entity.BoardDocument;
 import com.dongsoop.dongsoop.search.entity.BoardType;
+import com.dongsoop.dongsoop.search.entity.RestaurantDocument;
 import com.dongsoop.dongsoop.search.repository.BoardSearchRepository;
+import com.dongsoop.dongsoop.search.repository.RestaurantSearchRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.function.BiFunction;
 
 @Slf4j
 @Service
@@ -25,6 +31,7 @@ public class BoardSearchService {
     private static final String ELASTICSEARCH_WARMUP_KEYWORD = "__warmup__";
 
     private final BoardSearchRepository boardSearchRepository;
+    private final RestaurantSearchRepository restaurantSearchRepository;
 
     @PostConstruct
     public void warmupRepository() {
@@ -37,6 +44,45 @@ public class BoardSearchService {
         } catch (Exception e) {
             logWarmupError(e);
         }
+    }
+
+    private SearchResponse<RestaurantSearchResult> searchRestaurants(
+            String keyword,
+            Pageable pageable,
+            BiFunction<String, Pageable, Page<RestaurantDocument>> searchFunction,
+            String operationName
+    ) {
+        String processedKeyword = preprocessKeyword(keyword);
+        if (processedKeyword.isEmpty()) {
+            return createEmptySearchResponse(pageable);
+        }
+
+        try {
+            Pageable sortedPageable = PageRequest.of(
+                    pageable.getPageNumber(),
+                    pageable.getPageSize(),
+                    Sort.by(Sort.Direction.DESC, "likeCount")
+            );
+
+            Page<RestaurantDocument> results = searchFunction.apply(processedKeyword, sortedPageable);
+
+            List<RestaurantSearchResult> dtos = results.getContent().stream()
+                    .map(RestaurantSearchResult::from)
+                    .toList();
+
+            return new SearchResponse<>(dtos, (int) results.getTotalElements(), results.getTotalPages(), results.getNumber(), results.getSize());
+        } catch (Exception e) {
+            logSearchError(operationName, processedKeyword, "restaurant", e);
+            return createEmptySearchResponse(pageable);
+        }
+    }
+
+    public SearchResponse<RestaurantSearchResult> searchRestaurantsByName(String keyword, Pageable pageable) {
+        return searchRestaurants(keyword, pageable, restaurantSearchRepository::searchByName, "searchRestaurantsByName");
+    }
+
+    public SearchResponse<RestaurantSearchResult> searchRestaurantsByTag(String keyword, Pageable pageable) {
+        return searchRestaurants(keyword, pageable, restaurantSearchRepository::searchByTag, "searchRestaurantsByTag");
     }
 
     public Page<BoardDocument> searchByBoardType(String keyword, BoardType boardType, String departmentName, Pageable pageable) {
@@ -56,6 +102,22 @@ public class BoardSearchService {
         return performMarketplaceSearch(processedKeyword, pageable);
     }
 
+    public SearchResponse<BoardSearchResult> searchNoticesByDepartment(String keyword, String authorName, Pageable pageable) {
+        String processedKeyword = preprocessKeyword(keyword);
+
+        if (processedKeyword.isEmpty()) {
+            return createEmptySearchResponse(pageable);
+        }
+
+        try {
+            Page<BoardDocument> results = boardSearchRepository.findNoticesByKeywordAndAuthorName(processedKeyword, authorName, pageable);
+            return SearchDtoMapper.toSearchResponse(results);
+        } catch (Exception e) {
+            logSearchError("searchNoticesByDepartment", processedKeyword, "notice", e);
+            return createEmptySearchResponse(pageable);
+        }
+    }
+
     private Page<BoardDocument> executeSearchByBoardType(String keyword, BoardType boardType, String departmentName, Pageable pageable) {
         String processedKeyword = preprocessKeyword(keyword);
         if (processedKeyword.isEmpty()) {
@@ -71,7 +133,6 @@ public class BoardSearchService {
 
     private Page<BoardDocument> performSearchByBoardType(String keyword, BoardType boardType, Pageable pageable) {
         try {
-            // BoardType을 소문자로 변환
             String lowerBoardType = boardType.getCode().toLowerCase();
             return boardSearchRepository.findByKeywordAndBoardType(keyword, lowerBoardType, pageable);
         } catch (Exception e) {
@@ -91,7 +152,6 @@ public class BoardSearchService {
 
     private Page<BoardDocument> performMarketplaceSearchByType(String keyword, MarketplaceType marketplaceType, Pageable pageable) {
         try {
-            // MarketplaceType을 소문자로 변환 (SELL -> sell, BUY -> buy)
             String lowerMarketplaceType = marketplaceType.name().toLowerCase();
             return boardSearchRepository.findMarketplaceByKeywordAndType(keyword, lowerMarketplaceType, pageable);
         } catch (Exception e) {
@@ -100,29 +160,18 @@ public class BoardSearchService {
         }
     }
 
-    private int calculateEndIndex(int start, Pageable pageable, int totalSize) {
-        return Math.min(start + pageable.getPageSize(), totalSize);
-    }
-
-    public SearchResponse searchNoticesByDepartment(String keyword, String authorName, Pageable pageable) {
-        String processedKeyword = preprocessKeyword(keyword);
-
-        if (processedKeyword.isEmpty()) {
-            return createEmptySearchResponse(pageable);
-        }
-
+    private Page<BoardDocument> performSearchByBoardTypeAndDepartmentName(String keyword, BoardType boardType, String departmentName, Pageable pageable) {
         try {
-            Page<BoardDocument> results = boardSearchRepository.findNoticesByKeywordAndAuthorName(processedKeyword, authorName, pageable);
-            return SearchDtoMapper.toSearchResponse(results);
+            String lowerBoardType = boardType.getCode().toLowerCase();
+            return boardSearchRepository.findByKeywordAndBoardTypeAndDepartmentName(keyword, lowerBoardType, departmentName, pageable);
         } catch (Exception e) {
-            logSearchError("searchNoticesByDepartment", processedKeyword, "notice", e);
-            return createEmptySearchResponse(pageable);
+            logSearchError("searchByBoardTypeAndDepartmentName", keyword, boardType.getCode(), e);
+            return Page.empty(pageable);
         }
     }
 
-    private SearchResponse createEmptySearchResponse(Pageable pageable) {
-        Page<BoardDocument> emptyPage = Page.empty(pageable);
-        return SearchDtoMapper.toSearchResponse(emptyPage);
+    private <T> SearchResponse<T> createEmptySearchResponse(Pageable pageable) {
+        return new SearchResponse<>(List.of(), 0, 0, pageable.getPageNumber(), pageable.getPageSize());
     }
 
     private void logSearchError(String operation, String keyword, String boardType, Exception e) {
@@ -144,15 +193,5 @@ public class BoardSearchService {
         }
 
         return keyword.trim().replaceAll("\\s+", " ");
-    }
-
-    private Page<BoardDocument> performSearchByBoardTypeAndDepartmentName(String keyword, BoardType boardType, String departmentName, Pageable pageable) {
-        try {
-            String lowerBoardType = boardType.getCode().toLowerCase();
-            return boardSearchRepository.findByKeywordAndBoardTypeAndDepartmentName(keyword, lowerBoardType, departmentName, pageable);
-        } catch (Exception e) {
-            logSearchError("searchByBoardTypeAndDepartmentName", keyword, boardType.getCode(), e);
-            return Page.empty(pageable);
-        }
     }
 }
