@@ -48,8 +48,21 @@ public class SearchController {
             @RequestParam String keyword,
             @RequestParam String authorName,
             Pageable pageable) {
-
         SearchResponse response = boardSearchService.searchNoticesByDepartment(keyword, authorName, pageable);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/restaurant/name")
+    public ResponseEntity<SearchResponse> searchRestaurantsByName(
+            @RequestParam String keyword, Pageable pageable) {
+        SearchResponse response = boardSearchService.searchRestaurantsByName(keyword, pageable);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/restaurant/tag")
+    public ResponseEntity<SearchResponse> searchRestaurantsByTag(
+            @RequestParam String keyword, Pageable pageable) {
+        SearchResponse response = boardSearchService.searchRestaurantsByTag(keyword, pageable);
         return ResponseEntity.ok(response);
     }
 }
