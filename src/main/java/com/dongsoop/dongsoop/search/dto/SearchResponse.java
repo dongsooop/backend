@@ -7,8 +7,8 @@ import java.util.List;
 
 @Getter
 @RequiredArgsConstructor
-public class SearchResponse {
-    private final List<?> results;
+public class SearchResponse<T> {
+    private final List<T> results;
     private final int totalElements;
     private final int totalPages;
     private final int currentPage;
