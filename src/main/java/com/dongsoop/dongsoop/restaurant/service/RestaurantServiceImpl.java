@@ -13,6 +13,7 @@ import com.dongsoop.dongsoop.restaurant.repository.RestaurantLikeRepository;
 import com.dongsoop.dongsoop.restaurant.repository.RestaurantReportRepository;
 import com.dongsoop.dongsoop.restaurant.repository.RestaurantRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RestaurantServiceImpl implements RestaurantService {
@@ -51,6 +53,7 @@ public class RestaurantServiceImpl implements RestaurantService {
         try {
             memberId = memberService.getMemberIdByAuthentication();
         } catch (NotAuthenticationException e) {
+            log.debug("User is not authenticated, treating as guest user");
         }
         return restaurantRepository.findNearbyRestaurants(memberId, category, pageable);
     }
