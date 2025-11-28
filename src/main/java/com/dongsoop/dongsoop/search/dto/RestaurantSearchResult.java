@@ -27,13 +27,21 @@ public class RestaurantSearchResult {
                 .id(doc.getRestaurantId())
                 .restaurantId(doc.getRestaurantId())
                 .name(doc.getName())
-                .category(RestaurantCategory.valueOf(doc.getCategory()).getDisplayName())
+                .category(validateAndGetDisplayName(doc.getCategory()))
                 .tags(parseTags(doc.getTags()))
                 .placeUrl(doc.getPlaceUrl())
                 .likeCount(doc.getLikeCount())
                 .distance(doc.getDistance())
                 .externalMapId(Long.parseLong(doc.getExternalMapId()))
                 .build();
+    }
+
+    private static String validateAndGetDisplayName(String categoryName) {
+        try {
+            return RestaurantCategory.valueOf(categoryName).getDisplayName();
+        } catch (IllegalArgumentException | NullPointerException e) {
+            return "기타";
+        }
     }
 
     private static List<String> parseTags(String tags) {
