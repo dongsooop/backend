@@ -11,6 +11,7 @@ import com.dongsoop.dongsoop.search.entity.RestaurantDocument;
 import com.dongsoop.dongsoop.search.repository.BoardSearchRepository;
 import com.dongsoop.dongsoop.search.repository.RestaurantSearchRepository;
 import jakarta.annotation.PostConstruct;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -19,9 +20,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-
-import java.util.List;
-import java.util.function.BiFunction;
 
 @Slf4j
 @Service
@@ -46,46 +44,48 @@ public class BoardSearchService {
         }
     }
 
-    private SearchResponse<RestaurantSearchResult> searchRestaurants(
-            String keyword,
-            Pageable pageable,
-            BiFunction<String, Pageable, Page<RestaurantDocument>> searchFunction,
-            String operationName
-    ) {
+    public SearchResponse<RestaurantSearchResult> searchRestaurants(String keyword, Pageable pageable) {
         String processedKeyword = preprocessKeyword(keyword);
         if (processedKeyword.isEmpty()) {
             return createEmptySearchResponse(pageable);
         }
 
         try {
-            Pageable sortedPageable = PageRequest.of(
-                    pageable.getPageNumber(),
-                    pageable.getPageSize(),
-                    Sort.by(Sort.Direction.DESC, "likeCount")
-            );
+            Pageable sortedPageable = createLikeSortPageable(pageable);
+            Page<RestaurantDocument> results = restaurantSearchRepository.searchByKeyword(processedKeyword,
+                    sortedPageable);
 
-            Page<RestaurantDocument> results = searchFunction.apply(processedKeyword, sortedPageable);
-
-            List<RestaurantSearchResult> dtos = results.getContent().stream()
-                    .map(RestaurantSearchResult::from)
-                    .toList();
-
-            return new SearchResponse<>(dtos, (int) results.getTotalElements(), results.getTotalPages(), results.getNumber(), results.getSize());
+            return toRestaurantSearchResponse(results);
         } catch (Exception e) {
-            logSearchError(operationName, processedKeyword, "restaurant", e);
+            logSearchError("searchRestaurants", processedKeyword, "restaurant", e);
             return createEmptySearchResponse(pageable);
         }
     }
 
-    public SearchResponse<RestaurantSearchResult> searchRestaurantsByName(String keyword, Pageable pageable) {
-        return searchRestaurants(keyword, pageable, restaurantSearchRepository::searchByName, "searchRestaurantsByName");
+    private Pageable createLikeSortPageable(Pageable pageable) {
+        return PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                Sort.by(Sort.Direction.DESC, "likeCount")
+        );
     }
 
-    public SearchResponse<RestaurantSearchResult> searchRestaurantsByTag(String keyword, Pageable pageable) {
-        return searchRestaurants(keyword, pageable, restaurantSearchRepository::searchByTag, "searchRestaurantsByTag");
+    private SearchResponse<RestaurantSearchResult> toRestaurantSearchResponse(Page<RestaurantDocument> results) {
+        List<RestaurantSearchResult> dtos = results.getContent().stream()
+                .map(RestaurantSearchResult::from)
+                .toList();
+
+        return new SearchResponse<>(
+                dtos,
+                (int) results.getTotalElements(),
+                results.getTotalPages(),
+                results.getNumber(),
+                results.getSize()
+        );
     }
 
-    public Page<BoardDocument> searchByBoardType(String keyword, BoardType boardType, String departmentName, Pageable pageable) {
+    public Page<BoardDocument> searchByBoardType(String keyword, BoardType boardType, String departmentName,
+                                                 Pageable pageable) {
         return executeSearchByBoardType(keyword, boardType, departmentName, pageable);
     }
 
@@ -102,7 +102,8 @@ public class BoardSearchService {
         return performMarketplaceSearch(processedKeyword, pageable);
     }
 
-    public SearchResponse<BoardSearchResult> searchNoticesByDepartment(String keyword, String authorName, Pageable pageable) {
+    public SearchResponse<BoardSearchResult> searchNoticesByDepartment(String keyword, String authorName,
+                                                                       Pageable pageable) {
         String processedKeyword = preprocessKeyword(keyword);
 
         if (processedKeyword.isEmpty()) {
@@ -110,7 +111,8 @@ public class BoardSearchService {
         }
 
         try {
-            Page<BoardDocument> results = boardSearchRepository.findNoticesByKeywordAndAuthorName(processedKeyword, authorName, pageable);
+            Page<BoardDocument> results = boardSearchRepository.findNoticesByKeywordAndAuthorName(processedKeyword,
+                    authorName, pageable);
             return SearchDtoMapper.toSearchResponse(results);
         } catch (Exception e) {
             logSearchError("searchNoticesByDepartment", processedKeyword, "notice", e);
@@ -118,7 +120,8 @@ public class BoardSearchService {
         }
     }
 
-    private Page<BoardDocument> executeSearchByBoardType(String keyword, BoardType boardType, String departmentName, Pageable pageable) {
+    private Page<BoardDocument> executeSearchByBoardType(String keyword, BoardType boardType, String departmentName,
+                                                         Pageable pageable) {
         String processedKeyword = preprocessKeyword(keyword);
         if (processedKeyword.isEmpty()) {
             return Page.empty(pageable);
@@ -150,7 +153,8 @@ public class BoardSearchService {
         }
     }
 
-    private Page<BoardDocument> performMarketplaceSearchByType(String keyword, MarketplaceType marketplaceType, Pageable pageable) {
+    private Page<BoardDocument> performMarketplaceSearchByType(String keyword, MarketplaceType marketplaceType,
+                                                               Pageable pageable) {
         try {
             String lowerMarketplaceType = marketplaceType.name().toLowerCase();
             return boardSearchRepository.findMarketplaceByKeywordAndType(keyword, lowerMarketplaceType, pageable);
@@ -160,10 +164,12 @@ public class BoardSearchService {
         }
     }
 
-    private Page<BoardDocument> performSearchByBoardTypeAndDepartmentName(String keyword, BoardType boardType, String departmentName, Pageable pageable) {
+    private Page<BoardDocument> performSearchByBoardTypeAndDepartmentName(String keyword, BoardType boardType,
+                                                                          String departmentName, Pageable pageable) {
         try {
             String lowerBoardType = boardType.getCode().toLowerCase();
-            return boardSearchRepository.findByKeywordAndBoardTypeAndDepartmentName(keyword, lowerBoardType, departmentName, pageable);
+            return boardSearchRepository.findByKeywordAndBoardTypeAndDepartmentName(keyword, lowerBoardType,
+                    departmentName, pageable);
         } catch (Exception e) {
             logSearchError("searchByBoardTypeAndDepartmentName", keyword, boardType.getCode(), e);
             return Page.empty(pageable);

@@ -18,27 +18,11 @@ public interface RestaurantSearchRepository extends ElasticsearchRepository<Rest
                             "bool": {
                                 "should": [
                                     {"match": {"title": "?0"}},
-                                    {"wildcard": {"title.keyword": "*?0*"}}
-                                ]
-                            }
-                        },
-                        {"match": {"board_type": "RESTAURANT"}}
-                    ]
-                }
-            }
-            """)
-    Page<RestaurantDocument> searchByName(String keyword, Pageable pageable);
-
-    @Query("""
-            {
-                "bool": {
-                    "must": [
-                        {
-                            "bool": {
-                                "should": [
+                                    {"wildcard": {"title.keyword": "*?0*"}},
                                     {"match": {"tags": "?0"}},
                                     {"wildcard": {"tags.keyword": "*?0*"}}
-                                ]
+                                ],
+                                "minimum_should_match": 1
                             }
                         },
                         {"match": {"board_type": "RESTAURANT"}}
@@ -46,5 +30,5 @@ public interface RestaurantSearchRepository extends ElasticsearchRepository<Rest
                 }
             }
             """)
-    Page<RestaurantDocument> searchByTag(String keyword, Pageable pageable);
+    Page<RestaurantDocument> searchByKeyword(String keyword, Pageable pageable);
 }

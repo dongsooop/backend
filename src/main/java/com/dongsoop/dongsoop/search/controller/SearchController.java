@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.search.controller;
 
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
+import com.dongsoop.dongsoop.search.dto.RestaurantSearchResult;
 import com.dongsoop.dongsoop.search.dto.SearchDtoMapper;
 import com.dongsoop.dongsoop.search.dto.SearchResponse;
 import com.dongsoop.dongsoop.search.entity.BoardDocument;
@@ -28,7 +29,8 @@ public class SearchController {
             @RequestParam BoardType boardType,
             @RequestParam(required = false) String departmentName,
             Pageable pageable) {
-        Page<BoardDocument> results = boardSearchService.searchByBoardType(keyword, boardType, departmentName, pageable);
+        Page<BoardDocument> results = boardSearchService.searchByBoardType(keyword, boardType, departmentName,
+                pageable);
         SearchResponse response = SearchDtoMapper.toSearchResponse(results);
         return ResponseEntity.ok(response);
     }
@@ -52,17 +54,11 @@ public class SearchController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/restaurant/name")
-    public ResponseEntity<SearchResponse> searchRestaurantsByName(
-            @RequestParam String keyword, Pageable pageable) {
-        SearchResponse response = boardSearchService.searchRestaurantsByName(keyword, pageable);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/restaurant/tag")
-    public ResponseEntity<SearchResponse> searchRestaurantsByTag(
-            @RequestParam String keyword, Pageable pageable) {
-        SearchResponse response = boardSearchService.searchRestaurantsByTag(keyword, pageable);
+    @GetMapping("/restaurant")
+    public ResponseEntity<SearchResponse<RestaurantSearchResult>> searchRestaurants(
+            @RequestParam String keyword,
+            Pageable pageable) {
+        SearchResponse<RestaurantSearchResult> response = boardSearchService.searchRestaurants(keyword, pageable);
         return ResponseEntity.ok(response);
     }
 }
