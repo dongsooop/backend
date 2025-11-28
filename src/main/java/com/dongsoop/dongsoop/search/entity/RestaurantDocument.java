@@ -38,6 +38,12 @@ public class RestaurantDocument {
     @Field(type = FieldType.Double)
     private Double distance;
 
+    @Field(type = FieldType.Keyword)
+    private Boolean isLikedByMe;
+
     @Field(name = "external_map_id", type = FieldType.Keyword)
     private String externalMapId;
+
+    @Field(name = "liked_member_ids", type = FieldType.Keyword)
+    private String likedMemberIds;
 }
