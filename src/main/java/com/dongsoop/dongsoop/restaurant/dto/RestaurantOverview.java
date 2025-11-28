@@ -15,7 +15,7 @@ public final class RestaurantOverview {
     private final String category;
     private final Double distance;
     private final long likeCount;
-    private final boolean isLikedByMe;
+    private final Boolean isLikedByMe;
     private final List<String> tags;
     private final String externalMapId;
     private final String placeUrl;
@@ -24,7 +24,7 @@ public final class RestaurantOverview {
     public RestaurantOverview(Long id, String name, RestaurantCategory categoryEnum,
                               Double distance, String placeUrl,
                               long likeCount, String tags,
-                              String externalMapId, boolean isLikedByMe) {
+                              String externalMapId, Boolean isLikedByMe) {
         this.id = id;
         this.name = name;
         this.category = categoryEnum.getDisplayName();
