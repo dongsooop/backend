@@ -14,8 +14,8 @@ public final class RestaurantOverview {
     private final String name;
     private final String category;
     private final Double distance;
-    private final long likeCount;
-    private final boolean isLikedByMe;
+    private final Long likeCount;
+    private final Boolean isLikedByMe;
     private final List<String> tags;
     private final String externalMapId;
     private final String placeUrl;
@@ -23,8 +23,8 @@ public final class RestaurantOverview {
     @QueryProjection
     public RestaurantOverview(Long id, String name, RestaurantCategory categoryEnum,
                               Double distance, String placeUrl,
-                              long likeCount, String tags,
-                              String externalMapId, boolean isLikedByMe) {
+                              Long likeCount, String tags,
+                              String externalMapId, Boolean isLikedByMe) {
         this.id = id;
         this.name = name;
         this.category = categoryEnum.getDisplayName();
