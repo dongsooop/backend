@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.search.dto;
 
+import com.dongsoop.dongsoop.restaurant.entity.RestaurantCategory;
 import com.dongsoop.dongsoop.search.entity.RestaurantDocument;
 import lombok.Builder;
 import lombok.Getter;
@@ -11,7 +12,7 @@ import java.util.List;
 @Getter
 @Builder
 public class RestaurantSearchResult {
-    private String id;
+    private Long id;
     private Long restaurantId;
     private String name;
     private String category;
@@ -19,19 +20,19 @@ public class RestaurantSearchResult {
     private String placeUrl;
     private Integer likeCount;
     private Double distance;
-    private String externalMapId;
+    private Long externalMapId;
 
     public static RestaurantSearchResult from(RestaurantDocument doc) {
         return RestaurantSearchResult.builder()
-                .id(doc.getId())
+                .id(doc.getRestaurantId())
                 .restaurantId(doc.getRestaurantId())
                 .name(doc.getName())
-                .category(doc.getCategory())
+                .category(RestaurantCategory.valueOf(doc.getCategory()).getDisplayName())
                 .tags(parseTags(doc.getTags()))
                 .placeUrl(doc.getPlaceUrl())
                 .likeCount(doc.getLikeCount())
                 .distance(doc.getDistance())
-                .externalMapId(doc.getExternalMapId())
+                .externalMapId(Long.parseLong(doc.getExternalMapId()))
                 .build();
     }
 
