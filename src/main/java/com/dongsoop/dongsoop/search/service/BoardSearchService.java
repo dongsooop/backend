@@ -1,6 +1,8 @@
 package com.dongsoop.dongsoop.search.service;
 
+import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
+import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.search.dto.BoardSearchResult;
 import com.dongsoop.dongsoop.search.dto.RestaurantSearchResult;
 import com.dongsoop.dongsoop.search.dto.SearchDtoMapper;
@@ -11,7 +13,6 @@ import com.dongsoop.dongsoop.search.entity.RestaurantDocument;
 import com.dongsoop.dongsoop.search.repository.BoardSearchRepository;
 import com.dongsoop.dongsoop.search.repository.RestaurantSearchRepository;
 import jakarta.annotation.PostConstruct;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -20,6 +21,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -30,6 +33,7 @@ public class BoardSearchService {
 
     private final BoardSearchRepository boardSearchRepository;
     private final RestaurantSearchRepository restaurantSearchRepository;
+    private final MemberService memberService;
 
     @PostConstruct
     public void warmupRepository() {
@@ -50,18 +54,24 @@ public class BoardSearchService {
             return createEmptySearchResponse(pageable);
         }
 
+        Long currentMemberId = null;
+        try {
+            currentMemberId = memberService.getMemberIdByAuthentication();
+        } catch (NotAuthenticationException e) {
+        }
+
         try {
             Pageable sortedPageable = createLikeSortPageable(pageable);
             Page<RestaurantDocument> results = restaurantSearchRepository.searchByKeyword(processedKeyword,
                     sortedPageable);
 
-            return toRestaurantSearchResponse(results);
+            return toRestaurantSearchResponse(results, currentMemberId);
         } catch (Exception e) {
             logSearchError("searchRestaurants", processedKeyword, "restaurant", e);
             return createEmptySearchResponse(pageable);
         }
     }
-
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
     private Pageable createLikeSortPageable(Pageable pageable) {
         return PageRequest.of(
                 pageable.getPageNumber(),
@@ -70,9 +80,9 @@ public class BoardSearchService {
         );
     }
 
-    private SearchResponse<RestaurantSearchResult> toRestaurantSearchResponse(Page<RestaurantDocument> results) {
+    private SearchResponse<RestaurantSearchResult> toRestaurantSearchResponse(Page<RestaurantDocument> results, Long memberId) {
         List<RestaurantSearchResult> dtos = results.getContent().stream()
-                .map(RestaurantSearchResult::from)
+                .map(doc -> RestaurantSearchResult.from(doc, memberId))
                 .toList();
 
         return new SearchResponse<>(

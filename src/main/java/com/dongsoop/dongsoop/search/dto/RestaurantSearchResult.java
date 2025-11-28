@@ -19,10 +19,11 @@ public class RestaurantSearchResult {
     private List<String> tags;
     private String placeUrl;
     private Integer likeCount;
+    private Boolean isLikedByMe;
     private Double distance;
     private Long externalMapId;
 
-    public static RestaurantSearchResult from(RestaurantDocument doc) {
+    public static RestaurantSearchResult from(RestaurantDocument doc, Long currentMemberId) {
         return RestaurantSearchResult.builder()
                 .id(doc.getRestaurantId())
                 .restaurantId(doc.getRestaurantId())
@@ -33,6 +34,7 @@ public class RestaurantSearchResult {
                 .likeCount(doc.getLikeCount())
                 .distance(doc.getDistance())
                 .externalMapId(Long.parseLong(doc.getExternalMapId()))
+                .isLikedByMe(checkIsLiked(doc.getLikedMemberIds(), currentMemberId))
                 .build();
     }
 
@@ -42,6 +44,14 @@ public class RestaurantSearchResult {
         } catch (IllegalArgumentException | NullPointerException e) {
             return "기타";
         }
+    }
+
+    private static boolean checkIsLiked(String likedMemberIdsStr, Long currentMemberId) {
+        if (currentMemberId == null || likedMemberIdsStr == null || likedMemberIdsStr.isEmpty()) {
+            return false;
+        }
+        String targetId = String.valueOf(currentMemberId);
+        return Arrays.asList(likedMemberIdsStr.split(",")).contains(targetId);
     }
 
     private static List<String> parseTags(String tags) {
