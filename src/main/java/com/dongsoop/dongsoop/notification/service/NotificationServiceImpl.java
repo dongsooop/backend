@@ -78,6 +78,7 @@ public class NotificationServiceImpl implements NotificationService {
         fcmService.updateNotificationBadge(devices, unreadCountByMemberId);
     }
 
+    @Override
     public void sendEventNotification(EventNotification eventNotification) {
         NotificationSend notificationSend = new NotificationSend(
                 nonSaveNotificationId,
