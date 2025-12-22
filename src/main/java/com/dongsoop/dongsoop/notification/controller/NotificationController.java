@@ -4,7 +4,6 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.notification.dto.EventNotification;
 import com.dongsoop.dongsoop.notification.dto.NotificationOverview;
 import com.dongsoop.dongsoop.notification.dto.NotificationReadRequest;
-import com.dongsoop.dongsoop.notification.service.NotificationSendService;
 import com.dongsoop.dongsoop.notification.service.NotificationService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +24,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class NotificationController {
 
     private final NotificationService notificationService;
-    private final NotificationSendService notificationSendService;
     private final MemberService memberService;
 
     @GetMapping
