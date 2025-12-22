@@ -6,6 +6,7 @@ import com.dongsoop.dongsoop.notification.dto.NotificationOverview;
 import com.dongsoop.dongsoop.notification.dto.NotificationReadRequest;
 import com.dongsoop.dongsoop.notification.service.NotificationService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -38,7 +39,7 @@ public class NotificationController {
 
     @PostMapping
     @Secured(RoleType.ADMIN_ROLE)
-    public ResponseEntity<Void> publishEventNotification(@RequestBody EventNotification request) {
+    public ResponseEntity<Void> publishEventNotification(@Valid @RequestBody EventNotification request) {
         notificationService.sendEventNotification(request);
         return ResponseEntity.noContent()
                 .build();
