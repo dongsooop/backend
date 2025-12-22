@@ -1,8 +1,10 @@
 package com.dongsoop.dongsoop.notification.controller;
 
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.notification.dto.EventNotification;
 import com.dongsoop.dongsoop.notification.dto.NotificationOverview;
 import com.dongsoop.dongsoop.notification.dto.NotificationReadRequest;
+import com.dongsoop.dongsoop.notification.service.NotificationSendService;
 import com.dongsoop.dongsoop.notification.service.NotificationService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final NotificationSendService notificationSendService;
     private final MemberService memberService;
 
     @GetMapping
@@ -33,6 +36,14 @@ public class NotificationController {
         NotificationOverview notifications = notificationService.getNotifications(pageable, requesterId);
 
         return ResponseEntity.ok(notifications);
+    }
+
+    @PostMapping
+    @Secured(RoleType.ADMIN_ROLE)
+    public ResponseEntity<Void> publishEventNotification(@RequestBody EventNotification request) {
+        notificationService.sendEventNotification(request);
+        return ResponseEntity.noContent()
+                .build();
     }
 
     @PostMapping("/read")
