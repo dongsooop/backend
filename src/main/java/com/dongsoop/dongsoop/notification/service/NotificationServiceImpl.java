@@ -1,13 +1,16 @@
 package com.dongsoop.dongsoop.notification.service;
 
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
+import com.dongsoop.dongsoop.notification.dto.EventNotification;
 import com.dongsoop.dongsoop.notification.dto.NotificationList;
 import com.dongsoop.dongsoop.notification.dto.NotificationOverview;
+import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.exception.NotificationNotFoundException;
 import com.dongsoop.dongsoop.notification.repository.NotificationRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,9 +19,16 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
 
+    private final NotificationSendService notificationSendService;
     private final NotificationRepository notificationRepository;
     private final FCMService fcmService;
     private final MemberDeviceService memberDeviceService;
+
+    @Value("${notification.topic.event}")
+    private String eventTopic;
+
+    @Value("${notification.non-save-id}")
+    private Long nonSaveNotificationId;
 
     @Override
     public NotificationOverview getNotifications(Pageable pageable, Long memberId) {
@@ -66,5 +76,19 @@ public class NotificationServiceImpl implements NotificationService {
         List<String> devices = memberDeviceService.getDeviceByMemberId(memberId);
         int unreadCountByMemberId = notificationRepository.findUnreadCountByMemberId(memberId);
         fcmService.updateNotificationBadge(devices, unreadCountByMemberId);
+    }
+
+    @Override
+    public void sendEventNotification(EventNotification eventNotification) {
+        NotificationSend notificationSend = new NotificationSend(
+                nonSaveNotificationId,
+                eventNotification.title(),
+                eventNotification.body(),
+                eventNotification.type(),
+                ""
+        );
+
+        notificationSendService.send(eventTopic, notificationSend);
+
     }
 }

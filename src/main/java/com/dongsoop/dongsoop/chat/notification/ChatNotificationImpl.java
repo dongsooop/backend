@@ -8,6 +8,7 @@ import com.dongsoop.dongsoop.notification.service.NotificationSendService;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -15,10 +16,11 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ChatNotificationImpl implements ChatNotification {
 
-    private final static Long NON_SAVE_NOTIFICATION_ID = -1L;
-
     private final MemberDeviceRepository memberDeviceRepository;
     private final NotificationSendService notificationSendService;
+
+    @Value("${notification.non-save-id}")
+    private Long nonSaveNotificationId;
 
     @Async
     public void send(Set<Long> chatroomMemberIdSet, String chatRoomId, String senderName,
@@ -31,7 +33,7 @@ public class ChatNotificationImpl implements ChatNotification {
                 .map(MemberDeviceDto::deviceToken)
                 .toList();
 
-        NotificationSend notificationSend = new NotificationSend(NON_SAVE_NOTIFICATION_ID, senderName, message,
+        NotificationSend notificationSend = new NotificationSend(nonSaveNotificationId, senderName, message,
                 NotificationType.CHAT, chatRoomId);
 
         notificationSendService.send(deviceTokens, notificationSend);

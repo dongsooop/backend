@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.notification.service;
 
+import com.dongsoop.dongsoop.notification.dto.EventNotification;
 import com.dongsoop.dongsoop.notification.dto.NotificationOverview;
 import org.springframework.data.domain.Pageable;
 
@@ -12,4 +13,6 @@ public interface NotificationService {
     void read(Long notificationId, Long memberId);
 
     void readAll(Long memberId);
+
+    void sendEventNotification(EventNotification eventNotification);
 }
