@@ -1,0 +1,16 @@
+name: "create PR"
+on: "push"
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Create Pull Request
+        uses: thomaseizinger/create-pull-request@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          head: ${{ github.ref }}
+          base: "main"
+          title: "Automated Pull Request"
+          body_path: .github/PULL_REQUEST_TEMPLATE.md
