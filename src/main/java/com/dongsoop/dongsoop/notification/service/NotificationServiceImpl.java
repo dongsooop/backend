@@ -25,10 +25,10 @@ public class NotificationServiceImpl implements NotificationService {
     private final MemberDeviceService memberDeviceService;
 
     @Value("${notification.topic.event}")
-    private String EVENT_TOPIC;
+    private String eventTopic;
 
     @Value("${notification.non-save-id}")
-    private Long NON_SAVE_NOTIFICATION_ID;
+    private Long nonSaveNotificationId;
 
     @Override
     public NotificationOverview getNotifications(Pageable pageable, Long memberId) {
@@ -80,14 +80,14 @@ public class NotificationServiceImpl implements NotificationService {
 
     public void sendEventNotification(EventNotification eventNotification) {
         NotificationSend notificationSend = new NotificationSend(
-                NON_SAVE_NOTIFICATION_ID,
+                nonSaveNotificationId,
                 eventNotification.title(),
                 eventNotification.body(),
                 eventNotification.type(),
                 ""
         );
 
-        notificationSendService.send(EVENT_TOPIC, notificationSend);
+        notificationSendService.send(eventTopic, notificationSend);
 
     }
 }

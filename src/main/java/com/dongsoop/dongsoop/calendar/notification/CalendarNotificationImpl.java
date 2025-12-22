@@ -17,13 +17,15 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CalendarNotificationImpl implements CalendarNotification {
 
-    private static final Long NON_SAVE_NOTIFICATION_ID = -1L;
-
     private final NotificationSaveService notificationSaveService;
     private final NotificationSendService notificationSendService;
 
     @Value("${notification.topic.anonymous}")
     private String anonymousTopic;
+
+
+    @Value("${notification.non-save-id}")
+    private Long nonSaveNotificationId;
 
     /**
      * 비회원 디바이스로 알림 전송
@@ -39,7 +41,7 @@ public class CalendarNotificationImpl implements CalendarNotification {
         }
 
         NotificationSend notificationSend = new NotificationSend(
-                NON_SAVE_NOTIFICATION_ID,
+                nonSaveNotificationId,
                 title,
                 body,
                 NotificationType.CALENDAR,
