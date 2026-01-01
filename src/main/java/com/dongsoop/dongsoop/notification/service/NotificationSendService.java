@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.notification.service;
 
+import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import java.util.List;
@@ -16,5 +17,5 @@ public interface NotificationSendService {
     void send(String topic, NotificationSend notificationSend);
 
     // 여러 회원에게 복합 알림 전송
-    void sendAll(List<MemberNotification> memberNotificationList);
+    void sendAll(List<MemberNotification> memberNotificationList, NotificationType notificationType);
 }

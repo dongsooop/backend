@@ -1,6 +1,8 @@
 package com.dongsoop.dongsoop.notification.service;
 
+import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
+import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.dongsoop.dongsoop.notification.dto.NotificationUnread;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
@@ -29,7 +31,7 @@ public class NotificationSendServiceImpl implements NotificationSendService {
      */
     @Override
     @Transactional(readOnly = true)
-    public void sendAll(List<MemberNotification> memberNotificationList) {
+    public void sendAll(List<MemberNotification> memberNotificationList, NotificationType notificationType) {
         // 알림을 보낼 대상 회원들
         List<Long> memberIds = memberNotificationList.stream()
                 .map(notification -> notification.getId().getMember().getId())
@@ -41,7 +43,8 @@ public class NotificationSendServiceImpl implements NotificationSendService {
                 memberNotificationList);
 
         // 발송 전체 대상의 디바이스 토큰
-        Map<Long, List<String>> memberIdDevices = memberDeviceService.getDeviceByMember(memberIds);
+        MemberDeviceFindCondition condition = new MemberDeviceFindCondition(memberIds, notificationType);
+        Map<Long, List<String>> memberIdDevices = memberDeviceService.getDeviceByMember(condition);
 
         // 발송 전체 대상의 회원별 읽지 않은 알림 개수
         List<NotificationUnread> unreadCount = notificationRepository.findUnreadCountByMemberIds(memberIds);
