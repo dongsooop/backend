@@ -6,7 +6,6 @@ import com.dongsoop.dongsoop.member.dto.LoginMemberDetails;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.memberdevice.entity.QMemberDevice;
-import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.setting.entity.QNotificationSetting;
 import com.dongsoop.dongsoop.role.entity.QMemberRole;
 import com.querydsl.core.types.Projections;
@@ -77,55 +76,22 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
 
     @Override
     public List<Member> searchAllByDeviceNotEmpty() {
-        boolean isEnabledDefault = NotificationType.NOTICE.getDefaultActiveState();
-
-        // 알림 활성화 여부
-        BooleanExpression enabledCondition = isEnableNotificationDevice(isEnabledDefault);
-
         return queryFactory.selectFrom(member)
                 .innerJoin(memberDevice)
                 .on(memberDevice.member.eq(member))
-                .leftJoin(notificationSetting)
-                .on(joinNotificationSetting(NotificationType.NOTICE))
-                .where(member.isDeleted.isFalse() // 삭제되지 않은 회원
-                        .and(enabledCondition)) // 알림을 활성화한 회원
+                .where(member.isDeleted.isFalse()) // 삭제되지 않은 회원
                 .distinct()
                 .fetch();
     }
 
     @Override
     public List<Member> searchAllByDepartmentAndDeviceNotEmpty(Department department) {
-        boolean isEnabledDefault = NotificationType.NOTICE.getDefaultActiveState();
-
-        // 알림 활성화 여부
-        BooleanExpression enabledCondition = isEnableNotificationDevice(isEnabledDefault);
-
         return queryFactory.selectFrom(member)
                 .innerJoin(memberDevice)
                 .on(memberDevice.member.eq(member))
-                .leftJoin(notificationSetting)
-                .on(joinNotificationSetting(NotificationType.NOTICE))
                 .where(member.department.eq(department)
-                        .and(member.isDeleted.isFalse()) // 삭제되지 않은 회원
-                        .and(enabledCondition)) // 알림을 활성화한 회원
+                        .and(member.isDeleted.isFalse())) // 삭제되지 않은 회원
                 .distinct()
                 .fetch();
-    }
-
-    private BooleanExpression isEnableNotificationDevice(boolean isEnabledDefault) {
-        // 기본 설정이 비활성화인 경우
-        if (!isEnabledDefault) {
-            // 저장된 알림이 활성화 상태인지 검증
-            return notificationSetting.enabled.isTrue();
-        }
-
-        // 기본이 활성화인 경우
-        return notificationSetting.isNull()
-                .or(notificationSetting.enabled.isTrue());
-    }
-
-    private BooleanExpression joinNotificationSetting(NotificationType notificationType) {
-        return notificationSetting.id.device.eq(memberDevice) // 디바이스 조건 일치
-                .and(notificationSetting.id.notificationType.eq(notificationType)); // 알림 타입 조건 일치
     }
 }
