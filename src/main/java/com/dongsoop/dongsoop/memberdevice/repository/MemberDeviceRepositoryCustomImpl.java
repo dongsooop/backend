@@ -9,7 +9,6 @@ import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.setting.entity.QNotificationSetting;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.Collection;
 import java.util.List;
@@ -90,13 +89,15 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     }
 
     private BooleanExpression isEnableNotificationDevice(boolean isEnabledDefault) {
-        return notificationSetting.enabled.isTrue()
-                .or(
-                        // 또는 기본값이 활성화이면서
-                        Expressions.asBoolean(isEnabledDefault)
-                                // 저장된 설정이 없는 경우
-                                .and(notificationSetting.id.device.isNull())
-                );
+        // 기본 설정이 비활성화인 경우
+        if (!isEnabledDefault) {
+            // 저장된 알림이 활성화 상태인지 검증
+            return notificationSetting.enabled.isTrue();
+        }
+
+        // 기본이 활성화인 경우
+        return notificationSetting.isNull()
+                .or(notificationSetting.enabled.isTrue());
     }
 
     private BooleanExpression notificationSettingEq(NotificationType notificationType) {
