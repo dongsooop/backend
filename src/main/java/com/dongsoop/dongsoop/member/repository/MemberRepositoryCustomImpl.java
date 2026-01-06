@@ -122,7 +122,6 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
         // 기본이 활성화인 경우
         return notificationSetting.isNull()
                 .or(notificationSetting.enabled.isTrue());
-
     }
 
     private BooleanExpression joinNotificationSetting(NotificationType notificationType) {
