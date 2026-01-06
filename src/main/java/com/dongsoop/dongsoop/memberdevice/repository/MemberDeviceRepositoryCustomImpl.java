@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.memberdevice.repository;
 
-import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
@@ -10,7 +9,6 @@ import com.dongsoop.dongsoop.notification.setting.entity.QNotificationSetting;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import java.util.Collection;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -24,33 +22,6 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     private final QNotificationSetting notificationSetting = QNotificationSetting.notificationSetting;
     private final QMemberDevice memberDevice = QMemberDevice.memberDevice;
     private final QMember member = QMember.member;
-
-    @Override
-    public List<MemberDeviceDto> getAllMemberDevice() {
-        return queryFactory.select(Projections.constructor(MemberDeviceDto.class,
-                        memberDevice.member, memberDevice.deviceToken))
-                .from(memberDevice)
-                .fetch();
-    }
-
-    @Override
-    public List<MemberDeviceDto> getMemberDeviceByDepartment(Department department) {
-        return queryFactory.select(Projections.constructor(MemberDeviceDto.class,
-                        memberDevice.member, memberDevice.deviceToken))
-                .from(memberDevice)
-                .where(memberDevice.member.department.eq(department))
-                .fetch();
-    }
-
-    @Override
-    public List<MemberDeviceDto> getMemberDeviceTokenByMemberIds(Collection<Long> memberIds) {
-        return queryFactory.select(Projections.constructor(MemberDeviceDto.class,
-                        member, memberDevice.deviceToken))
-                .from(memberDevice)
-                .innerJoin(memberDevice.member, member)
-                .where(member.id.in(memberIds))
-                .fetch();
-    }
 
     @Override
     public List<MemberDeviceDto> findDevicesWithNotification(MemberDeviceFindCondition condition) {
@@ -68,15 +39,6 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
                 .where(member.id.in(condition.memberIds()) // memberIds 조건
                         .and(enabledCondition)) // 알림 활성화 조건
                 .groupBy(member, memberDevice.deviceToken)
-                .fetch();
-    }
-
-    @Override
-    public List<MemberDeviceDto> getMemberDeviceTokenByMemberId(Long memberId) {
-        return queryFactory.select(Projections.constructor(MemberDeviceDto.class,
-                        memberDevice.member, memberDevice.deviceToken))
-                .from(memberDevice)
-                .where(memberDevice.member.id.eq(memberId))
                 .fetch();
     }
 
