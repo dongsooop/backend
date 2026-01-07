@@ -38,7 +38,7 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
                 .on(notificationSettingEq(condition.notificationType())) // 디바이스 및 알림 타입 조건 일치
                 .where(member.id.in(condition.memberIds()) // memberIds 조건
                         .and(enabledCondition)) // 알림 활성화 조건
-                .groupBy(member, memberDevice.deviceToken)
+                .distinct()
                 .fetch();
     }
 
