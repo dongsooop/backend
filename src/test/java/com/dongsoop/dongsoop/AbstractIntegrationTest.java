@@ -1,20 +1,18 @@
 package com.dongsoop.dongsoop;
 
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
-@TestConfiguration
 @Profile("test")
-public class TestDataSourceConfig {
+@Testcontainers
+public abstract class AbstractIntegrationTest {
 
+    @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:14");
-
-    static {
-        postgres.start();
-    }
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {

@@ -5,26 +5,22 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.AbstractIntegrationTest;
+import com.dongsoop.dongsoop.calendar.entity.MemberSchedule;
+import com.dongsoop.dongsoop.calendar.entity.OfficialSchedule;
+import com.dongsoop.dongsoop.calendar.repository.MemberScheduleRepository;
+import com.dongsoop.dongsoop.calendar.repository.OfficialScheduleRepository;
+import com.dongsoop.dongsoop.calendar.schedule.CalendarScheduler;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
-import com.dongsoop.dongsoop.department.service.DepartmentService;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
-import com.dongsoop.dongsoop.notice.dto.CrawledNotice;
-import com.dongsoop.dongsoop.notice.entity.Notice;
-import com.dongsoop.dongsoop.notice.entity.Notice.NoticeKey;
-import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
-import com.dongsoop.dongsoop.notice.service.NoticeScheduler;
-import com.dongsoop.dongsoop.notice.service.NoticeService;
-import com.dongsoop.dongsoop.notice.util.NoticeCrawl;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.service.FCMService;
 import com.dongsoop.dongsoop.notification.setting.entity.NotificationSetting;
@@ -32,16 +28,14 @@ import com.dongsoop.dongsoop.notification.setting.repository.NotificationSetting
 import com.dongsoop.dongsoop.search.repository.BoardSearchRepository;
 import com.dongsoop.dongsoop.search.repository.RestaurantSearchRepository;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -52,21 +46,10 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-public class NoticeNotificationSettingTest extends AbstractIntegrationTest {
-
-    private static final Logger log = LoggerFactory.getLogger(NoticeNotificationSettingTest.class);
-
-    @Autowired
-    NoticeScheduler noticeScheduler;
-
-    @MockitoSpyBean
-    MemberDeviceService memberDeviceService;
+public class CalendarNotificationSettingTest extends AbstractIntegrationTest {
 
     @Autowired
     MemberRepository memberRepository;
-
-    @Autowired
-    DepartmentRepository departmentRepository;
 
     @Autowired
     NotificationSettingRepository notificationSettingRepository;
@@ -74,14 +57,20 @@ public class NoticeNotificationSettingTest extends AbstractIntegrationTest {
     @Autowired
     MemberDeviceRepository memberDeviceRepository;
 
-    @MockitoBean
-    NoticeCrawl noticeCrawl;
+    @Autowired
+    DepartmentRepository departmentRepository;
 
-    @MockitoBean
-    NoticeService noticeService;
+    @MockitoSpyBean
+    MemberDeviceService memberDeviceService;
 
-    @MockitoBean
-    DepartmentService departmentService;
+    @Autowired
+    CalendarScheduler calendarScheduler;
+
+    @Autowired
+    MemberScheduleRepository memberScheduleRepository;
+
+    @Autowired
+    OfficialScheduleRepository officialScheduleRepository;
 
     @MockitoBean
     FCMService fcmService;   // 외부 연동 차단
@@ -90,53 +79,55 @@ public class NoticeNotificationSettingTest extends AbstractIntegrationTest {
     @MockitoBean
     private RestaurantSearchRepository restaurantSearchRepository;
 
-    private Department department1;
-    private Department department2;
-
     private Member member1;
+    private Member member2;
+    private Member member3;
 
     @BeforeEach
-    void setup() {
-        department1 = departmentRepository.save(new Department(DepartmentType.DEPT_2001, "학과명1", null));
-        department2 = departmentRepository.save(new Department(DepartmentType.DEPT_3001, "학과명2", null));
+    void setUp() {
+        // 학과 정보 저장
+        Department department1 = departmentRepository.save(new Department(DepartmentType.DEPT_2001, "학과명1", null));
+        Department department2 = departmentRepository.save(new Department(DepartmentType.DEPT_3001, "학과명2", null));
 
+        // 회원 정보 저장
         member1 = memberRepository.save(
                 new Member(null, "test1@dongyang.ac.kr", "이름1", "password", null, department1));
-        Member member2 = memberRepository.save(
+        member2 = memberRepository.save(
                 new Member(null, "test2@dongyang.ac.kr", "이름2", "password", null, department1));
-        Member member3 = memberRepository.save(
+        member3 = memberRepository.save(
                 new Member(null, "test3@dongyang.ac.kr", "이름3", "password", null, department2));
 
-        memberDeviceRepository.save(
+        // 디바이스 정보 저장
+        MemberDevice memberDevice1 = memberDeviceRepository.save(
                 new MemberDevice(null, member1, "token1", MemberDeviceType.IOS));
         MemberDevice memberDevice2 = memberDeviceRepository.save(
                 new MemberDevice(null, member2, "token2", MemberDeviceType.WEB));
-        memberDeviceRepository.save(
+        MemberDevice memberDevice3 = memberDeviceRepository.save(
                 new MemberDevice(null, member3, "token3", MemberDeviceType.ANDROID));
 
-        NotificationSetting notificationSetting = new NotificationSetting(memberDevice2, NotificationType.NOTICE,
-                false);
+        // 회원 일정 추가
+        MemberSchedule memberSchedule1 = new MemberSchedule(null, "title", "content", LocalDateTime.now(),
+                LocalDateTime.now(), member1);
+        MemberSchedule memberSchedule2 = new MemberSchedule(null, "title", "content", LocalDateTime.now(),
+                LocalDateTime.now(), member2);
+        MemberSchedule memberSchedule3 = new MemberSchedule(null, "title", "content", LocalDateTime.now(),
+                LocalDateTime.now(), member3);
 
-        notificationSettingRepository.save(notificationSetting); // member2는 공지 알림 수신 거부
+        memberScheduleRepository.saveAll(List.of(memberSchedule1, memberSchedule2, memberSchedule3));
+
+        // 공식 일정 추가
+        OfficialSchedule officialSchedule = new OfficialSchedule(null, "title", LocalDate.now(), LocalDate.now());
+        officialScheduleRepository.save(officialSchedule);
+
+        NotificationSetting notificationSetting = new NotificationSetting(memberDevice1, NotificationType.CALENDAR,
+                false);
+        notificationSettingRepository.save(notificationSetting); // member1은 공지 알림 수신 거부
     }
 
     @Test
-    @DisplayName("공지 알림 수신 거부한 회원은 알림 대상에서 제외되어야 한다")
-    void sendNotification_WhenMemberDisabledNotice_ExcludeFromTargetList() {
+    @DisplayName("")
+    void sendCalendarNotification_WhenMemberDisabledCalendarNotification_ThenNotSendNotification() {
         // given
-        NoticeDetails noticeDetails = new NoticeDetails(null, "writer", "title", "link", LocalDate.now());
-        Notice notice = new Notice(new NoticeKey(department1, noticeDetails));
-
-        when(noticeService.getNoticeRecentIdMap())
-                .thenReturn(Map.of(department1, 0L, department2, 0L));
-        when(departmentService.getAllDepartments())
-                .thenReturn(List.of(department1, department2));
-        // DEPT_2001 학과는 공지 1개 조회
-        when(noticeCrawl.crawlNewNotices(department1, 0L))
-                .thenReturn(new CrawledNotice(Set.of(noticeDetails), List.of(notice)));
-        when(noticeCrawl.crawlNewNotices(department2, 0L))
-                .thenReturn(new CrawledNotice(Set.of(), List.of()));
-
         AtomicReference<Map<Long, List<String>>> captured = new AtomicReference<>();
 
         Mockito.doAnswer(invocation -> {
@@ -146,20 +137,18 @@ public class NoticeNotificationSettingTest extends AbstractIntegrationTest {
         }).when(memberDeviceService).getDeviceByMember(any());
 
         // when
-        noticeScheduler.scheduled();
+        calendarScheduler.send();
 
         // then
-        assertNotNull(captured);
-
         Map<Long, List<String>> capturedMap = captured.get();
 
         assertNotNull(capturedMap);
         assertFalse(capturedMap.isEmpty());
-        assertEquals(1, capturedMap.size(),
-                "member1만 포함된 1개 요소여야 합니다: [" + capturedMap.keySet().stream()
+        assertEquals(capturedMap.size(), 2,
+                "member2, member3를 포함한 2개 요소여야 합니다: [" + capturedMap.keySet().stream()
                         .map(String::valueOf)
                         .collect(java.util.stream.Collectors.joining(",")) + "]");
-        assertTrue(capturedMap.containsKey(member1.getId()),
-                "member1만 포함되어야 합니다.");
+        assertTrue(capturedMap.keySet().containsAll(List.of(member2.getId(), member3.getId())),
+                "member2, member3이 포함되어야 합니다.");
     }
 }
