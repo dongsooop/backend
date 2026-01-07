@@ -41,6 +41,6 @@ public class NotificationSettingId {
 
     @Override
     public int hashCode() {
-        return Objects.hash(device, notificationType);
+        return Objects.hash(this.device.getDeviceToken(), this.notificationType);
     }
 }
