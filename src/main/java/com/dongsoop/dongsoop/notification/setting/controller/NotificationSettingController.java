@@ -8,7 +8,6 @@ import jakarta.validation.Valid;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,9 +20,9 @@ public class NotificationSettingController {
 
     private final NotificationSettingService notificationSettingService;
 
-    @GetMapping
+    @PostMapping("/find")
     public ResponseEntity<Map<NotificationType, Boolean>> getNotificationSettings(
-            NotificationSettingFindRequest request) {
+            @Valid @RequestBody NotificationSettingFindRequest request) {
         Map<NotificationType, Boolean> notificationSettings = notificationSettingService.getNotificationSettings(
                 request);
 
