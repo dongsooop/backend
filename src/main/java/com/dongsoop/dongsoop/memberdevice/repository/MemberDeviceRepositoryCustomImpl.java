@@ -54,7 +54,8 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
         // 기본 설정이 비활성화인 경우
         if (!isEnabledDefault) {
             // 저장된 알림이 활성화 상태인지 검증
-            return notificationSetting.enabled.isTrue();
+            return notificationSetting.isNotNull()
+                    .and(notificationSetting.enabled.isTrue());
         }
 
         // 기본이 활성화인 경우
