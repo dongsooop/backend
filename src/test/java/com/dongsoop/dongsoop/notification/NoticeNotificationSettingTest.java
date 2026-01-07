@@ -22,19 +22,16 @@ import com.dongsoop.dongsoop.notice.dto.CrawledNotice;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notice.entity.Notice.NoticeKey;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
-import com.dongsoop.dongsoop.notice.notification.NoticeNotificationImpl;
 import com.dongsoop.dongsoop.notice.service.NoticeScheduler;
 import com.dongsoop.dongsoop.notice.service.NoticeService;
 import com.dongsoop.dongsoop.notice.util.NoticeCrawl;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.service.FCMService;
-import com.dongsoop.dongsoop.notification.service.NotificationSendService;
 import com.dongsoop.dongsoop.notification.setting.entity.NotificationSetting;
 import com.dongsoop.dongsoop.notification.setting.repository.NotificationSettingRepository;
 import com.dongsoop.dongsoop.search.repository.BoardSearchRepository;
 import com.dongsoop.dongsoop.search.repository.RestaurantSearchRepository;
 import java.time.LocalDate;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -78,16 +75,10 @@ public class NoticeNotificationSettingTest {
     DepartmentRepository departmentRepository;
 
     @Autowired
-    NoticeNotificationImpl noticeNotification;
-
-    @Autowired
     NotificationSettingRepository notificationSettingRepository;
 
     @Autowired
     MemberDeviceRepository memberDeviceRepository;
-
-    @Autowired
-    NotificationSendService notificationSendService;
 
     @MockitoBean
     NoticeCrawl noticeCrawl;
@@ -109,8 +100,6 @@ public class NoticeNotificationSettingTest {
     private Department department2;
 
     private Member member1;
-    private Member member2;
-    private Member member3;
 
     @BeforeEach
     void setup() {
@@ -121,16 +110,16 @@ public class NoticeNotificationSettingTest {
 
         member1 = memberRepository.save(
                 new Member(null, "test1@dongyang.ac.kr", "이름1", "password", null, department1));
-        member2 = memberRepository.save(
+        Member member2 = memberRepository.save(
                 new Member(null, "test2@dongyang.ac.kr", "이름2", "password", null, department1));
-        member3 = memberRepository.save(
+        Member member3 = memberRepository.save(
                 new Member(null, "test3@dongyang.ac.kr", "이름3", "password", null, department2));
 
-        MemberDevice memberDevice1 = memberDeviceRepository.save(
+        memberDeviceRepository.save(
                 new MemberDevice(null, member1, "token1", MemberDeviceType.IOS));
         MemberDevice memberDevice2 = memberDeviceRepository.save(
                 new MemberDevice(null, member2, "token2", MemberDeviceType.WEB));
-        MemberDevice memberDevice3 = memberDeviceRepository.save(
+        memberDeviceRepository.save(
                 new MemberDevice(null, member3, "token3", MemberDeviceType.ANDROID));
 
         NotificationSetting notificationSetting = new NotificationSetting(memberDevice2, NotificationType.NOTICE,
@@ -143,7 +132,6 @@ public class NoticeNotificationSettingTest {
     @DisplayName("공지 알림 수신 거부한 회원은 알림 대상에서 제외되어야 한다")
     void sendNotification_WhenMemberDisabledNotice_ExcludeFromTargetList() {
         // given
-        LocalDate.now();
         NoticeDetails noticeDetails = new NoticeDetails(null, "writer", "title", "link", LocalDate.now());
         Notice notice = new Notice(new NoticeKey(department1, noticeDetails));
 
@@ -156,12 +144,6 @@ public class NoticeNotificationSettingTest {
                 .thenReturn(new CrawledNotice(Set.of(noticeDetails), List.of(notice)));
         when(noticeCrawl.crawlNewNotices(department2, 0L))
                 .thenReturn(new CrawledNotice(Set.of(), List.of()));
-
-        Set<Notice> noticeDetailSet = new HashSet<>();
-
-        Department department = new Department(DepartmentType.DEPT_2001, "학과명", null);
-
-        noticeDetailSet.add(notice);
 
         AtomicReference<Map<Long, List<String>>> captured = new AtomicReference<>();
 
@@ -181,7 +163,7 @@ public class NoticeNotificationSettingTest {
 
         assertNotNull(capturedMap);
         assertFalse(capturedMap.isEmpty());
-        assertEquals(capturedMap.size(), 1,
+        assertEquals(1, capturedMap.size(),
                 "member1만 포함된 1개 요소여야 합니다: [" + capturedMap.keySet().stream()
                         .map(String::valueOf)
                         .collect(java.util.stream.Collectors.joining(",")) + "]");
