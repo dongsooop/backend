@@ -116,7 +116,7 @@ public abstract class NotificationSettingSwitcher {
         // 로깅용 디바이스 토큰 문자열 생성
         String deviceTokensString = deviceList.stream()
                 .map(MemberDevice::getDeviceToken)
-                .collect(Collectors.joining(",", "", ","));
+                .collect(Collectors.joining(","));
 
         this.loggingSettingMatchedDefaultPolicy("[" + deviceTokensString + "]", notificationType, shouldEnable());
     }
