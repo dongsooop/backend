@@ -23,6 +23,7 @@ public class NotificationSettingRepositoryCustomImpl implements NotificationSett
      * @param isEnabled    활성화 여부
      * @return 업데이트된 행의 수
      */
+    @Override
     public long updateNotificationSetting(MemberDevice memberDevice, NotificationType type, boolean isEnabled) {
         return queryFactory.update(notificationSetting)
                 .set(notificationSetting.enabled, isEnabled)
