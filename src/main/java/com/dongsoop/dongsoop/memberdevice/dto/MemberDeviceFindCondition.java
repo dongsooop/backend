@@ -7,7 +7,6 @@ import java.util.Collection;
 
 public record MemberDeviceFindCondition(
 
-        @NotNull
         @NotEmpty
         Collection<Long> memberIds,
 
