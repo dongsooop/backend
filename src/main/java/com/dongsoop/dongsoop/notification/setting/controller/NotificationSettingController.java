@@ -19,7 +19,7 @@ public class NotificationSettingController {
 
     @PostMapping("/enable")
     public ResponseEntity<Void> enableNotification(@Valid @RequestBody NotificationSettingRequest request) {
-        notificationSettingService.disableNotification(request);
+        notificationSettingService.enableNotification(request);
 
         return ResponseEntity.noContent()
                 .build();
