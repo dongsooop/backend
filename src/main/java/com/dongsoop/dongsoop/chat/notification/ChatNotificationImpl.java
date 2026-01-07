@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.chat.notification;
 
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
+import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.dto.NotificationSend;
@@ -24,8 +25,9 @@ public class ChatNotificationImpl implements ChatNotification {
     public void send(Set<Long> chatroomMemberIdSet, String chatRoomId, String senderName,
                      String message) {
         // 사용자 id를 통해 FCM 토큰을 가져옴
-        List<MemberDeviceDto> participantsDevice = memberDeviceRepository.getMemberDeviceTokenByMemberIds(
-                chatroomMemberIdSet);
+        MemberDeviceFindCondition condition = new MemberDeviceFindCondition(
+                chatroomMemberIdSet, NotificationType.CHAT);
+        List<MemberDeviceDto> participantsDevice = memberDeviceRepository.findDevicesWithNotification(condition);
 
         List<String> deviceTokens = participantsDevice.stream()
                 .map(MemberDeviceDto::deviceToken)

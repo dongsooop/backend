@@ -42,7 +42,7 @@ public class NoticeNotificationImpl implements NoticeNotification {
         List<MemberNotification> memberNotificationList = saveMemberNotification(noticeDetailSet);
 
         // 공지별 메시지 변환 후 전송
-        notificationSendService.sendAll(memberNotificationList);
+        notificationSendService.sendAll(memberNotificationList, NotificationType.NOTICE);
     }
 
     /**

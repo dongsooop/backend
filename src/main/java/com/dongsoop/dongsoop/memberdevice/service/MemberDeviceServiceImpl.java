@@ -4,12 +4,12 @@ import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
+import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.exception.AlreadyRegisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collector;
@@ -69,12 +69,12 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
     /**
      * MemberId List로 MemberDevice 조회
      *
-     * @param memberIdList MemberId List
+     * @param condition 알림을 보낼 사용자 목록과 알림 타입
      * @return MemberId를 key로, deviceToken List를 value로 갖는 Map
      */
     @Override
-    public Map<Long, List<String>> getDeviceByMember(Collection<Long> memberIdList) {
-        List<MemberDeviceDto> memberDeviceDtos = memberDeviceRepository.getMemberDeviceTokenByMemberIds(memberIdList);
+    public Map<Long, List<String>> getDeviceByMember(MemberDeviceFindCondition condition) {
+        List<MemberDeviceDto> memberDeviceDtos = memberDeviceRepository.findDevicesWithNotification(condition);
 
         return memberDeviceDtos.stream()
                 .collect(deviceGroupByMemberId());

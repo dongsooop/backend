@@ -77,8 +77,8 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
         return queryFactory.selectFrom(member)
                 .innerJoin(memberDevice)
                 .on(memberDevice.member.eq(member))
-                .where(member.isDeleted.eq(false))
-                .groupBy(member)
+                .where(member.isDeleted.isFalse()) // 삭제되지 않은 회원
+                .distinct()
                 .fetch();
     }
 
@@ -88,8 +88,8 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
                 .innerJoin(memberDevice)
                 .on(memberDevice.member.eq(member))
                 .where(member.department.eq(department)
-                        .and(member.isDeleted.eq(false)))
-                .groupBy(member)
+                        .and(member.isDeleted.isFalse())) // 삭제되지 않은 회원
+                .distinct()
                 .fetch();
     }
 }

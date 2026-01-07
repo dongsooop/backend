@@ -5,7 +5,9 @@ import com.dongsoop.dongsoop.calendar.notification.CalendarNotification;
 import com.dongsoop.dongsoop.calendar.repository.MemberScheduleRepository;
 import com.dongsoop.dongsoop.calendar.repository.OfficialScheduleRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
+import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -42,7 +44,8 @@ public class CalendarScheduler {
                 .map(todaySchedule -> todaySchedule.member().getId())
                 .toList();
 
-        Map<Long, List<String>> targetDevices = memberDeviceService.getDeviceByMember(targetIdList);
+        MemberDeviceFindCondition condition = new MemberDeviceFindCondition(targetIdList, NotificationType.CALENDAR);
+        Map<Long, List<String>> targetDevices = memberDeviceService.getDeviceByMember(condition);
 
         // 공통 일정 수 및 내용
         int officialCalendarSize = officialCalendarList.size();

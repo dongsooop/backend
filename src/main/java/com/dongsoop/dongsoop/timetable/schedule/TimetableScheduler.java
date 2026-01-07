@@ -1,6 +1,8 @@
 package com.dongsoop.dongsoop.timetable.schedule;
 
+import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
+import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.timetable.dto.TodayTimetable;
 import com.dongsoop.dongsoop.timetable.entity.SemesterType;
 import com.dongsoop.dongsoop.timetable.notification.TimetableNotification;
@@ -45,7 +47,8 @@ public class TimetableScheduler {
                 .toList();
 
         // 디바이스 있는 대상 회원 토큰 전체 조회
-        Map<Long, List<String>> deviceByMember = memberDeviceService.getDeviceByMember(targetsIdList);
+        MemberDeviceFindCondition condition = new MemberDeviceFindCondition(targetsIdList, NotificationType.TIMETABLE);
+        Map<Long, List<String>> deviceByMember = memberDeviceService.getDeviceByMember(condition);
 
         timetableByMember.forEach(
                 (memberId, timetables) -> {
