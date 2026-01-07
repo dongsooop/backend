@@ -6,7 +6,6 @@ import com.dongsoop.dongsoop.member.dto.LoginMemberDetails;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.memberdevice.entity.QMemberDevice;
-import com.dongsoop.dongsoop.notification.setting.entity.QNotificationSetting;
 import com.dongsoop.dongsoop.role.entity.QMemberRole;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -28,7 +27,6 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
     private static final QMember member = QMember.member;
     private static final QMemberDevice memberDevice = QMemberDevice.memberDevice;
     private static final QMemberRole memberRole = QMemberRole.memberRole;
-    private static final QNotificationSetting notificationSetting = QNotificationSetting.notificationSetting;
 
     private final JPAQueryFactory queryFactory;
 
