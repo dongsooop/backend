@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
 public class NotificationSetting {
 
     @EmbeddedId
+    @Getter
     private NotificationSettingId id;
 
     @Column(nullable = false)

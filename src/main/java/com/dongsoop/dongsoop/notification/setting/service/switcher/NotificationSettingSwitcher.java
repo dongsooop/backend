@@ -10,7 +10,7 @@ import com.dongsoop.dongsoop.notification.setting.entity.NotificationSetting;
 import com.dongsoop.dongsoop.notification.setting.entity.NotificationSettingId;
 import com.dongsoop.dongsoop.notification.setting.repository.NotificationSettingRepository;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
@@ -60,36 +60,45 @@ public abstract class NotificationSettingSwitcher {
      * @param notificationType 설정할 알림 타입
      */
     private void updateEnable(List<MemberDevice> deviceList, NotificationType notificationType) {
-        List<Optional<NotificationSetting>> optionalNotificationSettingList = deviceList.stream()
+        List<NotificationSettingId> notificationSettingIdList = deviceList.stream()
                 .map(device -> new NotificationSettingId(device, notificationType))
-                .map(this.notificationSettingRepository::findById)
                 .toList();
+
+        // 기존 설정 정보 조회
+        List<NotificationSetting> notificationSettingList = this.notificationSettingRepository.findAllById(
+                notificationSettingIdList);
+
+        // 기존 설정 정보를 ID 기준으로 맵핑
+        Map<NotificationSettingId, NotificationSetting> notificationSettingMap = notificationSettingList.stream()
+                .collect(Collectors.toMap(
+                        NotificationSetting::getId,
+                        ns -> ns
+                ));
 
         // 알림 타입의 기본 정책과 동일한 상태로 바꾸려고 할 때
         if (notificationType.getDefaultActiveState() == shouldEnable()) {
             // DB에서 설정 정보 제거
-            this.deleteSetting(optionalNotificationSettingList, deviceList, notificationType);
+            this.deleteSetting(notificationSettingList, deviceList, notificationType);
             return;
         }
 
         // 알림 타입의 기본 정책과 동일하지 않을 때
-        for (int deviceIndex = 0; deviceIndex < deviceList.size(); deviceIndex++) {
-            MemberDevice device = deviceList.get(deviceIndex);
-            Optional<NotificationSetting> optionalNotificationSetting = optionalNotificationSettingList.get(
-                    deviceIndex);
+        for (MemberDevice device : deviceList) {
+            NotificationSetting notificationSetting = notificationSettingMap.getOrDefault(
+                    new NotificationSettingId(device, notificationType), null);
 
             // 저장된 데이터가 없는 경우 새로 저장
-            if (optionalNotificationSetting.isEmpty()) {
+            if (notificationSetting == null) {
                 this.saveSettings(device, notificationType, shouldEnable());
 
-                return;
+                continue;
             }
 
             // 설정하려는 상태와 저장된 값이 동일한 경우 종료
-            NotificationSetting notificationSetting = optionalNotificationSetting.get();
             if (notificationSetting.isSameState(shouldEnable())) {
                 this.loggingNoSetting(device.getDeviceToken(), notificationType, shouldEnable());
-                return;
+
+                continue;
             }
 
             // 저장된 설정 업데이트
@@ -98,13 +107,11 @@ public abstract class NotificationSettingSwitcher {
     }
 
     // 기본 정책과 일치하여 설정을 제거
-    private void deleteSetting(List<Optional<NotificationSetting>> optionalNotificationSettingList,
+    private void deleteSetting(List<NotificationSetting> notificationSettingList,
                                List<MemberDevice> deviceList,
                                NotificationType notificationType) {
         // DB에 존재하는 경우 설정 정보 제거
-        optionalNotificationSettingList.forEach(
-                optionalNotificationSetting -> optionalNotificationSetting.ifPresent(
-                        notificationSettingRepository::delete));
+        notificationSettingRepository.deleteAll(notificationSettingList);
 
         // 로깅용 디바이스 토큰 문자열 생성
         String deviceTokensString = deviceList.stream()
