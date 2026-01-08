@@ -11,7 +11,8 @@ public enum NotificationType {
     RECRUITMENT_PROJECT_APPLY_RESULT(true),
     RECRUITMENT_TUTORING_APPLY_RESULT(true),
     TIMETABLE(true),
-    CALENDAR(true);
+    CALENDAR(true),
+    MARKETING(false);
 
     private final boolean defaultActiveState;
 
