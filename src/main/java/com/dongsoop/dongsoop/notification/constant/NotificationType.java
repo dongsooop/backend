@@ -13,7 +13,8 @@ public enum NotificationType {
     TIMETABLE(true),
     CALENDAR(true),
     MARKETING(false),
-    FEEDBACK(true);
+    FEEDBACK(true),
+    BLINDDATE(true);
 
     private final boolean defaultActiveState;
 
