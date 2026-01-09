@@ -53,7 +53,7 @@ public class FeedbackServiceImpl implements FeedbackService {
 
         feedbackServiceFeatureRepository.saveAll(feedbackServiceFeature);
 
-        feedbackNotification.send(request.improvementSuggestions());
+        feedbackNotification.send(request.improvementSuggestions(), feedback.getId());
 
         return feedback.getId();
     }
