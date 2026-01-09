@@ -28,7 +28,7 @@ public class NotificationSettingOperator {
         changesMap.forEach((key, value) -> {
             NotificationSettingChangeHandler handler = this.handlerMap.getOrDefault(key, null);
             if (handler == null) {
-                throw new NotificationSettingHandlerNotFoundException();
+                throw new NotificationSettingHandlerNotFoundException(key);
             }
 
             handler.apply(value);
