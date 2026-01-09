@@ -7,6 +7,7 @@ import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.memberdevice.entity.QMemberDevice;
 import com.dongsoop.dongsoop.role.entity.QMemberRole;
+import com.dongsoop.dongsoop.role.entity.RoleType;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
@@ -89,6 +90,19 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
                 .on(memberDevice.member.eq(member))
                 .where(member.department.eq(department)
                         .and(member.isDeleted.isFalse())) // 삭제되지 않은 회원
+                .distinct()
+                .fetch();
+    }
+
+    @Override
+    public List<Member> findByRoleTypeWithDevice(RoleType roleType) {
+        return queryFactory.selectFrom(member)
+                .innerJoin(memberDevice)
+                .on(memberDevice.member.eq(member))
+                .innerJoin(memberRole)
+                .on(memberRole.id.member.eq(member))
+                .where(memberRole.id.role.roleType.eq(roleType)
+                        .and(member.isDeleted.isFalse()))
                 .distinct()
                 .fetch();
     }

@@ -7,6 +7,7 @@ import com.dongsoop.dongsoop.feedback.entity.Feedback;
 import com.dongsoop.dongsoop.feedback.entity.Feedback.FeedbackBuilder;
 import com.dongsoop.dongsoop.feedback.entity.FeedbackServiceFeature;
 import com.dongsoop.dongsoop.feedback.exception.FeedbackNotFoundException;
+import com.dongsoop.dongsoop.feedback.notification.FeedbackNotification;
 import com.dongsoop.dongsoop.feedback.repository.FeedbackRepository;
 import com.dongsoop.dongsoop.feedback.repository.FeedbackServiceFeatureRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
@@ -26,6 +27,7 @@ public class FeedbackServiceImpl implements FeedbackService {
 
     private final FeedbackRepository feedbackRepository;
     private final FeedbackServiceFeatureRepository feedbackServiceFeatureRepository;
+    private final FeedbackNotification feedbackNotification;
     private final MemberService memberService;
 
     @Override
@@ -50,6 +52,8 @@ public class FeedbackServiceImpl implements FeedbackService {
                 .toList();
 
         feedbackServiceFeatureRepository.saveAll(feedbackServiceFeature);
+
+        feedbackNotification.send(request.improvementSuggestions());
 
         return feedback.getId();
     }
