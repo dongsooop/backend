@@ -22,9 +22,7 @@ public class NotificationSettingChangeCreate implements NotificationSettingChang
     @Override
     public void apply(List<SettingChanges> changes) {
         List<NotificationSetting> notificationSettingList = changes.stream()
-                .map(change -> {
-                    return new NotificationSetting(change.getDevice(), change.getType(), change.getTargetState());
-                })
+                .map(SettingChanges::getSetting)
                 .toList();
 
         notificationSettingRepository.saveAll(notificationSettingList);

@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.notification.setting.dto.SettingDelete;
 import com.dongsoop.dongsoop.notification.setting.entity.NotificationSetting;
 import com.dongsoop.dongsoop.notification.setting.repository.NotificationSettingRepository;
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +24,7 @@ public class NotificationSettingChangeDelete implements NotificationSettingChang
     public void apply(List<SettingChanges> changes) {
         List<NotificationSetting> notificationSettingList = changes.stream()
                 .map(SettingChanges::getSetting)
+                .filter(Objects::nonNull)
                 .toList();
 
         notificationSettingRepository.deleteAll(notificationSettingList);
