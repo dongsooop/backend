@@ -15,13 +15,13 @@ public abstract class SettingChanges {
 
     protected NotificationType type;
 
-    protected Boolean targetState;
+    protected boolean targetState;
 
     public SettingChanges(NotificationSetting setting, MemberDevice device, NotificationType type,
-                          Boolean targetState) {
+                          boolean targetState) {
         this.device = Objects.requireNonNull(device);
         this.type = Objects.requireNonNull(type);
-        this.targetState = Objects.requireNonNull(targetState);
+        this.targetState = targetState;
         this.setting = Objects.requireNonNull(this.parseSetting(setting));
     }
 
