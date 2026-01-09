@@ -25,6 +25,10 @@ public class BlindDateNotificationImpl implements BlindDateNotification {
     @Override
     public void send() {
         List<Member> memberList = memberRepository.findByRoleTypeWithDevice(RoleType.ADMIN);
+        if (memberList.isEmpty()) {
+            return;
+        }
+        
         List<MemberNotification> memberNotificationList = notificationSaveService.saveAll(memberList,
                 BLINDDATE_TITLE,
                 BLINDDATE_BODY, NotificationType.BLINDDATE, "");
