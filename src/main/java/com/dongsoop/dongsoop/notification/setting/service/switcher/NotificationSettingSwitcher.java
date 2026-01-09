@@ -61,7 +61,7 @@ public class NotificationSettingSwitcher {
                 types);
 
         // 변경 사항 타입 계산
-        List<SettingChanges> changes = changeClassifier.classification(
+        List<SettingChanges> changes = changeClassifier.classify(
                 devices, types, existingSettings, targetState
         );
 

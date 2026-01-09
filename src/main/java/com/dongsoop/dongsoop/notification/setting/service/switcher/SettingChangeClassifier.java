@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 public class SettingChangeClassifier {
 
     // 주어진 디바이스와 알림 타입에 대해 설정 변경 분류
-    public List<SettingChanges> classification(
+    public List<SettingChanges> classify(
             Collection<MemberDevice> devices,
             Collection<NotificationType> types,
             Map<NotificationSettingId, NotificationSetting> existingSettings,
