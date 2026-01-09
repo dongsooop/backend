@@ -25,7 +25,7 @@ public class FeedbackNotificationImpl implements FeedbackNotification {
     public void send(String improvementSuggestions) {
         List<Member> memberList = memberRepository.findByRoleType(RoleType.ADMIN);
         List<MemberNotification> memberNotificationList = notificationSaveService.saveAll(memberList,
-                String.format(improvementSuggestions),
+                improvementSuggestions,
                 FEEDBACK_BODY, NotificationType.FEEDBACK, null);
 
         notificationSendService.sendAll(memberNotificationList, NotificationType.FEEDBACK);
