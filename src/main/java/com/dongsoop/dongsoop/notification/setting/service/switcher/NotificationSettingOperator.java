@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.notification.setting.service.switcher;
 
 import com.dongsoop.dongsoop.notification.setting.dto.SettingChanges;
+import com.dongsoop.dongsoop.notification.setting.exception.NotificationSettingHandlerDuplicatedException;
 import com.dongsoop.dongsoop.notification.setting.exception.NotificationSettingHandlerNotFoundException;
 import com.dongsoop.dongsoop.notification.setting.service.handler.NotificationSettingChangeHandler;
 import java.util.List;
@@ -16,7 +17,12 @@ public class NotificationSettingOperator {
 
     public NotificationSettingOperator(List<NotificationSettingChangeHandler> handlers) {
         this.handlerMap = handlers.stream()
-                .collect(Collectors.toMap(NotificationSettingChangeHandler::getSupportedClass, handler -> handler));
+                .collect(Collectors.toMap(
+                        NotificationSettingChangeHandler::getSupportedClass,
+                        handler -> handler,
+                        (existing, duplicate) -> {
+                            throw new NotificationSettingHandlerDuplicatedException(existing, duplicate);
+                        }));
     }
 
     @Transactional
