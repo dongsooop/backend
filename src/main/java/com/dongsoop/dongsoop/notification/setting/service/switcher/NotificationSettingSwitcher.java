@@ -52,8 +52,9 @@ public class NotificationSettingSwitcher {
     /**
      * 디바이스 알림 설정 업데이트
      *
-     * @param devices 디바이스 목록
-     * @param types   설정할 알림 타입 목록
+     * @param devices     디바이스 목록
+     * @param types       설정할 알림 타입 목록
+     * @param targetState 목표 활성화 상태
      */
     private void updateEnable(List<MemberDevice> devices, Collection<NotificationType> types, boolean targetState) {
         // 이미 저장된 알림 설정 정보 조회
@@ -75,11 +76,11 @@ public class NotificationSettingSwitcher {
     // 기존 알림 설정 정보 조회
     private Map<NotificationSettingId, NotificationSetting> loadNotificationSettings(
             Collection<MemberDevice> deviceList,
-            Collection<NotificationType> notificationTypes) {
+            Collection<NotificationType> types) {
 
         List<NotificationSettingId> notificationSettingIdList = deviceList.stream()
                 .flatMap(device ->
-                        notificationTypes.stream()
+                        types.stream()
                                 .map((notificationType) -> new NotificationSettingId(device, notificationType)))
                 .toList();
 
