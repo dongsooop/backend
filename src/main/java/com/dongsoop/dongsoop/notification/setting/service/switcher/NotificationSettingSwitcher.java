@@ -5,150 +5,110 @@ import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
-import com.dongsoop.dongsoop.notification.setting.dto.NotificationSettingRequest;
+import com.dongsoop.dongsoop.notification.setting.dto.NotificationSettingUpdate;
+import com.dongsoop.dongsoop.notification.setting.dto.SettingChanges;
 import com.dongsoop.dongsoop.notification.setting.entity.NotificationSetting;
 import com.dongsoop.dongsoop.notification.setting.entity.NotificationSettingId;
 import com.dongsoop.dongsoop.notification.setting.repository.NotificationSettingRepository;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 @Slf4j
-public abstract class NotificationSettingSwitcher {
+@Component
+public class NotificationSettingSwitcher {
 
     private final MemberService memberService;
     private final MemberDeviceRepository memberDeviceRepository;
     private final NotificationSettingRepository notificationSettingRepository;
+    private final SettingChangeClassifier changeClassifier;
+    private final NotificationSettingOperator settingOperator;
 
     public NotificationSettingSwitcher(MemberService memberService,
                                        MemberDeviceRepository memberDeviceRepository,
-                                       NotificationSettingRepository notificationSettingRepository) {
+                                       NotificationSettingRepository notificationSettingRepository,
+                                       SettingChangeClassifier changeClassifier,
+                                       NotificationSettingOperator settingOperator) {
         this.memberService = memberService;
         this.memberDeviceRepository = memberDeviceRepository;
         this.notificationSettingRepository = notificationSettingRepository;
+        this.changeClassifier = changeClassifier;
+        this.settingOperator = settingOperator;
     }
-
-    protected abstract boolean shouldEnable();
 
     /**
      * 알림 설정 활성화/비활성화 업데이트
      *
      * @param request 알림 설정 요청 정보
      */
-    public void updateStatus(NotificationSettingRequest request) {
-        // 회원 디바이스 토큰 전체 설정 변경
-        if (memberService.isAuthenticated()) {
-            Long memberId = memberService.getMemberIdByAuthentication();
-            List<MemberDevice> devices = memberDeviceRepository.findByMemberId(memberId);
-
-            this.updateEnable(devices, request.notificationType());
-
-            return;
-        }
-
-        // 비회원 디바이스 토큰 단일 설정 변경
-        MemberDevice device = memberDeviceRepository.findByDeviceToken(request.deviceToken())
-                .orElseThrow(UnregisteredDeviceException::new);
-        this.updateEnable(List.of(device), request.notificationType());
+    public void updateStatus(NotificationSettingUpdate request) {
+        List<MemberDevice> devices = this.resolveDevice(request.deviceToken());
+        this.updateEnable(devices, request.notificationTypes(), request.targetState());
     }
 
     /**
      * 디바이스 알림 설정 업데이트
      *
-     * @param deviceList       디바이스 목록
-     * @param notificationType 설정할 알림 타입
+     * @param devices     디바이스 목록
+     * @param types       설정할 알림 타입 목록
+     * @param targetState 목표 활성화 상태
      */
-    private void updateEnable(List<MemberDevice> deviceList, NotificationType notificationType) {
+    private void updateEnable(List<MemberDevice> devices, Collection<NotificationType> types, boolean targetState) {
+        // 이미 저장된 알림 설정 정보 조회
+        Map<NotificationSettingId, NotificationSetting> existingSettings = this.loadNotificationSettings(devices,
+                types);
+
+        // 변경 사항 타입 계산
+        List<SettingChanges> changes = changeClassifier.classify(
+                devices, types, existingSettings, targetState
+        );
+
+        // 변경 적용
+        settingOperator.applyChanges(changes);
+
+        // 로깅
+        logChanges(changes);
+    }
+
+    // 기존 알림 설정 정보 조회
+    private Map<NotificationSettingId, NotificationSetting> loadNotificationSettings(
+            Collection<MemberDevice> deviceList,
+            Collection<NotificationType> types) {
+
         List<NotificationSettingId> notificationSettingIdList = deviceList.stream()
-                .map(device -> new NotificationSettingId(device, notificationType))
+                .flatMap(device ->
+                        types.stream()
+                                .map((notificationType) -> new NotificationSettingId(device, notificationType)))
                 .toList();
 
         // 기존 설정 정보 조회
         List<NotificationSetting> notificationSettingList = this.notificationSettingRepository.findAllById(
                 notificationSettingIdList);
 
-        // 기존 설정 정보를 ID 기준으로 맵핑
-        Map<NotificationSettingId, NotificationSetting> notificationSettingMap = notificationSettingList.stream()
+        return notificationSettingList.stream()
                 .collect(Collectors.toMap(
                         NotificationSetting::getId,
                         ns -> ns
                 ));
+    }
 
-        // 알림 타입의 기본 정책과 동일한 상태로 바꾸려고 할 때
-        if (notificationType.getDefaultActiveState() == shouldEnable()) {
-            // DB에서 설정 정보 제거
-            this.deleteSetting(notificationSettingList, deviceList, notificationType);
-            return;
+    // 인증된 회원일 경우 회원의 모든 디바이스, 비회원일 경우 토큰으로 디바이스 조회
+    private List<MemberDevice> resolveDevice(String deviceToken) {
+        if (memberService.isAuthenticated()) {
+            Long memberId = memberService.getMemberIdByAuthentication();
+            return memberDeviceRepository.findByMemberId(memberId);
         }
 
-        // 알림 타입의 기본 정책과 동일하지 않을 때
-        for (MemberDevice device : deviceList) {
-            NotificationSetting notificationSetting = notificationSettingMap.getOrDefault(
-                    new NotificationSettingId(device, notificationType), null);
-
-            // 저장된 데이터가 없는 경우 새로 저장
-            if (notificationSetting == null) {
-                this.saveSettings(device, notificationType, shouldEnable());
-
-                continue;
-            }
-
-            // 설정하려는 상태와 저장된 값이 동일한 경우 종료
-            if (notificationSetting.isSameState(shouldEnable())) {
-                this.loggingNoSetting(device.getDeviceToken(), notificationType, shouldEnable());
-
-                continue;
-            }
-
-            // 저장된 설정 업데이트
-            this.updateSettings(notificationSetting, device.getDeviceToken(), notificationType);
-        }
+        MemberDevice device = memberDeviceRepository.findByDeviceToken(deviceToken)
+                .orElseThrow(UnregisteredDeviceException::new);
+        return List.of(device);
     }
 
-    // 기본 정책과 일치하여 설정을 제거
-    private void deleteSetting(List<NotificationSetting> notificationSettingList,
-                               List<MemberDevice> deviceList,
-                               NotificationType notificationType) {
-        // DB에 존재하는 경우 설정 정보 제거
-        notificationSettingRepository.deleteAll(notificationSettingList);
-
-        // 로깅용 디바이스 토큰 문자열 생성
-        String deviceTokensString = deviceList.stream()
-                .map(MemberDevice::getDeviceToken)
-                .collect(Collectors.joining(","));
-
-        this.loggingSettingMatchedDefaultPolicy("[" + deviceTokensString + "]", notificationType, shouldEnable());
-    }
-
-    // 기본 정책과 일치하여 설정이 제거된 경우 로깅
-    private void loggingSettingMatchedDefaultPolicy(String deviceToken, NotificationType notificationType,
-                                                    boolean isEnabled) {
-        log.info(
-                "Notification setting matches default policy. Removed custom setting from DB. deviceToken: {}, notificationType: {}, isEnabled: {}",
-                deviceToken, notificationType, isEnabled);
-    }
-
-    // 알림 상태 새로 저장
-    private void saveSettings(MemberDevice memberDevice, NotificationType notificationType, boolean isEnabled) {
-        log.info("Notification setting not found. deviceToken: {}, notificationType: {}, isEnabled: {}",
-                memberDevice.getDeviceToken(), notificationType, isEnabled);
-        this.notificationSettingRepository.save(
-                new NotificationSetting(memberDevice, notificationType, isEnabled));
-    }
-
-    // 변경사항이 없는 경우 로깅
-    private void loggingNoSetting(String deviceToken, NotificationType notificationType, boolean isEnabled) {
-        log.info(
-                "Notification setting already in desired state. No update needed. deviceToken: {}, notificationType: {}, isEnabled: {}",
-                deviceToken, notificationType, isEnabled);
-    }
-
-    // 설정 상태 업데이트
-    private void updateSettings(NotificationSetting notificationSetting, String deviceToken,
-                                NotificationType notificationType) {
-        notificationSetting.updateEnabled(shouldEnable());
-        log.info("Notification setting updated successfully. deviceToken: {}, notificationType: {}, isEnabled: {}",
-                deviceToken, notificationType, shouldEnable());
+    // 변경 사항 로그 기록
+    private void logChanges(List<SettingChanges> changes) {
+        changes.forEach(settingChange -> log.info(settingChange.getLog()));
     }
 }
