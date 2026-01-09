@@ -27,6 +27,10 @@ public class NotificationSettingChangeDelete implements NotificationSettingChang
                 .filter(Objects::nonNull)
                 .toList();
 
+        if (notificationSettingList.isEmpty()) {
+            return;
+        }
+
         notificationSettingRepository.deleteAll(notificationSettingList);
     }
 }

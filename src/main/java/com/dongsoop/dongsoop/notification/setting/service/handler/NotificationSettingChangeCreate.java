@@ -25,6 +25,10 @@ public class NotificationSettingChangeCreate implements NotificationSettingChang
                 .map(SettingChanges::getSetting)
                 .toList();
 
+        if (notificationSettingList.isEmpty()) {
+            return;
+        }
+        
         notificationSettingRepository.saveAll(notificationSettingList);
     }
 }
