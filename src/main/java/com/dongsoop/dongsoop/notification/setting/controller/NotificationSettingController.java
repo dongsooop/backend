@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.notification.setting.controller;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.setting.dto.NotificationSettingFindRequest;
 import com.dongsoop.dongsoop.notification.setting.dto.NotificationSettingRequest;
+import com.dongsoop.dongsoop.notification.setting.dto.RecruitmentSettingUpdateRequest;
 import com.dongsoop.dongsoop.notification.setting.service.NotificationSettingService;
 import jakarta.validation.Valid;
 import java.util.Map;
@@ -40,6 +41,24 @@ public class NotificationSettingController {
     @PostMapping("/disable")
     public ResponseEntity<Void> disableNotification(@Valid @RequestBody NotificationSettingRequest request) {
         notificationSettingService.disableNotification(request);
+
+        return ResponseEntity.noContent()
+                .build();
+    }
+
+    @PostMapping("/recruitment-apply")
+    public ResponseEntity<Void> updateRecruitmentApplyNotification(
+            @Valid @RequestBody RecruitmentSettingUpdateRequest request) {
+        notificationSettingService.updateRecruitmentApplyNotification(request);
+
+        return ResponseEntity.noContent()
+                .build();
+    }
+
+    @PostMapping("/recruitment-result")
+    public ResponseEntity<Void> updateRecruitmentResultNotification(
+            @Valid @RequestBody RecruitmentSettingUpdateRequest request) {
+        notificationSettingService.updateRecruitmentResultNotification(request);
 
         return ResponseEntity.noContent()
                 .build();
