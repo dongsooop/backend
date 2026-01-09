@@ -95,8 +95,10 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
     }
 
     @Override
-    public List<Member> findByRoleType(RoleType roleType) {
+    public List<Member> findByRoleTypeWithDevice(RoleType roleType) {
         return queryFactory.selectFrom(member)
+                .innerJoin(memberDevice)
+                .on(memberDevice.member.eq(member))
                 .innerJoin(memberRole)
                 .on(memberRole.id.member.eq(member))
                 .where(memberRole.id.role.roleType.eq(roleType)

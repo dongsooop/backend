@@ -23,7 +23,7 @@ public class FeedbackNotificationImpl implements FeedbackNotification {
 
     @Override
     public void send(String improvementSuggestions) {
-        List<Member> memberList = memberRepository.findByRoleType(RoleType.ADMIN);
+        List<Member> memberList = memberRepository.findByRoleTypeWithDevice(RoleType.ADMIN);
         List<MemberNotification> memberNotificationList = notificationSaveService.saveAll(memberList,
                 improvementSuggestions,
                 FEEDBACK_BODY, NotificationType.FEEDBACK, null);

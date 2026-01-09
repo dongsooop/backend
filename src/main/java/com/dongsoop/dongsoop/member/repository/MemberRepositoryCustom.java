@@ -18,5 +18,5 @@ public interface MemberRepositoryCustom {
 
     List<Member> searchAllByDepartmentAndDeviceNotEmpty(Department department);
 
-    List<Member> findByRoleType(RoleType roleType);
+    List<Member> findByRoleTypeWithDevice(RoleType roleType);
 }
