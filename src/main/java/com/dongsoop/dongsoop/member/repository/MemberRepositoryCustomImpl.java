@@ -99,7 +99,8 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
         return queryFactory.selectFrom(member)
                 .innerJoin(memberRole)
                 .on(memberRole.id.member.eq(member))
-                .where(memberRole.id.role.roleType.eq(roleType))
+                .where(memberRole.id.role.roleType.eq(roleType)
+                        .and(member.isDeleted.isFalse()))
                 .distinct()
                 .fetch();
     }
