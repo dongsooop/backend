@@ -10,6 +10,7 @@ public class SettingDelete extends SettingChanges {
         super(setting, device, type, targetState);
     }
 
+    @Override
     public String getTypeName() {
         return "Deleted";
     }

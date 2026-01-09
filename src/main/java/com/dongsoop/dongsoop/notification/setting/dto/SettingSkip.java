@@ -10,6 +10,7 @@ public class SettingSkip extends SettingChanges {
         super(setting, device, type, targetState);
     }
 
+    @Override
     public String getTypeName() {
         return "Skip";
     }

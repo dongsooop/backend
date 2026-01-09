@@ -10,6 +10,7 @@ public class SettingCreate extends SettingChanges {
         super(setting, device, type, targetState);
     }
 
+    @Override
     public String getTypeName() {
         return "Create";
     }
