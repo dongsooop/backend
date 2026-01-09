@@ -14,7 +14,7 @@ public class NotificationSettingChangeUpdate implements NotificationSettingChang
     }
 
     @Override
-    public void apply(List<SettingChanges> setting) {
-        setting.forEach(s -> s.getSetting().updateEnabled(s.getTargetState()));
+    public void apply(List<SettingChanges> changes) {
+        changes.forEach(s -> s.getSetting().updateEnabled(s.getTargetState()));
     }
 }

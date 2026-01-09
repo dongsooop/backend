@@ -20,8 +20,8 @@ public class NotificationSettingChangeCreate implements NotificationSettingChang
     }
 
     @Override
-    public void apply(List<SettingChanges> setting) {
-        List<NotificationSetting> notificationSettingList = setting.stream()
+    public void apply(List<SettingChanges> changes) {
+        List<NotificationSetting> notificationSettingList = changes.stream()
                 .map(SettingChanges::getSetting)
                 .toList();
 

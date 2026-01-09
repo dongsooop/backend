@@ -9,5 +9,5 @@ public interface NotificationSettingChangeHandler {
 
     Class<? extends SettingChanges> getSupportedClass();
 
-    void apply(List<SettingChanges> setting);
+    void apply(List<SettingChanges> changes);
 }

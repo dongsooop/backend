@@ -14,7 +14,7 @@ public class NotificationSettingChangeSkip implements NotificationSettingChangeH
     }
 
     @Override
-    public void apply(List<SettingChanges> setting) {
+    public void apply(List<SettingChanges> changes) {
         // Do nothing
     }
 }
