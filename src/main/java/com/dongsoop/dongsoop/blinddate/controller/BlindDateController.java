@@ -10,13 +10,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/blinddate-notification")
+@RequestMapping("/blind-date")
 @RequiredArgsConstructor
 public class BlindDateController {
 
     private final BlindDateNotification blindDateNotification;
 
-    @PostMapping
+    @PostMapping("/notification")
     @Secured(RoleType.ADMIN_ROLE)
     public ResponseEntity<?> sendNotification() {
         blindDateNotification.send();
