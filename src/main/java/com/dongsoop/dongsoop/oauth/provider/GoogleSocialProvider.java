@@ -1,7 +1,16 @@
 package com.dongsoop.dongsoop.oauth.provider;
 
+import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
+import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountDto;
+import com.dongsoop.dongsoop.oauth.dto.SocialAccountLinkRequest;
+import com.dongsoop.dongsoop.oauth.entity.MemberSocialAccount;
+import com.dongsoop.dongsoop.oauth.entity.MemberSocialAccountId;
+import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
+import com.dongsoop.dongsoop.oauth.exception.AlreadyLinkedSocialAccountException;
 import com.dongsoop.dongsoop.oauth.exception.InvalidGoogleTokenException;
+import com.dongsoop.dongsoop.oauth.repository.MemberSocialAccountRepository;
 import com.dongsoop.dongsoop.oauth.validator.MemberSocialAccountValidator;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +32,8 @@ public class GoogleSocialProvider implements SocialProvider {
     private static final String ATTRIBUTE_NAME = "sub";
 
     private final MemberSocialAccountValidator memberSocialAccountValidator;
+    private final MemberSocialAccountRepository memberSocialAccountRepository;
+    private final MemberRepository memberRepository;
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${spring.security.oauth2.client.provider.google.user-info-uri}")
@@ -43,9 +54,31 @@ public class GoogleSocialProvider implements SocialProvider {
     }
 
     @Override
-    public Long login(String accessToken) {
+    public Long login(String providerToken) {
+        String providerId = this.getProviderId(providerToken);
+
+        MemberSocialAccountDto socialAccount = memberSocialAccountValidator.validate(providerId);
+        return socialAccount.member().getId();
+    }
+
+    @Override
+    public void linkSocialAccount(Long memberId, SocialAccountLinkRequest request) {
+        String providerId = this.getProviderId(request.providerToken());
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(MemberNotFoundException::new);
+
+        MemberSocialAccountId socialAccountId = new MemberSocialAccountId(providerId, OAuthProviderType.APPLE);
+        if (this.memberSocialAccountRepository.existsById(socialAccountId)) {
+            throw new AlreadyLinkedSocialAccountException();
+        }
+
+        MemberSocialAccount socialAccount = new MemberSocialAccount(socialAccountId, member);
+        this.memberSocialAccountRepository.save(socialAccount);
+    }
+
+    private String getProviderId(String providerToken) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
+        headers.setBearerAuth(providerToken);
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
@@ -59,11 +92,7 @@ public class GoogleSocialProvider implements SocialProvider {
 
             Map<String, Object> body = (Map<String, Object>) response.getBody();
 
-            String providerId = body.get(googleUserNameAttribute).toString();
-
-            MemberSocialAccountDto socialAccount = memberSocialAccountValidator.validate(providerId);
-            return socialAccount.member().getId();
-
+            return body.get(googleUserNameAttribute).toString();
         } catch (HttpClientErrorException e) {
             throw new InvalidGoogleTokenException();
         }

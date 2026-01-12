@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.member.dto.LoginResponse;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.oauth.dto.OAuthLoginRequest;
+import com.dongsoop.dongsoop.oauth.dto.SocialAccountLinkRequest;
 import com.dongsoop.dongsoop.oauth.dto.SocialLoginRequest;
 import com.dongsoop.dongsoop.oauth.provider.AppleSocialProvider;
 import com.dongsoop.dongsoop.oauth.provider.GoogleSocialProvider;
@@ -73,5 +74,36 @@ public class OAuth2Controller {
         return ResponseEntity.ok(response);
     }
 
-    // TODO: OAuth 계정 연동
+    @PostMapping("/link/google")
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<Void> linkGoogleAccount(@RequestBody @Valid SocialAccountLinkRequest request) {
+        Long memberId = this.memberService.getMemberIdByAuthentication();
+
+        googleSocialProvider.linkSocialAccount(memberId, request);
+
+        return ResponseEntity.noContent()
+                .build();
+    }
+
+    @PostMapping("/link/kakao")
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<Void> linkKakaoAccount(@RequestBody @Valid SocialAccountLinkRequest request) {
+        Long memberId = this.memberService.getMemberIdByAuthentication();
+
+        kakaoSocialProvider.linkSocialAccount(memberId, request);
+
+        return ResponseEntity.noContent()
+                .build();
+    }
+
+    @PostMapping("/link/apple")
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<Void> linkAppleAccount(@RequestBody @Valid SocialAccountLinkRequest request) {
+        Long memberId = this.memberService.getMemberIdByAuthentication();
+
+        appleSocialProvider.linkSocialAccount(memberId, request);
+
+        return ResponseEntity.noContent()
+                .build();
+    }
 }

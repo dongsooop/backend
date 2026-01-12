@@ -1,8 +1,17 @@
 package com.dongsoop.dongsoop.oauth.provider;
 
+import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
+import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.oauth.dto.AppleJwk;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountDto;
+import com.dongsoop.dongsoop.oauth.dto.SocialAccountLinkRequest;
+import com.dongsoop.dongsoop.oauth.entity.MemberSocialAccount;
+import com.dongsoop.dongsoop.oauth.entity.MemberSocialAccountId;
+import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
+import com.dongsoop.dongsoop.oauth.exception.AlreadyLinkedSocialAccountException;
 import com.dongsoop.dongsoop.oauth.exception.InvalidAppleTokenException;
+import com.dongsoop.dongsoop.oauth.repository.MemberSocialAccountRepository;
 import com.dongsoop.dongsoop.oauth.validator.MemberSocialAccountValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
@@ -34,6 +43,8 @@ public class AppleSocialProvider implements SocialProvider {
     private static final RestTemplate restTemplate = new RestTemplate();
 
     private final MemberSocialAccountValidator memberSocialAccountValidator;
+    private final MemberRepository memberRepository;
+    private final MemberSocialAccountRepository memberSocialAccountRepository;
     private final ObjectMapper objectMapper;
 
     @Value("${oauth.apple.issuer}")
@@ -61,6 +72,29 @@ public class AppleSocialProvider implements SocialProvider {
 
     @Override
     public Long login(String identityToken) {
+        String providerId = this.getProviderId(identityToken);
+
+        // 회원 검증
+        MemberSocialAccountDto socialAccount = memberSocialAccountValidator.validate(providerId);
+        return socialAccount.member().getId();
+    }
+
+    @Override
+    public void linkSocialAccount(Long memberId, SocialAccountLinkRequest request) {
+        String providerId = this.getProviderId(request.providerToken());
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(MemberNotFoundException::new);
+
+        MemberSocialAccountId socialAccountId = new MemberSocialAccountId(providerId, OAuthProviderType.APPLE);
+        if (this.memberSocialAccountRepository.existsById(socialAccountId)) {
+            throw new AlreadyLinkedSocialAccountException();
+        }
+
+        MemberSocialAccount socialAccount = new MemberSocialAccount(socialAccountId, member);
+        this.memberSocialAccountRepository.save(socialAccount);
+    }
+
+    private String getProviderId(String identityToken) {
         try {
             ResponseEntity<Map> response = restTemplate.getForEntity(jwtUri, Map.class);
             List<Map<String, Object>> keys = (List<Map<String, Object>>) response.getBody().get("keys");
@@ -69,12 +103,7 @@ public class AppleSocialProvider implements SocialProvider {
                     .toList();
 
             Claims claims = getClaims(identityToken, appleJwkList);
-            String providerId = claims.getSubject();
-
-            // 회원 검증
-            MemberSocialAccountDto socialAccount = memberSocialAccountValidator.validate(providerId);
-            return socialAccount.member().getId();
-
+            return claims.getSubject();
         } catch (IllegalArgumentException | ExpiredJwtException e) {
             log.error("invalid apple identity token: {}", e.getMessage());
             throw new InvalidAppleTokenException();

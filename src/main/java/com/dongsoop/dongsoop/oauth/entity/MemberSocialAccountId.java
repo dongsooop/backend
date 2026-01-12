@@ -4,8 +4,12 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 @Embeddable
+@NoArgsConstructor
+@AllArgsConstructor
 public class MemberSocialAccountId {
 
     @Column(name = "provider_id")
