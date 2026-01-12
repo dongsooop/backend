@@ -28,7 +28,7 @@ public class MemberSocialAccount {
 
     @Getter
     @Column(name = "create_at", nullable = false)
-    private LocalDateTime createAt = LocalDateTime.now();
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     public MemberSocialAccount(MemberSocialAccountId id, Member member) {
         this.id = id;

@@ -76,7 +76,7 @@ public class GoogleSocialProvider implements SocialProvider {
         MemberSocialAccount socialAccount = new MemberSocialAccount(socialAccountId, member);
         MemberSocialAccount saved = this.memberSocialAccountRepository.save(socialAccount);
 
-        return saved.getCreateAt();
+        return saved.getCreatedAt();
     }
 
     private String getProviderId(String providerToken) {

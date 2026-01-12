@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.oauth.controller;
 import com.dongsoop.dongsoop.member.dto.LoginResponse;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
+import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountOverview;
 import com.dongsoop.dongsoop.oauth.dto.OAuthLoginRequest;
 import com.dongsoop.dongsoop.oauth.dto.SocialAccountLinkRequest;
 import com.dongsoop.dongsoop.oauth.dto.SocialLoginRequest;
@@ -14,6 +15,7 @@ import com.dongsoop.dongsoop.oauth.service.OAuth2Service;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
@@ -116,5 +118,14 @@ public class OAuth2Controller {
 
         return ResponseEntity.noContent()
                 .build();
+    }
+
+    @GetMapping
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<List<MemberSocialAccountOverview>> getSocialAccountState() {
+        List<MemberSocialAccountOverview> socialAccountState = this.oAuth2Service.getSocialAccountState(
+                memberService.getMemberIdByAuthentication());
+
+        return ResponseEntity.ok(socialAccountState);
     }
 }
