@@ -13,6 +13,7 @@ import com.dongsoop.dongsoop.oauth.provider.KakaoSocialProvider;
 import com.dongsoop.dongsoop.oauth.service.OAuth2Service;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
@@ -79,35 +80,32 @@ public class OAuth2Controller {
 
     @PostMapping("/link/google")
     @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> linkGoogleAccount(@RequestBody @Valid SocialAccountLinkRequest request) {
+    public ResponseEntity<LocalDateTime> linkGoogleAccount(@RequestBody @Valid SocialAccountLinkRequest request) {
         Long memberId = this.memberService.getMemberIdByAuthentication();
 
-        googleSocialProvider.linkSocialAccount(memberId, request);
+        LocalDateTime createdAt = googleSocialProvider.linkSocialAccount(memberId, request);
 
-        return ResponseEntity.noContent()
-                .build();
+        return ResponseEntity.ok(createdAt);
     }
 
     @PostMapping("/link/kakao")
     @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> linkKakaoAccount(@RequestBody @Valid SocialAccountLinkRequest request) {
+    public ResponseEntity<LocalDateTime> linkKakaoAccount(@RequestBody @Valid SocialAccountLinkRequest request) {
         Long memberId = this.memberService.getMemberIdByAuthentication();
 
-        kakaoSocialProvider.linkSocialAccount(memberId, request);
+        LocalDateTime createdAt = kakaoSocialProvider.linkSocialAccount(memberId, request);
 
-        return ResponseEntity.noContent()
-                .build();
+        return ResponseEntity.ok(createdAt);
     }
 
     @PostMapping("/link/apple")
     @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> linkAppleAccount(@RequestBody @Valid SocialAccountLinkRequest request) {
+    public ResponseEntity<LocalDateTime> linkAppleAccount(@RequestBody @Valid SocialAccountLinkRequest request) {
         Long memberId = this.memberService.getMemberIdByAuthentication();
 
-        appleSocialProvider.linkSocialAccount(memberId, request);
+        LocalDateTime createdAt = appleSocialProvider.linkSocialAccount(memberId, request);
 
-        return ResponseEntity.noContent()
-                .build();
+        return ResponseEntity.ok(createdAt);
     }
 
     @DeleteMapping("/{providerType}")

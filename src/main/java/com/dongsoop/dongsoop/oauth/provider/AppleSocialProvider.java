@@ -23,6 +23,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPublicKeySpec;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +81,7 @@ public class AppleSocialProvider implements SocialProvider {
     }
 
     @Override
-    public void linkSocialAccount(Long memberId, SocialAccountLinkRequest request) {
+    public LocalDateTime linkSocialAccount(Long memberId, SocialAccountLinkRequest request) {
         String providerId = this.getProviderId(request.providerToken());
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
@@ -91,7 +92,9 @@ public class AppleSocialProvider implements SocialProvider {
         }
 
         MemberSocialAccount socialAccount = new MemberSocialAccount(socialAccountId, member);
-        this.memberSocialAccountRepository.save(socialAccount);
+        MemberSocialAccount saved = this.memberSocialAccountRepository.save(socialAccount);
+
+        return saved.getCreateAt();
     }
 
     private String getProviderId(String identityToken) {

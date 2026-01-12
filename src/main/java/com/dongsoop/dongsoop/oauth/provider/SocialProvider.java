@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.oauth.provider;
 
 import com.dongsoop.dongsoop.oauth.dto.SocialAccountLinkRequest;
+import java.time.LocalDateTime;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
 public interface SocialProvider {
@@ -11,5 +12,5 @@ public interface SocialProvider {
 
     Long login(String accessToken);
 
-    void linkSocialAccount(Long memberId, SocialAccountLinkRequest request);
+    LocalDateTime linkSocialAccount(Long memberId, SocialAccountLinkRequest request);
 }

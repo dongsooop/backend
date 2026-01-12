@@ -12,6 +12,7 @@ import com.dongsoop.dongsoop.oauth.exception.AlreadyLinkedSocialAccountException
 import com.dongsoop.dongsoop.oauth.exception.InvalidKakaoTokenException;
 import com.dongsoop.dongsoop.oauth.repository.MemberSocialAccountRepository;
 import com.dongsoop.dongsoop.oauth.validator.MemberSocialAccountValidator;
+import java.time.LocalDateTime;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -65,7 +66,7 @@ public class KakaoSocialProvider implements SocialProvider {
     }
 
     @Override
-    public void linkSocialAccount(Long memberId, SocialAccountLinkRequest request) {
+    public LocalDateTime linkSocialAccount(Long memberId, SocialAccountLinkRequest request) {
         String providerId = this.getProviderId(request.providerToken());
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
@@ -74,9 +75,11 @@ public class KakaoSocialProvider implements SocialProvider {
         if (this.memberSocialAccountRepository.existsById(socialAccountId)) {
             throw new AlreadyLinkedSocialAccountException();
         }
-        
+
         MemberSocialAccount socialAccount = new MemberSocialAccount(socialAccountId, member);
-        this.memberSocialAccountRepository.save(socialAccount);
+        MemberSocialAccount saved = this.memberSocialAccountRepository.save(socialAccount);
+
+        return saved.getCreateAt();
     }
 
     private String getProviderId(String providerToken) {
