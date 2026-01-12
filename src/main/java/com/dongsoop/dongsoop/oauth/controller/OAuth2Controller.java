@@ -46,7 +46,7 @@ public class OAuth2Controller {
     }
 
     @PostMapping("/kakao")
-    public ResponseEntity<?> kakaoLogin(@RequestBody SocialLoginRequest request) {
+    public ResponseEntity<LoginResponse> kakaoLogin(@RequestBody SocialLoginRequest request) {
         // 서비스 로직 호출
         Long memberId = this.kakaoSocialProvider.login(request.token());
 
@@ -55,7 +55,7 @@ public class OAuth2Controller {
     }
 
     @PostMapping("/google")
-    public ResponseEntity<?> googleLogin(@RequestBody SocialLoginRequest request) {
+    public ResponseEntity<LoginResponse> googleLogin(@RequestBody SocialLoginRequest request) {
         // 서비스 로직 호출
         Long memberId = this.googleSocialProvider.login(request.token());
 
@@ -64,7 +64,7 @@ public class OAuth2Controller {
     }
 
     @PostMapping("/apple")
-    public ResponseEntity<?> appleLogin(@RequestBody SocialLoginRequest request) {
+    public ResponseEntity<LoginResponse> appleLogin(@RequestBody SocialLoginRequest request) {
         // 서비스 로직 호출
         Long memberId = this.appleSocialProvider.login(request.token());
 
