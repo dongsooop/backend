@@ -2,9 +2,11 @@ package com.dongsoop.dongsoop.oauth.provider;
 
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
-public abstract class SocialProvider {
+public interface SocialProvider {
 
-    public abstract String serviceName();
+    String serviceName();
 
-    public abstract String extractProviderId(OAuth2User oAuth2User, String registrationId);
+    String extractProviderId(OAuth2User oAuth2User, String registrationId);
+
+    Long login(String accessToken);
 }
