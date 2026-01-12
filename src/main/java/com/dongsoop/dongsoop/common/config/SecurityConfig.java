@@ -3,6 +3,9 @@ package com.dongsoop.dongsoop.common.config;
 import com.dongsoop.dongsoop.common.handler.authentication.CustomAccessDeniedHandler;
 import com.dongsoop.dongsoop.common.handler.authentication.CustomAuthenticationEntryPoint;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
+import com.dongsoop.dongsoop.oauth.handler.OAuth2LoginFailureHandler;
+import com.dongsoop.dongsoop.oauth.handler.OAuth2LoginSuccessHandler;
+import com.dongsoop.dongsoop.oauth.service.CustomOAuth2UserService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +33,10 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
+
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+    private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
 
     @Value("${authentication.path.all}")
     private String[] allowedPaths;
@@ -64,6 +71,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable) // JWT를 사용하기 때문에 form login 비활성화
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                        .successHandler(oAuth2LoginSuccessHandler)
+                        .failureHandler(oAuth2LoginFailureHandler))
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(customAuthenticationEntryPoint) // 401 에러 응답 처리
                         .accessDeniedHandler(customAccessDeniedHandler)) // 403 에러 응답 처리

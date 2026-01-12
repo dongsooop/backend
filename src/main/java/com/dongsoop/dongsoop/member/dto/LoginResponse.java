@@ -1,6 +1,8 @@
 package com.dongsoop.dongsoop.member.dto;
 
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountDto;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -32,6 +34,19 @@ public class LoginResponse {
         this.email = loginMemberDetail.getEmail();
         this.departmentType = loginMemberDetail.getDepartmentType();
         this.role = loginMemberDetail.getRole();
+
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+    }
+
+    public LoginResponse(MemberSocialAccountDto socialAccountDto, String accessToken, String refreshToken) {
+        Member member = socialAccountDto.member();
+
+        this.id = member.getId();
+        this.nickname = member.getNickname();
+        this.email = member.getEmail();
+        this.departmentType = member.getDepartment().getId();
+        this.role = socialAccountDto.roleType();
 
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;

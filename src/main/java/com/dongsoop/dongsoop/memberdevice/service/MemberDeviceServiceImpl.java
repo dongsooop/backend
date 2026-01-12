@@ -10,11 +10,13 @@ import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.exception.AlreadyRegisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
+import com.dongsoop.dongsoop.notification.service.FCMService;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +25,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class MemberDeviceServiceImpl implements MemberDeviceService {
 
     private final MemberDeviceRepository memberDeviceRepository;
+    private final FCMService fcmService;
     private final MemberRepository memberRepository;
+
+    @Value("${notification.topic.anonymous}")
+    private String anonymousTopic;
 
     @Override
     public void registerDevice(String deviceToken, MemberDeviceType deviceType) {
@@ -47,6 +53,8 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
                 .orElseThrow(MemberNotFoundException::new);
 
         device.bindMember(member);
+
+        fcmService.unsubscribeTopic(List.of(deviceToken), anonymousTopic);
     }
 
     private void validateDuplicateDeviceToken(String deviceToken) {
