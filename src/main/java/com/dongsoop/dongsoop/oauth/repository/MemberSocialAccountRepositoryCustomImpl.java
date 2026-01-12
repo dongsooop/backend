@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.oauth.repository;
 
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountDto;
+import com.dongsoop.dongsoop.oauth.entity.MemberSocialAccount;
 import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
 import com.dongsoop.dongsoop.oauth.entity.QMemberSocialAccount;
 import com.dongsoop.dongsoop.role.entity.QMemberRole;
@@ -55,5 +56,16 @@ public class MemberSocialAccountRepositoryCustomImpl implements MemberSocialAcco
                 roles
         );
         return Optional.of(dto);
+    }
+
+    public Optional<MemberSocialAccount> findByMemberIdAndProviderType(Long memberId,
+                                                                       OAuthProviderType providerType) {
+        MemberSocialAccount result = queryFactory
+                .selectFrom(memberSocialAccount)
+                .where(memberSocialAccount.member.id.eq(memberId)
+                        .and(memberSocialAccount.id.providerType.eq(providerType)))
+                .fetchFirst();
+
+        return Optional.ofNullable(result);
     }
 }

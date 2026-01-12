@@ -20,6 +20,7 @@ import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.validate.MemberDuplicationValidator;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
+import com.dongsoop.dongsoop.oauth.service.OAuth2Service;
 import com.dongsoop.dongsoop.report.validator.ReportValidator;
 import com.dongsoop.dongsoop.role.entity.MemberRole;
 import com.dongsoop.dongsoop.role.entity.Role;
@@ -57,6 +58,7 @@ public class MemberServiceImpl implements MemberService {
     private final MemberDuplicationValidator memberDuplicationValidator;
     private final ReportValidator reportValidator;
     private final MemberDeviceRepository memberDeviceRepository;
+    private final OAuth2Service oAuth2Service;
 
     @Override
     @Transactional
@@ -190,6 +192,8 @@ public class MemberServiceImpl implements MemberService {
     public void deleteMember() {
         // 요청 사용자 id
         Long requesterId = getMemberIdByAuthentication();
+
+        this.oAuth2Service.withdrawMember(requesterId);
 
         // 가명처리
         String passwordAlias = generatePasswordAlias();
