@@ -7,5 +7,5 @@ public interface AppleJwkProvider {
 
     Map<String, AppleJwk> getAppleJwkMap();
 
-    void evictAppleJwkCache();
+    boolean evictAppleJwkCache();
 }

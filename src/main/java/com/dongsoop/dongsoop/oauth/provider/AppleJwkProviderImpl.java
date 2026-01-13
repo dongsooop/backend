@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
@@ -41,6 +42,7 @@ public class AppleJwkProviderImpl implements AppleJwkProvider {
     private String jwtUri;
 
     @Override
+    @Synchronized
     public Map<String, AppleJwk> getAppleJwkMap() {
         Cache cache = this.cacheManager.getCache(CACHE_NAME);
         if (cache != null) {
@@ -64,21 +66,26 @@ public class AppleJwkProviderImpl implements AppleJwkProvider {
     }
 
     @Override
-    public void evictAppleJwkCache() {
+    @Synchronized
+    public boolean evictAppleJwkCache() {
         LocalDate today = LocalDate.now();
 
         // 오늘 이미 비웠다면 실행하지 않음
         if (lastEvictedDate != null && lastEvictedDate.isEqual(today)) {
             log.info("Apple JWK cache already initialized today. Skipping eviction.");
-            return;
+            return false;
+        }
+
+        Cache cache = this.cacheManager.getCache(CACHE_NAME);
+        if (cache == null) {
+            return false;
         }
 
         // 캐시 비우기 실행
-        Cache cache = this.cacheManager.getCache(CACHE_NAME);
-        if (cache != null) {
-            cache.clear();
-            lastEvictedDate = today; // 실행 날짜 업데이트
-            log.info("Apple JWK cache evicted (At: {})", today);
-        }
+        cache.clear();
+        lastEvictedDate = today; // 실행 날짜 업데이트
+        log.info("Apple JWK cache evicted (At: {})", today);
+
+        return true;
     }
 }
