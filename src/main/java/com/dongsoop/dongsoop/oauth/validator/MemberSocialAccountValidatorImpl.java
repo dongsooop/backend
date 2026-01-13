@@ -36,8 +36,7 @@ public class MemberSocialAccountValidatorImpl implements MemberSocialAccountVali
 
         // 소셜 계정과 연결된 계정이 탈퇴된 경우 예외 처리
         if (socialAccount.isMemberDeleted()) {
-            log.info("linked account was deleted: providerId={} memberId={}", providerId,
-                    socialAccount.member().getId());
+            log.info("linked account was deleted: providerId={}", providerId);
             throw new LinkedAccountAlreadyDeletedException();
         }
 
