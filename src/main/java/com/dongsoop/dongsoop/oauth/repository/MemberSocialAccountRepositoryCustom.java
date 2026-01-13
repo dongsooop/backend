@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.oauth.repository;
 
+import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountDto;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountOverview;
 import com.dongsoop.dongsoop.oauth.entity.MemberSocialAccount;
@@ -15,4 +16,6 @@ public interface MemberSocialAccountRepositoryCustom {
                                                                 OAuthProviderType providerType);
 
     List<MemberSocialAccountOverview> findAllMemberSocialAccountOverview(Long memberId);
+
+    Optional<MemberSocialAccount> findByMemberAndProviderType(Member member, OAuthProviderType providerType);
 }

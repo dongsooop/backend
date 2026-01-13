@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.oauth.repository;
 
+import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountDto;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountOverview;
@@ -86,5 +87,16 @@ public class MemberSocialAccountRepositoryCustomImpl implements MemberSocialAcco
                 .from(memberSocialAccount)
                 .where(memberSocialAccount.member.id.eq(memberId))
                 .fetch();
+    }
+
+    @Override
+    public Optional<MemberSocialAccount> findByMemberAndProviderType(Member member, OAuthProviderType providerType) {
+        MemberSocialAccount result = queryFactory
+                .selectFrom(memberSocialAccount)
+                .where(memberSocialAccount.member.eq(member)
+                        .and(memberSocialAccount.id.providerType.eq(providerType)))
+                .fetchFirst();
+
+        return Optional.ofNullable(result);
     }
 }
