@@ -13,6 +13,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +39,7 @@ public class OAuth2ServiceImpl implements OAuth2Service {
                 .ifPresent(memberSocialAccountRepository::delete);
     }
 
+    @Transactional
     public void withdrawMember(Long memberId) {
         List<MemberSocialAccount> socialAccountList = this.memberSocialAccountRepository.findByMemberId(memberId);
         if (socialAccountList.isEmpty()) {
