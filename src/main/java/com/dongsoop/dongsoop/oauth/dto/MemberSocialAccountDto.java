@@ -18,6 +18,10 @@ public record MemberSocialAccountDto(
     }
 
     public boolean isMemberDeleted() {
+        if (this.member == null) {
+            return false;
+        }
+        
         return this.member.isDeleted();
     }
 }
