@@ -59,8 +59,12 @@ public class GoogleSocialProvider implements SocialProvider {
     @Override
     public String extractProviderId(OAuth2User oAuth2User, String registrationId) {
         Map<String, Object> attributes = oAuth2User.getAttributes();
+        Object sub = attributes.get(ATTRIBUTE_NAME);
+        if (sub == null) {
+            throw new InvalidGoogleTokenException();
+        }
 
-        return String.valueOf(attributes.get(ATTRIBUTE_NAME));
+        return sub.toString();
     }
 
     @Override
