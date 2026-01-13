@@ -49,7 +49,6 @@ public class MemberSocialAccountRepositoryCustomImpl implements MemberSocialAcco
         }
 
         Tuple firstRow = rows.get(0);
-        OAuthProviderType providerType = firstRow.get(memberSocialAccount.id.providerType);
         List<RoleType> roles = rows.stream()
                 .map(t -> t.get(memberRole.id.role))
                 .filter(Objects::nonNull)
