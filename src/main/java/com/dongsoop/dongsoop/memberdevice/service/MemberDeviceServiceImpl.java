@@ -16,12 +16,16 @@ import java.util.Map;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MemberDeviceServiceImpl implements MemberDeviceService {
 
     private final MemberDeviceRepository memberDeviceRepository;
@@ -54,7 +58,16 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
 
         device.bindMember(member);
 
-        fcmService.unsubscribeTopic(List.of(deviceToken), anonymousTopic);
+        this.handleDeviceBound(deviceToken);
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleDeviceBound(String deviceToken) {
+        try {
+            fcmService.unsubscribeTopic(List.of(deviceToken), anonymousTopic);
+        } catch (Exception e) {
+            log.warn("Failed to unsubscribe device from anonymous topic", e);
+        }
     }
 
     private void validateDuplicateDeviceToken(String deviceToken) {
