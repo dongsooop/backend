@@ -135,7 +135,7 @@ public class AppleSocialProvider implements SocialProvider {
 
             List<Map<String, Object>> keys = (List<Map<String, Object>>) responseBody.get("keys");
             Map<String, AppleJwk> appleJwkMap = keys.stream()
-                    .map(k -> objectMapper.convertValue(k, AppleJwk.class))
+                    .map(k -> this.objectMapper.convertValue(k, AppleJwk.class))
                     .collect(Collectors.toMap(AppleJwk::kid, jwk -> jwk, (first, second) -> first));
 
             String kid = this.extractKidFromToken(identityToken);
@@ -210,13 +210,10 @@ public class AppleSocialProvider implements SocialProvider {
             byte[] decodedHeader = Base64.getUrlDecoder().decode(parts[0]);
             String headerJson = new String(decodedHeader);
 
-            // JSON 파싱
-            ObjectMapper objectMapper = new ObjectMapper();
-            Map<String, Object> headerMap =
-                    objectMapper.readValue(headerJson, Map.class);
+            Map<String, Object> headerMap = this.objectMapper.readValue(headerJson, Map.class);
 
             return (String) headerMap.get("kid");
-        } catch (InvalidAppleTokenException | JsonProcessingException e) {
+        } catch (JsonProcessingException e) {
             log.info("invalid apple identity token: {}", e.getMessage());
             throw new InvalidAppleTokenException();
         }
