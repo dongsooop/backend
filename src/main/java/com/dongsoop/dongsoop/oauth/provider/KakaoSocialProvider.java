@@ -88,7 +88,7 @@ public class KakaoSocialProvider implements SocialProvider {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
-        MemberSocialAccountId socialAccountId = new MemberSocialAccountId(providerId, OAuthProviderType.APPLE);
+        MemberSocialAccountId socialAccountId = new MemberSocialAccountId(providerId, OAuthProviderType.KAKAO);
         if (this.memberSocialAccountRepository.existsById(socialAccountId)) {
             throw new AlreadyLinkedSocialAccountException();
         }

@@ -86,7 +86,7 @@ public class GoogleSocialProvider implements SocialProvider {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
-        MemberSocialAccountId socialAccountId = new MemberSocialAccountId(providerId, OAuthProviderType.APPLE);
+        MemberSocialAccountId socialAccountId = new MemberSocialAccountId(providerId, OAuthProviderType.GOOGLE);
         if (this.memberSocialAccountRepository.existsById(socialAccountId)) {
             throw new AlreadyLinkedSocialAccountException();
         }
