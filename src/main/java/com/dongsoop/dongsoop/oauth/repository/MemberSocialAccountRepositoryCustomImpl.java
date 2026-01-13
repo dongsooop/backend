@@ -7,6 +7,7 @@ import com.dongsoop.dongsoop.oauth.entity.MemberSocialAccount;
 import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
 import com.dongsoop.dongsoop.oauth.entity.QMemberSocialAccount;
 import com.dongsoop.dongsoop.role.entity.QMemberRole;
+import com.dongsoop.dongsoop.role.entity.Role;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Projections;
@@ -48,7 +49,9 @@ public class MemberSocialAccountRepositoryCustomImpl implements MemberSocialAcco
         Tuple firstRow = rows.get(0);
         OAuthProviderType providerType = firstRow.get(memberSocialAccount.id.providerType);
         List<RoleType> roles = rows.stream()
-                .map(r -> Objects.requireNonNull(r.get(memberRole.id.role)).getRoleType())
+                .map(t -> t.get(memberRole.id.role))
+                .filter(Objects::nonNull)
+                .map(Role::getRoleType)
                 .distinct()
                 .collect(Collectors.toList());
 
