@@ -86,8 +86,12 @@ public class AppleSocialProvider implements SocialProvider {
     @Override
     public String extractProviderId(OAuth2User oAuth2User, String registrationId) {
         Map<String, Object> attributes = oAuth2User.getAttributes();
+        Object sub = attributes.get(appleUserNameAttribute);
+        if (sub == null) {
+            throw new InvalidAppleTokenException();
+        }
 
-        return String.valueOf(attributes.get(appleUserNameAttribute));
+        return sub.toString();
     }
 
     @Override
