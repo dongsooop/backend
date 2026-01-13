@@ -60,9 +60,15 @@ public class AppleJwkProviderImpl implements AppleJwkProvider {
         }
 
         List<Map<String, Object>> keys = (List<Map<String, Object>>) responseBody.get("keys");
-        return keys.stream()
+        Map<String, AppleJwk> jwkMap = keys.stream()
                 .map(k -> this.objectMapper.convertValue(k, AppleJwk.class))
                 .collect(Collectors.toMap(AppleJwk::kid, jwk -> jwk, (first, second) -> first));
+
+        if (cache != null) {
+            cache.put(APPLE_JWK_CACHE_KEY, jwkMap);
+        }
+
+        return jwkMap;
     }
 
     @Override
