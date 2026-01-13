@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.oauth.provider;
 
+import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.exception.TokenExpiredException;
 import com.dongsoop.dongsoop.jwt.exception.TokenMalformedException;
 import com.dongsoop.dongsoop.jwt.exception.TokenSignatureException;
@@ -24,10 +25,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.UnsupportedJwtException;
-import io.jsonwebtoken.security.SignatureException;
 import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -64,6 +61,7 @@ public class AppleSocialProvider implements SocialProvider {
     private final MemberSocialAccountRepository memberSocialAccountRepository;
     private final ObjectMapper objectMapper;
     private final AppleJwkProvider appleJwkProvider;
+    private final JwtUtil jwtUtil;
 
     @Value("${oauth.apple.issuer}")
     private String issuer;
@@ -138,12 +136,19 @@ public class AppleSocialProvider implements SocialProvider {
         try {
             String kid = this.extractKidFromToken(identityToken);
             AppleJwk appleJwk = getJwk(kid);
+            PublicKey publicKey = this.getApplePublicKey(appleJwk);
+            Claims claims = this.jwtUtil.getClaims(identityToken, publicKey, issuer, appleClientId);
 
-            Claims claims = this.getClaims(identityToken, appleJwk);
             return claims.getSubject();
+            
         } catch (IllegalArgumentException | ExpiredJwtException e) {
             log.error("invalid apple identity token: {}", e.getMessage());
             throw new InvalidAppleTokenException();
+
+        } catch (TokenExpiredException | TokenMalformedException | TokenSignatureException |
+                 TokenUnsupportedException | InvalidAppleTokenException e) {
+            throw e;
+
         } catch (Exception e) {
             log.error("apple login error: {}", e.getMessage());
             throw new InvalidAppleTokenException();
@@ -195,28 +200,6 @@ public class AppleSocialProvider implements SocialProvider {
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             log.error("failed to generate apple public key: {}", e.getMessage());
             throw new OAuth2AuthenticationException("애플 공개키 생성에 실패했습니다.");
-        }
-    }
-
-    private Claims getClaims(String identityToken, AppleJwk appleJwk) {
-        try {
-            PublicKey applePublicKey = this.getApplePublicKey(appleJwk);
-
-            return Jwts.parser()
-                    .verifyWith(applePublicKey)
-                    .requireIssuer(issuer)
-                    .requireAudience(appleClientId)
-                    .build()
-                    .parseSignedClaims(identityToken)
-                    .getPayload();
-        } catch (ExpiredJwtException e) {
-            throw new TokenExpiredException(e);
-        } catch (MalformedJwtException | IllegalArgumentException e) {
-            throw new TokenMalformedException(e);
-        } catch (SignatureException e) {
-            throw new TokenSignatureException(e);
-        } catch (UnsupportedJwtException e) {
-            throw new TokenUnsupportedException(e);
         }
     }
 
