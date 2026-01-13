@@ -111,7 +111,10 @@ public class GoogleSocialProvider implements SocialProvider {
                     Map.class
             );
 
-            Map<String, Object> body = (Map<String, Object>) response.getBody();
+            Map<String, Object> body = response.getBody();
+            if (body == null || body.get(googleUserNameAttribute) == null) {
+                throw new InvalidGoogleTokenException();
+            }
 
             return body.get(googleUserNameAttribute).toString();
         } catch (HttpClientErrorException e) {
