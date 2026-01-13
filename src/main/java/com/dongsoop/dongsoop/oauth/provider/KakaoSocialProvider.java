@@ -10,7 +10,6 @@ import com.dongsoop.dongsoop.oauth.entity.MemberSocialAccountId;
 import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
 import com.dongsoop.dongsoop.oauth.exception.AlreadyLinkedProviderTypeException;
 import com.dongsoop.dongsoop.oauth.exception.AlreadyLinkedSocialAccountException;
-import com.dongsoop.dongsoop.oauth.exception.InvalidGoogleTokenException;
 import com.dongsoop.dongsoop.oauth.exception.InvalidKakaoTokenException;
 import com.dongsoop.dongsoop.oauth.repository.MemberSocialAccountRepository;
 import com.dongsoop.dongsoop.oauth.validator.MemberSocialAccountValidator;
@@ -64,7 +63,7 @@ public class KakaoSocialProvider implements SocialProvider {
         Map<String, Object> attributes = oAuth2User.getAttributes();
         Object sub = attributes.get(ATTRIBUTE_NAME);
         if (sub == null) {
-            throw new InvalidGoogleTokenException();
+            throw new InvalidKakaoTokenException();
         }
 
         return sub.toString();
