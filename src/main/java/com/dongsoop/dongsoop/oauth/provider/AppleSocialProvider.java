@@ -180,10 +180,10 @@ public class AppleSocialProvider implements SocialProvider {
             // KeyFactory를 통해 최종 PublicKey 객체 생성
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
             return keyFactory.generatePublic(publicKeySpec);
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException ignored) {
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            log.error("failed to generate apple public key: {}", e.getMessage());
+            throw new OAuth2AuthenticationException("애플 공개키 생성에 실패했습니다.");
         }
-
-        throw new OAuth2AuthenticationException("애플 공개키 생성에 실패했습니다.");
     }
 
     private Claims getClaims(String identityToken, AppleJwk appleJwk) {
