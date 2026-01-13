@@ -60,6 +60,6 @@ public class TokenGenerator {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-        return jwtUtil.issue(expireAt, id, roleList, JWTType.REFRESH);
+        return jwtUtil.issue(expireAt, id, roleList, JWTType.SOCIAL);
     }
 }
