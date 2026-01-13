@@ -45,7 +45,9 @@ public class LoginResponse {
         this.id = member.getId();
         this.nickname = member.getNickname();
         this.email = member.getEmail();
-        this.departmentType = member.getDepartment().getId();
+        if (member.getDepartment() != null) {
+            this.departmentType = member.getDepartment().getId();
+        }
         this.role = socialAccountDto.roleType();
 
         this.accessToken = accessToken;
