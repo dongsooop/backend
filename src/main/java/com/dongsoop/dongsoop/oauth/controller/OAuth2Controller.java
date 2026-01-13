@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.oauth.controller;
 
+import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.member.dto.LoginResponse;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
@@ -59,8 +60,10 @@ public class OAuth2Controller {
 
     @PostMapping("/kakao")
     public ResponseEntity<LoginResponse> kakaoLogin(@RequestBody @Valid SocialLoginRequest request) {
-        Long memberId = this.memberService.getMemberIdByAuthentication();
         Authentication authentication = this.kakaoSocialProvider.login(request.token());
+        Long memberId = this.getMemberIdByAuthentication(authentication);
+
+        memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
 
         LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId);
         return ResponseEntity.ok(response);
@@ -68,8 +71,10 @@ public class OAuth2Controller {
 
     @PostMapping("/google")
     public ResponseEntity<LoginResponse> googleLogin(@RequestBody @Valid SocialLoginRequest request) {
-        Long memberId = this.memberService.getMemberIdByAuthentication();
         Authentication authentication = this.googleSocialProvider.login(request.token());
+        Long memberId = this.getMemberIdByAuthentication(authentication);
+
+        memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
 
         LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId);
         return ResponseEntity.ok(response);
@@ -77,11 +82,21 @@ public class OAuth2Controller {
 
     @PostMapping("/apple")
     public ResponseEntity<LoginResponse> appleLogin(@RequestBody @Valid SocialLoginRequest request) {
-        Long memberId = this.memberService.getMemberIdByAuthentication();
         Authentication authentication = this.appleSocialProvider.login(request.token());
+        Long memberId = this.getMemberIdByAuthentication(authentication);
+        memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
 
         LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId);
         return ResponseEntity.ok(response);
+    }
+
+    private Long getMemberIdByAuthentication(Authentication authentication) {
+        Object principal = authentication.getPrincipal();
+        if (!(principal instanceof Long memberId)) {
+            throw new NotAuthenticationException();
+        }
+
+        return memberId;
     }
 
     @PostMapping("/link/google")
