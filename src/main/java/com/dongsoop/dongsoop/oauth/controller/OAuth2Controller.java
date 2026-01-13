@@ -41,7 +41,7 @@ public class OAuth2Controller {
     private final GoogleSocialProvider googleSocialProvider;
     private final AppleSocialProvider appleSocialProvider;
 
-    @GetMapping
+    @GetMapping("/login")
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<LoginResponse> acceptLogin(OAuthLoginRequest request) {
         Long memberId = this.memberService.getMemberIdByAuthentication();
@@ -124,7 +124,7 @@ public class OAuth2Controller {
                 .build();
     }
 
-    @GetMapping
+    @GetMapping("/state")
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<List<MemberSocialAccountOverview>> getSocialAccountState() {
         List<MemberSocialAccountOverview> socialAccountState = this.oAuth2Service.getSocialAccountState(
