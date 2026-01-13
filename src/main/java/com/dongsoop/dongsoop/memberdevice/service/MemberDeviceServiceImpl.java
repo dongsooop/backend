@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
@@ -31,6 +32,7 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
     private final MemberDeviceRepository memberDeviceRepository;
     private final FCMService fcmService;
     private final MemberRepository memberRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${notification.topic.anonymous}")
     private String anonymousTopic;
@@ -58,7 +60,8 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
 
         device.bindMember(member);
 
-        this.handleDeviceBound(deviceToken);
+        // 트랜잭션 커밋 후 익명 토픽 구독 해제를 위해 이벤트 발행
+        eventPublisher.publishEvent(deviceToken);
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
