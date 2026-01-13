@@ -51,6 +51,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 @Component
@@ -95,6 +96,7 @@ public class AppleSocialProvider implements SocialProvider {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Authentication login(String identityToken) {
         String providerId = this.getProviderId(identityToken);
 
@@ -114,6 +116,7 @@ public class AppleSocialProvider implements SocialProvider {
     }
 
     @Override
+    @Transactional
     public LocalDateTime linkSocialAccount(Long memberId, SocialAccountLinkRequest request) {
         String providerId = this.getProviderId(request.providerToken());
         Member member = memberRepository.findById(memberId)

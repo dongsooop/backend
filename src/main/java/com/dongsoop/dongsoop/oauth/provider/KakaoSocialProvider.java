@@ -32,6 +32,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
@@ -70,6 +71,7 @@ public class KakaoSocialProvider implements SocialProvider {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Authentication login(String providerToken) {
         String providerId = this.getProviderId(providerToken);
 
@@ -89,6 +91,7 @@ public class KakaoSocialProvider implements SocialProvider {
     }
 
     @Override
+    @Transactional
     public LocalDateTime linkSocialAccount(Long memberId, SocialAccountLinkRequest request) {
         String providerId = this.getProviderId(request.providerToken());
         Member member = memberRepository.findById(memberId)
