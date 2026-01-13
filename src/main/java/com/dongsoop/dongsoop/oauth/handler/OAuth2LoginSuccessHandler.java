@@ -40,8 +40,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
         String targetUrl = determineTargetUrl(auth);
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
-        log.info("OAuth2 login success. memberId: {}, redirect to: {}",
-                oAuth2User.getMemberId(), targetUrl);
+        log.info("OAuth2 login success. memberId: {}", oAuth2User.getMemberId());
     }
 
     protected String determineTargetUrl(Authentication authentication) {
