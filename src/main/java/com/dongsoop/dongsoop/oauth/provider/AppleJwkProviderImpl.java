@@ -60,6 +60,11 @@ public class AppleJwkProviderImpl implements AppleJwkProvider {
         }
 
         List<Map<String, Object>> keys = (List<Map<String, Object>>) responseBody.get("keys");
+        if (keys == null || keys.isEmpty()) {
+            log.error("failed to fetch apple jwk: keys field is null or empty");
+            throw new InvalidAppleTokenException();
+        }
+
         Map<String, AppleJwk> jwkMap = keys.stream()
                 .map(k -> this.objectMapper.convertValue(k, AppleJwk.class))
                 .collect(Collectors.toMap(AppleJwk::kid, jwk -> jwk, (first, second) -> first));
