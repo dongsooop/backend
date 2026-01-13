@@ -116,6 +116,10 @@ public class KakaoSocialProvider implements SocialProvider {
 
             // 카카오의 응답값 파싱
             Map<String, Object> body = response.getBody();
+            if (body == null || body.get(kakaoUserNameAttribute) == null) {
+                throw new InvalidKakaoTokenException();
+            }
+
             return body.getOrDefault(kakaoUserNameAttribute, null).toString();
         } catch (HttpClientErrorException e) {
             throw new InvalidKakaoTokenException();
