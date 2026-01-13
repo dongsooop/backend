@@ -42,7 +42,9 @@ public class OAuth2Controller {
     private final GoogleSocialProvider googleSocialProvider;
     private final AppleSocialProvider appleSocialProvider;
 
+    // 임시 발급한 토큰으로 검증
     @PostMapping("/login")
+    @Secured(RoleType.USER_ROLE)
     public ResponseEntity<LoginResponse> acceptLogin(@RequestBody @Valid OAuthLoginRequest request) {
         Authentication authentication = SecurityContextHolder.getContext()
                 .getAuthentication();
