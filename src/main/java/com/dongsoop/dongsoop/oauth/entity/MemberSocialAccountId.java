@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
@@ -19,6 +20,7 @@ public class MemberSocialAccountId {
     @Column(name = "provider_type")
     private OAuthProviderType providerType;
 
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -27,16 +29,12 @@ public class MemberSocialAccountId {
             return false;
         }
         MemberSocialAccountId that = (MemberSocialAccountId) o;
-        return this.providerId.equals(that.providerId)
-                && this.providerType.equals(that.providerType);
+        return Objects.equals(this.providerId, that.providerId)
+                && Objects.equals(this.providerType, that.providerType);
     }
 
+    @Override
     public int hashCode() {
-        int result = 17;
-
-        result = 31 * result + (providerId != null ? providerId.hashCode() : 0);
-        result = 31 * result + (providerType != null ? providerType.hashCode() : 0);
-
-        return result;
+        return Objects.hash(this.providerId, this.providerType);
     }
 }
