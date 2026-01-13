@@ -127,13 +127,25 @@ public class AppleSocialProvider implements SocialProvider {
     private String getProviderId(String identityToken) {
         try {
             ResponseEntity<Map> response = restTemplate.getForEntity(jwtUri, Map.class);
-            List<Map<String, Object>> keys = (List<Map<String, Object>>) response.getBody().get("keys");
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody == null) {
+                log.error("failed to fetch apple jwk: response body is null");
+                throw new InvalidAppleTokenException();
+            }
+
+            List<Map<String, Object>> keys = (List<Map<String, Object>>) responseBody.get("keys");
             Map<String, AppleJwk> appleJwkMap = keys.stream()
                     .map(k -> objectMapper.convertValue(k, AppleJwk.class))
                     .collect(Collectors.toMap(AppleJwk::kid, jwk -> jwk, (first, second) -> first));
 
             String kid = this.extractKidFromToken(identityToken);
-            Claims claims = this.getClaims(identityToken, appleJwkMap.get(kid));
+            AppleJwk appleJwk = appleJwkMap.get(kid);
+            if (appleJwk == null) {
+                log.error("apple jwk not found for kid: {}", kid);
+                throw new InvalidAppleTokenException();
+            }
+
+            Claims claims = this.getClaims(identityToken, appleJwk);
             return claims.getSubject();
         } catch (IllegalArgumentException | ExpiredJwtException e) {
             log.error("invalid apple identity token: {}", e.getMessage());
