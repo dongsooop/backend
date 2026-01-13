@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.memberdevice.service;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
+import com.dongsoop.dongsoop.memberdevice.dto.DeviceBoundEvent;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
@@ -61,13 +62,13 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
         device.bindMember(member);
 
         // 트랜잭션 커밋 후 익명 토픽 구독 해제를 위해 이벤트 발행
-        eventPublisher.publishEvent(deviceToken);
+        eventPublisher.publishEvent(new DeviceBoundEvent(deviceToken));
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleDeviceBound(String deviceToken) {
+    public void handleDeviceBound(DeviceBoundEvent event) {
         try {
-            fcmService.unsubscribeTopic(List.of(deviceToken), anonymousTopic);
+            fcmService.unsubscribeTopic(List.of(event.deviceToken()), anonymousTopic);
         } catch (Exception e) {
             log.warn("Failed to unsubscribe device from anonymous topic", e);
         }
