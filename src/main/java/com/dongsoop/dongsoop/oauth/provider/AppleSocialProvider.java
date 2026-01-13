@@ -39,11 +39,9 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -52,7 +50,6 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 
 @Component
 @RequiredArgsConstructor
@@ -60,13 +57,13 @@ import org.springframework.web.client.RestTemplate;
 public class AppleSocialProvider implements SocialProvider {
 
     private static final String SERVICE_NAME = "apple";
-    private static final RestTemplate restTemplate = new RestTemplate();
 
     private final MemberSocialAccountValidator memberSocialAccountValidator;
     private final MemberRepository memberRepository;
     private final MemberRoleRepository memberRoleRepository;
     private final MemberSocialAccountRepository memberSocialAccountRepository;
     private final ObjectMapper objectMapper;
+    private final AppleJwkProvider appleJwkProvider;
 
     @Value("${oauth.apple.issuer}")
     private String issuer;
@@ -76,9 +73,6 @@ public class AppleSocialProvider implements SocialProvider {
 
     @Value("${spring.security.oauth2.client.registration.apple.client-id}")
     private String appleClientId;
-
-    @Value("${spring.security.oauth2.client.provider.apple.jwk-set-uri}")
-    private String jwtUri;
 
     public String serviceName() {
         return SERVICE_NAME;
@@ -142,24 +136,8 @@ public class AppleSocialProvider implements SocialProvider {
 
     private String getProviderId(String identityToken) {
         try {
-            ResponseEntity<Map> response = restTemplate.getForEntity(jwtUri, Map.class);
-            Map<String, Object> responseBody = response.getBody();
-            if (responseBody == null) {
-                log.error("failed to fetch apple jwk: response body is null");
-                throw new InvalidAppleTokenException();
-            }
-
-            List<Map<String, Object>> keys = (List<Map<String, Object>>) responseBody.get("keys");
-            Map<String, AppleJwk> appleJwkMap = keys.stream()
-                    .map(k -> this.objectMapper.convertValue(k, AppleJwk.class))
-                    .collect(Collectors.toMap(AppleJwk::kid, jwk -> jwk, (first, second) -> first));
-
             String kid = this.extractKidFromToken(identityToken);
-            AppleJwk appleJwk = appleJwkMap.get(kid);
-            if (appleJwk == null) {
-                log.error("apple jwk not found for kid: {}", kid);
-                throw new InvalidAppleTokenException();
-            }
+            AppleJwk appleJwk = getJwk(kid);
 
             Claims claims = this.getClaims(identityToken, appleJwk);
             return claims.getSubject();
@@ -170,6 +148,29 @@ public class AppleSocialProvider implements SocialProvider {
             log.error("apple login error: {}", e.getMessage());
             throw new InvalidAppleTokenException();
         }
+    }
+
+    private AppleJwk getJwk(String kid) {
+        Map<String, AppleJwk> appleJwkMap = this.appleJwkProvider.getAppleJwkMap();
+        AppleJwk appleJwk = appleJwkMap.get(kid);
+
+        // 1차 시도 성공 시 반환
+        if (appleJwk != null) {
+            return appleJwk;
+        }
+
+        // 2차 시도: 캐시 제거 후 재조회
+        this.appleJwkProvider.evictAppleJwkCache(); // 캐시 제거
+
+        appleJwkMap = this.appleJwkProvider.getAppleJwkMap();
+
+        appleJwk = appleJwkMap.get(kid);
+        if (appleJwk == null) {
+            log.error("apple jwk not found for kid: {}", kid);
+            throw new InvalidAppleTokenException();
+        }
+
+        return appleJwk;
     }
 
     private PublicKey getApplePublicKey(AppleJwk appleJwk) {
