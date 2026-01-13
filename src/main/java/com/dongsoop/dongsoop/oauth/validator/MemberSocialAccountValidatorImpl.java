@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.oauth.validator;
 
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountDto;
+import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
 import com.dongsoop.dongsoop.oauth.exception.AccountNotLinkedException;
 import com.dongsoop.dongsoop.oauth.exception.LinkedAccountAlreadyDeletedException;
 import com.dongsoop.dongsoop.oauth.repository.MemberSocialAccountRepository;
@@ -18,9 +19,10 @@ public class MemberSocialAccountValidatorImpl implements MemberSocialAccountVali
     private final ReportValidator reportValidator;
 
     @Override
-    public MemberSocialAccountDto validate(String providerId) {
+    public MemberSocialAccountDto validate(String providerId, OAuthProviderType providerType) {
         // 소셜 계정과 연동된 회원이 있는지 확인
-        MemberSocialAccountDto socialAccount = memberSocialAccountRepository.findMemberSocialAccountDTO(providerId)
+        MemberSocialAccountDto socialAccount = memberSocialAccountRepository.findMemberSocialAccountDTO(providerId,
+                        providerType)
                 .orElseThrow(() -> {
                     log.info("social account not linked: providerId={}", providerId);
                     return new AccountNotLinkedException();

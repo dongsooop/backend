@@ -69,7 +69,8 @@ public class KakaoSocialProvider implements SocialProvider {
         String providerId = this.getProviderId(providerToken);
 
         // 회원 검증
-        MemberSocialAccountDto socialAccount = memberSocialAccountValidator.validate(providerId);
+        MemberSocialAccountDto socialAccount = memberSocialAccountValidator.validate(providerId,
+                OAuthProviderType.KAKAO);
 
         Long memberId = socialAccount.member().getId();
 

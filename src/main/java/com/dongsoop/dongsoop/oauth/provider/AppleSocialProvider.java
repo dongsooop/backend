@@ -94,7 +94,8 @@ public class AppleSocialProvider implements SocialProvider {
         String providerId = this.getProviderId(identityToken);
 
         // 회원 검증
-        MemberSocialAccountDto socialAccount = memberSocialAccountValidator.validate(providerId);
+        MemberSocialAccountDto socialAccount = memberSocialAccountValidator.validate(providerId,
+                OAuthProviderType.APPLE);
 
         Long memberId = socialAccount.member().getId();
 

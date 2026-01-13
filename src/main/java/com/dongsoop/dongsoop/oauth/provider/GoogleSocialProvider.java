@@ -67,7 +67,8 @@ public class GoogleSocialProvider implements SocialProvider {
     public Authentication login(String providerToken) {
         String providerId = this.getProviderId(providerToken);
 
-        MemberSocialAccountDto socialAccount = memberSocialAccountValidator.validate(providerId);
+        MemberSocialAccountDto socialAccount = memberSocialAccountValidator.validate(providerId,
+                OAuthProviderType.GOOGLE);
 
         Long memberId = socialAccount.member().getId();
 

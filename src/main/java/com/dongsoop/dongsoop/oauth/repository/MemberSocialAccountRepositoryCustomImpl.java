@@ -30,7 +30,8 @@ public class MemberSocialAccountRepositoryCustomImpl implements MemberSocialAcco
     private final QMemberRole memberRole = QMemberRole.memberRole;
 
     @Override
-    public Optional<MemberSocialAccountDto> findMemberSocialAccountDTO(String providerId) {
+    public Optional<MemberSocialAccountDto> findMemberSocialAccountDTO(String providerId,
+                                                                       OAuthProviderType providerType) {
         List<Tuple> rows = queryFactory
                 .select(member,
                         memberSocialAccount.id.providerId,
@@ -39,7 +40,8 @@ public class MemberSocialAccountRepositoryCustomImpl implements MemberSocialAcco
                 .from(memberSocialAccount)
                 .leftJoin(memberSocialAccount.member, member)
                 .leftJoin(memberRole).on(memberRole.id.member.eq(member))
-                .where(memberSocialAccount.id.providerId.eq(providerId))
+                .where(memberSocialAccount.id.providerId.eq(providerId)
+                        .and(memberSocialAccount.id.providerType.eq(providerType)))
                 .fetch();
 
         if (rows.isEmpty()) {

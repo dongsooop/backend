@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public interface MemberSocialAccountRepositoryCustom {
 
-    Optional<MemberSocialAccountDto> findMemberSocialAccountDTO(String providerId);
+    Optional<MemberSocialAccountDto> findMemberSocialAccountDTO(String providerId, OAuthProviderType providerType);
 
     Optional<MemberSocialAccount> findByMemberIdAndProviderType(Long memberId,
                                                                 OAuthProviderType providerType);
