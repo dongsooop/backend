@@ -24,7 +24,6 @@ import com.dongsoop.dongsoop.role.repository.MemberRoleRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
 import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -140,8 +139,8 @@ public class AppleSocialProvider implements SocialProvider {
             Claims claims = this.jwtUtil.getClaims(identityToken, publicKey, issuer, appleClientId);
 
             return claims.getSubject();
-            
-        } catch (IllegalArgumentException | ExpiredJwtException e) {
+
+        } catch (IllegalArgumentException e) {
             log.error("invalid apple identity token: {}", e.getMessage());
             throw new InvalidAppleTokenException();
 
