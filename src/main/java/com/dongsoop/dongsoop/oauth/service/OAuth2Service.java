@@ -4,10 +4,11 @@ import com.dongsoop.dongsoop.member.dto.LoginResponse;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountOverview;
 import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
 import java.util.List;
+import org.springframework.security.core.Authentication;
 
 public interface OAuth2Service {
 
-    LoginResponse acceptLogin(Long memberId);
+    LoginResponse acceptLogin(Authentication authentication, Long memberId);
 
     void withdrawMemberWithProviderType(Long memberId, OAuthProviderType providerType);
 

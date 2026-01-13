@@ -19,6 +19,8 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -43,40 +45,42 @@ public class OAuth2Controller {
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<LoginResponse> acceptLogin(OAuthLoginRequest request) {
         Long memberId = this.memberService.getMemberIdByAuthentication();
+        Authentication authentication = SecurityContextHolder.getContext()
+                .getAuthentication();
 
         // 알림 구독 설정
         memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
 
         // 로그인 시 필요한 데이터 생성
-        LoginResponse loginResponse = oAuth2Service.acceptLogin(memberId);
+        LoginResponse loginResponse = oAuth2Service.acceptLogin(authentication, memberId);
 
         return ResponseEntity.ok(loginResponse);
     }
 
     @PostMapping("/kakao")
     public ResponseEntity<LoginResponse> kakaoLogin(@RequestBody @Valid SocialLoginRequest request) {
-        // 서비스 로직 호출
-        Long memberId = this.kakaoSocialProvider.login(request.token());
+        Long memberId = this.memberService.getMemberIdByAuthentication();
+        Authentication authentication = this.kakaoSocialProvider.login(request.token());
 
-        LoginResponse response = oAuth2Service.acceptLogin(memberId);
+        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/google")
     public ResponseEntity<LoginResponse> googleLogin(@RequestBody @Valid SocialLoginRequest request) {
-        // 서비스 로직 호출
-        Long memberId = this.googleSocialProvider.login(request.token());
+        Long memberId = this.memberService.getMemberIdByAuthentication();
+        Authentication authentication = this.googleSocialProvider.login(request.token());
 
-        LoginResponse response = oAuth2Service.acceptLogin(memberId);
+        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/apple")
     public ResponseEntity<LoginResponse> appleLogin(@RequestBody @Valid SocialLoginRequest request) {
-        // 서비스 로직 호출
-        Long memberId = this.appleSocialProvider.login(request.token());
+        Long memberId = this.memberService.getMemberIdByAuthentication();
+        Authentication authentication = this.appleSocialProvider.login(request.token());
 
-        LoginResponse response = oAuth2Service.acceptLogin(memberId);
+        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId);
         return ResponseEntity.ok(response);
     }
 

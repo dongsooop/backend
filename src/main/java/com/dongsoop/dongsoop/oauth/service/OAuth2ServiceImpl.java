@@ -12,7 +12,6 @@ import com.dongsoop.dongsoop.oauth.repository.MemberSocialAccountRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -24,10 +23,7 @@ public class OAuth2ServiceImpl implements OAuth2Service {
     private final TokenGenerator tokenGenerator;
 
     @Override
-    public LoginResponse acceptLogin(Long memberId) {
-        Authentication authentication = SecurityContextHolder.getContext()
-                .getAuthentication();
-
+    public LoginResponse acceptLogin(Authentication authentication, Long memberId) {
         String accessToken = tokenGenerator.generateAccessToken(authentication);
         String refreshToken = tokenGenerator.generateRefreshToken(authentication);
 

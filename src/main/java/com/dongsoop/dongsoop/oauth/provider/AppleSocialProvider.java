@@ -17,6 +17,8 @@ import com.dongsoop.dongsoop.oauth.exception.AlreadyLinkedSocialAccountException
 import com.dongsoop.dongsoop.oauth.exception.InvalidAppleTokenException;
 import com.dongsoop.dongsoop.oauth.repository.MemberSocialAccountRepository;
 import com.dongsoop.dongsoop.oauth.validator.MemberSocialAccountValidator;
+import com.dongsoop.dongsoop.role.entity.Role;
+import com.dongsoop.dongsoop.role.repository.MemberRoleRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
@@ -33,6 +35,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPublicKeySpec;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -40,6 +43,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
@@ -55,6 +62,7 @@ public class AppleSocialProvider implements SocialProvider {
 
     private final MemberSocialAccountValidator memberSocialAccountValidator;
     private final MemberRepository memberRepository;
+    private final MemberRoleRepository memberRoleRepository;
     private final MemberSocialAccountRepository memberSocialAccountRepository;
     private final ObjectMapper objectMapper;
 
@@ -82,12 +90,21 @@ public class AppleSocialProvider implements SocialProvider {
     }
 
     @Override
-    public Long login(String identityToken) {
+    public Authentication login(String identityToken) {
         String providerId = this.getProviderId(identityToken);
 
         // 회원 검증
         MemberSocialAccountDto socialAccount = memberSocialAccountValidator.validate(providerId);
-        return socialAccount.member().getId();
+
+        Long memberId = socialAccount.member().getId();
+
+        List<Role> allRoleByMemberId = memberRoleRepository.findAllByMemberId(memberId);
+
+        Collection<? extends GrantedAuthority> roles = allRoleByMemberId.stream()
+                .map(role -> new SimpleGrantedAuthority(role.getRoleType().name()))
+                .toList();
+
+        return new UsernamePasswordAuthenticationToken(memberId, null, roles);
     }
 
     @Override
