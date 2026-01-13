@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -23,9 +24,15 @@ public class AppleJwkProviderImpl implements AppleJwkProvider {
 
     private static final String CACHE_NAME = "appleJwks";
     private static final String APPLE_JWK_CACHE_KEY = "jwks";
-    private static final RestTemplate restTemplate = new RestTemplate();
-
+    private static final RestTemplate restTemplate;
     private static LocalDate lastEvictedDate = LocalDate.now();
+
+    static {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(5000); // 5 seconds
+        requestFactory.setReadTimeout(5000); // 5 seconds
+        restTemplate = new RestTemplate(requestFactory);
+    }
 
     private final CacheManager cacheManager;
     private final ObjectMapper objectMapper;
