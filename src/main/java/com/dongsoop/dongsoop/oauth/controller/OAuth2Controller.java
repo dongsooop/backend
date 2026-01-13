@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.oauth.controller;
 
 import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
+import com.dongsoop.dongsoop.jwt.TokenGenerator;
 import com.dongsoop.dongsoop.member.dto.LoginResponse;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -41,6 +43,7 @@ public class OAuth2Controller {
     private final KakaoSocialProvider kakaoSocialProvider;
     private final GoogleSocialProvider googleSocialProvider;
     private final AppleSocialProvider appleSocialProvider;
+    private final TokenGenerator tokenGenerator;
 
     // 임시 발급한 토큰으로 검증
     @PostMapping("/login")
@@ -57,6 +60,16 @@ public class OAuth2Controller {
         LoginResponse loginResponse = oAuth2Service.acceptLogin(authentication, memberId);
 
         return ResponseEntity.ok(loginResponse);
+    }
+
+    // 애플 로그인 리다이렉트 방식 콜백
+    @PostMapping("/apple/callback")
+    public String appleCallback(@RequestParam("id_token") String idToken) {
+        Authentication authentication = this.appleSocialProvider.login(idToken);
+
+        String socialToken = tokenGenerator.generateSocialToken(authentication);
+
+        return "redirect:dongsoop://login-success?token=" + socialToken;
     }
 
     @PostMapping("/kakao")
