@@ -130,9 +130,9 @@ public class OAuth2Controller {
 
     @DeleteMapping("/{providerType}")
     @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> withdrawMember(@PathVariable OAuthProviderType providerType) {
+    public ResponseEntity<Void> unlinkSocialAccount(@PathVariable OAuthProviderType providerType) {
         Long memberId = this.memberService.getMemberIdByAuthentication();
-        oAuth2Service.withdrawMemberWithProviderType(memberId, providerType);
+        oAuth2Service.unlinkMemberWithProviderType(memberId, providerType);
 
         return ResponseEntity.noContent()
                 .build();

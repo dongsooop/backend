@@ -193,7 +193,7 @@ public class MemberServiceImpl implements MemberService {
         // 요청 사용자 id
         Long requesterId = getMemberIdByAuthentication();
 
-        this.oAuth2Service.withdrawMember(requesterId);
+        this.oAuth2Service.unlinkMember(requesterId);
 
         // 가명처리
         String passwordAlias = generatePasswordAlias();

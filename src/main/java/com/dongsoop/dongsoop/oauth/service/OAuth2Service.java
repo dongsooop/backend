@@ -10,9 +10,9 @@ public interface OAuth2Service {
 
     LoginResponse acceptLogin(Authentication authentication, Long memberId);
 
-    void withdrawMemberWithProviderType(Long memberId, OAuthProviderType providerType);
+    void unlinkMemberWithProviderType(Long memberId, OAuthProviderType providerType);
 
-    void withdrawMember(Long memberId);
+    void unlinkMember(Long memberId);
 
     List<MemberSocialAccountOverview> getSocialAccountState(Long memberId);
 }

@@ -34,13 +34,13 @@ public class OAuth2ServiceImpl implements OAuth2Service {
         return new LoginResponse(loginMemberDetails, accessToken, refreshToken);
     }
 
-    public void withdrawMemberWithProviderType(Long memberId, OAuthProviderType providerType) {
+    public void unlinkMemberWithProviderType(Long memberId, OAuthProviderType providerType) {
         memberSocialAccountRepository.findByMemberIdAndProviderType(memberId, providerType)
                 .ifPresent(memberSocialAccountRepository::delete);
     }
 
     @Transactional
-    public void withdrawMember(Long memberId) {
+    public void unlinkMember(Long memberId) {
         List<MemberSocialAccount> socialAccountList = this.memberSocialAccountRepository.findByMemberId(memberId);
         if (socialAccountList.isEmpty()) {
             return;
