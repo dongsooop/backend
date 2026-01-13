@@ -215,7 +215,13 @@ public class AppleSocialProvider implements SocialProvider {
 
             Map<String, Object> headerMap = this.objectMapper.readValue(headerJson, Map.class);
 
-            return (String) headerMap.get("kid");
+            String kid = (String) headerMap.get("kid");
+            if (kid == null) {
+                log.info("kid not found in apple identity token header");
+                throw new InvalidAppleTokenException();
+            }
+
+            return kid;
         } catch (JsonProcessingException e) {
             log.info("invalid apple identity token: {}", e.getMessage());
             throw new InvalidAppleTokenException();
