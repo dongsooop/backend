@@ -27,7 +27,6 @@ public class AppleJwkProviderImpl implements AppleJwkProvider {
     private final RestTemplate restTemplate;
     private final CacheManager cacheManager;
     private final ObjectMapper objectMapper;
-    private LocalDate lastEvictedDate = null;
 
     @Value("${spring.security.oauth2.client.provider.apple.jwk-set-uri}")
     private String jwtUri;
@@ -72,12 +71,6 @@ public class AppleJwkProviderImpl implements AppleJwkProvider {
     public boolean evictAppleJwkCache() {
         LocalDate today = LocalDate.now();
 
-        // 오늘 이미 비웠다면 실행하지 않음
-        if (lastEvictedDate != null && lastEvictedDate.isEqual(today)) {
-            log.info("Apple JWK cache already initialized today. Skipping eviction.");
-            return false;
-        }
-
         Cache cache = this.cacheManager.getCache(cacheName);
         if (cache == null) {
             return false;
@@ -85,7 +78,6 @@ public class AppleJwkProviderImpl implements AppleJwkProvider {
 
         // 캐시 비우기 실행
         cache.clear();
-        lastEvictedDate = today; // 실행 날짜 업데이트
         log.info("Apple JWK cache evicted (At: {})", today);
 
         return true;

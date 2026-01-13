@@ -164,11 +164,7 @@ public class AppleSocialProvider implements SocialProvider {
         }
 
         // 2차 시도: 캐시 제거 후 재조회
-        boolean isSuccess = this.appleJwkProvider.evictAppleJwkCache(); // 캐시 제거
-        if (!isSuccess) {
-            log.error("apple jwk not found for kid: {}", kid);
-            throw new InvalidAppleTokenException();
-        }
+        this.appleJwkProvider.evictAppleJwkCache(); // 캐시 제거
 
         appleJwkMap = this.appleJwkProvider.getAppleJwkMap();
 
