@@ -8,6 +8,7 @@ import com.dongsoop.dongsoop.oauth.dto.SocialAccountLinkRequest;
 import com.dongsoop.dongsoop.oauth.entity.MemberSocialAccount;
 import com.dongsoop.dongsoop.oauth.entity.MemberSocialAccountId;
 import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
+import com.dongsoop.dongsoop.oauth.exception.AlreadyLinkedProviderTypeException;
 import com.dongsoop.dongsoop.oauth.exception.AlreadyLinkedSocialAccountException;
 import com.dongsoop.dongsoop.oauth.exception.InvalidGoogleTokenException;
 import com.dongsoop.dongsoop.oauth.repository.MemberSocialAccountRepository;
@@ -95,6 +96,12 @@ public class GoogleSocialProvider implements SocialProvider {
         if (this.memberSocialAccountRepository.existsById(socialAccountId)) {
             throw new AlreadyLinkedSocialAccountException();
         }
+
+        // 이미 회원이 해당 소셜 타입을 연동한 적이 있는지 확인
+        this.memberSocialAccountRepository.findByMemberAndProviderType(member, OAuthProviderType.GOOGLE)
+                .ifPresent((m) -> {
+                    throw new AlreadyLinkedProviderTypeException();
+                });
 
         MemberSocialAccount socialAccount = new MemberSocialAccount(socialAccountId, member);
         MemberSocialAccount saved = this.memberSocialAccountRepository.save(socialAccount);
