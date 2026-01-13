@@ -77,7 +77,7 @@ public class MemberSocialAccountRepositoryCustomImpl implements MemberSocialAcco
     public List<MemberSocialAccountOverview> findAllMemberSocialAccountOverview(Long memberId) {
         return queryFactory.select(Projections.constructor(MemberSocialAccountOverview.class,
                         memberSocialAccount.id.providerType,
-                        memberSocialAccount.createAt
+                        memberSocialAccount.createdAt
                 ))
                 .from(memberSocialAccount)
                 .where(memberSocialAccount.member.id.eq(memberId))

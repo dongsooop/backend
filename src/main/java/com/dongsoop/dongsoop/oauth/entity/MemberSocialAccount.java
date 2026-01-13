@@ -37,12 +37,8 @@ public class MemberSocialAccount {
 
     @PrePersist
     private void prePersist() {
-        if (this.createAt == null) {
-            this.createAt = LocalDateTime.now();
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
         }
-    }
-
-    public void updateMember(Member member) {
-        this.member = member;
     }
 }
