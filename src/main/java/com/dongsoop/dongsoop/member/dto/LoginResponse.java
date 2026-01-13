@@ -40,7 +40,13 @@ public class LoginResponse {
     }
 
     public LoginResponse(MemberSocialAccountDto socialAccountDto, String accessToken, String refreshToken) {
+        if (socialAccountDto == null) {
+            throw new IllegalArgumentException("Social account cannot be null");
+        }
         Member member = socialAccountDto.member();
+        if (member == null) {
+            throw new IllegalArgumentException("Member cannot be null");
+        }
 
         this.id = member.getId();
         this.nickname = member.getNickname();
