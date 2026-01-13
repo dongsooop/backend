@@ -42,12 +42,11 @@ public class OAuth2Controller {
     private final GoogleSocialProvider googleSocialProvider;
     private final AppleSocialProvider appleSocialProvider;
 
-    @GetMapping("/login")
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<LoginResponse> acceptLogin(OAuthLoginRequest request) {
-        Long memberId = this.memberService.getMemberIdByAuthentication();
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> acceptLogin(@RequestBody @Valid OAuthLoginRequest request) {
         Authentication authentication = SecurityContextHolder.getContext()
                 .getAuthentication();
+        Long memberId = this.getMemberIdByAuthentication(authentication);
 
         // 알림 구독 설정
         memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
