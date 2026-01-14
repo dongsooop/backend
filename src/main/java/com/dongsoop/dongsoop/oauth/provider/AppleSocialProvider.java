@@ -23,6 +23,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
@@ -204,7 +205,7 @@ public class AppleSocialProvider implements SocialProvider {
 
             // Base64URL 디코딩
             byte[] decodedHeader = Base64.getUrlDecoder().decode(parts[0]);
-            String headerJson = new String(decodedHeader);
+            String headerJson = new String(decodedHeader, StandardCharsets.UTF_8);
 
             Map<String, Object> headerMap = this.objectMapper.readValue(headerJson, Map.class);
 
