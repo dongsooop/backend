@@ -16,7 +16,6 @@ import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
 import com.dongsoop.dongsoop.oauth.exception.AlreadyLinkedProviderTypeException;
 import com.dongsoop.dongsoop.oauth.exception.AlreadyLinkedSocialAccountException;
 import com.dongsoop.dongsoop.oauth.exception.InvalidAppleTokenException;
-import com.dongsoop.dongsoop.oauth.exception.InvalidKakaoTokenException;
 import com.dongsoop.dongsoop.oauth.repository.MemberSocialAccountRepository;
 import com.dongsoop.dongsoop.oauth.validator.MemberSocialAccountValidator;
 import com.dongsoop.dongsoop.role.entity.Role;
@@ -176,7 +175,7 @@ public class AppleSocialProvider implements SocialProvider {
                 log.info("Apple revoked successfully.");
             }
         } catch (HttpClientErrorException | HttpServerErrorException e) {
-            throw new InvalidKakaoTokenException();
+            throw new InvalidAppleTokenException();
         }
     }
 
