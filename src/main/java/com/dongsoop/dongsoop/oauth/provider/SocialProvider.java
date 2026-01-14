@@ -14,4 +14,6 @@ public interface SocialProvider {
     Authentication login(String accessToken);
 
     LocalDateTime linkSocialAccount(Long memberId, SocialAccountLinkRequest request);
+
+    void revoke(String refreshToken);
 }

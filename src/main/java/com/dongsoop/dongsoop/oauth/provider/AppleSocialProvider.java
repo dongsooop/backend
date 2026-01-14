@@ -6,8 +6,6 @@ import com.dongsoop.dongsoop.jwt.exception.TokenMalformedException;
 import com.dongsoop.dongsoop.jwt.exception.TokenSignatureException;
 import com.dongsoop.dongsoop.jwt.exception.TokenUnsupportedException;
 import com.dongsoop.dongsoop.member.entity.Member;
-import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
-import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.oauth.dto.AppleJwk;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountDto;
 import com.dongsoop.dongsoop.oauth.dto.SocialAccountLinkRequest;
@@ -38,7 +36,6 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -56,7 +53,6 @@ public class AppleSocialProvider implements SocialProvider {
     private static final String SERVICE_NAME = "apple";
 
     private final MemberSocialAccountValidator memberSocialAccountValidator;
-    private final MemberRepository memberRepository;
     private final MemberRoleRepository memberRoleRepository;
     private final MemberSocialAccountRepository memberSocialAccountRepository;
     private final ObjectMapper objectMapper;
@@ -110,28 +106,26 @@ public class AppleSocialProvider implements SocialProvider {
     @Override
     @Transactional
     public LocalDateTime linkSocialAccount(Long memberId, SocialAccountLinkRequest request) {
-        String providerId = this.getProviderId(request.providerToken());
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(MemberNotFoundException::new);
+        // 락 획득
+        Member member = this.memberSocialAccountRepository.findAndLockMember(memberId);
 
+        String providerId = this.getProviderId(request.providerToken());
         MemberSocialAccountId socialAccountId = new MemberSocialAccountId(providerId, OAuthProviderType.APPLE);
+        // 소셜 계정이 이미 DB에 저장된 상태인 경우
+        if (this.memberSocialAccountRepository.existsById(socialAccountId)) {
+            throw new AlreadyLinkedSocialAccountException();
+        }
+
+        // 회원이 이미 동일한 ProviderType의 소셜 계정과 연동된 경우
+        this.memberSocialAccountRepository.findByMemberAndProviderType(member, OAuthProviderType.APPLE)
+                .ifPresent((ignored) -> {
+                    throw new AlreadyLinkedProviderTypeException();
+                });
+
         MemberSocialAccount socialAccount = new MemberSocialAccount(socialAccountId, member);
 
-        try {
-            MemberSocialAccount saved = this.memberSocialAccountRepository.save(socialAccount);
-            return saved.getCreatedAt();
-
-        } catch (DataIntegrityViolationException e) {
-            log.info("DataIntegrityViolationException occurred while linking Apple social account: {}", e.getMessage());
-
-            // 이미 해당 소셜 타입으로 연동된 적이 있는지 확인
-            if (this.memberSocialAccountRepository.existsById(socialAccountId)) {
-                throw new AlreadyLinkedSocialAccountException();
-            }
-
-            // 소셜 계정이 다른 회원과 연동된 적이 있는 경우
-            throw new AlreadyLinkedProviderTypeException();
-        }
+        MemberSocialAccount saved = this.memberSocialAccountRepository.save(socialAccount);
+        return saved.getCreatedAt();
     }
 
     private String getProviderId(String identityToken) {
