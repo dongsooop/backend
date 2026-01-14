@@ -8,12 +8,23 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(
+        name = "member_social_account",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_member_social_id",
+                        columnNames = {"provider_type", "member_id"}
+                )
+        }
+)
 @NoArgsConstructor
 @AllArgsConstructor
 public class MemberSocialAccount {

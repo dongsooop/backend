@@ -38,6 +38,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -114,21 +115,21 @@ public class AppleSocialProvider implements SocialProvider {
                 .orElseThrow(MemberNotFoundException::new);
 
         MemberSocialAccountId socialAccountId = new MemberSocialAccountId(providerId, OAuthProviderType.APPLE);
-        // 이미 연동된 소셜 계정인지 확인
-        if (this.memberSocialAccountRepository.existsById(socialAccountId)) {
-            throw new AlreadyLinkedSocialAccountException();
-        }
-
-        // 이미 회원이 해당 소셜 타입을 연동한 적이 있는지 확인
-        this.memberSocialAccountRepository.findByMemberAndProviderType(member, OAuthProviderType.APPLE)
-                .ifPresent((m) -> {
-                    throw new AlreadyLinkedProviderTypeException();
-                });
-
         MemberSocialAccount socialAccount = new MemberSocialAccount(socialAccountId, member);
-        MemberSocialAccount saved = this.memberSocialAccountRepository.save(socialAccount);
 
-        return saved.getCreatedAt();
+        try {
+            MemberSocialAccount saved = this.memberSocialAccountRepository.save(socialAccount);
+            return saved.getCreatedAt();
+
+        } catch (DataIntegrityViolationException e) {
+            // DB unique constraint로 중복 감지
+            if (this.memberSocialAccountRepository.existsById(socialAccountId)) {
+                throw new AlreadyLinkedSocialAccountException();
+            }
+
+            // 이미 회원이 해당 소셜 타입을 연동한 적이 있는지 확인
+            throw new AlreadyLinkedProviderTypeException();
+        }
     }
 
     private String getProviderId(String identityToken) {
