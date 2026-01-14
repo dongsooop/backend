@@ -9,6 +9,7 @@ import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountOverview;
 import com.dongsoop.dongsoop.oauth.dto.UnlinkSocialAccountRequest;
 import com.dongsoop.dongsoop.oauth.entity.MemberSocialAccount;
 import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
+import com.dongsoop.dongsoop.oauth.exception.InvalidProviderTypeException;
 import com.dongsoop.dongsoop.oauth.provider.OAuth2UserParser;
 import com.dongsoop.dongsoop.oauth.provider.SocialProvider;
 import com.dongsoop.dongsoop.oauth.repository.MemberSocialAccountRepository;
@@ -47,6 +48,9 @@ public class OAuth2ServiceImpl implements OAuth2Service {
                 .ifPresent(memberSocialAccountRepository::delete);
 
         SocialProvider socialProvider = oAuth2UserParser.extractProvider(providerType.name().toLowerCase());
+        if (socialProvider == null) {
+            throw new InvalidProviderTypeException();
+        }
         socialProvider.revoke(request.token());
     }
 
