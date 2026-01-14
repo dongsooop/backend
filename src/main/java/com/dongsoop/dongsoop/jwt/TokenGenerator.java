@@ -14,7 +14,10 @@ import org.springframework.stereotype.Component;
 public class TokenGenerator {
 
     private final JwtUtil jwtUtil;
-    
+
+    @Value("${jwt.expired-time.social-token}")
+    private Long socialTokenExpiredTime;
+
     @Value("${jwt.expired-time.access-token}")
     private Long accessTokenExpiredTime;
 
@@ -47,4 +50,16 @@ public class TokenGenerator {
         return jwtUtil.issue(expireAt, id, roleList, JWTType.REFRESH);
     }
 
+    public String generateSocialToken(Authentication authentication) {
+        long now = (new Date()).getTime();
+        Date expireAt = new Date(now + this.socialTokenExpiredTime);
+
+        String id = authentication.getName();
+        List<String> roleList = authentication.getAuthorities()
+                .stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+
+        return jwtUtil.issue(expireAt, id, roleList, JWTType.SOCIAL);
+    }
 }

@@ -11,6 +11,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.SignatureException;
+import java.security.PublicKey;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -43,6 +44,27 @@ public class JwtUtil {
                     .verifyWith(key)
                     .build()
                     .parseSignedClaims(token)
+                    .getPayload();
+        } catch (ExpiredJwtException e) {
+            throw new TokenExpiredException(e);
+        } catch (MalformedJwtException | IllegalArgumentException e) {
+            throw new TokenMalformedException(e);
+        } catch (SignatureException e) {
+            throw new TokenSignatureException(e);
+        } catch (UnsupportedJwtException e) {
+            throw new TokenUnsupportedException(e);
+        }
+    }
+
+    public Claims getClaims(String jwt, PublicKey publicKey, String issuer,
+                            String audience) {
+        try {
+            return Jwts.parser()
+                    .verifyWith(publicKey)
+                    .requireIssuer(issuer)
+                    .requireAudience(audience)
+                    .build()
+                    .parseSignedClaims(jwt)
                     .getPayload();
         } catch (ExpiredJwtException e) {
             throw new TokenExpiredException(e);

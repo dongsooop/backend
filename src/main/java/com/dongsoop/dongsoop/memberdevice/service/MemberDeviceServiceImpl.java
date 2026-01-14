@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.memberdevice.service;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
+import com.dongsoop.dongsoop.memberdevice.dto.DeviceBoundEvent;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
@@ -10,20 +11,32 @@ import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.exception.AlreadyRegisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
+import com.dongsoop.dongsoop.notification.service.FCMService;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MemberDeviceServiceImpl implements MemberDeviceService {
 
     private final MemberDeviceRepository memberDeviceRepository;
+    private final FCMService fcmService;
     private final MemberRepository memberRepository;
+    private final ApplicationEventPublisher eventPublisher;
+
+    @Value("${notification.topic.anonymous}")
+    private String anonymousTopic;
 
     @Override
     public void registerDevice(String deviceToken, MemberDeviceType deviceType) {
@@ -47,6 +60,18 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
                 .orElseThrow(MemberNotFoundException::new);
 
         device.bindMember(member);
+
+        // 트랜잭션 커밋 후 익명 토픽 구독 해제를 위해 이벤트 발행
+        eventPublisher.publishEvent(new DeviceBoundEvent(deviceToken));
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleDeviceBound(DeviceBoundEvent event) {
+        try {
+            fcmService.unsubscribeTopic(List.of(event.deviceToken()), anonymousTopic);
+        } catch (Exception e) {
+            log.warn("Failed to unsubscribe device from anonymous topic", e);
+        }
     }
 
     private void validateDuplicateDeviceToken(String deviceToken) {

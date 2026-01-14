@@ -27,6 +27,10 @@ public class LoginResponse {
     private List<RoleType> role;
 
     public LoginResponse(LoginMemberDetails loginMemberDetail, String accessToken, String refreshToken) {
+        if (loginMemberDetail == null) {
+            throw new IllegalArgumentException("LoginMemberDetails cannot be null");
+        }
+
         this.id = loginMemberDetail.getId();
         this.nickname = loginMemberDetail.getNickname();
         this.email = loginMemberDetail.getEmail();
