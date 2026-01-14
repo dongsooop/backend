@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.jwt.TokenGenerator;
 import com.dongsoop.dongsoop.member.dto.LoginResponse;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
+import com.dongsoop.dongsoop.notification.service.FCMService;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountOverview;
 import com.dongsoop.dongsoop.oauth.dto.OAuthLoginRequest;
 import com.dongsoop.dongsoop.oauth.dto.SocialAccountLinkRequest;
@@ -48,12 +49,16 @@ public class OAuth2Controller {
     private final GoogleSocialProvider googleSocialProvider;
     private final AppleSocialProvider appleSocialProvider;
     private final TokenGenerator tokenGenerator;
+    private final FCMService fcmService;
 
     @Value("${oauth.apple.redirect-uri}")
     private String appleRedirectUri;
 
     @Value("${oauth.apple.redirect-uri-token-query}")
     private String appleRedirectUriTokenQuery;
+
+    @Value("${notification.topic.anonymous}")
+    private String anonymousTopic;
 
     // 임시 발급한 토큰으로 검증
     @PostMapping("/login")
@@ -65,6 +70,7 @@ public class OAuth2Controller {
 
         // 알림 구독 설정
         memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
+        fcmService.unsubscribeTopic(List.of(request.deviceToken()), anonymousTopic);
 
         // 로그인 시 필요한 데이터 생성
         LoginResponse loginResponse = oAuth2Service.acceptLogin(authentication, memberId);
@@ -91,6 +97,7 @@ public class OAuth2Controller {
         Long memberId = this.getMemberIdByAuthentication(authentication);
 
         memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
+        fcmService.unsubscribeTopic(List.of(request.deviceToken()), anonymousTopic);
 
         LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId);
         return ResponseEntity.ok(response);
@@ -102,6 +109,7 @@ public class OAuth2Controller {
         Long memberId = this.getMemberIdByAuthentication(authentication);
 
         memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
+        fcmService.unsubscribeTopic(List.of(request.deviceToken()), anonymousTopic);
 
         LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId);
         return ResponseEntity.ok(response);
@@ -112,6 +120,7 @@ public class OAuth2Controller {
         Authentication authentication = this.appleSocialProvider.login(request.token());
         Long memberId = this.getMemberIdByAuthentication(authentication);
         memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
+        fcmService.unsubscribeTopic(List.of(request.deviceToken()), anonymousTopic);
 
         LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId);
         return ResponseEntity.ok(response);

@@ -3,7 +3,6 @@ package com.dongsoop.dongsoop.memberdevice.service;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
-import com.dongsoop.dongsoop.memberdevice.dto.DeviceBoundEvent;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
@@ -22,8 +21,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 @Service
 @RequiredArgsConstructor
@@ -60,18 +57,6 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
                 .orElseThrow(MemberNotFoundException::new);
 
         device.bindMember(member);
-
-        // 트랜잭션 커밋 후 익명 토픽 구독 해제를 위해 이벤트 발행
-        eventPublisher.publishEvent(new DeviceBoundEvent(deviceToken));
-    }
-
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleDeviceBound(DeviceBoundEvent event) {
-        try {
-            fcmService.unsubscribeTopic(List.of(event.deviceToken()), anonymousTopic);
-        } catch (Exception e) {
-            log.warn("Failed to unsubscribe device from anonymous topic", e);
-        }
     }
 
     private void validateDuplicateDeviceToken(String deviceToken) {

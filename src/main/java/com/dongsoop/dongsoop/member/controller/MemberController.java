@@ -15,7 +15,9 @@ import com.dongsoop.dongsoop.member.validate.MemberDuplicationValidator;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.service.FCMService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/member")
+@Slf4j
 public class MemberController {
 
     private final MemberService memberService;
@@ -73,6 +76,7 @@ public class MemberController {
             memberDeviceService.bindDeviceWithMemberId(
                     loginDetail.getLoginMemberDetail().getId(),
                     loginRequest.getFcmToken());
+            fcmService.unsubscribeTopic(List.of(loginRequest.getFcmToken()), anonymousTopic);
         }
 
         LoginResponse loginResponse = new LoginResponse(loginDetail.getLoginMemberDetail(), accessToken, refreshToken);
