@@ -17,6 +17,6 @@ public class OAuth2UserParserImpl implements OAuth2UserParser {
 
     @Override
     public SocialProvider extractProvider(String registrationId) {
-        return this.oAuth2UserServiceMap.get(registrationId);
+        return this.oAuth2UserServiceMap.get(registrationId.toLowerCase());
     }
 }
