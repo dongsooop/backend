@@ -173,6 +173,11 @@ public class KakaoSocialProvider implements SocialProvider {
         params.add("target_id", providerId);
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-        restTemplate.postForEntity(revokeUri, request, String.class);
+        try {
+            restTemplate.postForEntity(revokeUri, request, String.class);
+        } catch (HttpClientErrorException | HttpServerErrorException e) {
+            log.warn("Kakao revoke failed: {}", e.getMessage());
+            throw new InvalidKakaoTokenException();
+        }
     }
 }

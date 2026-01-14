@@ -158,5 +158,12 @@ public class GoogleSocialProvider implements SocialProvider {
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
         restTemplate.postForEntity(revokeUri, request, String.class);
+
+        try {
+            restTemplate.postForEntity(revokeUri, request, String.class);
+        } catch (HttpClientErrorException | HttpServerErrorException e) {
+            log.warn("Google revoke failed: {}", e.getMessage());
+            throw new InvalidGoogleTokenException();
+        }
     }
 }
