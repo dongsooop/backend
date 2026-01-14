@@ -38,6 +38,7 @@ public class OAuth2ServiceImpl implements OAuth2Service {
         return new LoginResponse(loginMemberDetails, accessToken, refreshToken);
     }
 
+    @Override
     @Transactional
     public void unlinkMemberWithProviderType(Long memberId,
                                              OAuthProviderType providerType,
@@ -49,6 +50,7 @@ public class OAuth2ServiceImpl implements OAuth2Service {
         socialProvider.revoke(request.token());
     }
 
+    @Override
     @Transactional
     public void unlinkMember(Long memberId) {
         List<MemberSocialAccount> socialAccountList = this.memberSocialAccountRepository.findByMemberId(memberId);
