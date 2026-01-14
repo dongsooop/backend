@@ -1,7 +1,6 @@
 package com.dongsoop.dongsoop.oauth.provider;
 
 import com.dongsoop.dongsoop.member.entity.Member;
-import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountDto;
 import com.dongsoop.dongsoop.oauth.dto.SocialAccountLinkRequest;
@@ -101,10 +100,10 @@ public class GoogleSocialProvider implements SocialProvider {
     @Override
     @Transactional
     public LocalDateTime linkSocialAccount(Long memberId, SocialAccountLinkRequest request) {
-        String providerId = this.getProviderId(request.providerToken());
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(MemberNotFoundException::new);
+        // 락 획득
+        Member member = this.memberSocialAccountRepository.findAndLockMember(memberId);
 
+        String providerId = this.getProviderId(request.providerToken());
         MemberSocialAccountId socialAccountId = new MemberSocialAccountId(providerId, OAuthProviderType.GOOGLE);
         MemberSocialAccount socialAccount = new MemberSocialAccount(socialAccountId, member);
 
@@ -113,15 +112,12 @@ public class GoogleSocialProvider implements SocialProvider {
             return saved.getCreatedAt();
 
         } catch (DataIntegrityViolationException e) {
-            log.info("DataIntegrityViolationException occurred while linking Google social account: {}",
-                    e.getMessage());
-
-            // 이미 해당 소셜 타입으로 연동된 적이 있는지 확인
+            // 소셜 계정이 이미 DB에 저장된 상태인 경우
             if (this.memberSocialAccountRepository.existsById(socialAccountId)) {
                 throw new AlreadyLinkedSocialAccountException();
             }
 
-            // 소셜 계정이 다른 회원과 연동된 적이 있는 경우
+            // 회원이 이미 동일한 ProviderType의 소셜 계정과 연동된 경우
             throw new AlreadyLinkedProviderTypeException();
         }
     }
