@@ -70,7 +70,7 @@ public class OAuth2Controller {
 
         // 알림 구독 설정
         memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
-        fcmService.unsubscribeTopic(List.of(request.deviceToken()), anonymousTopic);
+        this.unsubscribeAnonymous(request.deviceToken());
 
         // 로그인 시 필요한 데이터 생성
         LoginResponse loginResponse = oAuth2Service.acceptLogin(authentication, memberId);
@@ -97,7 +97,7 @@ public class OAuth2Controller {
         Long memberId = this.getMemberIdByAuthentication(authentication);
 
         memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
-        fcmService.unsubscribeTopic(List.of(request.deviceToken()), anonymousTopic);
+        this.unsubscribeAnonymous(request.deviceToken());
 
         LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId);
         return ResponseEntity.ok(response);
@@ -109,7 +109,7 @@ public class OAuth2Controller {
         Long memberId = this.getMemberIdByAuthentication(authentication);
 
         memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
-        fcmService.unsubscribeTopic(List.of(request.deviceToken()), anonymousTopic);
+        this.unsubscribeAnonymous(request.deviceToken());
 
         LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId);
         return ResponseEntity.ok(response);
@@ -120,7 +120,7 @@ public class OAuth2Controller {
         Authentication authentication = this.appleSocialProvider.login(request.token());
         Long memberId = this.getMemberIdByAuthentication(authentication);
         memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
-        fcmService.unsubscribeTopic(List.of(request.deviceToken()), anonymousTopic);
+        this.unsubscribeAnonymous(request.deviceToken());
 
         LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId);
         return ResponseEntity.ok(response);
@@ -183,5 +183,9 @@ public class OAuth2Controller {
                 memberService.getMemberIdByAuthentication());
 
         return ResponseEntity.ok(socialAccountState);
+    }
+
+    private void unsubscribeAnonymous(String deviceToken) {
+        fcmService.unsubscribeTopic(List.of(deviceToken), anonymousTopic);
     }
 }

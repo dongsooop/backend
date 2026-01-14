@@ -57,8 +57,6 @@ public class FCMServiceImpl implements FCMService {
         } catch (FirebaseMessagingException e) {
             log.error("Error unsubscribing from topic {}: {}", topic, e.getMessage());
             throw new NotificationSendException(e);
-        } catch (Exception e) {
-            log.warn("Failed to unsubscribe device from anonymous topic", e);
         }
     }
 
