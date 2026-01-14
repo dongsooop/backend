@@ -3,7 +3,6 @@ package com.dongsoop.dongsoop.memberdevice.service;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
-import com.dongsoop.dongsoop.memberdevice.dto.DeviceBoundEvent;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
@@ -17,8 +16,6 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,10 +26,6 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
 
     private final MemberDeviceRepository memberDeviceRepository;
     private final MemberRepository memberRepository;
-    private final ApplicationEventPublisher eventPublisher;
-
-    @Value("${notification.topic.anonymous}")
-    private String anonymousTopic;
 
     @Override
     public void registerDevice(String deviceToken, MemberDeviceType deviceType) {
@@ -56,9 +49,6 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
                 .orElseThrow(MemberNotFoundException::new);
 
         device.bindMember(member);
-
-        // 트랜잭션 커밋 후 익명 토픽 구독 해제를 위해 이벤트 발행
-        eventPublisher.publishEvent(new DeviceBoundEvent(deviceToken));
     }
 
     private void validateDuplicateDeviceToken(String deviceToken) {
