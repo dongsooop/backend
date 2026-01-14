@@ -6,6 +6,7 @@ import com.dongsoop.dongsoop.jwt.exception.TokenMalformedException;
 import com.dongsoop.dongsoop.jwt.exception.TokenSignatureException;
 import com.dongsoop.dongsoop.jwt.exception.TokenUnsupportedException;
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.oauth.dto.AppleJwk;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountDto;
 import com.dongsoop.dongsoop.oauth.dto.SocialAccountLinkRequest;
@@ -15,6 +16,7 @@ import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
 import com.dongsoop.dongsoop.oauth.exception.AlreadyLinkedProviderTypeException;
 import com.dongsoop.dongsoop.oauth.exception.AlreadyLinkedSocialAccountException;
 import com.dongsoop.dongsoop.oauth.exception.InvalidAppleTokenException;
+import com.dongsoop.dongsoop.oauth.exception.InvalidKakaoTokenException;
 import com.dongsoop.dongsoop.oauth.repository.MemberSocialAccountRepository;
 import com.dongsoop.dongsoop.oauth.validator.MemberSocialAccountValidator;
 import com.dongsoop.dongsoop.role.entity.Role;
@@ -37,6 +39,10 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -45,6 +51,11 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestTemplate;
 
 @Component
 @RequiredArgsConstructor
@@ -54,10 +65,12 @@ public class AppleSocialProvider implements SocialProvider {
     private static final String SERVICE_NAME = "apple";
 
     private final MemberSocialAccountValidator memberSocialAccountValidator;
+    private final MemberRepository memberRepository;
     private final MemberRoleRepository memberRoleRepository;
     private final MemberSocialAccountRepository memberSocialAccountRepository;
     private final ObjectMapper objectMapper;
     private final AppleJwkProvider appleJwkProvider;
+    private final RestTemplate restTemplate;
     private final JwtUtil jwtUtil;
 
     @Value("${oauth.apple.issuer}")
@@ -68,6 +81,15 @@ public class AppleSocialProvider implements SocialProvider {
 
     @Value("${spring.security.oauth2.client.registration.apple.client-id}")
     private String appleClientId;
+
+    @Value("${oauth.apple.revoke-uri}")
+    private String revokeUri;
+
+    @Value("${spring.security.oauth2.client.registration.apple.client-id}")
+    private String clientId;
+
+    @Value("${spring.security.oauth2.client.registration.apple.client-secret}")
+    private String clientSecret;
 
     public String serviceName() {
         return SERVICE_NAME;
@@ -127,6 +149,35 @@ public class AppleSocialProvider implements SocialProvider {
 
         MemberSocialAccount saved = this.memberSocialAccountRepository.save(socialAccount);
         return saved.getCreatedAt();
+    }
+
+    @Override
+    public void revoke(String refreshToken) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        // Parameters 설정
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("client_id", this.clientId);
+        params.add("client_secret", this.clientSecret);
+        params.add("token", refreshToken);
+        params.add("token_type_hint", "refresh_token"); // 선택사항이지만 권장
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.postForEntity(
+                    this.revokeUri,
+                    request,
+                    Map.class
+            );
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("Apple revoked successfully.");
+            }
+        } catch (HttpClientErrorException | HttpServerErrorException e) {
+            throw new InvalidKakaoTokenException();
+        }
     }
 
     private String getProviderId(String identityToken) {

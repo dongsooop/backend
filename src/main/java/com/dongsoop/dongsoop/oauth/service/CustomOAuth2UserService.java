@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.oauth.dto.CustomOAuth2User;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountDto;
 import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
 import com.dongsoop.dongsoop.oauth.provider.OAuth2UserParser;
+import com.dongsoop.dongsoop.oauth.provider.SocialProvider;
 import com.dongsoop.dongsoop.oauth.validator.MemberSocialAccountValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +30,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         // 소셜 계정에 따라 id 추출
         String registrationId = userRequest.getClientRegistration()
                 .getRegistrationId();
-        String providerId = this.oAuth2UserParser.extractProviderId(oAuth2User, registrationId);
+        SocialProvider provider = this.oAuth2UserParser.extractProvider(registrationId);
+        if (provider == null) {
+            throw new OAuth2AuthenticationException("Unsupported provider: " + registrationId);
+        }
+
+        String providerId = provider.extractProviderId(oAuth2User, registrationId);
 
         try {
             OAuthProviderType oAuthProviderType = OAuthProviderType.valueOf(registrationId.toUpperCase());

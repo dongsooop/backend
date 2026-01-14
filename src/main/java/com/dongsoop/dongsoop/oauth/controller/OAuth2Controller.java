@@ -9,6 +9,7 @@ import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountOverview;
 import com.dongsoop.dongsoop.oauth.dto.OAuthLoginRequest;
 import com.dongsoop.dongsoop.oauth.dto.SocialAccountLinkRequest;
 import com.dongsoop.dongsoop.oauth.dto.SocialLoginRequest;
+import com.dongsoop.dongsoop.oauth.dto.UnlinkSocialAccountRequest;
 import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
 import com.dongsoop.dongsoop.oauth.provider.AppleSocialProvider;
 import com.dongsoop.dongsoop.oauth.provider.GoogleSocialProvider;
@@ -157,9 +158,10 @@ public class OAuth2Controller {
 
     @DeleteMapping("/{providerType}")
     @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> unlinkSocialAccount(@PathVariable OAuthProviderType providerType) {
+    public ResponseEntity<Void> unlinkSocialAccount(@PathVariable OAuthProviderType providerType,
+                                                    @RequestBody @Valid UnlinkSocialAccountRequest request) {
         Long memberId = this.memberService.getMemberIdByAuthentication();
-        oAuth2Service.unlinkMemberWithProviderType(memberId, providerType);
+        oAuth2Service.unlinkMemberWithProviderType(memberId, providerType, request);
 
         return ResponseEntity.noContent()
                 .build();

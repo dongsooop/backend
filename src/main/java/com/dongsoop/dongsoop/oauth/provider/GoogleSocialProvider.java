@@ -26,6 +26,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -34,6 +35,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -57,6 +60,9 @@ public class GoogleSocialProvider implements SocialProvider {
 
     @Value("${spring.security.oauth2.client.provider.google.user-name-attribute}")
     private String googleUserNameAttribute;
+
+    @Value("${oauth.google.revoke-uri}")
+    private String revokeUri;
 
     public String serviceName() {
         return SERVICE_NAME;
@@ -144,5 +150,17 @@ public class GoogleSocialProvider implements SocialProvider {
             log.info("Google token validation failed: {}", e.getMessage());
             throw new InvalidGoogleTokenException();
         }
+    }
+
+    @Override
+    public void revoke(String providerToken) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("token", providerToken);
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+        restTemplate.postForEntity(revokeUri, request, String.class);
     }
 }

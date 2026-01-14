@@ -35,6 +35,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -58,6 +60,15 @@ public class KakaoSocialProvider implements SocialProvider {
 
     @Value("${oauth.kakao.user-name-attribute}")
     private String kakaoUserNameAttribute;
+
+    @Value("${oauth.kako.revoke-uri}")
+    private String revokeUri;
+
+    @Value("${oauth.kakao.target-id-type}")
+    private String targetIdType;
+
+    @Value("${oauth.kakao.mobile-token-value}")
+    private String mobileTokenValue;
 
     public String serviceName() {
         return SERVICE_NAME;
@@ -145,5 +156,25 @@ public class KakaoSocialProvider implements SocialProvider {
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             throw new InvalidKakaoTokenException();
         }
+    }
+
+    @Override
+    public void revoke(String providerToken) {
+        // 모바일 앱의 요청인 경우 프론트에서 처리하므로 무시
+        if (providerToken.equals(mobileTokenValue)) {
+            return;
+        }
+
+        String providerId = getProviderId(providerToken);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(providerToken);
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("target_id_type", targetIdType);
+        params.add("target_id", providerId);
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+        restTemplate.postForEntity(revokeUri, request, String.class);
     }
 }

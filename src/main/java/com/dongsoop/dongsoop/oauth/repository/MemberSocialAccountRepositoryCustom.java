@@ -19,5 +19,5 @@ public interface MemberSocialAccountRepositoryCustom {
 
     Optional<MemberSocialAccount> findByMemberAndProviderType(Member member, OAuthProviderType providerType);
 
-    Member acquireAllLocksAtBeginning(Long memberId);
+    Member findAndLockMember(Long memberId);
 }
