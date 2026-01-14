@@ -36,6 +36,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @Component
@@ -141,7 +142,7 @@ public class KakaoSocialProvider implements SocialProvider {
             }
 
             return body.getOrDefault(kakaoUserNameAttribute, null).toString();
-        } catch (HttpClientErrorException e) {
+        } catch (HttpClientErrorException | HttpServerErrorException e) {
             throw new InvalidKakaoTokenException();
         }
     }
