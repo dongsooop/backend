@@ -122,12 +122,14 @@ public class AppleSocialProvider implements SocialProvider {
             return saved.getCreatedAt();
 
         } catch (DataIntegrityViolationException e) {
-            // DB unique constraint로 중복 감지
+            log.info("DataIntegrityViolationException occurred while linking Apple social account: {}", e.getMessage());
+
+            // 이미 해당 소셜 타입으로 연동된 적이 있는지 확인
             if (this.memberSocialAccountRepository.existsById(socialAccountId)) {
                 throw new AlreadyLinkedSocialAccountException();
             }
 
-            // 이미 회원이 해당 소셜 타입을 연동한 적이 있는지 확인
+            // 소셜 계정이 다른 회원과 연동된 적이 있는 경우
             throw new AlreadyLinkedProviderTypeException();
         }
     }

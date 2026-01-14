@@ -20,7 +20,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -38,6 +40,7 @@ import org.springframework.web.client.RestTemplate;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class KakaoSocialProvider implements SocialProvider {
 
     private static final String SERVICE_NAME = "kakao";
@@ -98,20 +101,22 @@ public class KakaoSocialProvider implements SocialProvider {
                 .orElseThrow(MemberNotFoundException::new);
 
         MemberSocialAccountId socialAccountId = new MemberSocialAccountId(providerId, OAuthProviderType.KAKAO);
-        if (this.memberSocialAccountRepository.existsById(socialAccountId)) {
-            throw new AlreadyLinkedSocialAccountException();
-        }
-
-        // 이미 회원이 해당 소셜 타입을 연동한 적이 있는지 확인
-        this.memberSocialAccountRepository.findByMemberAndProviderType(member, OAuthProviderType.KAKAO)
-                .ifPresent((m) -> {
-                    throw new AlreadyLinkedProviderTypeException();
-                });
-
         MemberSocialAccount socialAccount = new MemberSocialAccount(socialAccountId, member);
-        MemberSocialAccount saved = this.memberSocialAccountRepository.save(socialAccount);
+        try {
+            MemberSocialAccount saved = this.memberSocialAccountRepository.save(socialAccount);
+            return saved.getCreatedAt();
 
-        return saved.getCreatedAt();
+        } catch (DataIntegrityViolationException e) {
+            log.info("DataIntegrityViolationException occurred while linking Kakao social account: {}", e.getMessage());
+
+            // 이미 해당 소셜 타입으로 연동된 적이 있는지 확인
+            if (this.memberSocialAccountRepository.existsById(socialAccountId)) {
+                throw new AlreadyLinkedSocialAccountException();
+            }
+
+            // 소셜 계정이 다른 회원과 연동된 적이 있는 경우
+            throw new AlreadyLinkedProviderTypeException();
+        }
     }
 
     private String getProviderId(String providerToken) {
