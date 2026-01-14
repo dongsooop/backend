@@ -22,7 +22,6 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 public class AppleJwkProviderImpl implements AppleJwkProvider {
 
-    private final String cacheName = "appleJwks";
     private final String appleJWKCacheKey = "jwks";
     private final RestTemplate restTemplate;
     private final CacheManager cacheManager;
@@ -30,6 +29,9 @@ public class AppleJwkProviderImpl implements AppleJwkProvider {
 
     @Value("${spring.security.oauth2.client.provider.apple.jwk-set-uri}")
     private String jwtUri;
+
+    @Value("${oauth.apple.cache-name}")
+    private String cacheName;
 
     @Override
     @Synchronized
