@@ -152,7 +152,7 @@ public class KakaoSocialProvider implements SocialProvider {
                 throw new InvalidKakaoTokenException();
             }
 
-            return body.getOrDefault(kakaoUserNameAttribute, null).toString();
+            return body.get(kakaoUserNameAttribute).toString();
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             throw new InvalidKakaoTokenException();
         }
