@@ -47,7 +47,7 @@ public class KakaoSocialProvider implements SocialProvider {
     private final MemberSocialAccountRepository memberSocialAccountRepository;
     private final MemberRepository memberRepository;
     private final MemberRoleRepository memberRoleRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
     @Value("${spring.security.oauth2.client.provider.kakao.user-info-uri}")
     private String kakaoUserInfoUrl;
