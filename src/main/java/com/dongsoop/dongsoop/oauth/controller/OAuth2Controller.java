@@ -16,9 +16,12 @@ import com.dongsoop.dongsoop.oauth.provider.KakaoSocialProvider;
 import com.dongsoop.dongsoop.oauth.service.OAuth2Service;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import jakarta.validation.Valid;
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.Authentication;
@@ -45,6 +48,12 @@ public class OAuth2Controller {
     private final AppleSocialProvider appleSocialProvider;
     private final TokenGenerator tokenGenerator;
 
+    @Value("${oauth.apple.redirect-uri}")
+    private String appleRedirectUri;
+
+    @Value("${oauth.apple.redirect-uri-token-query}")
+    private String appleRedirectUriTokenQuery;
+
     // 임시 발급한 토큰으로 검증
     @PostMapping("/login")
     @Secured(RoleType.USER_ROLE)
@@ -64,12 +73,15 @@ public class OAuth2Controller {
 
     // 애플 로그인 리다이렉트 방식 콜백
     @PostMapping("/apple/callback")
-    public String appleCallback(@RequestParam("id_token") String idToken) {
+    public ResponseEntity<Void> appleCallback(@RequestParam("id_token") String idToken) {
         Authentication authentication = this.appleSocialProvider.login(idToken);
 
         String socialToken = tokenGenerator.generateSocialToken(authentication);
+        String redirectUri = appleRedirectUri + "?" + appleRedirectUriTokenQuery + "=" + socialToken;
 
-        return "redirect:dongsoop://login-success?token=" + socialToken;
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(redirectUri))
+                .build();
     }
 
     @PostMapping("/kakao")
