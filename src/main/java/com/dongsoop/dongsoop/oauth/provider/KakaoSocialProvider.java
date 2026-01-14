@@ -61,7 +61,7 @@ public class KakaoSocialProvider implements SocialProvider {
     @Value("${oauth.kakao.user-name-attribute}")
     private String kakaoUserNameAttribute;
 
-    @Value("${oauth.kako.revoke-uri}")
+    @Value("${oauth.kakao.revoke-uri}")
     private String revokeUri;
 
     @Value("${oauth.kakao.target-id-type}")
