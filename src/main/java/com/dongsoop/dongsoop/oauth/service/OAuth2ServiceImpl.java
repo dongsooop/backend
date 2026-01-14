@@ -46,7 +46,7 @@ public class OAuth2ServiceImpl implements OAuth2Service {
         memberSocialAccountRepository.findByMemberIdAndProviderType(memberId, providerType)
                 .ifPresent(memberSocialAccountRepository::delete);
 
-        SocialProvider socialProvider = oAuth2UserParser.extractProvider(providerType.name());
+        SocialProvider socialProvider = oAuth2UserParser.extractProvider(providerType.name().toLowerCase());
         socialProvider.revoke(request.token());
     }
 
