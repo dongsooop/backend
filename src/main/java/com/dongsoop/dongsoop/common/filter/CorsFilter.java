@@ -16,6 +16,20 @@ import org.springframework.stereotype.Component;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class CorsFilter implements Filter {
 
+    /**
+     * Sets CORS response headers for every request and responds with HTTP 200 for OPTIONS requests; otherwise continues the filter chain.
+     *
+     * <p>The following response headers are added:
+     * Access-Control-Allow-Origin: "*",
+     * Access-Control-Allow-Credentials: "true",
+     * Access-Control-Allow-Methods: "*",
+     * Access-Control-Max-Age: "3600",
+     * Access-Control-Allow-Headers: "Origin, X-Requested-With, Content-Type, Accept, Key, Authorization".
+     *
+     * @param req   the incoming servlet request
+     * @param res   the outgoing servlet response
+     * @param chain the filter chain to continue for non-OPTIONS requests
+     */
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
             throws IOException, ServletException {
