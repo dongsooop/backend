@@ -12,12 +12,14 @@ import com.dongsoop.dongsoop.oauth.dto.SocialAccountLinkRequest;
 import com.dongsoop.dongsoop.oauth.dto.SocialLoginRequest;
 import com.dongsoop.dongsoop.oauth.dto.UnlinkSocialAccountRequest;
 import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
+import com.dongsoop.dongsoop.oauth.exception.InvalidProviderTypeException;
 import com.dongsoop.dongsoop.oauth.provider.AppleSocialProvider;
 import com.dongsoop.dongsoop.oauth.provider.GoogleSocialProvider;
 import com.dongsoop.dongsoop.oauth.provider.KakaoSocialProvider;
 import com.dongsoop.dongsoop.oauth.service.OAuth2Service;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -167,13 +169,20 @@ public class OAuth2Controller {
 
     @DeleteMapping("/{providerType}")
     @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> unlinkSocialAccount(@PathVariable OAuthProviderType providerType,
+    public ResponseEntity<Void> unlinkSocialAccount(@PathVariable @NotBlank String providerType,
                                                     @RequestBody @Valid UnlinkSocialAccountRequest request) {
-        Long memberId = this.memberService.getMemberIdByAuthentication();
-        oAuth2Service.unlinkMemberWithProviderType(memberId, providerType, request);
 
-        return ResponseEntity.noContent()
-                .build();
+        try {
+            OAuthProviderType oAuthProviderType = OAuthProviderType.valueOf(providerType.toUpperCase());
+
+            Long memberId = this.memberService.getMemberIdByAuthentication();
+            oAuth2Service.unlinkMemberWithProviderType(memberId, oAuthProviderType, request);
+
+            return ResponseEntity.noContent()
+                    .build();
+        } catch (IllegalArgumentException e) {
+            throw new InvalidProviderTypeException(providerType);
+        }
     }
 
     @GetMapping("/state")
