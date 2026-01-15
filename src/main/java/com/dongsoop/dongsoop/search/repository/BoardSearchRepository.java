@@ -118,7 +118,7 @@ public interface BoardSearchRepository extends ElasticsearchRepository<BoardDocu
                         {
                             "bool": {
                                 "should": [
-                                    {"term": {"department_name": "?2"}},
+                                    {"term": {"department_name.keyword": "?2"}},
                                     {"match": {"tags": "?2"}} 
                                 ]
                             }
