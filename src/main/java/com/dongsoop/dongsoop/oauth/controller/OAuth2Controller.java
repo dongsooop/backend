@@ -1,7 +1,6 @@
 package com.dongsoop.dongsoop.oauth.controller;
 
 import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
-import com.dongsoop.dongsoop.jwt.TokenGenerator;
 import com.dongsoop.dongsoop.member.dto.LoginResponse;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
@@ -50,17 +49,13 @@ public class OAuth2Controller {
     private final KakaoSocialProvider kakaoSocialProvider;
     private final GoogleSocialProvider googleSocialProvider;
     private final AppleSocialProvider appleSocialProvider;
-    private final TokenGenerator tokenGenerator;
     private final FCMService fcmService;
 
     @Value("${oauth.apple.redirect-uri}")
     private String appleRedirectUri;
 
-    @Value("${oauth.apple.redirect-uri-token-query}")
-    private String appleRedirectUriTokenQuery;
-
-    @Value("${spring.security.oauth2.client.registration.apple.client-id}")
-    private String clientId;
+    @Value("${oauth.apple.package}")
+    private String packageId;
 
     @Value("${oauth.apple.scheme}")
     private String appleScheme;
@@ -94,7 +89,7 @@ public class OAuth2Controller {
         String redirectUri = String.format(appleRedirectUri,
                 code,
                 idToken,
-                clientId,
+                packageId,
                 appleScheme);
 
         return ResponseEntity.status(HttpStatus.FOUND)
