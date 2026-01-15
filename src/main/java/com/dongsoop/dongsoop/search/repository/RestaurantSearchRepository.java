@@ -18,14 +18,12 @@ public interface RestaurantSearchRepository extends ElasticsearchRepository<Rest
                             "bool": {
                                 "should": [
                                     {"match": {"title": "?0"}},
-                                    {"wildcard": {"title.keyword": "*?0*"}},
-                                    {"match": {"tags": "?0"}},
-                                    {"wildcard": {"tags.keyword": "*?0*"}}
+                                    {"match": {"tags": "?0"}}
                                 ],
                                 "minimum_should_match": 1
                             }
                         },
-                        {"match": {"board_type": "RESTAURANT"}}
+                        {"term": {"board_type": "RESTAURANT"}}
                     ]
                 }
             }
