@@ -6,7 +6,6 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.service.FCMService;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountOverview;
-import com.dongsoop.dongsoop.oauth.dto.OAuthLoginRequest;
 import com.dongsoop.dongsoop.oauth.dto.SocialAccountLinkRequest;
 import com.dongsoop.dongsoop.oauth.dto.SocialLoginRequest;
 import com.dongsoop.dongsoop.oauth.dto.UnlinkSocialAccountRequest;
@@ -28,7 +27,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -62,24 +60,6 @@ public class OAuth2Controller {
 
     @Value("${notification.topic.anonymous}")
     private String anonymousTopic;
-
-    // 임시 발급한 토큰으로 검증
-    @PostMapping("/login")
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<LoginResponse> acceptLogin(@RequestBody @Valid OAuthLoginRequest request) {
-        Authentication authentication = SecurityContextHolder.getContext()
-                .getAuthentication();
-        Long memberId = this.getMemberIdByAuthentication(authentication);
-
-        // 알림 구독 설정
-        memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
-        this.unsubscribeAnonymous(request.deviceToken());
-
-        // 로그인 시 필요한 데이터 생성
-        LoginResponse loginResponse = oAuth2Service.acceptLogin(authentication, memberId);
-
-        return ResponseEntity.ok(loginResponse);
-    }
 
     // 애플 로그인 리다이렉트 방식 콜백
     @PostMapping("/apple/callback")
