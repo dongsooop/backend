@@ -166,8 +166,8 @@ public class BoardSearchService {
     private Page<BoardDocument> performMarketplaceSearchByType(String keyword, MarketplaceType marketplaceType,
                                                                Pageable pageable) {
         try {
-            String lowerMarketplaceType = marketplaceType.name().toLowerCase();
-            return boardSearchRepository.findMarketplaceByKeywordAndType(keyword, lowerMarketplaceType, pageable);
+            String UpperMarketplaceType = marketplaceType.name().toUpperCase();
+            return boardSearchRepository.findMarketplaceByKeywordAndType(keyword, UpperMarketplaceType, pageable);
         } catch (Exception e) {
             logSearchError("searchMarketplaceByType", keyword, marketplaceType.name(), e);
             return Page.empty(pageable);
