@@ -13,6 +13,7 @@ import com.dongsoop.dongsoop.search.entity.RestaurantDocument;
 import com.dongsoop.dongsoop.search.repository.BoardSearchRepository;
 import com.dongsoop.dongsoop.search.repository.RestaurantSearchRepository;
 import jakarta.annotation.PostConstruct;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -21,8 +22,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-
-import java.util.List;
 
 @Slf4j
 @Service
@@ -71,7 +70,7 @@ public class BoardSearchService {
             return createEmptySearchResponse(pageable);
         }
     }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+
     private Pageable createLikeSortPageable(Pageable pageable) {
         return PageRequest.of(
                 pageable.getPageNumber(),
@@ -80,7 +79,8 @@ public class BoardSearchService {
         );
     }
 
-    private SearchResponse<RestaurantSearchResult> toRestaurantSearchResponse(Page<RestaurantDocument> results, Long memberId) {
+    private SearchResponse<RestaurantSearchResult> toRestaurantSearchResponse(Page<RestaurantDocument> results,
+                                                                              Long memberId) {
         List<RestaurantSearchResult> dtos = results.getContent().stream()
                 .map(doc -> RestaurantSearchResult.from(doc, memberId))
                 .toList();
@@ -146,8 +146,8 @@ public class BoardSearchService {
 
     private Page<BoardDocument> performSearchByBoardType(String keyword, BoardType boardType, Pageable pageable) {
         try {
-            String lowerBoardType = boardType.getCode().toLowerCase();
-            return boardSearchRepository.findByKeywordAndBoardType(keyword, lowerBoardType, pageable);
+            String upperBoardType = boardType.getCode().toUpperCase();
+            return boardSearchRepository.findByKeywordAndBoardType(keyword, upperBoardType, pageable);
         } catch (Exception e) {
             logSearchError("searchByBoardType", keyword, boardType.getCode(), e);
             return Page.empty(pageable);
@@ -177,8 +177,8 @@ public class BoardSearchService {
     private Page<BoardDocument> performSearchByBoardTypeAndDepartmentName(String keyword, BoardType boardType,
                                                                           String departmentName, Pageable pageable) {
         try {
-            String lowerBoardType = boardType.getCode().toLowerCase();
-            return boardSearchRepository.findByKeywordAndBoardTypeAndDepartmentName(keyword, lowerBoardType,
+            String upperBoardType = boardType.getCode().toUpperCase();
+            return boardSearchRepository.findByKeywordAndBoardTypeAndDepartmentName(keyword, upperBoardType,
                     departmentName, pageable);
         } catch (Exception e) {
             logSearchError("searchByBoardTypeAndDepartmentName", keyword, boardType.getCode(), e);
