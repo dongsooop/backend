@@ -59,6 +59,12 @@ public class OAuth2Controller {
     @Value("${oauth.apple.redirect-uri-token-query}")
     private String appleRedirectUriTokenQuery;
 
+    @Value("${spring.security.oauth2.client.registration.apple.client-id}")
+    private String clientId;
+
+    @Value("${oauth.apple.scheme}")
+    private String appleScheme;
+
     @Value("${notification.topic.anonymous}")
     private String anonymousTopic;
 
@@ -82,11 +88,14 @@ public class OAuth2Controller {
 
     // 애플 로그인 리다이렉트 방식 콜백
     @PostMapping("/apple/callback")
-    public ResponseEntity<Void> appleCallback(@RequestParam("id_token") String idToken) {
-        Authentication authentication = this.appleSocialProvider.login(idToken);
-
-        String socialToken = tokenGenerator.generateSocialToken(authentication);
-        String redirectUri = appleRedirectUri + "?" + appleRedirectUriTokenQuery + "=" + socialToken;
+    public ResponseEntity<Void> appleCallback(
+            @RequestParam("code") String code,
+            @RequestParam("id_token") String idToken) {
+        String redirectUri = String.format(appleRedirectUri,
+                code,
+                idToken,
+                clientId,
+                appleScheme);
 
         return ResponseEntity.status(HttpStatus.FOUND)
                 .location(URI.create(redirectUri))
