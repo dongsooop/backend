@@ -177,8 +177,8 @@ public class BoardSearchService {
     private Page<BoardDocument> performSearchByBoardTypeAndDepartmentName(String keyword, BoardType boardType,
                                                                           String departmentName, Pageable pageable) {
         try {
-            String lowerBoardType = boardType.getCode().toLowerCase();
-            return boardSearchRepository.findByKeywordAndBoardTypeAndDepartmentName(keyword, lowerBoardType,
+            String upperBoardType = boardType.getCode().toUpperCase();
+            return boardSearchRepository.findByKeywordAndBoardTypeAndDepartmentName(keyword, upperBoardType,
                     departmentName, pageable);
         } catch (Exception e) {
             logSearchError("searchByBoardTypeAndDepartmentName", keyword, boardType.getCode(), e);
