@@ -7,6 +7,8 @@ import com.dongsoop.dongsoop.search.dto.SearchResponse;
 import com.dongsoop.dongsoop.search.entity.BoardDocument;
 import com.dongsoop.dongsoop.search.entity.BoardType;
 import com.dongsoop.dongsoop.search.service.BoardSearchService;
+import com.dongsoop.dongsoop.search.service.PopularKeywordService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SearchController {
 
     private final BoardSearchService boardSearchService;
+    private final PopularKeywordService popularKeywordService;
 
     @GetMapping("/by-type")
     public ResponseEntity<SearchResponse> searchByType(
@@ -60,5 +63,19 @@ public class SearchController {
             Pageable pageable) {
         SearchResponse<RestaurantSearchResult> response = boardSearchService.searchRestaurants(keyword, pageable);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/autocomplete")
+    public ResponseEntity<List<String>> getAutocomplete(@RequestParam String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }
+        return ResponseEntity.ok(boardSearchService.getAutocompleteSuggestions(keyword));
+    }
+
+    @GetMapping("/popular")
+    public ResponseEntity<List<String>> getPopularKeywords() {
+        List<String> keywords = popularKeywordService.getPopularKeywords();
+        return ResponseEntity.ok(keywords);
     }
 }
