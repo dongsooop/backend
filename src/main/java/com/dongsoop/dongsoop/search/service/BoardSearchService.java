@@ -13,7 +13,10 @@ import com.dongsoop.dongsoop.search.entity.RestaurantDocument;
 import com.dongsoop.dongsoop.search.repository.BoardSearchRepository;
 import com.dongsoop.dongsoop.search.repository.RestaurantSearchRepository;
 import jakarta.annotation.PostConstruct;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -32,6 +35,7 @@ public class BoardSearchService {
 
     private final BoardSearchRepository boardSearchRepository;
     private final RestaurantSearchRepository restaurantSearchRepository;
+    private final PopularKeywordService popularKeywordService;
     private final MemberService memberService;
 
     @PostConstruct
@@ -52,6 +56,9 @@ public class BoardSearchService {
         if (processedKeyword.isEmpty()) {
             return createEmptySearchResponse(pageable);
         }
+
+        //전처리된 키워드로 인기 검색어 집계
+        updateKeywordRedis(processedKeyword);
 
         Long currentMemberId = null;
         try {
@@ -104,6 +111,7 @@ public class BoardSearchService {
         if (processedKeyword.isEmpty()) {
             return Page.empty(pageable);
         }
+        updateKeywordRedis(processedKeyword);
 
         if (marketplaceType != null) {
             return performMarketplaceSearchByType(processedKeyword, marketplaceType, pageable);
@@ -115,10 +123,10 @@ public class BoardSearchService {
     public SearchResponse<BoardSearchResult> searchNoticesByDepartment(String keyword, String authorName,
                                                                        Pageable pageable) {
         String processedKeyword = preprocessKeyword(keyword);
-
         if (processedKeyword.isEmpty()) {
             return createEmptySearchResponse(pageable);
         }
+        updateKeywordRedis(processedKeyword);
 
         try {
             Page<BoardDocument> results = boardSearchRepository.findNoticesByKeywordAndAuthorName(processedKeyword,
@@ -136,6 +144,7 @@ public class BoardSearchService {
         if (processedKeyword.isEmpty()) {
             return Page.empty(pageable);
         }
+        updateKeywordRedis(processedKeyword);
 
         if (departmentName == null || departmentName.isEmpty()) {
             return performSearchByBoardType(processedKeyword, boardType, pageable);
@@ -207,7 +216,57 @@ public class BoardSearchService {
         if (!StringUtils.hasText(keyword)) {
             return "";
         }
-
         return keyword.trim().replaceAll("\\s+", " ");
+    }
+
+    // 자동완성 통합 메서드
+    public List<String> getAutocompleteSuggestions(String keyword) {
+        String processedKeyword = preprocessKeyword(keyword);
+        if (processedKeyword.isEmpty()) {
+            return List.of();
+        }
+
+        Pageable pageable = PageRequest.of(0, 5);
+
+        List<BoardDocument> boardResults = boardSearchRepository.findAutocompleteSuggestions(processedKeyword,
+                pageable);
+        List<RestaurantDocument> restaurantResults = restaurantSearchRepository.findAutocompleteSuggestions(
+                processedKeyword,
+                pageable);
+        List<String> suggestions = new ArrayList<>();
+
+        boardResults.forEach(doc -> suggestions.add(doc.getTitle()));
+        restaurantResults.forEach(doc -> suggestions.add(doc.getName()));
+
+        String lowerKeyword = processedKeyword.toLowerCase(Locale.ROOT);
+
+        return suggestions.stream()
+                .distinct()
+                .filter(StringUtils::hasText)
+                .sorted((s1, s2) -> {
+                    boolean s1Starts = s1.toLowerCase(Locale.ROOT).startsWith(lowerKeyword);
+                    boolean s2Starts = s2.toLowerCase(Locale.ROOT).startsWith(lowerKeyword);
+
+                    if (s1Starts && !s2Starts) {
+                        return -1;
+                    }
+                    if (!s1Starts && s2Starts) {
+                        return 1;
+                    }
+                    return s1.compareTo(s2);
+                })
+                .limit(10)
+                .collect(Collectors.toList());
+    }
+
+    private void updateKeywordRedis(String keyword) {
+        if (!StringUtils.hasText(keyword)) {
+            return;
+        }
+        try {
+            popularKeywordService.updateKeywordScore(keyword.toLowerCase(Locale.ROOT));
+        } catch (Exception e) {
+            log.warn("Failed to update popular keyword score: {}", keyword, e);
+        }
     }
 }
