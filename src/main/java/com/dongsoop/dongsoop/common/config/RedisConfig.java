@@ -13,9 +13,7 @@ import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactor
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-import org.springframework.scheduling.annotation.EnableScheduling;
 
-@EnableScheduling
 @Configuration
 public class RedisConfig {
     @Value("${spring.data.redis.host}")
