@@ -129,4 +129,38 @@ public interface BoardSearchRepository extends ElasticsearchRepository<BoardDocu
             """)
     Page<BoardDocument> findByKeywordAndBoardTypeAndDepartmentName(String keyword, String boardType,
                                                                    String departmentName, Pageable pageable);
+
+    //자동완성 검색 (Prefix + Fuzzy + 가중치 적용)
+    @Query("""
+            {
+                "bool": {
+                    "should": [
+                        {
+                            "match": {
+                                "title.autocomplete": {
+                                    "query": "?0",
+                                    "boost": 10.0
+                                }
+                            }
+                        },
+                        {
+                            "match": {
+                                "title": {
+                                    "query": "?0",
+                                    "fuzziness": "AUTO",
+                                    "boost": 1.0
+                                }
+                            }
+                        },
+                        {
+                            "match": {
+                                "tags.autocomplete": "?0"
+                            }
+                        }
+                    ],
+                    "minimum_should_match": 1
+                }
+            }
+            """)
+    List<BoardDocument> findAutocompleteSuggestions(String keyword, Pageable pageable);
 }
