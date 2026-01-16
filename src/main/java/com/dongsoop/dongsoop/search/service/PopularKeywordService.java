@@ -32,7 +32,7 @@ public class PopularKeywordService {
         return keywords.stream().collect(Collectors.toList());
     }
 
-    @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 0 * * ?", zone = "Asia/Seoul")
     public void resetPopularKeywords() {
         redisTemplate.delete(POPULAR_KEYWORD_KEY);
     }
