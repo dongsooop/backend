@@ -15,6 +15,7 @@ import com.dongsoop.dongsoop.search.repository.RestaurantSearchRepository;
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,13 +52,13 @@ public class BoardSearchService {
     }
 
     public SearchResponse<RestaurantSearchResult> searchRestaurants(String keyword, Pageable pageable) {
-        // [추가] 인기 검색어 집계
-        updateKeywordRedis(keyword);
-
         String processedKeyword = preprocessKeyword(keyword);
         if (processedKeyword.isEmpty()) {
             return createEmptySearchResponse(pageable);
         }
+
+        //전처리된 키워드로 인기 검색어 집계
+        updateKeywordRedis(processedKeyword);
 
         Long currentMemberId = null;
         try {
@@ -102,18 +103,15 @@ public class BoardSearchService {
 
     public Page<BoardDocument> searchByBoardType(String keyword, BoardType boardType, String departmentName,
                                                  Pageable pageable) {
-        updateKeywordRedis(keyword);
-
         return executeSearchByBoardType(keyword, boardType, departmentName, pageable);
     }
 
     public Page<BoardDocument> searchMarketplace(String keyword, MarketplaceType marketplaceType, Pageable pageable) {
-        updateKeywordRedis(keyword);
-
         String processedKeyword = preprocessKeyword(keyword);
         if (processedKeyword.isEmpty()) {
             return Page.empty(pageable);
         }
+        updateKeywordRedis(processedKeyword);
 
         if (marketplaceType != null) {
             return performMarketplaceSearchByType(processedKeyword, marketplaceType, pageable);
@@ -124,13 +122,11 @@ public class BoardSearchService {
 
     public SearchResponse<BoardSearchResult> searchNoticesByDepartment(String keyword, String authorName,
                                                                        Pageable pageable) {
-        updateKeywordRedis(keyword);
-
         String processedKeyword = preprocessKeyword(keyword);
-
         if (processedKeyword.isEmpty()) {
             return createEmptySearchResponse(pageable);
         }
+        updateKeywordRedis(processedKeyword);
 
         try {
             Page<BoardDocument> results = boardSearchRepository.findNoticesByKeywordAndAuthorName(processedKeyword,
@@ -148,6 +144,7 @@ public class BoardSearchService {
         if (processedKeyword.isEmpty()) {
             return Page.empty(pageable);
         }
+        updateKeywordRedis(processedKeyword);
 
         if (departmentName == null || departmentName.isEmpty()) {
             return performSearchByBoardType(processedKeyword, boardType, pageable);
@@ -219,33 +216,37 @@ public class BoardSearchService {
         if (!StringUtils.hasText(keyword)) {
             return "";
         }
-
         return keyword.trim().replaceAll("\\s+", " ");
     }
 
-    //자동완성 통합 서비스 메서드
+    // 자동완성 통합 메서드
     public List<String> getAutocompleteSuggestions(String keyword) {
-        if (!StringUtils.hasText(keyword)) {
+        String processedKeyword = preprocessKeyword(keyword);
+        if (processedKeyword.isEmpty()) {
             return List.of();
         }
 
         Pageable pageable = PageRequest.of(0, 5);
 
-        List<BoardDocument> boardResults = boardSearchRepository.findAutocompleteSuggestions(keyword, pageable);
-        List<RestaurantDocument> restaurantResults = restaurantSearchRepository.findAutocompleteSuggestions(keyword,
+        List<BoardDocument> boardResults = boardSearchRepository.findAutocompleteSuggestions(processedKeyword,
+                pageable);
+        List<RestaurantDocument> restaurantResults = restaurantSearchRepository.findAutocompleteSuggestions(
+                processedKeyword,
                 pageable);
         List<String> suggestions = new ArrayList<>();
 
         boardResults.forEach(doc -> suggestions.add(doc.getTitle()));
         restaurantResults.forEach(doc -> suggestions.add(doc.getName()));
 
-        // 중복 제거, 빈값 제거, 정렬 (입력한 단어로 시작하는 것 우선)
+        String lowerKeyword = processedKeyword.toLowerCase(Locale.ROOT);
+
         return suggestions.stream()
                 .distinct()
                 .filter(StringUtils::hasText)
                 .sorted((s1, s2) -> {
-                    boolean s1Starts = s1.startsWith(keyword);
-                    boolean s2Starts = s2.startsWith(keyword);
+                    boolean s1Starts = s1.toLowerCase(Locale.ROOT).startsWith(lowerKeyword);
+                    boolean s2Starts = s2.toLowerCase(Locale.ROOT).startsWith(lowerKeyword);
+
                     if (s1Starts && !s2Starts) {
                         return -1;
                     }
@@ -261,7 +262,7 @@ public class BoardSearchService {
     private void updateKeywordRedis(String keyword) {
         if (StringUtils.hasText(keyword)) {
             try {
-                popularKeywordService.updateKeywordScore(keyword);
+                popularKeywordService.updateKeywordScore(keyword.toLowerCase(Locale.ROOT));
             } catch (Exception e) {
                 log.warn("Failed to update popular keyword score: {}", keyword, e);
             }
