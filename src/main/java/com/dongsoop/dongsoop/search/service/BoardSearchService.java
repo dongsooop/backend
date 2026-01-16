@@ -260,12 +260,13 @@ public class BoardSearchService {
     }
 
     private void updateKeywordRedis(String keyword) {
-        if (StringUtils.hasText(keyword)) {
-            try {
-                popularKeywordService.updateKeywordScore(keyword.toLowerCase(Locale.ROOT));
-            } catch (Exception e) {
-                log.warn("Failed to update popular keyword score: {}", keyword, e);
-            }
+        if (!StringUtils.hasText(keyword)) {
+            return;
+        }
+        try {
+            popularKeywordService.updateKeywordScore(keyword.toLowerCase(Locale.ROOT));
+        } catch (Exception e) {
+            log.warn("Failed to update popular keyword score: {}", keyword, e);
         }
     }
 }
