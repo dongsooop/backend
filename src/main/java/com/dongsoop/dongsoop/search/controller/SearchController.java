@@ -67,10 +67,11 @@ public class SearchController {
 
     @GetMapping("/autocomplete")
     public ResponseEntity<List<String>> getAutocomplete(@RequestParam String keyword) {
-        if (keyword == null || keyword.trim().isEmpty()) {
+        String trimmedKeyword = (keyword == null) ? "" : keyword.trim();
+        if (trimmedKeyword.isEmpty()) {
             return ResponseEntity.ok(List.of());
         }
-        return ResponseEntity.ok(boardSearchService.getAutocompleteSuggestions(keyword));
+        return ResponseEntity.ok(boardSearchService.getAutocompleteSuggestions(trimmedKeyword));
     }
 
     @GetMapping("/popular")
