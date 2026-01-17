@@ -45,10 +45,17 @@ public class S3Config {
     @Bean
     @Primary
     public S3Client s3Client() {
+        URI endpointUri;
+        try {
+            endpointUri = URI.create(endpoint);
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new IllegalArgumentException("OCI Endpoint 설정이 올바르지 않습니다: " + endpoint, e);
+        }
+
         return S3Client.builder()
                 .credentialsProvider(customAwsCredentialsProvider())
                 .region(Region.of(region))
-                .endpointOverride(URI.create(endpoint))
+                .endpointOverride(endpointUri)
                 .forcePathStyle(true)
                 .build();
     }
