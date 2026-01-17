@@ -22,6 +22,9 @@ public class S3ServiceImpl implements S3Service {
     @Value("${cloud.aws.region.static}")
     private String region;
 
+    @Value("${cloud.oci.namespace}")
+    private String namespace;
+
     public String upload(MultipartFile file, String dirName, long boardId) throws IOException {
         String fileName = file.getOriginalFilename();
 
@@ -40,7 +43,8 @@ public class S3ServiceImpl implements S3Service {
                 putObjectRequest,
                 RequestBody.fromInputStream(file.getInputStream(), file.getSize())
         );
-        
-        return "https://" + bucket + ".s3." + region + ".amazonaws.com/" + saveFilePath;
+
+        return String.format("https://objectstorage.%s.oraclecloud.com/n/%s/b/%s/o/%s",
+                region, namespace, bucket, saveFilePath);
     }
 }
