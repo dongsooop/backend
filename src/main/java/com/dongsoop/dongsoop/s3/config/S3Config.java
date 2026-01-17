@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.s3.config;
 
+import java.net.URI;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,6 +23,9 @@ public class S3Config {
     @Value("${cloud.aws.region.static}")
     private String region;
 
+    @Value("${cloud.aws.s3.endpoint}")
+    private String endpoint;
+
     @Bean
     @Primary
     public AwsCredentialsProvider customAwsCredentialsProvider() {
@@ -41,9 +45,18 @@ public class S3Config {
     @Bean
     @Primary
     public S3Client s3Client() {
+        URI endpointUri;
+        try {
+            endpointUri = URI.create(endpoint);
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new IllegalArgumentException("OCI Endpoint 설정이 올바르지 않습니다: " + endpoint, e);
+        }
+
         return S3Client.builder()
                 .credentialsProvider(customAwsCredentialsProvider())
                 .region(Region.of(region))
+                .endpointOverride(endpointUri)
+                .forcePathStyle(true)
                 .build();
     }
 
