@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.s3.config;
 
+import java.net.URI;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +22,9 @@ public class S3Config {
 
     @Value("${cloud.aws.region.static}")
     private String region;
+
+    @Value("${cloud.aws.s3.endpoint}")
+    private String endpoint;
 
     @Bean
     @Primary
@@ -44,6 +48,8 @@ public class S3Config {
         return S3Client.builder()
                 .credentialsProvider(customAwsCredentialsProvider())
                 .region(Region.of(region))
+                .endpointOverride(URI.create(endpoint))
+                .forcePathStyle(true)
                 .build();
     }
 
