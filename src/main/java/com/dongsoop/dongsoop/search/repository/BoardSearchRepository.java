@@ -86,12 +86,10 @@ public interface BoardSearchRepository extends ElasticsearchRepository<BoardDocu
                 "bool": {
                     "must": [
                         {
-                            "bool": {
-                                "should": [
-                                    {"match": {"title": "?0"}},
-                                    {"match": {"content": "?0"}}
-                                ],
-                                "minimum_should_match": 1
+                            "multi_match": {
+                                "query": "?0",
+                                "fields": ["title", "content"],
+                                "operator": "and"
                             }
                         },
                         {"term": {"board_type": "NOTICE"}},
@@ -107,20 +105,22 @@ public interface BoardSearchRepository extends ElasticsearchRepository<BoardDocu
                 "bool": {
                     "must": [
                         {
-                            "bool": {
-                                "should": [
-                                    {"match": {"title": "?0"}},
-                                    {"match": {"content": "?0"}}
-                                ]
+                            "multi_match": {
+                                "query": "?0",
+                                "fields": ["title", "content"],
+                                "operator": "and"
                             }
                         },
-                        {"term": {"board_type": "?1"}}, 
+                        {
+                            "term": {"board_type": "?1"}
+                        },
                         {
                             "bool": {
                                 "should": [
                                     {"term": {"department_name.keyword": "?2"}},
-                                    {"match": {"tags": "?2"}} 
-                                ]
+                                    {"match": {"tags": "?2"}}
+                                ],
+                                "minimum_should_match": 1
                             }
                         }
                     ]
