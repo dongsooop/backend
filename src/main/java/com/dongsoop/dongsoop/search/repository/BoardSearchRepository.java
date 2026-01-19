@@ -89,6 +89,7 @@ public interface BoardSearchRepository extends ElasticsearchRepository<BoardDocu
                             "multi_match": {
                                 "query": "?0",
                                 "fields": ["title", "content"],
+                                "type": "cross_fields",
                                 "operator": "and"
                             }
                         },
@@ -108,6 +109,7 @@ public interface BoardSearchRepository extends ElasticsearchRepository<BoardDocu
                             "multi_match": {
                                 "query": "?0",
                                 "fields": ["title", "content"],
+                                "type": "cross_fields",
                                 "operator": "and"
                             }
                         },
