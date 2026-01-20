@@ -4,6 +4,7 @@ import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import com.dongsoop.dongsoop.search.entity.RestaurantDocument;
+import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,10 +22,10 @@ public class RestaurantSearchRepositoryImpl implements RestaurantSearchRepositor
     private final ElasticsearchOperations operations;
 
     @Override
-    public Page<RestaurantDocument> searchByKeywordDynamic(String keyword, Pageable pageable) { // 맛집 검색 구현
+    public Page<RestaurantDocument> searchByKeywordDynamic(String keyword, Pageable pageable) {
         BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
 
-        boolQueryBuilder.must(m -> m.term(t -> t.field("board_type").value("RESTAURANT")));
+        boolQueryBuilder.filter(f -> f.term(t -> t.field("board_type").value("RESTAURANT")));
 
         if (StringUtils.hasText(keyword)) {
             boolQueryBuilder.must(m -> m
@@ -49,10 +50,14 @@ public class RestaurantSearchRepositoryImpl implements RestaurantSearchRepositor
     }
 
     @Override
-    public List<RestaurantDocument> findAutocompleteSuggestionsDynamic(String keyword,
-                                                                       Pageable pageable) { // 맛집 자동완성 구현
+    public List<RestaurantDocument> findAutocompleteSuggestionsDynamic(String keyword, Pageable pageable) {
+        if (!StringUtils.hasText(keyword)) {
+            return Collections.emptyList();
+        }
+
         BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
 
+        // [수정] must -> filter
         boolQueryBuilder.filter(f -> f.term(t -> t.field("board_type").value("RESTAURANT")));
 
         boolQueryBuilder.must(m -> m
