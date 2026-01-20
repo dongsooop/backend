@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.search.service;
 
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
+import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.search.dto.BoardSearchResult;
 import com.dongsoop.dongsoop.search.dto.RestaurantSearchResult;
 import com.dongsoop.dongsoop.search.dto.SearchDtoMapper;
@@ -13,6 +14,7 @@ import com.dongsoop.dongsoop.search.repository.RestaurantSearchRepository;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -29,9 +31,10 @@ public class BoardSearchService {
     private final BoardSearchRepository boardSearchRepository;
     private final RestaurantSearchRepository restaurantSearchRepository;
     private final PopularKeywordService popularKeywordService;
+    private final MemberService memberService;
 
     public Page<BoardDocument> searchByBoardType(String keyword, BoardType boardType, String departmentName,
-                                                 Pageable pageable) { // 게시판 검색
+                                                 Pageable pageable) {
         String processedKeyword = preprocessKeyword(keyword);
         if (processedKeyword.isEmpty()) {
             return Page.empty(pageable);
@@ -49,8 +52,7 @@ public class BoardSearchService {
         );
     }
 
-    public Page<BoardDocument> searchMarketplace(String keyword, MarketplaceType marketplaceType,
-                                                 Pageable pageable) { // 장터 검색
+    public Page<BoardDocument> searchMarketplace(String keyword, MarketplaceType marketplaceType, Pageable pageable) {
         String processedKeyword = preprocessKeyword(keyword);
         if (processedKeyword.isEmpty()) {
             return Page.empty(pageable);
@@ -60,18 +62,23 @@ public class BoardSearchService {
 
         String mpTypeStr = (marketplaceType != null) ? marketplaceType.name() : null;
 
-        return boardSearchRepository.searchDynamic(
-                processedKeyword,
-                "MARKETPLACE",
-                mpTypeStr,
-                null,
-                null,
-                pageable
-        );
+        try {
+            return boardSearchRepository.searchDynamic(
+                    processedKeyword,
+                    "MARKETPLACE",
+                    mpTypeStr,
+                    null,
+                    null,
+                    pageable
+            );
+        } catch (Exception e) {
+            log.error("Error in searchMarketplace keyword='{}'", keyword, e);
+            return Page.empty(pageable);
+        }
     }
 
     public SearchResponse<BoardSearchResult> searchNoticesByDepartment(String keyword, String authorName,
-                                                                       Pageable pageable) { // 학과 공지 검색
+                                                                       Pageable pageable) {
         String processedKeyword = preprocessKeyword(keyword);
         if (processedKeyword.isEmpty()) {
             return createEmptySearchResponse(pageable);
@@ -90,33 +97,35 @@ public class BoardSearchService {
             );
             return SearchDtoMapper.toSearchResponse(results);
         } catch (Exception e) {
-            log.error("Error in searchNoticesByDepartment", e);
+            log.error("Error in searchNoticesByDepartment keyword='{}'", keyword, e);
             return createEmptySearchResponse(pageable);
         }
     }
 
-    public SearchResponse<RestaurantSearchResult> searchRestaurants(String keyword, Pageable pageable) { // 맛집 검색
+    public SearchResponse<RestaurantSearchResult> searchRestaurants(String keyword, Pageable pageable) {
         String processedKeyword = preprocessKeyword(keyword);
-
-        // 빈 검색어일 경우 빈 결과 반환
         if (processedKeyword.isEmpty()) {
-            return new SearchResponse<>(
-                    Collections.emptyList(),
-                    0,
-                    0,
-                    pageable.getPageNumber(),
-                    pageable.getPageSize()
-            );
+            return new SearchResponse<>(Collections.emptyList(), 0, 0, pageable.getPageNumber(),
+                    pageable.getPageSize());
         }
 
         updateKeywordRedis(processedKeyword);
 
         try {
+            Long currentMemberId = null;
+            try {
+                if (memberService.isAuthenticated()) {
+                    currentMemberId = memberService.getMemberIdByAuthentication();
+                }
+            } catch (Exception ignored) {
+            }
+            final Long memberIdFinal = currentMemberId;
+
             Page<RestaurantDocument> page = restaurantSearchRepository.searchByKeywordDynamic(processedKeyword,
                     pageable);
 
             List<RestaurantSearchResult> content = page.getContent().stream()
-                    .map(doc -> RestaurantSearchResult.from(doc, null))
+                    .map(doc -> RestaurantSearchResult.from(doc, memberIdFinal))
                     .toList();
 
             return new SearchResponse<>(
@@ -127,21 +136,18 @@ public class BoardSearchService {
                     page.getSize()
             );
         } catch (Exception e) {
-            log.error("Error in searchRestaurants", e);
-            return new SearchResponse<>(
-                    Collections.emptyList(),
-                    0,
-                    0,
-                    pageable.getPageNumber(),
-                    pageable.getPageSize()
-            );
+            log.error("Error in searchRestaurants keyword='{}'", keyword, e);
+            return new SearchResponse<>(Collections.emptyList(), 0, 0, pageable.getPageNumber(),
+                    pageable.getPageSize());
         }
     }
 
-    public List<String> getAutocompleteSuggestions(String keyword, String boardType) { // 자동완성
+    public List<String> getAutocompleteSuggestions(String keyword, String boardType) {
         if (!StringUtils.hasText(keyword)) {
             return Collections.emptyList();
         }
+
+        String lowerKeyword = keyword.toLowerCase(Locale.ROOT);
 
         Pageable pageable = PageRequest.of(0, 10);
         List<String> suggestions = new ArrayList<>();
@@ -149,43 +155,57 @@ public class BoardSearchService {
         if ("RESTAURANT".equalsIgnoreCase(boardType)) {
             List<RestaurantDocument> restaurants = restaurantSearchRepository.findAutocompleteSuggestionsDynamic(
                     keyword, pageable);
-            return restaurants.stream().map(RestaurantDocument::getName).distinct()
-                    .toList();
-        }
-
-        if (StringUtils.hasText(boardType)) {
+            suggestions.addAll(restaurants.stream().map(RestaurantDocument::getName).toList());
+        } else if (StringUtils.hasText(boardType)) {
             List<BoardDocument> documents = boardSearchRepository.findAutocompleteSuggestionsDynamic(keyword, boardType,
                     pageable);
-            return documents.stream().map(BoardDocument::getTitle).distinct().toList();
+            suggestions.addAll(documents.stream().map(BoardDocument::getTitle).toList());
+        } else {
+            List<BoardDocument> documents = boardSearchRepository.findAutocompleteSuggestionsDynamic(keyword, null,
+                    PageRequest.of(0, 5));
+            suggestions.addAll(documents.stream().map(BoardDocument::getTitle).toList());
+
+            List<RestaurantDocument> restaurants = restaurantSearchRepository.findAutocompleteSuggestionsDynamic(
+                    keyword, PageRequest.of(0, 5));
+            suggestions.addAll(restaurants.stream().map(RestaurantDocument::getName).toList());
         }
 
-        List<BoardDocument> documents = boardSearchRepository.findAutocompleteSuggestionsDynamic(keyword, null,
-                PageRequest.of(0, 5));
-        suggestions.addAll(documents.stream().map(BoardDocument::getTitle).toList());
-
-        List<RestaurantDocument> restaurants = restaurantSearchRepository.findAutocompleteSuggestionsDynamic(keyword,
-                PageRequest.of(0, 5));
-        suggestions.addAll(restaurants.stream().map(RestaurantDocument::getName).toList());
-
-        return suggestions.stream().distinct().toList();
+        // 검색어로 시작하는 단어 우선 정렬 로직 복구
+        return suggestions.stream()
+                .distinct()
+                .sorted((s1, s2) -> {
+                    boolean s1Starts = s1.toLowerCase(Locale.ROOT).startsWith(lowerKeyword);
+                    boolean s2Starts = s2.toLowerCase(Locale.ROOT).startsWith(lowerKeyword);
+                    if (s1Starts && !s2Starts) {
+                        return -1;
+                    }
+                    if (!s1Starts && s2Starts) {
+                        return 1;
+                    }
+                    return s1.compareTo(s2);
+                })
+                .toList();
     }
 
-    private String preprocessKeyword(String keyword) { // 검색어 전처리
-        return (keyword == null) ? "" : keyword.trim();
+    private String preprocessKeyword(String keyword) {
+        if (keyword == null) {
+            return "";
+        }
+        return keyword.trim().replaceAll("\\s+", " ");
     }
 
-    private void updateKeywordRedis(String keyword) { // 인기 검색어 갱신
+    private void updateKeywordRedis(String keyword) {
         if (!StringUtils.hasText(keyword)) {
             return;
         }
         try {
-            popularKeywordService.updateKeywordScore(keyword);
+            popularKeywordService.updateKeywordScore(keyword.toLowerCase(Locale.ROOT));
         } catch (Exception e) {
-            log.error("Failed to update popular keyword", e);
+            log.warn("Failed to update popular keyword: {}", keyword, e);
         }
     }
 
-    private SearchResponse<BoardSearchResult> createEmptySearchResponse(Pageable pageable) { // 빈 결과 생성
+    private SearchResponse<BoardSearchResult> createEmptySearchResponse(Pageable pageable) {
         return SearchDtoMapper.toSearchResponse(Page.empty(pageable));
     }
 }
