@@ -47,9 +47,9 @@ public class SearchController {
     }
 
     @GetMapping("/restaurant")
-    public ResponseEntity<SearchResponse<RestaurantSearchResult>> searchRestaurants( // 맛집 검색
-                                                                                     @RequestParam String keyword,
-                                                                                     @PageableDefault(sort = "contact_count", direction = Sort.Direction.DESC) Pageable pageable) {
+    public ResponseEntity<SearchResponse<RestaurantSearchResult>> searchRestaurants(
+            @RequestParam String keyword,
+            @PageableDefault(sort = "likeCount", direction = Sort.Direction.DESC) Pageable pageable) {
         SearchResponse<RestaurantSearchResult> response = boardSearchService.searchRestaurants(keyword, pageable);
         return ResponseEntity.ok(response);
     }
