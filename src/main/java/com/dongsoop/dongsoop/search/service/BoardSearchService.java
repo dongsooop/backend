@@ -33,7 +33,8 @@ public class BoardSearchService {
     private final PopularKeywordService popularKeywordService;
     private final MemberService memberService;
 
-    public Page<BoardDocument> searchByBoardType(String keyword, BoardType boardType, String departmentName,
+    public Page<BoardDocument> searchByBoardType(String keyword, List<BoardType> boardTypes,
+                                                 MarketplaceType marketplaceType, String departmentName,
                                                  Pageable pageable) {
         String processedKeyword = preprocessKeyword(keyword);
         if (processedKeyword.isEmpty()) {
@@ -42,39 +43,20 @@ public class BoardSearchService {
 
         updateKeywordRedis(processedKeyword);
 
+        List<String> boardTypeStrings = (boardTypes != null)
+                ? boardTypes.stream().map(bt -> bt.getCode().toUpperCase()).toList()
+                : null;
+
+        String marketplaceTypeStr = (marketplaceType != null) ? marketplaceType.name() : null;
+
         return boardSearchRepository.searchDynamic(
                 processedKeyword,
-                boardType.getCode().toUpperCase(),
-                null,
+                boardTypeStrings,
+                marketplaceTypeStr,
                 departmentName,
                 null,
                 pageable
         );
-    }
-
-    public Page<BoardDocument> searchMarketplace(String keyword, MarketplaceType marketplaceType, Pageable pageable) {
-        String processedKeyword = preprocessKeyword(keyword);
-        if (processedKeyword.isEmpty()) {
-            return Page.empty(pageable);
-        }
-
-        updateKeywordRedis(processedKeyword);
-
-        String mpTypeStr = (marketplaceType != null) ? marketplaceType.name() : null;
-
-        try {
-            return boardSearchRepository.searchDynamic(
-                    processedKeyword,
-                    "MARKETPLACE",
-                    mpTypeStr,
-                    null,
-                    null,
-                    pageable
-            );
-        } catch (Exception e) {
-            log.error("Error in searchMarketplace keyword='{}'", keyword, e);
-            return Page.empty(pageable);
-        }
     }
 
     public SearchResponse<BoardSearchResult> searchNoticesByDepartment(String keyword, String authorName,
@@ -89,7 +71,7 @@ public class BoardSearchService {
         try {
             Page<BoardDocument> results = boardSearchRepository.searchDynamic(
                     processedKeyword,
-                    "NOTICE",
+                    Collections.singletonList("NOTICE"),
                     null,
                     null,
                     authorName,
@@ -105,40 +87,19 @@ public class BoardSearchService {
     public SearchResponse<RestaurantSearchResult> searchRestaurants(String keyword, Pageable pageable) {
         String processedKeyword = preprocessKeyword(keyword);
         if (processedKeyword.isEmpty()) {
-            return new SearchResponse<>(Collections.emptyList(), 0, 0, pageable.getPageNumber(),
-                    pageable.getPageSize());
+            return createEmptyRestaurantResponse(pageable);
         }
 
         updateKeywordRedis(processedKeyword);
 
         try {
-            Long currentMemberId = null;
-            try {
-                if (memberService.isAuthenticated()) {
-                    currentMemberId = memberService.getMemberIdByAuthentication();
-                }
-            } catch (Exception ignored) {
-            }
-            final Long memberIdFinal = currentMemberId;
-
+            Long currentMemberId = getAuthenticatedMemberId();
             Page<RestaurantDocument> page = restaurantSearchRepository.searchByKeywordDynamic(processedKeyword,
                     pageable);
-
-            List<RestaurantSearchResult> content = page.getContent().stream()
-                    .map(doc -> RestaurantSearchResult.from(doc, memberIdFinal))
-                    .toList();
-
-            return new SearchResponse<>(
-                    content,
-                    (int) page.getTotalElements(),
-                    page.getTotalPages(),
-                    page.getNumber(),
-                    page.getSize()
-            );
+            return toRestaurantResponse(page, currentMemberId);
         } catch (Exception e) {
             log.error("Error in searchRestaurants keyword='{}'", keyword, e);
-            return new SearchResponse<>(Collections.emptyList(), 0, 0, pageable.getPageNumber(),
-                    pageable.getPageSize());
+            return createEmptyRestaurantResponse(pageable);
         }
     }
 
@@ -149,28 +110,68 @@ public class BoardSearchService {
 
         String lowerKeyword = keyword.toLowerCase(Locale.ROOT);
 
-        Pageable pageable = PageRequest.of(0, 10);
-        List<String> suggestions = new ArrayList<>();
-
         if ("RESTAURANT".equalsIgnoreCase(boardType)) {
-            List<RestaurantDocument> restaurants = restaurantSearchRepository.findAutocompleteSuggestionsDynamic(
-                    keyword, pageable);
-            suggestions.addAll(restaurants.stream().map(RestaurantDocument::getName).toList());
-        } else if (StringUtils.hasText(boardType)) {
-            List<BoardDocument> documents = boardSearchRepository.findAutocompleteSuggestionsDynamic(keyword, boardType,
-                    pageable);
-            suggestions.addAll(documents.stream().map(BoardDocument::getTitle).toList());
-        } else {
-            List<BoardDocument> documents = boardSearchRepository.findAutocompleteSuggestionsDynamic(keyword, null,
-                    PageRequest.of(0, 5));
-            suggestions.addAll(documents.stream().map(BoardDocument::getTitle).toList());
-
-            List<RestaurantDocument> restaurants = restaurantSearchRepository.findAutocompleteSuggestionsDynamic(
-                    keyword, PageRequest.of(0, 5));
-            suggestions.addAll(restaurants.stream().map(RestaurantDocument::getName).toList());
+            return getRestaurantAutocompleteSuggestions(keyword, lowerKeyword);
         }
 
-        // 검색어로 시작하는 단어 우선 정렬 로직 복구
+        if (StringUtils.hasText(boardType)) {
+            return getBoardAutocompleteSuggestions(keyword, boardType, lowerKeyword);
+        }
+
+        return getAllAutocompleteSuggestions(keyword, lowerKeyword);
+    }
+
+    private List<String> getRestaurantAutocompleteSuggestions(String keyword, String lowerKeyword) {
+        List<RestaurantDocument> results = restaurantSearchRepository.findAutocompleteSuggestionsDynamic(keyword,
+                PageRequest.of(0, 10));
+        return sortSuggestions(results.stream().map(RestaurantDocument::getName).toList(), lowerKeyword);
+    }
+
+    private List<String> getBoardAutocompleteSuggestions(String keyword, String boardType, String lowerKeyword) {
+        List<BoardDocument> results = boardSearchRepository.findAutocompleteSuggestionsDynamic(keyword, boardType,
+                PageRequest.of(0, 10));
+        return sortSuggestions(results.stream().map(BoardDocument::getTitle).toList(), lowerKeyword);
+    }
+
+    private List<String> getAllAutocompleteSuggestions(String keyword, String lowerKeyword) {
+        List<String> suggestions = new ArrayList<>();
+
+        List<BoardDocument> boards = boardSearchRepository.findAutocompleteSuggestionsDynamic(keyword, null,
+                PageRequest.of(0, 5));
+        suggestions.addAll(boards.stream().map(BoardDocument::getTitle).toList());
+
+        List<RestaurantDocument> restaurants = restaurantSearchRepository.findAutocompleteSuggestionsDynamic(keyword,
+                PageRequest.of(0, 5));
+        suggestions.addAll(restaurants.stream().map(RestaurantDocument::getName).toList());
+
+        return sortSuggestions(suggestions, lowerKeyword);
+    }
+
+    private Long getAuthenticatedMemberId() {
+        try {
+            if (memberService.isAuthenticated()) {
+                return memberService.getMemberIdByAuthentication();
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private SearchResponse<RestaurantSearchResult> toRestaurantResponse(Page<RestaurantDocument> page, Long memberId) {
+        List<RestaurantSearchResult> content = page.getContent().stream()
+                .map(doc -> RestaurantSearchResult.from(doc, memberId))
+                .toList();
+
+        return new SearchResponse<>(
+                content,
+                (int) page.getTotalElements(),
+                page.getTotalPages(),
+                page.getNumber(),
+                page.getSize()
+        );
+    }
+
+    private List<String> sortSuggestions(List<String> suggestions, String lowerKeyword) {
         return suggestions.stream()
                 .distinct()
                 .sorted((s1, s2) -> {
@@ -207,5 +208,9 @@ public class BoardSearchService {
 
     private SearchResponse<BoardSearchResult> createEmptySearchResponse(Pageable pageable) {
         return SearchDtoMapper.toSearchResponse(Page.empty(pageable));
+    }
+
+    private SearchResponse<RestaurantSearchResult> createEmptyRestaurantResponse(Pageable pageable) {
+        return new SearchResponse<>(Collections.emptyList(), 0, 0, pageable.getPageNumber(), pageable.getPageSize());
     }
 }
