@@ -10,4 +10,6 @@ public interface BoardSearchRepositoryCustom {
                                       String departmentName, String authorName, Pageable pageable);
 
     List<BoardDocument> findAutocompleteSuggestionsDynamic(String keyword, String boardType, Pageable pageable);
+
+    List<BoardDocument> findNoticeAutocompleteSuggestionsDynamic(String keyword, String authorName, Pageable pageable);
 }

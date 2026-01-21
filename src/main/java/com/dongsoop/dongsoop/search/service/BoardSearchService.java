@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.search.service;
 
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
+import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.search.dto.BoardSearchResult;
 import com.dongsoop.dongsoop.search.dto.RestaurantSearchResult;
@@ -114,11 +115,29 @@ public class BoardSearchService {
             return getRestaurantAutocompleteSuggestions(keyword, lowerKeyword);
         }
 
+        if ("NOTICE".equalsIgnoreCase(boardType)) {
+            return getNoticeAutocompleteSuggestions(keyword, lowerKeyword);
+        }
+
         if (StringUtils.hasText(boardType)) {
             return getBoardAutocompleteSuggestions(keyword, boardType, lowerKeyword);
         }
 
         return getAllAutocompleteSuggestions(keyword, lowerKeyword);
+    }
+
+    private List<String> getNoticeAutocompleteSuggestions(String keyword, String lowerKeyword) {
+        String authorName = getMemberDepartmentName();
+        if (authorName == null) {
+            return Collections.emptyList();
+        }
+
+        List<BoardDocument> results = boardSearchRepository.findNoticeAutocompleteSuggestionsDynamic(
+                keyword,
+                authorName,
+                PageRequest.of(0, 10)
+        );
+        return sortSuggestions(results.stream().map(BoardDocument::getTitle).toList(), lowerKeyword);
     }
 
     private List<String> getRestaurantAutocompleteSuggestions(String keyword, String lowerKeyword) {
@@ -145,6 +164,19 @@ public class BoardSearchService {
         suggestions.addAll(restaurants.stream().map(RestaurantDocument::getName).toList());
 
         return sortSuggestions(suggestions, lowerKeyword);
+    }
+
+    private String getMemberDepartmentName() {
+        try {
+            if (!memberService.isAuthenticated()) {
+                return null;
+            }
+            Member member = memberService.getMemberReferenceByContext();
+            return member.getDepartment().getName();
+        } catch (Exception e) {
+            log.warn("Failed to get member department", e);
+            return null;
+        }
     }
 
     private Long getAuthenticatedMemberId() {

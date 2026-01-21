@@ -16,6 +16,8 @@ import org.springframework.util.StringUtils;
 public class BoardSearchRepositoryImpl extends AbstractSearchRepository<BoardDocument> implements
         BoardSearchRepositoryCustom {
 
+    private static final String NOTICE_BOARD_TYPE = "NOTICE";
+
     public BoardSearchRepositoryImpl(ElasticsearchOperations operations) {
         super(operations, BoardDocument.class);
     }
@@ -44,6 +46,18 @@ public class BoardSearchRepositoryImpl extends AbstractSearchRepository<BoardDoc
         if (StringUtils.hasText(boardType)) {
             boolQueryBuilder.filter(f -> f.term(t -> t.field("board_type").value(boardType)));
         }
+
+        return executeSearchList(boolQueryBuilder, pageable);
+    }
+
+    @Override
+    public List<BoardDocument> findNoticeAutocompleteSuggestionsDynamic(String keyword, String authorName,
+                                                                        Pageable pageable) {
+        BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
+
+        addAutocompleteCriteria(boolQueryBuilder, keyword);
+        boolQueryBuilder.filter(f -> f.term(t -> t.field("board_type").value(NOTICE_BOARD_TYPE)));
+        addAuthorNameFilter(boolQueryBuilder, authorName);
 
         return executeSearchList(boolQueryBuilder, pageable);
     }
