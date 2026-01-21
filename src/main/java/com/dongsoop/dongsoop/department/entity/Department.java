@@ -18,6 +18,7 @@ public class Department {
     @Enumerated(EnumType.STRING)
     private DepartmentType id;
 
+    @Getter
     private String name;
 
     @Getter
