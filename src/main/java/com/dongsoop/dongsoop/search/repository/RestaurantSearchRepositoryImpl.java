@@ -6,26 +6,27 @@ import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import com.dongsoop.dongsoop.search.entity.RestaurantDocument;
 import java.util.Collections;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
-import org.springframework.data.elasticsearch.core.SearchHit;
-import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
-@RequiredArgsConstructor
-public class RestaurantSearchRepositoryImpl implements RestaurantSearchRepositoryCustom {
+@Repository
+public class RestaurantSearchRepositoryImpl extends AbstractSearchRepository<RestaurantDocument> implements
+        RestaurantSearchRepositoryCustom {
 
-    private final ElasticsearchOperations operations;
+    private static final String RESTAURANT_BOARD_TYPE = "RESTAURANT";
+
+    public RestaurantSearchRepositoryImpl(ElasticsearchOperations operations) {
+        super(operations, RestaurantDocument.class);
+    }
 
     @Override
     public Page<RestaurantDocument> searchByKeywordDynamic(String keyword, Pageable pageable) {
         BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
 
-        boolQueryBuilder.filter(f -> f.term(t -> t.field("board_type").value("RESTAURANT")));
+        boolQueryBuilder.filter(f -> f.term(t -> t.field("board_type").value(RESTAURANT_BOARD_TYPE)));
 
         if (StringUtils.hasText(keyword)) {
             boolQueryBuilder.must(m -> m
@@ -38,15 +39,7 @@ public class RestaurantSearchRepositoryImpl implements RestaurantSearchRepositor
             );
         }
 
-        NativeQuery query = NativeQuery.builder()
-                .withQuery(q -> q.bool(boolQueryBuilder.build()))
-                .withPageable(pageable)
-                .build();
-
-        SearchHits<RestaurantDocument> searchHits = operations.search(query, RestaurantDocument.class);
-        List<RestaurantDocument> content = searchHits.stream().map(SearchHit::getContent).toList();
-
-        return new PageImpl<>(content, pageable, searchHits.getTotalHits());
+        return executeSearch(boolQueryBuilder, pageable);
     }
 
     @Override
@@ -57,24 +50,10 @@ public class RestaurantSearchRepositoryImpl implements RestaurantSearchRepositor
 
         BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
 
-        // [수정] must -> filter
-        boolQueryBuilder.filter(f -> f.term(t -> t.field("board_type").value("RESTAURANT")));
+        boolQueryBuilder.filter(f -> f.term(t -> t.field("board_type").value(RESTAURANT_BOARD_TYPE)));
 
-        boolQueryBuilder.must(m -> m
-                .bool(b -> b
-                        .should(s -> s.match(mat -> mat.field("title.autocomplete").query(keyword).boost(10.0f)))
-                        .should(s -> s.match(mat -> mat.field("title").query(keyword).fuzziness("AUTO").boost(1.0f)))
-                        .should(s -> s.match(mat -> mat.field("tags.autocomplete").query(keyword)))
-                        .minimumShouldMatch("1")
-                )
-        );
+        addAutocompleteCriteria(boolQueryBuilder, keyword);
 
-        NativeQuery query = NativeQuery.builder()
-                .withQuery(q -> q.bool(boolQueryBuilder.build()))
-                .withPageable(pageable)
-                .build();
-
-        SearchHits<RestaurantDocument> searchHits = operations.search(query, RestaurantDocument.class);
-        return searchHits.stream().map(SearchHit::getContent).toList();
+        return executeSearchList(boolQueryBuilder, pageable);
     }
 }
