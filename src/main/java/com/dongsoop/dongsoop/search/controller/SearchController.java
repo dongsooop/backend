@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.search.controller;
 
+import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
 import com.dongsoop.dongsoop.search.dto.RestaurantSearchResult;
 import com.dongsoop.dongsoop.search.dto.SearchDtoMapper;
 import com.dongsoop.dongsoop.search.dto.SearchResponse;
@@ -26,14 +27,15 @@ public class SearchController {
     private final PopularKeywordService popularKeywordService;
 
     @GetMapping("/by-type")
-    public ResponseEntity<SearchResponse> searchByType( // 게시판 타입별 검색
-                                                        @RequestParam String keyword,
-                                                        @RequestParam BoardType boardType,
-                                                        @RequestParam(required = false) String departmentName,
-                                                        @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+    public ResponseEntity<SearchResponse> searchByType(
+            @RequestParam String keyword,
+            @RequestParam("boardType") List<BoardType> boardTypes,
+            @RequestParam(required = false) MarketplaceType marketplaceType,
+            @RequestParam(required = false) String departmentName,
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
         SearchResponse response = SearchDtoMapper.toSearchResponse(
-                boardSearchService.searchByBoardType(keyword, boardType, departmentName, pageable));
+                boardSearchService.searchByBoardType(keyword, boardTypes, marketplaceType, departmentName, pageable));
         return ResponseEntity.ok(response);
     }
 
