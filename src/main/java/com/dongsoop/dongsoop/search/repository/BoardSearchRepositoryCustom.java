@@ -6,8 +6,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface BoardSearchRepositoryCustom {
-    Page<BoardDocument> searchDynamic(String keyword, String boardType, String marketplaceType, String departmentName,
-                                      String authorName, Pageable pageable);
+    Page<BoardDocument> searchDynamic(String keyword, List<String> boardTypes, String marketplaceType,
+                                      String departmentName, String authorName, Pageable pageable);
 
     List<BoardDocument> findAutocompleteSuggestionsDynamic(String keyword, String boardType, Pageable pageable);
 }
