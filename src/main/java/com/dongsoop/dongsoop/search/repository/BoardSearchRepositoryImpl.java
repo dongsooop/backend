@@ -39,6 +39,9 @@ public class BoardSearchRepositoryImpl extends AbstractSearchRepository<BoardDoc
     @Override
     public List<BoardDocument> findAutocompleteSuggestionsDynamic(String keyword, String boardType,
                                                                   Pageable pageable) {
+        if (!StringUtils.hasText(keyword)) {
+            return List.of();
+        }
         BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
 
         addAutocompleteCriteria(boolQueryBuilder, keyword);
@@ -55,6 +58,9 @@ public class BoardSearchRepositoryImpl extends AbstractSearchRepository<BoardDoc
     @Override
     public List<BoardDocument> findNoticeAutocompleteSuggestionsDynamic(String keyword, String authorName,
                                                                         Pageable pageable) {
+        if (!StringUtils.hasText(keyword)) {
+            return List.of();
+        }
         BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
 
         addAutocompleteCriteria(boolQueryBuilder, keyword);
