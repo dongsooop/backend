@@ -44,7 +44,9 @@ public class BoardSearchRepositoryImpl extends AbstractSearchRepository<BoardDoc
         addAutocompleteCriteria(boolQueryBuilder, keyword);
 
         if (StringUtils.hasText(boardType)) {
-            boolQueryBuilder.filter(f -> f.term(t -> t.field("board_type").value(boardType)));
+            boolQueryBuilder.filter(f ->
+                    f.term(t -> t
+                            .field("board_type").value(boardType)));
         }
 
         return executeSearchList(boolQueryBuilder, pageable);
@@ -56,7 +58,11 @@ public class BoardSearchRepositoryImpl extends AbstractSearchRepository<BoardDoc
         BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
 
         addAutocompleteCriteria(boolQueryBuilder, keyword);
-        boolQueryBuilder.filter(f -> f.term(t -> t.field("board_type").value(NOTICE_BOARD_TYPE)));
+        boolQueryBuilder.filter(f ->
+                f.term(t -> t
+                        .field("board_type")
+                        .value(NOTICE_BOARD_TYPE)));
+
         addAuthorNameFilter(boolQueryBuilder, authorName);
 
         return executeSearchList(boolQueryBuilder, pageable);
@@ -97,7 +103,10 @@ public class BoardSearchRepositoryImpl extends AbstractSearchRepository<BoardDoc
             return;
         }
 
-        builder.filter(f -> f.term(t -> t.field("marketplace_type").value(marketplaceType)));
+        builder.filter(f -> f
+                .term(t -> t
+                        .field("marketplace_type")
+                        .value(marketplaceType)));
     }
 
     private void addAuthorNameFilter(BoolQuery.Builder builder, String authorName) {
@@ -105,7 +114,10 @@ public class BoardSearchRepositoryImpl extends AbstractSearchRepository<BoardDoc
             return;
         }
 
-        builder.filter(f -> f.term(t -> t.field("author_name").value(authorName)));
+        builder.filter(f ->
+                f.term(t -> t
+                        .field("author_name")
+                        .value(authorName)));
     }
 
     private void addDepartmentFilter(BoolQuery.Builder builder, String departmentName) {
@@ -115,8 +127,14 @@ public class BoardSearchRepositoryImpl extends AbstractSearchRepository<BoardDoc
 
         builder.must(m -> m
                 .bool(b -> b
-                        .should(s -> s.term(t -> t.field("department_name.keyword").value(departmentName)))
-                        .should(s -> s.match(mat -> mat.field("tags").query(departmentName)))
+                        .should(s -> s
+                                .term(t -> t
+                                        .field("department_name.keyword")
+                                        .value(departmentName)))
+                        .should(s -> s
+                                .match(mat -> mat
+                                        .field("tags")
+                                        .query(departmentName)))
                         .minimumShouldMatch("1")
                 )
         );

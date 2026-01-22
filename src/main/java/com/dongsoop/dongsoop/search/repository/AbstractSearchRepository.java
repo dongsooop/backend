@@ -24,7 +24,9 @@ public abstract class AbstractSearchRepository<T> {
                 .build();
 
         SearchHits<T> searchHits = operations.search(query, clazz);
-        List<T> content = searchHits.stream().map(SearchHit::getContent).toList();
+        List<T> content = searchHits.stream()
+                .map(SearchHit::getContent)
+                .toList();
 
         return new PageImpl<>(content, pageable, searchHits.getTotalHits());
     }
@@ -36,15 +38,29 @@ public abstract class AbstractSearchRepository<T> {
                 .build();
 
         SearchHits<T> searchHits = operations.search(query, clazz);
-        return searchHits.stream().map(SearchHit::getContent).toList();
+        return searchHits.stream()
+                .map(SearchHit::getContent)
+                .toList();
     }
 
     protected void addAutocompleteCriteria(BoolQuery.Builder builder, String keyword) {
         builder.must(m -> m
                 .bool(b -> b
-                        .should(s -> s.match(mat -> mat.field("title.autocomplete").query(keyword).boost(10.0f)))
-                        .should(s -> s.match(mat -> mat.field("title").query(keyword).fuzziness("AUTO").boost(1.0f)))
-                        .should(s -> s.match(mat -> mat.field("tags.autocomplete").query(keyword)))
+                        .should(s -> s
+                                .match(mat -> mat
+                                        .field("title.autocomplete")
+                                        .query(keyword)
+                                        .boost(10.0f)))
+                        .should(s -> s
+                                .match(mat -> mat
+                                        .field("title")
+                                        .query(keyword)
+                                        .fuzziness("AUTO")
+                                        .boost(1.0f)))
+                        .should(s -> s
+                                .match(mat -> mat
+                                        .field("tags.autocomplete")
+                                        .query(keyword)))
                         .minimumShouldMatch("1")
                 )
         );

@@ -26,7 +26,10 @@ public class RestaurantSearchRepositoryImpl extends AbstractSearchRepository<Res
     public Page<RestaurantDocument> searchByKeywordDynamic(String keyword, Pageable pageable) {
         BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
 
-        boolQueryBuilder.filter(f -> f.term(t -> t.field("board_type").value(RESTAURANT_BOARD_TYPE)));
+        boolQueryBuilder.filter(f -> f
+                .term(t -> t
+                        .field("board_type")
+                        .value(RESTAURANT_BOARD_TYPE)));
 
         if (StringUtils.hasText(keyword)) {
             boolQueryBuilder.must(m -> m
@@ -50,7 +53,10 @@ public class RestaurantSearchRepositoryImpl extends AbstractSearchRepository<Res
 
         BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
 
-        boolQueryBuilder.filter(f -> f.term(t -> t.field("board_type").value(RESTAURANT_BOARD_TYPE)));
+        boolQueryBuilder.filter(f -> f
+                .term(t -> t
+                        .field("board_type")
+                        .value(RESTAURANT_BOARD_TYPE)));
 
         addAutocompleteCriteria(boolQueryBuilder, keyword);
 
