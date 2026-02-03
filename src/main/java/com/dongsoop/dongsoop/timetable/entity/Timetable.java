@@ -55,7 +55,7 @@ public class Timetable extends BaseEntity {
     @JoinColumn(name = "member_id", nullable = false, updatable = false)
     private Member member;
 
-    @Column(name = "year", nullable = false, updatable = false)
+    @Column(name = "\"year\"", nullable = false, updatable = false)
     private Year year;
 
     @Column(name = "semester", nullable = false, updatable = false)

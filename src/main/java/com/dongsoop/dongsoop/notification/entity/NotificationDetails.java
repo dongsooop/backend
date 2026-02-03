@@ -40,6 +40,6 @@ public class NotificationDetails extends BaseEntity {
     @Column(name = "type", nullable = false)
     private NotificationType type;
 
-    @Column(name = "value", nullable = false)
+    @Column(name = "\"value\"", nullable = false)
     private String value;
 }
