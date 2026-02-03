@@ -104,7 +104,7 @@ oauth:
     cache-name: ${OAUTH_APPLE_CACHE_NAME}
     package: ${OAUTH_APPLE_PACKAGE_NAME}
 
-# rest template timeout for requst
+# rest template timeout for request
 rest:
   connectTimeout: ${REST_CONNECT_TIMEOUT}
   readTimeout: ${REST_READ_TIMEOUT}

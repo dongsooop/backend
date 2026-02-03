@@ -151,14 +151,14 @@ jwt:
     access-token: 300000 # 5분
     refresh-token: 600000 # 10분
     social-token: 60000 # 1분
-  # 로컬용
+  # ⚠️ 로컬용으로 절대 프로덕션에서 사용하지 말 것
   secret-key: VGhpc0lzQVZlcnlMb25nU2VjcmV0S2V5Rm9yRG9uZ3Nvb3BMb2NhbERldmVsb3BtZW50VGVzdGluZ1B1cnBvc2VPbmx5MTIzNDU2
   systemkey: I_LOVE_DONGSOOP_LOCAL
 
 authentication:
   origins:
-    http://localhost:3000,
-    https://appleid.apple.com
+    - http://localhost:3000
+    - https://appleid.apple.com
 
 notice:
   thread:
