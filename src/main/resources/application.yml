@@ -1,0 +1,116 @@
+spring:
+  application:
+    name: dongsoop
+  profiles:
+    group:
+      local: local
+      dev: dev
+      test: test
+      prod: prod
+    default: local
+  logging:
+    config: classpath:logback.xml
+    file: logs/dongsoop.log
+
+
+rest:
+  connectTimeout: 4000
+  readTimeout: 4000
+
+authentication:
+  path:
+    all:
+      /tutoring-board/**,
+      /project-board/**,
+      /study-board/**,
+      /marketplace-board/**,
+      /member/login,
+      /member/signup,
+      /member/validate/**,
+      /member/password,
+      /meal/current,
+      /error,
+      /ws/**,
+      /notice/**,
+      /timetable/**,
+      /token/reissue,
+      /search/**,
+      /mail-verify/**,
+      /device,
+      /schedule/**,
+      /home,
+      /feedback,
+      /health,
+      /restaurants/nearby,
+      /notification-settings/**,
+      /oauth2/kakao,
+      /oauth2/google,
+      /oauth2/apple,
+      /oauth2/apple/callback
+    user:
+      /test/user
+    admin:
+      /admin
+  origins:
+    http://localhost:3000,
+    https://appleid.apple.com
+  methods:
+    POST,
+    GET,
+    PATCH,
+    PUT,
+    DELETE,
+    OPTIONS
+  filter:
+    ignore:
+      paths:
+        /error,
+        /member/login,
+        /member/signup,
+        /mail-verify/**,
+        /notice/**,
+        /device,
+        /oauth2/authorization
+
+oauth:
+  apple:
+    issuer: https://appleid.apple.com
+    revoke-uri: https://appleid.apple.com/auth/revoke
+  google:
+    revoke-uri: https://oauth2.googleapis.com/revoke
+  kakao:
+    revoke-uri: https://kapi.kakao.com/v1/user/unlink
+    target-id-type: user_id
+    mobile-token-value: mobile
+
+university:
+  domain: https://www.dongyang.ac.kr
+
+notice:
+  link:
+    layout-header: ?layout=unknown
+    department:
+      notice-regex: "'([^' ]*)'"
+      url-prefix: /combBbs
+      url-start: javascript
+      url-suffix: /view.do
+  thread:
+    count: 8
+  connect:
+    timeout: 15000
+    user-agent: "Mozilla/5.0 (Compatible; NoticeBot/1.0)"
+  crawl:
+    timeout: 10000
+  terminate:
+    grace-time: 30
+    force-time: 10
+
+meal:
+  crawler:
+    base-url: "https://www.dongyang.ac.kr/dmu/4902/subview.do?enc="
+    timeout: 15000 # 15 seconds
+    user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+
+resource:
+  static:
+    base-path: static/

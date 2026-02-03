@@ -1,0 +1,195 @@
+server:
+  address: ${SERVER_ADDRESS}
+  port: ${SERVER_PORT}
+
+spring:
+  config:
+    activate:
+      on-profile: prod
+  application:
+    name: ${APPLICATION_NAME}
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: ${DATABASE_DRIVER_CLASS_NAME}
+
+  logging:
+    level:
+      org.hibernate.SQL: WARN
+      org.springframework.data.redis: INFO
+      com.dongsoop.dongsoop.discord: INFO
+      org.springframework.cloud.openfeign: INFO
+    discord:
+      webhook-url: ${LOG_DISCORD_WEBHOOK_URL}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+  websocket:
+    endpoint: ${WEB_SOCKET_END_POINT}
+    allowed-origins: ${ALLOWED_ORIGINS}
+
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    protocol: ${MAIL_PROTOCOL}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS}
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${OAUTH_GOOGLE_CLIENT_ID}
+            client-secret: ${OAUTH_GOOGLE_CLIENT_SECRET}
+            redirect-uri: ${OAUTH_GOOGLE_REDIRECT_URI}
+            scope: ${OAUTH_GOOGLE_SCOPE}
+          kakao:
+            client-id: ${OAUTH_KAKAO_CLIENT_ID}
+            client-secret: ${OAUTH_KAKAO_CLIENT_SECRET}
+            client-authentication-method: ${OAUTH_KAKAO_CLIENT_AUTHENTICATION_METHOD}
+            authorization-grant-type: ${OAUTH_KAKAO_AUTHORIZATION_GRANT_TYPE}
+            redirect-uri: ${OAUTH_KAKAO_REDIRECT_URI}
+            scope: ${OAUTH_KAKAO_SCOPE}
+          apple:
+            client-id: ${OAUTH_APPLE_CLIENT_ID}
+            client-secret: ${OAUTH_APPLE_CLIENT_SECRET}
+            client-name: ${OAUTH_APPLE_CLIENT_NAME}
+            authorization-grant-type: ${OAUTH_APPLE_AUTHORIZATION_GRANT_TYPE}
+            redirect-uri: ${OAUTH_APPLE_REDIRECT_URI}
+            scope: ${OAUTH_APPLE_SCOPE}
+        provider:
+          google:
+            authorization-uri: ${OAUTH_GOOGLE_AUTHORIZATION_URI}
+            token-uri: ${OAUTH_GOOGLE_TOKEN_URI}
+            user-info-uri: ${OAUTH_GOOGLE_USER_INFO_URI}
+            user-name-attribute: ${OAUTH_GOOGLE_USER_NAME_ATTRIBUTE}
+          kakao:
+            authorization-uri: ${OAUTH_KAKAO_AUTHORIZATION_URI}
+            token-uri: ${OAUTH_KAKAO_TOKEN_URI}
+            user-info-uri: ${OAUTH_KAKAO_USER_INFO_URI}
+            user-name-attribute: ${OAUTH_KAKAO_USER_NAME_ATTRIBUTE}
+          apple:
+            authorization-uri: ${OAUTH_APPLE_AUTHORIZATION_URI}
+            token-uri: ${OAUTH_APPLE_TOKEN_URI}
+            jwk-set-uri: ${OAUTH_APPLE_JWK_SET_URI}
+            user-name-attribute: ${OAUTH_APPLE_USER_NAME_ATTRIBUTE}
+  cache:
+    type: simple
+
+oauth:
+  authorize-uri: ${OAUTH_AUTHORIZE_URI}
+  failure-redirect-uri: ${OAUTH_FAILURE_REDIRECT_URI}
+  apple:
+    redirect-uri: ${OAUTH_APPLE_APP_REDIRECT_URI}
+    scheme: ${OAUTH_APPLE_SCHEME}
+    cache-name: ${OAUTH_APPLE_CACHE_NAME}
+    package: ${OAUTH_APPLE_PACKAGE_NAME}
+
+# rest template timeout for requst
+rest:
+  connectTimeout: ${REST_CONNECT_TIMEOUT}
+  readTimeout: ${REST_READ_TIMEOUT}
+
+jwt:
+  claims:
+    role:
+      name: ${JWT_CLAIMS_ROLE_NAME}
+    type:
+      name: ${JWT_CLAIMS_TYPE_NAME}
+  expired-time:
+    access-token: ${JWT_EXPIRED_TIME_ACCESS}
+    refresh-token: ${JWT_EXPIRED_TIME_REFRESH}
+    social-token: ${JWT_EXPIRED_TIME_SOCIAL}
+  secret-key: ${JWT_SECRET_KEY}
+  systemkey: ${JWT_SYSTEM_KEY}
+
+notice:
+  thread:
+    count: ${NOTICE_THREAD_COUNT}
+  connect:
+    timeout: ${NOTICE_CONNECT_TIMEOUT}
+    user-agent: ${NOTICE_CONNECT_USER_AGENT}
+  crawl:
+    timeout: ${NOTICE_CRAWL_TIMEOUT}
+  terminate:
+    grace-time: ${NOTICE_TERMINATE_GRACE_TIME}
+    force-time: ${NOTICE_TERMINATE_FORCE_TIME}
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
+    s3:
+      bucket: ${AWS_S3_BUCKET}
+      endpoint: ${AWS_S3_ENDPOINT}
+    region:
+      static: ${AWS_REGION_STATIC}
+  oci:
+    namespace: ${OCI_NAMESPACE}
+
+member:
+  nickname:
+    alias:
+      prefix: 익명_
+
+mail:
+  sender: ${MAIL_SENDER}
+  format:
+    file:
+      name: ${MAIL_FORMAT_FILE_NAME}
+  verify:
+    register:
+      redis:
+        prefix: ${MAIL_VERIFY_REGISTER_REDIS_PREFIX}
+    password-update:
+      redis:
+        prefix: ${MAIL_VERIFY_PASSWORD_UPDATE_REDIS_PREFIX}
+  redis:
+    key:
+      code: ${MAIL_REDIS_KEY_CODE}
+      opportunity: ${MAIL_REDIS_KEY_OPPORTUNITY}
+      success: ${MAIL_REDIS_KEY_SUCCESS}
+
+notification:
+  topic:
+    anonymous: ${NOTIFICATION_TOPIC_ANONYMOUS}
+
+home:
+  thread:
+    pool:
+      size: ${HOME_THREAD_POOL_SIZE}
+  async:
+    timeout:
+      seconds: ${HOME_ASYNC_TIME_OUT_SECOND}
+
+firebase:
+  service-account:
+    path: ${FIREBASE_SERVICE_ACCOUNT_PATH}
+  project:
+    number: ${FIREBASE_PROJECT_NUMBER}
+
+text:
+  filtering:
+    api:
+      url: ${TEXT_FILTERING_API_URL}
+
+admin:
+  id: ${ADMIN_ID}
