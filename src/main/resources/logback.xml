@@ -10,7 +10,7 @@
     </appender>
 
     <!-- 디스코드 웹훅 로깅 설정 -->
-    <springProperty name="DISCORD_WEBHOOK_URL" source="spring.logging.discord.webhook-url" defaultValue=""/>
+    <springProperty name="DISCORD_WEBHOOK_URL" source="discord.webhook.url" defaultValue=""/>
     <appender name="DISCORD" class="com.github.napstr.logback.DiscordAppender">
         <webhookUri>${DISCORD_WEBHOOK_URL}</webhookUri>
         <layout class="ch.qos.logback.classic.PatternLayout">

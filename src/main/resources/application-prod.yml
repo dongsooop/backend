@@ -14,10 +14,6 @@ spring:
     password: ${DATABASE_PASSWORD}
     driver-class-name: ${DATABASE_DRIVER_CLASS_NAME}
 
-  logging:
-    discord:
-      webhook-url: ${LOG_DISCORD_WEBHOOK_URL} # logback.xml에서 사용
-
   jpa:
     hibernate:
       ddl-auto: validate
@@ -94,6 +90,10 @@ logging:
     org.springframework.data.redis: INFO
     com.dongsoop.dongsoop.discord: INFO
     org.springframework.cloud.openfeign: INFO
+
+discord:
+  webhook:
+    url: ${DISCORD_WEBHOOK_URL}
 
 oauth:
   authorize-uri: ${OAUTH_AUTHORIZE_URI}
