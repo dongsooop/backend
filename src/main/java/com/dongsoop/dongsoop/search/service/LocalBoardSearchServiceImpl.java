@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.search.service;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
 import com.dongsoop.dongsoop.search.dto.BoardSearchResult;
 import com.dongsoop.dongsoop.search.dto.RestaurantSearchResult;
+import com.dongsoop.dongsoop.search.dto.SearchDtoMapper;
 import com.dongsoop.dongsoop.search.dto.SearchResponse;
 import com.dongsoop.dongsoop.search.entity.BoardDocument;
 import com.dongsoop.dongsoop.search.entity.BoardType;
@@ -31,12 +32,12 @@ public class LocalBoardSearchServiceImpl implements BoardSearchService {
     public SearchResponse<BoardSearchResult> searchNoticesByDepartment(String keyword, String authorName,
                                                                        Pageable pageable) {
         log.info("searchNoticesByDepartment keyword='{}', authorName='{}'", keyword, authorName);
-        return null;
+        return SearchDtoMapper.toSearchResponse(Page.empty(pageable));
     }
 
     public SearchResponse<RestaurantSearchResult> searchRestaurants(String keyword, Pageable pageable) {
         log.info("searchRestaurants keyword='{}'", keyword);
-        return null;
+        return SearchDtoMapper.toSearchResponse(Page.empty(pageable));
     }
 
     public List<String> getAutocompleteSuggestions(String keyword, String boardType) {
