@@ -6,9 +6,10 @@ spring:
       local: local
       prod: prod
     default: local
-  logging:
-    config: classpath:logback.xml
-    file: logs/dongsoop.log
+
+logging:
+  config: classpath:logback.xml
+  file.path: logs/dongsoop.log
 
 
 rest:

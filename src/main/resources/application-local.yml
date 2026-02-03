@@ -26,11 +26,6 @@ spring:
       repositories:
         enabled: false # 엘라스틱 서치 비활성화
   logging:
-    level:
-      org.hibernate.SQL: DEBUG
-      org.springframework.data.redis: DEBUG
-      com.dongsoop.dongsoop.discord: DEBUG
-      org.springframework.cloud.openfeign: DEBUG
     discord:
       webhook-url:
   websocket:
@@ -94,6 +89,13 @@ spring:
             user-name-attribute: sub
   cache:
     type: simple
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.springframework.data.redis: DEBUG
+    com.dongsoop.dongsoop.discord: DEBUG
+    org.springframework.cloud.openfeign: DEBUG
 
 oauth:
   authorize-uri: http://localhost:8080/oauth2/

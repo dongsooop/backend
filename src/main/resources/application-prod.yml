@@ -15,13 +15,8 @@ spring:
     driver-class-name: ${DATABASE_DRIVER_CLASS_NAME}
 
   logging:
-    level:
-      org.hibernate.SQL: WARN
-      org.springframework.data.redis: INFO
-      com.dongsoop.dongsoop.discord: INFO
-      org.springframework.cloud.openfeign: INFO
     discord:
-      webhook-url: ${LOG_DISCORD_WEBHOOK_URL}
+      webhook-url: ${LOG_DISCORD_WEBHOOK_URL} # logback.xml에서 사용
 
   jpa:
     hibernate:
@@ -92,6 +87,13 @@ spring:
             user-name-attribute: ${OAUTH_APPLE_USER_NAME_ATTRIBUTE}
   cache:
     type: simple
+
+logging:
+  level:
+    org.hibernate.SQL: WARN
+    org.springframework.data.redis: INFO
+    com.dongsoop.dongsoop.discord: INFO
+    org.springframework.cloud.openfeign: INFO
 
 oauth:
   authorize-uri: ${OAUTH_AUTHORIZE_URI}
