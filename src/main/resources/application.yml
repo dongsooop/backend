@@ -4,8 +4,6 @@ spring:
   profiles:
     group:
       local: local
-      dev: dev
-      test: test
       prod: prod
     default: local
   logging:
