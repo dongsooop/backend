@@ -65,9 +65,13 @@ public class FirebaseAppCheckFilter extends OncePerRequestFilter {
     }
 
     private void updateCacheSafely() throws UnknownFirebaseFetchJWKException {
+
         try {
             firebaseAppCheck.updateCache();
-        } catch (InterruptedException | IOException e) {
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new UnknownFirebaseFetchJWKException(e);
+        } catch (IOException e) {
             throw new UnknownFirebaseFetchJWKException(e);
         }
     }
