@@ -9,7 +9,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import com.dongsoop.dongsoop.jwt.exception.TokenMalformedException;
@@ -36,8 +35,7 @@ class JwtFilterAuthenticationTest {
     private JwtUtil jwtUtil;
     @Mock
     private JwtValidator jwtValidator;
-    @Mock
-    private FirebaseAppCheck firebaseAppCheck;
+
     @Mock
     private HandlerExceptionResolver exceptionResolver;
     @Mock
@@ -54,7 +52,7 @@ class JwtFilterAuthenticationTest {
 
     @BeforeEach
     void setUp() {
-        jwtFilter = new JwtFilter(jwtUtil, jwtValidator, firebaseAppCheck, exceptionResolver, ignorePaths);
+        jwtFilter = new JwtFilter(jwtUtil, jwtValidator, exceptionResolver, ignorePaths);
         SecurityContextHolder.clearContext();
     }
 
@@ -64,7 +62,7 @@ class JwtFilterAuthenticationTest {
         // given
         String token = "validToken";
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
-        when(request.getHeader("X-Firebase-AppCheck")).thenReturn(null);
+
         when(jwtUtil.getClaims(token)).thenReturn(claims);
         when(jwtUtil.getAuthenticationByToken(token)).thenReturn(authentication);
         doNothing().when(jwtValidator).validate(claims);
@@ -85,7 +83,7 @@ class JwtFilterAuthenticationTest {
         // given
         String token = "validToken";
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
-        when(request.getHeader("X-Firebase-AppCheck")).thenReturn(null);
+
         when(jwtUtil.getClaims(token)).thenReturn(claims);
         when(jwtUtil.getAuthenticationByToken(token)).thenReturn(authentication);
         doNothing().when(jwtValidator).validate(claims);
@@ -103,7 +101,7 @@ class JwtFilterAuthenticationTest {
     void whenNoToken_thenNoAuthenticationSet() throws Exception {
         // given
         when(request.getHeader("Authorization")).thenReturn(null);
-        when(request.getHeader("X-Firebase-AppCheck")).thenReturn(null);
+
 
         // when
         jwtFilter.doFilterInternal(request, response, filterChain);
@@ -119,7 +117,7 @@ class JwtFilterAuthenticationTest {
         // given
         String token = "invalidToken";
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
-        when(request.getHeader("X-Firebase-AppCheck")).thenReturn(null);
+
         when(jwtUtil.getClaims(token)).thenReturn(claims);
         doThrow(new TokenMalformedException()).when(jwtValidator).validate(claims);
 
@@ -141,7 +139,7 @@ class JwtFilterAuthenticationTest {
         Authentication auth1 = mock(Authentication.class);
         Authentication auth2 = mock(Authentication.class);
 
-        when(request.getHeader("X-Firebase-AppCheck")).thenReturn(null);
+
 
         // 첫 번째 요청
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token1);
