@@ -1,0 +1,197 @@
+server:
+  address: 0.0.0.0
+  port: 8080
+
+spring:
+  autoconfigure:
+    exclude:
+      - io.awspring.cloud.autoconfigure.s3.S3AutoConfiguration
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: jdbc:h2:mem:testdb
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+    elasticsearch:
+      repositories:
+        enabled: false # 엘라스틱 서치 비활성화
+  websocket:
+    endpoint: /local-ws-endpoint
+  mail:
+    host: smtp.example.com
+    port: 465
+    # 메일 발송 테스트가 필요하면 실제 SMTP 계정으로 변경
+    username: local-dev@example.com
+    password: local-dev-password-placeholder
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+  #  elasticsearch:
+  #    connection-timeout: 5s
+  #    socket-timeout: 30s
+  #    uris: http://localhost:9200
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: local-google-client-id-placeholder
+            client-secret: local-google-client-secret-placeholder
+            redirect-uri: http://localhost:8080/login/oauth2/code/google
+            scope:
+          kakao:
+            client-id: local-kakao-client-id-placeholder
+            client-secret: local-kakao-client-secret-placeholder
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: http://localhost:8080/login/oauth2/code/kakao
+            scope:
+          apple:
+            # Apple OAuth는 실제 앱에서만 테스트 가능 (로컬에서는 보통 사용 안 함)
+            client-id: local.apple.client.id
+            client-secret: AuthKey.p8
+            client-name: Apple
+            authorization-grant-type: authorization_code
+            redirect-uri: http://localhost:8080/login/oauth2/code/apple
+            scope:
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://www.googleapis.com/oauth2/v4/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: sub
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+          apple:
+            authorization-uri: ${oauth.apple.issuer}/auth/authorize
+            token-uri: ${oauth.apple.issuer}/auth/token
+            jwk-set-uri: ${oauth.apple.issuer}/auth/keys
+            user-name-attribute: sub
+  cache:
+    type: simple
+
+discord:
+  webhook:
+    url: ""
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.springframework.data.redis: DEBUG
+    com.dongsoop.dongsoop.discord: DEBUG
+    org.springframework.cloud.openfeign: DEBUG
+
+oauth:
+  authorize-uri: http://localhost:8080/oauth2/
+  failure-redirect-uri: http://localhost:3000
+  apple:
+    redirect-uri: local-apple-app-redirect-uri
+    scheme: local-apple-scheme
+    package: local.apple.package.name
+    cache-name: local-apple-cache-name
+
+cloud:
+  aws:
+    credentials:
+      # S3 파일 업로드 테스트가 필요하면 실제 AWS 키로 변경
+      access-key: LOCAL_DEV_ACCESS_KEY_PLACEHOLDER
+      secret-key: LOCAL_DEV_SECRET_KEY_PLACEHOLDER
+    s3:
+      bucket: dongsoop-s3
+    region:
+      static: ap-northeast-2
+
+member:
+  nickname:
+    alias:
+      prefix: 익명_
+
+mail:
+  sender: smtp.example.com
+  format:
+    file:
+      name: verify-mail.html
+  verify:
+    register:
+      redis:
+        prefix: register-mail-verify
+    password-update:
+      redis:
+        prefix: password-update-mail-verify
+  redis:
+    key:
+      code: code
+      opportunity: opportunity
+      success: success
+
+jwt:
+  claims:
+    role:
+      name: role
+    type:
+      name: type
+  expired-time:
+    access-token: 300000 # 5분
+    refresh-token: 600000 # 10분
+    social-token: 60000 # 1분
+  # ⚠️ 로컬용으로 절대 프로덕션에서 사용하지 말 것
+  secret-key: VGhpc0lzQVZlcnlMb25nU2VjcmV0S2V5Rm9yRG9uZ3Nvb3BMb2NhbERldmVsb3BtZW50VGVzdGluZ1B1cnBvc2VPbmx5MTIzNDU2
+  systemkey: I_LOVE_DONGSOOP_LOCAL
+
+authentication:
+  origins:
+    - http://localhost:3000
+    - https://appleid.apple.com
+
+notice:
+  thread:
+    count: 8
+  connect:
+    timeout: 15000
+    user-agent: "Mozilla/5.0 (Compatible; NoticeBot/1.0)"
+  crawl:
+    timeout: 10000
+  terminate:
+    grace-time: 30
+    force-time: 10
+
+notification:
+  topic:
+    anonymous: anonymous
+
+home:
+  thread:
+    pool:
+      size: 10
+  async:
+    timeout:
+      seconds: 3
+
+firebase:
+  project:
+    number: 0 # Firebase 푸시 알림 테스트가 필요하면 실제 프로젝트 번호로 변경
+
+text:
+  filtering:
+    api:
+      url: text-filtering-local
+
+admin:
+  id: 0 # 로컬 관리자 계정 ID
