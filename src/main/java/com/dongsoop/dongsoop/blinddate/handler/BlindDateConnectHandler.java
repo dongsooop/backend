@@ -107,6 +107,7 @@ public class BlindDateConnectHandler {
         } catch (Exception e) {
             // 입장 과정에서 오류 발생 시 회원 제거
             this.participantInfoRepository.removeParticipant(memberId);
+            sessionAttributes.remove("sessionId");
 
             return null;
         } finally {
