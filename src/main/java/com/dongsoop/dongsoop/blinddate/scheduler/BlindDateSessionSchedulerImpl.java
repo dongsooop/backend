@@ -123,6 +123,7 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
             }, MESSAGE_WAITING_TIME);
         } catch (Exception e) {
             log.error("Error sending event message {} for session {}", index, sessionId, e);
+            sessionInfoRepository.terminate(sessionId);
         }
     }
 
