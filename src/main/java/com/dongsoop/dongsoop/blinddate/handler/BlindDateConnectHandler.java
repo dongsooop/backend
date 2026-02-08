@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.blinddate.handler;
 
-import com.dongsoop.dongsoop.appcheck.exception.ReconnectionAfterParticipantException;
 import com.dongsoop.dongsoop.blinddate.dto.BlindDateJoinResult;
 import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo;
@@ -51,7 +50,7 @@ public class BlindDateConnectHandler {
         if (existingSessionId != null) {
             // 재연결된 세션이 존재하지 않는 경우 (세션 종료 후 재연결 시도 등) 예외 처리
             if (this.sessionInfoRepository.getState(existingSessionId) == null) {
-                throw new ReconnectionAfterParticipantException();
+                throw new IllegalArgumentException("재연결된 세션 정보가 존재하지 않습니다.");
             }
             sessionAttributes.put("sessionId", existingSessionId);
             return;
