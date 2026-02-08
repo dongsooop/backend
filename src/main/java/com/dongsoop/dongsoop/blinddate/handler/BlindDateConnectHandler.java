@@ -80,24 +80,26 @@ public class BlindDateConnectHandler {
         // 처음 입장 시 포인터 할당을 위해 매칭 획득
         blindDateMatchingLock.lock();
 
-        // 과팅 세션 할당 (Pointer 기반, Lock으로 동시성 보장)
-        String sessionId = assignSession();
+        try {
+            // 과팅 세션 할당 (Pointer 기반, Lock으로 동시성 보장)
+            String sessionId = assignSession();
 
-        // 과팅 세션 id 세션 속성에 저장
-        sessionAttributes.put("sessionId", sessionId);
+            // 과팅 세션 id 세션 속성에 저장
+            sessionAttributes.put("sessionId", sessionId);
 
-        // 참여 정보 추가 (assignSession에서 편입 가능한 과팅 세션 여부를 확인했기에 바로 저장)
-        ParticipantInfo participant = participantInfoRepository.addParticipant(sessionId, memberId, socketId);
+            // 참여 정보 추가 (assignSession에서 편입 가능한 과팅 세션 여부를 확인했기에 바로 저장)
+            ParticipantInfo participant = participantInfoRepository.addParticipant(sessionId, memberId, socketId);
 
-        // 과팅 세션 편입 후 참가자 수 조회
-        List<ParticipantInfo> participantInfos = participantInfoRepository.findAllBySessionId(sessionId);
-        int currentCount = participantInfos.size();
-        int maxCount = blindDateInfoRepository.getMaxSessionMemberCount();
+            // 과팅 세션 편입 후 참가자 수 조회
+            List<ParticipantInfo> participantInfos = participantInfoRepository.findAllBySessionId(sessionId);
+            int currentCount = participantInfos.size();
+            int maxCount = blindDateInfoRepository.getMaxSessionMemberCount();
 
-        // 회원 편입 후 회원 락 해제
-        blindDateMatchingLock.unlock();
-
-        return new BlindDateJoinResult(participant, sessionId, currentCount, maxCount);
+            return new BlindDateJoinResult(participant, sessionId, currentCount, maxCount);
+        } finally {
+            // 회원 편입 후 회원 락 해제
+            blindDateMatchingLock.unlock();
+        }
     }
 
     /**
