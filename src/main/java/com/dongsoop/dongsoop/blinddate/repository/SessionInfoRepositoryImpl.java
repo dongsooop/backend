@@ -4,8 +4,6 @@ import com.dongsoop.dongsoop.blinddate.entity.SessionInfo;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo.SessionState;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
@@ -18,22 +16,14 @@ public class SessionInfoRepositoryImpl implements SessionInfoRepository {
     private final ParticipantInfoRepository participantInfoRepository;
     private final Map<String, SessionInfo> sessions = new ConcurrentHashMap<>();
 
-    @Getter
-    private final ReentrantLock lock = new ReentrantLock();
-
     /**
-     * 세션 생성 (Lock 사용)
+     * 세션 생성
      */
     public SessionInfo create() {
-        lock.lock();
-        try {
-            SessionInfo session = SessionInfo.create();
-            sessions.put(session.getSessionId(), session);
-            log.info("Session created: sessionId={}", session.getSessionId());
-            return session;
-        } finally {
-            lock.unlock();
-        }
+        SessionInfo session = SessionInfo.create();
+        sessions.put(session.getSessionId(), session);
+        log.info("Session created: sessionId={}", session.getSessionId());
+        return session;
     }
 
     /**
@@ -69,6 +59,5 @@ public class SessionInfoRepositoryImpl implements SessionInfoRepository {
 
     public void clear() {
         this.sessions.clear();
-        this.lock.unlock();
     }
 }
