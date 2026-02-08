@@ -195,3 +195,7 @@ text:
 
 admin:
   id: ${ADMIN_ID}
+
+
+appcheck:
+  ignore-path: ${APPCHECK_IGNORE_PATH}
