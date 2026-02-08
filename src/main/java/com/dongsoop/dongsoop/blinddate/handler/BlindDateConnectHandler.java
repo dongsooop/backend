@@ -52,10 +52,13 @@ public class BlindDateConnectHandler {
             return;
         }
 
+        // 사용자 입장 처리
         BlindDateJoinResult joinResult = this.join(socketId, memberId, sessionAttributes);
 
-        // 입장한 사용자에게 정보 전달
-        sendJoinEvent(joinResult);
+        // 입장되지 않은 경우 종료
+        if (joinResult == null) {
+            return;
+        }
 
         this.blindDateTaskScheduler.execute(() -> {
             // 마지막 참여자인지 검증 후 과팅 세션 시작 시도
@@ -95,7 +98,17 @@ public class BlindDateConnectHandler {
             int currentCount = participantInfos.size();
             int maxCount = blindDateInfoRepository.getMaxSessionMemberCount();
 
-            return new BlindDateJoinResult(participant, sessionId, currentCount, maxCount);
+            BlindDateJoinResult joinResult = new BlindDateJoinResult(participant, sessionId, currentCount, maxCount);
+
+            // 입장한 사용자에게 정보 전달
+            sendJoinEvent(joinResult);
+
+            return joinResult;
+        } catch (Exception e) {
+            // 입장 과정에서 오류 발생 시 회원 제거
+            this.participantInfoRepository.removeParticipant(memberId);
+
+            return null;
         } finally {
             // 회원 편입 후 회원 락 해제
             blindDateMatchingLock.unlock();
