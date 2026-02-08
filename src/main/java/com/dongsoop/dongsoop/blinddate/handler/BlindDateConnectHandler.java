@@ -48,10 +48,6 @@ public class BlindDateConnectHandler {
         // 이미 참여 중인 경우 소켓만 추가 후 종료
         String existingSessionId = this.tryHandleReconnection(socketId, memberId);
         if (existingSessionId != null) {
-            // 재연결된 세션이 존재하지 않는 경우 (세션 종료 후 재연결 시도 등) 예외 처리
-            if (this.sessionInfoRepository.getState(existingSessionId) == null) {
-                throw new IllegalArgumentException("재연결된 세션 정보가 존재하지 않습니다.");
-            }
             sessionAttributes.put("sessionId", existingSessionId);
             return;
         }
@@ -134,6 +130,11 @@ public class BlindDateConnectHandler {
             }
 
             String existingSessionId = existingParticipant.getSessionId();
+
+            // 재연결된 세션이 존재하지 않는 경우 (세션 종료 후 재연결 시도 등) 예외 처리
+            if (this.sessionInfoRepository.getState(existingSessionId) == null) {
+                throw new IllegalArgumentException("재연결된 세션 정보가 존재하지 않습니다.");
+            }
 
             existingParticipant.addSocket(socketId);
             return existingSessionId;
