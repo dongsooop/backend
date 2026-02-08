@@ -36,7 +36,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
  */
 @TestConfiguration
 @EnableWebSocketMessageBroker
-@ComponentScan(basePackages = {"com.dongsoop.dongsoop.jwt", "com.dongsoop.dongsoop.blinddate"})
+@ComponentScan(basePackages = {"com.dongsoop.dongsoop.jwt"})
 public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
 
     @Bean
