@@ -8,10 +8,13 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Arrays;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
@@ -21,14 +24,18 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 public class FirebaseAppCheckFilter extends OncePerRequestFilter {
 
     private static final String DEVICE_AUTH_HEADER = "X-Firebase-AppCheck";
-
+    private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
+    
     private final FirebaseAppCheck firebaseAppCheck;
     private final HandlerExceptionResolver exceptionResolver;
+    private final String[] ignorePaths;
 
     public FirebaseAppCheckFilter(FirebaseAppCheck firebaseAppCheck,
-                                  @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver) {
+                                  @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver,
+                                  @Value("${appcheck.ignore-path:[]}") String[] ignorePaths) {
         this.firebaseAppCheck = firebaseAppCheck;
         this.exceptionResolver = exceptionResolver;
+        this.ignorePaths = ignorePaths;
     }
 
     @Override
@@ -62,6 +69,14 @@ public class FirebaseAppCheckFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+
+        return Arrays.stream(ignorePaths)
+                .anyMatch(allowPath -> PATH_MATCHER.match(allowPath, path));
     }
 
     private void updateCacheSafely() throws UnknownFirebaseFetchJWKException {
