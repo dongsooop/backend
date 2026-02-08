@@ -134,8 +134,13 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
     private void scheduleSessionEnd(String sessionId) {
         log.info("[BlindDate] Sending participants list for session: {}", sessionId);
 
-        // 사랑의 작대기를 위해 사용자에게 사용자 목록 이벤트 발행
-        this.sendParticipantsList(sessionId);
+        try {
+            // 사랑의 작대기를 위해 사용자에게 사용자 목록 이벤트 발행
+            this.sendParticipantsList(sessionId);
+        } catch (Exception e) {
+            // 세션 종료처리를 위해 로그만 남기고 계속 진행
+            log.error("[BlindDate] Error sending participants list for session: {}", sessionId, e);
+        }
 
         taskScheduler.schedule(() -> finalizeSession(sessionId), CHOICE_TIME);
     }
