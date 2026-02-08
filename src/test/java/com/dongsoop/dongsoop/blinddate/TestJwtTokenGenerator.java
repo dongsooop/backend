@@ -4,6 +4,8 @@ import com.dongsoop.dongsoop.jwt.TokenGenerator;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import java.util.List;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 /**
@@ -25,7 +27,9 @@ public class TestJwtTokenGenerator {
      * @return JWT Access Token
      */
     public String generateAccessToken(Long memberId) {
-        return tokenGenerator.generateAccessToken(
-                new UsernamePasswordAuthenticationToken(memberId, List.of(RoleType.USER_ROLE)));
+        List<GrantedAuthority> auth = List.of(new SimpleGrantedAuthority(RoleType.USER_ROLE));
+        UsernamePasswordAuthenticationToken user = new UsernamePasswordAuthenticationToken(memberId, null, auth);
+
+        return tokenGenerator.generateAccessToken(user);
     }
 }
