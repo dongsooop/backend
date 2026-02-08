@@ -3,10 +3,10 @@ package com.dongsoop.dongsoop.blinddate.scheduler;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +22,7 @@ public class BlindDateTaskScheduler {
 
     // 종료된 세션
     private final Set<String> endedSessions = ConcurrentHashMap.newKeySet();
-    private final List<ScheduledFuture<?>> futures = new LinkedList<>();
+    private final List<ScheduledFuture<?>> futures = new CopyOnWriteArrayList<>();
     private final TaskScheduler taskScheduler = new ConcurrentTaskScheduler(
             Executors.newScheduledThreadPool(THREAD_POOL_SIZE));
 
