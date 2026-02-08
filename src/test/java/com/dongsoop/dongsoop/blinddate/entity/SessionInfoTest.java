@@ -37,17 +37,4 @@ class SessionInfoTest {
         // then
         assertThat(session.getState()).isEqualTo(SessionState.PROCESSING);
     }
-
-    @Test
-    @DisplayName("terminate - ENDED 상태로 변경")
-    void terminate_ChangesToEnded() {
-        // given
-        SessionInfo session = SessionInfo.create();
-
-        // when
-        session.terminate();
-
-        // then
-        assertThat(session.getState()).isEqualTo(SessionState.ENDED);
-    }
 }

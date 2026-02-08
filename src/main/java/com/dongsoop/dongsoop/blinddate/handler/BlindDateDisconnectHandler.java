@@ -24,6 +24,12 @@ public class BlindDateDisconnectHandler {
     private final BlindDateMemberLock memberLock;
 
     public void execute(String socketId, Long memberId, String sessionId) {
+        // 종료된 세션에서 나가는 경우 별도 처리 안 함
+        if (this.sessionInfoRepository.getState(sessionId) == null) {
+            log.info("Session ID {} has been deleted", sessionId);
+            return;
+        }
+
         // 참여자 정보에서 소켓 제거 시 남아있는 소켓이 없는지
         boolean isExit = this.removeSocketByParticipantInfo(socketId, memberId);
 

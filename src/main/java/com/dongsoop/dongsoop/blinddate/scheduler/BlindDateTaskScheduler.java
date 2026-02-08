@@ -4,8 +4,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
@@ -20,8 +18,6 @@ public class BlindDateTaskScheduler {
 
     private static final int THREAD_POOL_SIZE = 1;
 
-    // 종료된 세션
-    private final Set<String> endedSessions = ConcurrentHashMap.newKeySet();
     private final List<ScheduledFuture<?>> futures = new CopyOnWriteArrayList<>();
     private final TaskScheduler taskScheduler = new ConcurrentTaskScheduler(
             Executors.newScheduledThreadPool(THREAD_POOL_SIZE));
@@ -60,16 +56,6 @@ public class BlindDateTaskScheduler {
         futures.add(schedule);
 
         log.info("BlindDate end cleanup scheduled for {}", endTime);
-    }
-
-    /**
-     * 세션 정리 (종료 시)
-     */
-    public void cleanupSession(String sessionId) {
-        // 종료된 세션 set에 저장해 스케줄링 시 검증 선행
-        endedSessions.add(sessionId);
-
-        log.debug("[BlindDate] Cleaned up session: {}", sessionId);
     }
 
     /**

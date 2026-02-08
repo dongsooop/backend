@@ -71,10 +71,10 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
         } catch (InterruptedException e) {
             log.error("Session interrupted: {}", sessionId, e);
             Thread.currentThread().interrupt();
-            taskScheduler.cleanupSession(sessionId);
+            this.sessionInfoRepository.terminate(sessionId);
         } catch (Exception e) {
             log.error("Error in session: {}", sessionId, e);
-            taskScheduler.cleanupSession(sessionId);
+            this.sessionInfoRepository.terminate(sessionId);
         }
     }
 
@@ -153,8 +153,8 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
             // 세션 종료
             sessionInfoRepository.terminate(sessionId);
 
-            // TaskScheduler 정리
-            taskScheduler.cleanupSession(sessionId);
+            // 회원 정보는 재 접속 방지를 위해 제거하지 않음
+            // participantInfoRepository.clearSession(sessionId);
 
             log.info("Session ended: {}", sessionId);
         } catch (Exception e) {
