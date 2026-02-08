@@ -108,17 +108,19 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
             sendSystemMessage(sessionId, eventMessages.get(index));
 
             // MESSAGE_WAITING_TIME 후 채팅 활성화
-            Thread.sleep(MESSAGE_WAITING_TIME);
-            sendThaw(sessionId);
+            taskScheduler.schedule(() -> {
+                // 채팅 녹이기
+                sendThaw(sessionId);
 
-            // 마지막 이벤트 메시지 후 참가자 목록 전송 및 세션 종료
-            if (index == eventMessages.size() - 1) {
-                taskScheduler.schedule(() -> scheduleSessionEnd(sessionId), CHATTING_TIME);
-                return;
-            }
+                // 마지막 이벤트 메시지 후 참가자 목록 전송 및 세션 종료
+                if (index == eventMessages.size() - 1) {
+                    taskScheduler.schedule(() -> scheduleSessionEnd(sessionId), CHATTING_TIME);
+                    return;
+                }
 
-            // 다음 메시지 스케줄링(스케줄링 실행 시 다음 스케줄링 등록)
-            taskScheduler.schedule(() -> sendEventMessage(index + 1, sessionId, eventMessages), CHATTING_TIME);
+                // 다음 메시지 스케줄링(스케줄링 실행 시 다음 스케줄링 등록)
+                taskScheduler.schedule(() -> sendEventMessage(index + 1, sessionId, eventMessages), CHATTING_TIME);
+            }, MESSAGE_WAITING_TIME);
         } catch (Exception e) {
             log.error("Error sending event message {} for session {}", index, sessionId, e);
         }
