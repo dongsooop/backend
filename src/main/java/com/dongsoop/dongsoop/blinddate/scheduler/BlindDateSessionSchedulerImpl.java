@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.blinddate.scheduler;
 
 import com.dongsoop.dongsoop.blinddate.config.BlindDateMessageProvider;
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
+import com.dongsoop.dongsoop.blinddate.entity.SessionInfo.SessionState;
 import com.dongsoop.dongsoop.blinddate.repository.ParticipantInfoRepository;
 import com.dongsoop.dongsoop.blinddate.repository.SessionInfoRepository;
 import java.util.List;
@@ -40,6 +41,11 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
      * @param sessionId 시작할 세션 id
      */
     public void start(String sessionId) {
+        if (this.sessionInfoRepository.getState(sessionId) != SessionState.WAITING) {
+            log.warn("[BlindDate] Starting session is not waiting");
+            return;
+        }
+        
         try {
             log.info("Session starting: {}", sessionId);
 
