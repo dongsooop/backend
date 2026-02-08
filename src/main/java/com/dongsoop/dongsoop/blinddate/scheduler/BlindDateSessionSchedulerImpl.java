@@ -108,21 +108,31 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
             sendSystemMessage(sessionId, eventMessages.get(index));
 
             // MESSAGE_WAITING_TIME 후 채팅 활성화
-            taskScheduler.schedule(() -> {
-                // 채팅 녹이기
-                sendThaw(sessionId);
-
-                // 마지막 이벤트 메시지 후 참가자 목록 전송 및 세션 종료
-                if (index == eventMessages.size() - 1) {
-                    taskScheduler.schedule(() -> scheduleSessionEnd(sessionId), CHATTING_TIME);
-                    return;
-                }
-
-                // 다음 메시지 스케줄링(스케줄링 실행 시 다음 스케줄링 등록)
-                taskScheduler.schedule(() -> sendEventMessage(index + 1, sessionId, eventMessages), CHATTING_TIME);
-            }, MESSAGE_WAITING_TIME);
+            taskScheduler.schedule(() -> scheduledNextEventMessage(index, sessionId, eventMessages),
+                    MESSAGE_WAITING_TIME);
         } catch (Exception e) {
             log.error("Error sending event message {} for session {}", index, sessionId, e);
+            sessionInfoRepository.terminate(sessionId);
+        }
+    }
+
+    private void scheduledNextEventMessage(int index, String sessionId, List<String> eventMessages) {
+        try {
+            // 채팅 녹이기
+            sendThaw(sessionId);
+
+            // 마지막 이벤트 메시지 후 참가자 목록 전송 및 세션 종료
+            if (index == eventMessages.size() - 1) {
+                taskScheduler.schedule(() -> scheduleSessionEnd(sessionId), CHATTING_TIME);
+                return;
+            }
+
+            // 다음 메시지 스케줄링(스케줄링 실행 시 다음 스케줄링 등록)
+            taskScheduler.schedule(() -> sendEventMessage(index + 1, sessionId, eventMessages), CHATTING_TIME);
+
+        } catch (Exception e) {
+            // 위 코드에서 예외 발생 시 세션 종료
+            log.error("[BlindDate] Error in scheduled thaw/next for session {}", sessionId, e);
             sessionInfoRepository.terminate(sessionId);
         }
     }
@@ -157,7 +167,7 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
                 log.warn("[BlindDate] Session already terminated: {}", sessionId);
                 return;
             }
-            
+
             log.info("[BlindDate] Finalizing session: {}", sessionId);
 
             // 매칭 실패자에게 FAILED 이벤트
