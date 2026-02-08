@@ -2,7 +2,7 @@ package com.dongsoop.dongsoop.blinddate.scheduler;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -54,7 +54,7 @@ public class BlindDateTaskScheduler {
             } catch (Exception e) {
                 log.error("[BlindDate] Error during BlindDate cleanup", e);
             }
-        }, Instant.ofEpochMilli(endTime.toEpochSecond(ZoneOffset.UTC)));
+        }, endTime.atZone(ZoneId.systemDefault()).toInstant());
 
         // 작업 등록
         futures.add(schedule);
