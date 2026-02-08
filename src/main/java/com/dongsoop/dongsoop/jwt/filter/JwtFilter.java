@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.jwt.filter;
 
-import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
+
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import com.dongsoop.dongsoop.jwt.exception.JWTException;
@@ -28,7 +28,7 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 @Slf4j
 public class JwtFilter extends OncePerRequestFilter {
 
-    private static final String DEVICE_AUTH_HEADER = "X-Firebase-AppCheck";
+
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
     private static final int TOKEN_START_INDEX = BEARER_PREFIX.length();
@@ -38,16 +38,15 @@ public class JwtFilter extends OncePerRequestFilter {
     private final JwtValidator jwtValidator;
     private final HandlerExceptionResolver exceptionResolver;
     private final String[] ignorePaths;
-    private final FirebaseAppCheck firebaseAppCheck;
+
 
     public JwtFilter(JwtUtil jwtUtil,
                      JwtValidator jwtValidator,
-                     FirebaseAppCheck firebaseAppCheck,
                      @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver,
                      @Value("${authentication.filter.ignore.paths}") String[] ignorePaths) {
         this.jwtUtil = jwtUtil;
         this.jwtValidator = jwtValidator;
-        this.firebaseAppCheck = firebaseAppCheck;
+
         this.exceptionResolver = exceptionResolver;
         this.ignorePaths = ignorePaths;
     }
@@ -57,24 +56,16 @@ public class JwtFilter extends OncePerRequestFilter {
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws IOException {
         try {
-            firebaseAppCheck.updateCache();
-            String deviceToken = extractDeviceAuthTokenFromHeader(request);
-            firebaseAppCheck.validate(deviceToken);
-        } catch (Exception e) {
-            // 실제 적용 전 로그처리
-            log.error("Firebase App Check validation failed: {}", e.getMessage(), e);
-        }
-
-        try {
             String token = extractTokenFromHeader(request);
             Claims claims = jwtUtil.getClaims(token);
             jwtValidator.validate(claims);
             jwtValidator.validateAccessToken(claims);
             setAuthentication(token);
+            log.debug("JWT token validation successful");
         } catch (TokenNotFoundException exception) {
-            log.debug("Member doesn't have token: {}", exception.getMessage(), exception);
+            log.debug("No JWT token found in request: {}", exception.getMessage());
         } catch (JWTException exception) {
-            log.error("Token validation failed: {}", exception.getMessage(), exception);
+            log.warn("JWT token validation failed: {}", exception.getMessage());
             exceptionResolver.resolveException(request, response, null, exception);
             return;
         }
@@ -95,15 +86,6 @@ public class JwtFilter extends OncePerRequestFilter {
                 .anyMatch(allowPath -> PATH_MATCHER.match(allowPath, path));
     }
 
-    private String extractDeviceAuthTokenFromHeader(HttpServletRequest request) throws TokenNotFoundException {
-        String deviceAuthToken = request.getHeader(DEVICE_AUTH_HEADER);
-
-        if (!StringUtils.hasText(deviceAuthToken)) {
-            throw new TokenNotFoundException();
-        }
-
-        return deviceAuthToken;
-    }
 
     private String extractTokenFromHeader(HttpServletRequest request) throws TokenNotFoundException {
         String tokenHeader = request.getHeader(AUTHORIZATION_HEADER);
