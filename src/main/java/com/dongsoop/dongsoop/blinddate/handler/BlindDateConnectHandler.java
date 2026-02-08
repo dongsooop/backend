@@ -83,6 +83,8 @@ public class BlindDateConnectHandler {
         // 처음 입장 시 포인터 할당을 위해 매칭 획득
         blindDateMatchingLock.lock();
 
+        BlindDateJoinResult joinResult;
+
         try {
             // 과팅 세션 할당 (Pointer 기반, Lock으로 동시성 보장)
             String sessionId = assignSession();
@@ -98,12 +100,7 @@ public class BlindDateConnectHandler {
             int currentCount = participantInfos.size();
             int maxCount = blindDateInfoRepository.getMaxSessionMemberCount();
 
-            BlindDateJoinResult joinResult = new BlindDateJoinResult(participant, sessionId, currentCount, maxCount);
-
-            // 입장한 사용자에게 정보 전달
-            sendJoinEvent(joinResult);
-
-            return joinResult;
+            joinResult = new BlindDateJoinResult(participant, sessionId, currentCount, maxCount);
         } catch (Exception e) {
             // 입장 과정에서 오류 발생 시 회원 제거
             this.participantInfoRepository.removeParticipant(memberId);
@@ -114,6 +111,11 @@ public class BlindDateConnectHandler {
             // 회원 편입 후 회원 락 해제
             blindDateMatchingLock.unlock();
         }
+
+        // 입장한 사용자에게 정보 전달
+        sendJoinEvent(joinResult);
+
+        return joinResult;
     }
 
     /**
