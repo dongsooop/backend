@@ -153,6 +153,11 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
      */
     private void finalizeSession(String sessionId) {
         try {
+            if (this.sessionInfoRepository.getState(sessionId) == null) {
+                log.warn("[BlindDate] Session already terminated: {}", sessionId);
+                return;
+            }
+            
             log.info("[BlindDate] Finalizing session: {}", sessionId);
 
             // 매칭 실패자에게 FAILED 이벤트
