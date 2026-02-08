@@ -46,10 +46,11 @@ public class BlindDateDisconnectHandler {
 
         try {
             // 소켓만 제거 (모든 소켓이 제거되면 자동으로 참여자도 제거됨)
-            boolean fullyRemoved = participantInfoRepository.removeSocket(socketId);
-
-            // 전체를 삭제한 경우 true 반환
-            return fullyRemoved;
+            // 제거 후 모든 소켓을 제거했는지 여부 반환
+            return participantInfoRepository.removeSocket(socketId);
+        } catch (IllegalArgumentException e) {
+            log.warn("Socket already removed or not found: socketId={}, memberId={}", socketId, memberId);
+            return false;
         } finally {
             // 락 해제
             memberLock.unlockByMemberId(memberId);
