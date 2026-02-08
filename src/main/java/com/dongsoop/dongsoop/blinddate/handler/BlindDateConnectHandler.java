@@ -122,18 +122,20 @@ public class BlindDateConnectHandler {
         // 이미 참여중인 시나리오에 대해 안전한 소켓 추가를 위해 회원 락 획득
         blindDateMemberLock.lockByMemberId(memberId);
 
-        ParticipantInfo existingParticipant = participantInfoRepository.getByMemberId(memberId);
-        // 첫 매칭인 경우
-        if (existingParticipant == null) {
+        try {
+            ParticipantInfo existingParticipant = participantInfoRepository.getByMemberId(memberId);
+            // 첫 매칭인 경우
+            if (existingParticipant == null) {
+                return null;
+            }
+
+            String existingSessionId = existingParticipant.getSessionId();
+
+            existingParticipant.addSocket(socketId);
+            return existingSessionId;
+        } finally {
             blindDateMemberLock.unlockByMemberId(memberId); // 회원 락 해제
-            return null;
         }
-
-        String existingSessionId = existingParticipant.getSessionId();
-
-        existingParticipant.addSocket(socketId);
-        blindDateMemberLock.unlockByMemberId(memberId); // 회원 락 해제
-        return existingSessionId;
     }
 
     /**
