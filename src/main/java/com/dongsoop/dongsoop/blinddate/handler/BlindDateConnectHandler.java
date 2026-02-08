@@ -103,6 +103,7 @@ public class BlindDateConnectHandler {
             joinResult = new BlindDateJoinResult(participant, sessionId, currentCount, maxCount);
         } catch (Exception e) {
             // 입장 과정에서 오류 발생 시 회원 제거
+            log.error("[BlindDate] Exception from enter process: memberId={}", memberId, e);
             this.participantInfoRepository.removeParticipant(memberId);
             sessionAttributes.remove("sessionId");
 
@@ -112,8 +113,14 @@ public class BlindDateConnectHandler {
             blindDateMatchingLock.unlock();
         }
 
-        // 입장한 사용자에게 정보 전달
-        sendJoinEvent(joinResult);
+        try {
+            // 입장한 사용자에게 정보 전달
+            sendJoinEvent(joinResult);
+        } catch (Exception e) {
+            // 입장한 사용자에게 정보 전달 실패 시 소켓 연결 해지로 보고 Disconnect에서 처리하도록 종료
+            log.info("[BlindDate] Failed to send JOIN event, rolling back participant: memberId={}", memberId, e);
+            return null;
+        }
 
         return joinResult;
     }
