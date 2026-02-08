@@ -54,25 +54,25 @@ public class BlindDateDisconnectHandler {
         // 퇴장하려는 세션이 포인터 세션일 수 있기에 매칭 락
         matchingLock.lock();
 
-        // 세션 상태 확인
-        SessionState state = sessionInfoRepository.getState(sessionId);
+        try {
+            // 세션 상태 확인
+            SessionState state = sessionInfoRepository.getState(sessionId);
 
-        // PROCESSING 상태면 포인터가 아니며, 퇴장 처리 안 함
-        if (state != SessionState.WAITING) {
-            // 이미 진행중이거나 종료된 세션인 경우 락 해제
+            // PROCESSING 상태면 포인터가 아니며, 퇴장 처리 안 함
+            if (state != SessionState.WAITING) {
+                return;
+            }
+
+            // WAITING 상태일 때만 퇴장 처리
+            participantInfoRepository.removeParticipant(memberId);
+
+            List<ParticipantInfo> participantInfos = participantInfoRepository.findAllBySessionId(sessionId);
+
+            // 인원 업데이트 브로드캐스트
+            blindDateService.broadcastJoinedCount(sessionId, participantInfos.size());
+        } finally {
+            // 락 해제
             matchingLock.unlock();
-            return;
         }
-
-        // WAITING 상태일 때만 퇴장 처리
-        participantInfoRepository.removeParticipant(memberId);
-
-        List<ParticipantInfo> participantInfos = participantInfoRepository.findAllBySessionId(sessionId);
-
-        // 인원 업데이트 브로드캐스트
-        blindDateService.broadcastJoinedCount(sessionId, participantInfos.size());
-
-        // 인원 업데이트 후 매칭 락 해제
-        matchingLock.unlock();
     }
 }
