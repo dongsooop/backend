@@ -98,6 +98,12 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
      * @param eventMessages 이벤트 메시지 목록
      */
     private void sendEventMessage(int index, String sessionId, List<String> eventMessages) {
+        if (this.sessionInfoRepository.getState(sessionId) == null) {
+            log.info("[BlindDate] Session already terminated, skipping event message {} for session {}", index + 1,
+                    sessionId);
+            return;
+        }
+
         try {
             log.info("[BlindDate] Sending event message {} for session {}", index + 1, sessionId);
 
