@@ -50,8 +50,8 @@ public class SessionInfoRepositoryImpl implements SessionInfoRepository {
      */
     public void terminate(String sessionId) {
         SessionInfo session = sessions.get(sessionId);
-        participantInfoRepository.clearSession(sessionId);
         if (session != null) {
+            participantInfoRepository.clearSession(sessionId);
             session.terminate();
             log.info("Session terminated: sessionId={}", sessionId);
         }
