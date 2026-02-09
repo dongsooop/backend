@@ -16,7 +16,10 @@ public class BlindDateSessionServiceImpl implements BlindDateSessionService {
 
     public boolean isSessionFull(String sessionId) {
         List<ParticipantInfo> participantInfos = participantStorage.findAllBySessionId(sessionId);
-        int maxCount = blindDateStorage.getMaxSessionMemberCount();
+        Integer maxCount = blindDateStorage.getMaxSessionMemberCount();
+        if (maxCount == null) {
+            return false;
+        }
         return participantInfos.size() >= maxCount;
     }
 }
