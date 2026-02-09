@@ -195,3 +195,6 @@ text:
 
 admin:
   id: 0 # 로컬 관리자 계정 ID
+
+appcheck:
+  ignore-path: /ws/**

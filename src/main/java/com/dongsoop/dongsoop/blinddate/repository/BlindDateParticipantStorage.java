@@ -32,11 +32,6 @@ public interface BlindDateParticipantStorage {
     ParticipantInfo getBySocketId(String socketId);
 
     /**
-     * 세션의 모든 참여자 조회
-     */
-    List<ParticipantInfo> getParticipantsBySession(String sessionId);
-
-    /**
      * 세션의 참여자 수 조회
      */
     List<ParticipantInfo> findAllBySessionId(String sessionId);
@@ -57,16 +52,6 @@ public interface BlindDateParticipantStorage {
     boolean isMatched(String sessionId, Long memberId);
 
     /**
-     * 매칭된 상대 찾기
-     */
-    Long getMatchedPartner(String sessionId, Long memberId);
-
-    /**
-     * 세션 데이터 정리
-     */
-    void clearSession(String sessionId);
-
-    /**
      * 전체 데이터 초기화
      */
     void clear();
@@ -80,7 +65,6 @@ public interface BlindDateParticipantStorage {
      * 익명 이름 조회
      */
     String getAnonymousName(Long memberId);
-
 
     /**
      * 매칭되지 않은 멤버 조회
