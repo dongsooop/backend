@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMatchingLock;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMemberLock;
+import com.dongsoop.dongsoop.blinddate.lock.BlindDateSessionLock;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateStorage;
@@ -32,6 +33,7 @@ public class BlindDateConnectHandler {
     private final SimpMessagingTemplate messagingTemplate;
     private final BlindDateMatchingLock blindDateMatchingLock;
     private final BlindDateMemberLock blindDateMemberLock;
+    private final BlindDateSessionLock sessionLock;
 
     /**
      * 세션 참여 및 세션 id 반환
@@ -60,10 +62,18 @@ public class BlindDateConnectHandler {
 
         String sessionId = joinResult.sessionId();
 
-        // 마지막 참여자인지 검증 후 과팅 세션 시작 시도
-        if (tryStart(sessionId)) {
-            sessionScheduler.start(sessionId);
-            return;
+        // 세션 시작 시 연결 해제 및 추가 연결을 막기 위한 세션 락
+        this.sessionLock.lockBySessionId(sessionId);
+
+        try {
+            // 마지막 참여자인지 검증 후 과팅 세션 시작 시도
+            if (tryStart(sessionId)) {
+                sessionScheduler.start(sessionId);
+                return;
+            }
+        } finally {
+            // 세션 락 해제
+            this.sessionLock.unlockBySessionId(sessionId);
         }
 
         // 마지막 참여자가 아닌 경우 인원 업데이트 브로드캐스트

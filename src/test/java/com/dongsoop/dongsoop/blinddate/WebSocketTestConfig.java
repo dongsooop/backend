@@ -7,6 +7,7 @@ import com.dongsoop.dongsoop.blinddate.handler.BlindDateDisconnectHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateMessageHandler;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMatchingLock;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMemberLock;
+import com.dongsoop.dongsoop.blinddate.lock.BlindDateSessionLock;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
@@ -136,10 +137,10 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
             BlindDateService blindDateService,
             BlindDateSessionService sessionService,
             BlindDateSessionScheduler sessionScheduler,
-            BlindDateTaskScheduler taskScheduler,
             SimpMessagingTemplate messagingTemplate,
             BlindDateMatchingLock matchingLock,
-            BlindDateMemberLock memberLock
+            BlindDateMemberLock memberLock,
+            BlindDateSessionLock sessionLock
     ) {
         return new BlindDateConnectHandler(
                 participantStorage,
@@ -148,10 +149,10 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
                 blindDateService,
                 sessionService,
                 sessionScheduler,
-                taskScheduler,
                 messagingTemplate,
                 matchingLock,
-                memberLock
+                memberLock,
+                sessionLock
         );
     }
 
@@ -162,14 +163,16 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
             BlindDateSessionStorage sessionStorage,
             BlindDateService blindDateService,
             BlindDateMatchingLock matchingLock,
-            BlindDateMemberLock memberLock
+            BlindDateMemberLock memberLock,
+            BlindDateSessionLock sessionLock
     ) {
         return new BlindDateDisconnectHandler(
                 participantStorage,
                 sessionStorage,
                 blindDateService,
                 matchingLock,
-                memberLock
+                memberLock,
+                sessionLock
         );
     }
 

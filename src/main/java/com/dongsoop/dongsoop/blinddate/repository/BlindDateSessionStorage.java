@@ -16,4 +16,6 @@ public interface BlindDateSessionStorage {
     void clear();
 
     boolean isWaiting(String sessionId);
+
+    boolean isProcessing(String sessionId);
 }

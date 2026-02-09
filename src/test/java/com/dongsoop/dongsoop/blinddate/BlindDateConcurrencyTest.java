@@ -7,6 +7,7 @@ import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateConnectHandler;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMatchingLock;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMemberLock;
+import com.dongsoop.dongsoop.blinddate.lock.BlindDateSessionLock;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
@@ -66,6 +67,7 @@ class BlindDateConcurrencyTest {
     private BlindDateSessionScheduler sessionScheduler;
     private BlindDateTaskScheduler taskScheduler;
     private SimpMessagingTemplate messagingTemplate;
+    private BlindDateSessionLock sessionLock;
 
     @BeforeEach
     void setUp() {
@@ -75,6 +77,7 @@ class BlindDateConcurrencyTest {
 
         matchingLock = new BlindDateMatchingLock();
         memberLock = new BlindDateMemberLock();
+        sessionLock = new BlindDateSessionLock();
 
         messagingTemplate = mock(SimpMessagingTemplate.class);
         BlindDateNotification notification = mock(BlindDateNotification.class);
@@ -102,10 +105,10 @@ class BlindDateConcurrencyTest {
                 blindDateService,
                 sessionService,
                 sessionScheduler,
-                taskScheduler,
                 messagingTemplate,
                 matchingLock,
-                memberLock
+                memberLock,
+                sessionLock
         );
     }
 

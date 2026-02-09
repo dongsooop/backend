@@ -18,7 +18,7 @@ public class BlindDateSessionLock {
      * @param sessionId 락을 획득할 세션 id
      */
     public void lockBySessionId(String sessionId) {
-        Lock lock = sessionLocks.computeIfAbsent(sessionId, k -> new ReentrantLock());
+        Lock lock = this.sessionLocks.computeIfAbsent(sessionId, k -> new ReentrantLock());
         lock.lock();
     }
 

@@ -15,6 +15,7 @@ import com.dongsoop.dongsoop.blinddate.handler.BlindDateConnectHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateDisconnectHandler;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMatchingLock;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMemberLock;
+import com.dongsoop.dongsoop.blinddate.lock.BlindDateSessionLock;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
@@ -71,6 +72,7 @@ class BlindDateIntegrationTest {
     private BlindDateMatchingLock matchingLock;
     private BlindDateMemberLock memberLock;
     private SimpMessagingTemplate messagingTemplate;
+    private BlindDateSessionLock sessionLock;
 
     @BeforeEach
     void setUp() {
@@ -82,6 +84,7 @@ class BlindDateIntegrationTest {
         // Lock 초기화
         matchingLock = new BlindDateMatchingLock();
         memberLock = new BlindDateMemberLock();
+        sessionLock = new BlindDateSessionLock();
 
         // Mock 초기화
         messagingTemplate = mock(SimpMessagingTemplate.class);
@@ -127,10 +130,10 @@ class BlindDateIntegrationTest {
                 blindDateService,
                 sessionService,
                 sessionScheduler,
-                taskScheduler,
                 messagingTemplate,
                 matchingLock,
-                memberLock
+                memberLock,
+                sessionLock
         );
 
         choiceHandler = new BlindDateChoiceHandler(
@@ -144,7 +147,8 @@ class BlindDateIntegrationTest {
                 sessionStorage,
                 blindDateService,
                 matchingLock,
-                memberLock
+                memberLock,
+                sessionLock
         );
     }
 

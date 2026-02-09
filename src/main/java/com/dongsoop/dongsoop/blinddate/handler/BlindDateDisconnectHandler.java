@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo.SessionState;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMatchingLock;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMemberLock;
+import com.dongsoop.dongsoop.blinddate.lock.BlindDateSessionLock;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import com.dongsoop.dongsoop.blinddate.service.BlindDateService;
@@ -22,21 +23,29 @@ public class BlindDateDisconnectHandler {
     private final BlindDateService blindDateService;
     private final BlindDateMatchingLock matchingLock;
     private final BlindDateMemberLock memberLock;
+    private final BlindDateSessionLock sessionLock;
 
     public void execute(String socketId, Long memberId, String sessionId) {
-        // 종료된 세션에서 나가는 경우 별도 처리 안 함
-        if (this.sessionStorage.getState(sessionId) == null) {
-            log.info("Session ID {} has been deleted", sessionId);
-            return;
-        }
+        // 연결 해제 중 세션 상태 변경을 막기 위한 세션 락
+        this.sessionLock.lockBySessionId(sessionId);
 
-        // 참여자 정보에서 소켓 제거 시 남아있는 소켓이 없는지
-        boolean isExit = this.removeSocketByParticipantInfo(socketId, memberId);
+        try {
+            // 종료된 세션에서 나가는 경우 별도 처리 안 함
+            if (this.sessionStorage.getState(sessionId) == null) {
+                log.info("Session ID {} has been deleted", sessionId);
+                return;
+            }
 
-        // 사용자의 연결된 소켓이 없는 경우 퇴장 처리
-        if (isExit) {
-            // 참여중인 세션이 포인터 세션인 경우 회원도 제거 시도
-            this.tryRemoveMember(memberId, sessionId);
+            // 참여자 정보에서 소켓 제거 시 남아있는 소켓이 없는지
+            boolean isExit = this.removeSocketByParticipantInfo(socketId, memberId);
+
+            // 사용자의 연결된 소켓이 없는 경우 퇴장 처리
+            if (isExit && this.sessionStorage.isProcessing(sessionId)) {
+                // 참여중인 세션이 포인터 세션인 경우 회원도 제거 시도
+                this.tryRemoveMember(memberId, sessionId);
+            }
+        } finally {
+            this.sessionLock.unlockBySessionId(sessionId);
         }
     }
 
