@@ -1,8 +1,12 @@
 package com.dongsoop.dongsoop.oauth.validator;
 
+import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountDto;
+import com.dongsoop.dongsoop.oauth.entity.MemberSocialAccountId;
 import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
 import com.dongsoop.dongsoop.oauth.exception.AccountNotLinkedException;
+import com.dongsoop.dongsoop.oauth.exception.AlreadyLinkedProviderTypeException;
+import com.dongsoop.dongsoop.oauth.exception.AlreadyLinkedSocialAccountException;
 import com.dongsoop.dongsoop.oauth.exception.LinkedAccountAlreadyDeletedException;
 import com.dongsoop.dongsoop.oauth.repository.MemberSocialAccountRepository;
 import com.dongsoop.dongsoop.report.validator.ReportValidator;
@@ -44,5 +48,20 @@ public class MemberSocialAccountValidatorImpl implements MemberSocialAccountVali
         reportValidator.checkMemberAccessById(socialAccount.member().getId());
 
         return socialAccount;
+    }
+
+    @Override
+    public void validateAlreadyLinked(MemberSocialAccountId socialAccountId, Member member,
+                                      OAuthProviderType providerType) {
+        // 이미 DB에 저장된 소셜 계정인 경우 예외 처리
+        if (this.memberSocialAccountRepository.existsById(socialAccountId)) {
+            throw new AlreadyLinkedSocialAccountException();
+        }
+
+        // 이미 회원이 해당 프로바이더 타입으로 가입한 경우 예외 처리
+        this.memberSocialAccountRepository.findByMemberAndProviderType(member, providerType)
+                .ifPresent((account) -> {
+                    throw new AlreadyLinkedProviderTypeException();
+                });
     }
 }

@@ -1,15 +1,13 @@
 package com.dongsoop.dongsoop.oauth.provider;
 
 import com.dongsoop.dongsoop.member.entity.Member;
-import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountDto;
 import com.dongsoop.dongsoop.oauth.dto.SocialAccountLinkRequest;
 import com.dongsoop.dongsoop.oauth.entity.MemberSocialAccount;
 import com.dongsoop.dongsoop.oauth.entity.MemberSocialAccountId;
 import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
-import com.dongsoop.dongsoop.oauth.exception.AlreadyLinkedProviderTypeException;
-import com.dongsoop.dongsoop.oauth.exception.AlreadyLinkedSocialAccountException;
 import com.dongsoop.dongsoop.oauth.exception.InvalidGoogleTokenException;
+import com.dongsoop.dongsoop.oauth.lock.SocialAccountLockManager;
 import com.dongsoop.dongsoop.oauth.repository.MemberSocialAccountRepository;
 import com.dongsoop.dongsoop.oauth.validator.MemberSocialAccountValidator;
 import com.dongsoop.dongsoop.role.entity.Role;
@@ -21,7 +19,6 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -50,7 +47,7 @@ public class GoogleSocialProvider implements SocialProvider {
 
     private final MemberSocialAccountValidator memberSocialAccountValidator;
     private final MemberSocialAccountRepository memberSocialAccountRepository;
-    private final MemberRepository memberRepository;
+    private final SocialAccountLockManager socialAccountLockManager;
     private final MemberRoleRepository memberRoleRepository;
     private final RestTemplate restTemplate;
 
@@ -104,21 +101,18 @@ public class GoogleSocialProvider implements SocialProvider {
         Member member = this.memberSocialAccountRepository.findAndLockMember(memberId);
 
         String providerId = this.getProviderId(request.providerToken());
-        MemberSocialAccountId socialAccountId = new MemberSocialAccountId(providerId, OAuthProviderType.GOOGLE);
-        MemberSocialAccount socialAccount = new MemberSocialAccount(socialAccountId, member);
-
+        socialAccountLockManager.lockBySocialAccount(providerId); // 소셜 계정 식별자 락 획득
         try {
+            MemberSocialAccountId socialAccountId = new MemberSocialAccountId(providerId, OAuthProviderType.GOOGLE);
+            // 이미 소셜 계정이 가입되었는지, 회원이 해당 프로바이더 타입으로 연동했는지 검증
+            this.memberSocialAccountValidator.validateAlreadyLinked(socialAccountId, member, OAuthProviderType.GOOGLE);
+
+            MemberSocialAccount socialAccount = new MemberSocialAccount(socialAccountId, member);
             MemberSocialAccount saved = this.memberSocialAccountRepository.save(socialAccount);
             return saved.getCreatedAt();
-
-        } catch (DataIntegrityViolationException e) {
-            // 소셜 계정이 이미 DB에 저장된 상태인 경우
-            if (this.memberSocialAccountRepository.existsById(socialAccountId)) {
-                throw new AlreadyLinkedSocialAccountException();
-            }
-
-            // 회원이 이미 동일한 ProviderType의 소셜 계정과 연동된 경우
-            throw new AlreadyLinkedProviderTypeException();
+        } finally {
+            // 작업 후 락 해제
+            socialAccountLockManager.unlockBySocialAccount(providerId);
         }
     }
 
