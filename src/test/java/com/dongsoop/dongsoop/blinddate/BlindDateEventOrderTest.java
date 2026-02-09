@@ -296,7 +296,7 @@ class BlindDateEventOrderTest {
             long startTime = events.isEmpty() ? 0 : events.get(0).timestamp;
             events.forEach(event -> {
                 long relativeTime = event.timestamp - startTime;
-                log.info("  +{:5d}ms: {}", relativeTime, event.type);
+                log.info("  +{}ms: {}", relativeTime, event.type);
             });
         }
     }
