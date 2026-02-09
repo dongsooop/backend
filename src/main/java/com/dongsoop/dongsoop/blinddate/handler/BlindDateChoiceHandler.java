@@ -21,16 +21,22 @@ public class BlindDateChoiceHandler {
     private final ChatRoomService chatRoomService;
 
     public void execute(String sessionId, Long choicerId, Long targetId) {
-        // 선택 및 매칭 확인
+        // 선택 및 매칭 여부 확인
         boolean isMatched = participantStorage.recordChoice(sessionId, choicerId, targetId);
 
+        // 매칭 성공 시 채팅방 개설
         if (isMatched) {
-            String chatRoomTitle = LocalDateTime.now().toString();
-            ChatRoom chatRoom = chatRoomService.createOneToOneChatRoom(choicerId, targetId, chatRoomTitle);
+            try {
+                String chatRoomTitle = LocalDateTime.now().toString();
+                ChatRoom chatRoom = chatRoomService.createOneToOneChatRoom(choicerId, targetId, chatRoomTitle);
 
-            // 양쪽에 채팅방 ID 전송
-            sendChatRoomCreated(sessionId, choicerId, chatRoom.getRoomId());
-            sendChatRoomCreated(sessionId, targetId, chatRoom.getRoomId());
+                sendChatRoomCreated(sessionId, choicerId, chatRoom.getRoomId());
+                sendChatRoomCreated(sessionId, targetId, chatRoom.getRoomId());
+            } catch (Exception e) {
+                log.error(
+                        "[BlindDate] Failed to create chat room for matched pair: sessionId={}, choicerId={}, targetId={}",
+                        sessionId, choicerId, targetId, e);
+            }
         }
     }
 
