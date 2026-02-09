@@ -37,7 +37,7 @@ public class BlindDateStorageImpl implements BlindDateStorage {
     }
 
     @Override
-    public void setPointer(String sessionId) {
+    public synchronized void setPointer(String sessionId) {
         this.currentPointer = sessionId;
     }
 
