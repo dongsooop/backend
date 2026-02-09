@@ -654,7 +654,10 @@ class BlindDateConcurrencyTest {
                     try {
                         Map<String, Object> sessionAttributes = new HashMap<>();
                         connectHandler.execute("socket-" + memberId, (long) memberId, sessionAttributes);
-                        memberToSession.put((long) memberId, (String) sessionAttributes.get("sessionId"));
+                        String sessionId = (String) sessionAttributes.get("sessionId");
+                        if (sessionId != null) {
+                            memberToSession.put((long) memberId, sessionId);
+                        }
                     } catch (Exception e) {
                         errorCount.incrementAndGet();
                         log.error("Error in stress test", e);
