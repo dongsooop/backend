@@ -12,7 +12,7 @@ public class BlindDateStorageImpl implements BlindDateStorage {
     private volatile Integer maxSessionMemberCount;  // 세션당 최대 인원수
     private volatile String currentPointer;          // 현재 대기 세션 ID
 
-    public void start(Integer maxSessionMemberCount, LocalDateTime expiredDate) {
+    public synchronized void start(Integer maxSessionMemberCount, LocalDateTime expiredDate) {
         this.currentPointer = null;                         // 포인터 초기화
         this.maxSessionMemberCount = maxSessionMemberCount; // 세션 전원 초기화
         this.available = true;                              // 가장 나중에 available 초기화
