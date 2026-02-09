@@ -7,9 +7,9 @@ import static org.mockito.Mockito.verify;
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
 import com.dongsoop.dongsoop.blinddate.dto.StartBlindDateRequest;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
-import com.dongsoop.dongsoop.blinddate.repository.BlindDateInfoRepositoryImpl;
-import com.dongsoop.dongsoop.blinddate.repository.ParticipantInfoRepository;
-import com.dongsoop.dongsoop.blinddate.repository.SessionInfoRepository;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateStorage;
 import com.dongsoop.dongsoop.blinddate.scheduler.BlindDateTaskScheduler;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
@@ -25,13 +25,13 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 @DisplayName("BlindDateService 단위 테스트")
 class BlindDateServiceTest {
     @Mock
-    private ParticipantInfoRepository participantInfoRepository;
+    private BlindDateParticipantStorage participantStorage;
     @Mock
-    private BlindDateInfoRepositoryImpl blindDateInfoRepository;
+    private BlindDateStorage blindDateStorage;
     @Mock
     private BlindDateNotification blindDateNotification;
     @Mock
-    private SessionInfoRepository sessionInfoRepository;
+    private BlindDateSessionStorage sessionStorage;
     @Mock
     private SimpMessagingTemplate messagingTemplate;
     @Mock
@@ -45,19 +45,19 @@ class BlindDateServiceTest {
         @Test
         @DisplayName("과팅 운영 중이면 true 반환")
         void whenAvailable_thenReturnTrue() {
-            given(blindDateInfoRepository.isAvailable()).willReturn(true);
+            given(blindDateStorage.isAvailable()).willReturn(true);
             boolean result = blindDateService.isAvailable();
             assertThat(result).isTrue();
-            verify(blindDateInfoRepository).isAvailable();
+            verify(blindDateStorage).isAvailable();
         }
 
         @Test
         @DisplayName("과팅 종료 상태면 false 반환")
         void whenNotAvailable_thenReturnFalse() {
-            given(blindDateInfoRepository.isAvailable()).willReturn(false);
+            given(blindDateStorage.isAvailable()).willReturn(false);
             boolean result = blindDateService.isAvailable();
             assertThat(result).isFalse();
-            verify(blindDateInfoRepository).isAvailable();
+            verify(blindDateStorage).isAvailable();
         }
     }
 
@@ -70,7 +70,7 @@ class BlindDateServiceTest {
             LocalDateTime expiredDate = LocalDateTime.now().plusHours(1);
             StartBlindDateRequest request = new StartBlindDateRequest(expiredDate, 5);
             blindDateService.startBlindDate(request);
-            verify(blindDateInfoRepository).start(5, expiredDate);
+            verify(blindDateStorage).start(5, expiredDate);
             verify(blindDateNotification).send();
         }
     }

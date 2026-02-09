@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 
 @Slf4j
 @Repository
-public class SessionInfoRepositoryImpl implements SessionInfoRepository {
+public class BlindDateSessionStorageImpl implements BlindDateSessionStorage {
 
     private final Map<String, SessionInfo> sessions = new ConcurrentHashMap<>();
 
@@ -70,7 +70,7 @@ public class SessionInfoRepositoryImpl implements SessionInfoRepository {
      * 세션 전체 삭제
      */
     @Override
-    public void clear() {
+    public synchronized void clear() {
         this.sessions.clear();
     }
 }

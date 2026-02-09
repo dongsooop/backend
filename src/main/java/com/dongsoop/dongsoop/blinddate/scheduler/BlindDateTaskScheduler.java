@@ -40,22 +40,16 @@ public class BlindDateTaskScheduler {
     }
 
     /**
-     * 과팅 종료 시점 스케줄링
+     * 종료 시점 기준 실행
      */
-    public void scheduleBlindDateEnd(LocalDateTime endTime, Runnable cleanupTask) {
-        ScheduledFuture<?> schedule = taskScheduler.schedule(() -> {
-            try {
-                log.info("[BlindDate] Executing BlindDate end cleanup at {}", LocalDateTime.now());
-                cleanupTask.run();
-            } catch (Exception e) {
-                log.error("[BlindDate] Error during BlindDate cleanup", e);
-            }
-        }, endTime.atZone(ZoneId.systemDefault()).toInstant());
+    public void schedule(Runnable cleanupTask, LocalDateTime endTime) {
+        ScheduledFuture<?> schedule = taskScheduler.schedule(cleanupTask,
+                endTime.atZone(ZoneId.systemDefault()).toInstant());
 
         // 작업 등록
         futures.add(schedule);
 
-        log.info("BlindDate end cleanup scheduled for {}", endTime);
+        log.info("[BlindDate] End cleanup scheduled for {}", endTime);
     }
 
     /**
@@ -64,6 +58,6 @@ public class BlindDateTaskScheduler {
     public void cleanupAllSessions() {
         futures.forEach((future) -> future.cancel(true));
         futures.clear();
-        log.info("All sessions cleaned up");
+        log.info("[BlindDate] All sessions task cleaned up");
     }
 }

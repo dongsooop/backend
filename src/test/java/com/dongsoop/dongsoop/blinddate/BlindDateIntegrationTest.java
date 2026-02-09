@@ -16,9 +16,12 @@ import com.dongsoop.dongsoop.blinddate.handler.BlindDateDisconnectHandler;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMatchingLock;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMemberLock;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
-import com.dongsoop.dongsoop.blinddate.repository.BlindDateInfoRepositoryImpl;
-import com.dongsoop.dongsoop.blinddate.repository.ParticipantInfoRepositoryImpl;
-import com.dongsoop.dongsoop.blinddate.repository.SessionInfoRepositoryImpl;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorageImpl;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateStorageImpl;
 import com.dongsoop.dongsoop.blinddate.scheduler.BlindDateSessionScheduler;
 import com.dongsoop.dongsoop.blinddate.scheduler.BlindDateTaskScheduler;
 import com.dongsoop.dongsoop.blinddate.service.BlindDateServiceImpl;
@@ -56,9 +59,9 @@ class BlindDateIntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(BlindDateIntegrationTest.class);
 
     private BlindDateServiceImpl blindDateService;
-    private BlindDateInfoRepositoryImpl blindDateInfoRepository;
-    private SessionInfoRepositoryImpl sessionInfoRepository;
-    private ParticipantInfoRepositoryImpl participantInfoRepository;
+    private BlindDateStorage blindDateStorage;
+    private BlindDateSessionStorage sessionStorage;
+    private BlindDateParticipantStorage participantStorage;
     private BlindDateSessionService sessionService;
     private BlindDateConnectHandler connectHandler;
     private BlindDateChoiceHandler choiceHandler;
@@ -72,9 +75,9 @@ class BlindDateIntegrationTest {
     @BeforeEach
     void setUp() {
         // Repository 초기화
-        blindDateInfoRepository = new BlindDateInfoRepositoryImpl();
-        participantInfoRepository = new ParticipantInfoRepositoryImpl();
-        sessionInfoRepository = new SessionInfoRepositoryImpl(participantInfoRepository);
+        blindDateStorage = new BlindDateStorageImpl();
+        participantStorage = new BlindDateParticipantStorageImpl();
+        sessionStorage = new BlindDateSessionStorageImpl();
 
         // Lock 초기화
         matchingLock = new BlindDateMatchingLock();
@@ -103,24 +106,24 @@ class BlindDateIntegrationTest {
 
         // Service 초기화
         blindDateService = new BlindDateServiceImpl(
-                participantInfoRepository,
-                blindDateInfoRepository,
+                participantStorage,
+                blindDateStorage,
                 notification,
-                sessionInfoRepository,
+                sessionStorage,
                 messagingTemplate,
                 taskScheduler
         );
 
         sessionService = new BlindDateSessionServiceImpl(
-                participantInfoRepository,
-                blindDateInfoRepository
+                participantStorage,
+                blindDateStorage
         );
 
         // Handler 초기화
         connectHandler = new BlindDateConnectHandler(
-                participantInfoRepository,
-                blindDateInfoRepository,
-                sessionInfoRepository,
+                participantStorage,
+                blindDateStorage,
+                sessionStorage,
                 blindDateService,
                 sessionService,
                 sessionScheduler,
@@ -131,14 +134,14 @@ class BlindDateIntegrationTest {
         );
 
         choiceHandler = new BlindDateChoiceHandler(
-                participantInfoRepository,
+                participantStorage,
                 messagingTemplate,
                 chatRoomService
         );
 
         disconnectHandler = new BlindDateDisconnectHandler(
-                participantInfoRepository,
-                sessionInfoRepository,
+                participantStorage,
+                sessionStorage,
                 blindDateService,
                 matchingLock,
                 memberLock
@@ -157,7 +160,7 @@ class BlindDateIntegrationTest {
      * 헬퍼 메서드: 세션의 참여자 수 조회
      */
     private int getParticipantCount(String sessionId) {
-        return participantInfoRepository.findAllBySessionId(sessionId).size();
+        return participantStorage.findAllBySessionId(sessionId).size();
     }
 
     @Nested
@@ -168,7 +171,7 @@ class BlindDateIntegrationTest {
         @DisplayName("첫 사용자 입장 - Pointer가 없으면 새 세션 생성")
         void firstUser_CreatesNewSession() {
             // given
-            blindDateInfoRepository.start(5, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
 
             // when
             Map<String, Object> sessionAttributes = new HashMap<>();
@@ -177,10 +180,10 @@ class BlindDateIntegrationTest {
 
             // then
             assertThat(sessionId).isNotNull();
-            assertThat(blindDateInfoRepository.getPointer()).isEqualTo(sessionId);
+            assertThat(blindDateStorage.getPointer()).isEqualTo(sessionId);
             assertThat(getParticipantCount(sessionId)).isEqualTo(1);
 
-            ParticipantInfo participant = participantInfoRepository.getByMemberId(1L);
+            ParticipantInfo participant = participantStorage.getByMemberId(1L);
             assertThat(participant).isNotNull();
             assertThat(participant.getAnonymousName()).isEqualTo("익명1");
         }
@@ -189,7 +192,7 @@ class BlindDateIntegrationTest {
         @DisplayName("여러 사용자 입장 - 같은 세션에 배정")
         void multipleUsers_AssignedToSameSession() {
             // given
-            blindDateInfoRepository.start(5, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
 
             // when
             Map<String, Object> attr1 = new HashMap<>();
@@ -213,7 +216,7 @@ class BlindDateIntegrationTest {
         @DisplayName("세션 꽉 찬 후 새 사용자 - 새 세션 생성")
         void fullSession_CreatesNewSession() {
             // given
-            blindDateInfoRepository.start(3, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(3, LocalDateTime.now().plusHours(1));
 
             // when - 3명 입장 (세션 꽉 참)
             Map<String, Object> attr1 = new HashMap<>();
@@ -229,14 +232,14 @@ class BlindDateIntegrationTest {
 
             // then
             assertThat(session2).isNotEqualTo(session1);
-            assertThat(blindDateInfoRepository.getPointer()).isEqualTo(session2);
+            assertThat(blindDateStorage.getPointer()).isEqualTo(session2);
         }
 
         @Test
         @DisplayName("재연결 - 기존 세션으로 복귀, 인원 증가 안 함")
         void reconnect_ReturnsToExistingSession() {
             // given
-            blindDateInfoRepository.start(5, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
             Map<String, Object> attr1 = new HashMap<>();
             connectHandler.execute("socket-1", 1L, attr1);
             String session1 = (String) attr1.get("sessionId");
@@ -255,7 +258,7 @@ class BlindDateIntegrationTest {
         @DisplayName("과팅 종료 상태 - 입장 거부")
         void closedBlindDate_RejectsEntry() {
             // given
-            blindDateInfoRepository.close();
+            blindDateStorage.close();
 
             // when & then
             Map<String, Object> attr = new HashMap<>();
@@ -273,7 +276,7 @@ class BlindDateIntegrationTest {
         @DisplayName("참여 정보 저장 - 세션, 사용자, 소켓 모두 저장")
         void addParticipant_SavesAllInfo() {
             // given
-            blindDateInfoRepository.start(5, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
 
             // when
             Map<String, Object> attr = new HashMap<>();
@@ -281,8 +284,8 @@ class BlindDateIntegrationTest {
             String sessionId = (String) attr.get("sessionId");
 
             // then
-            ParticipantInfo byMember = participantInfoRepository.getByMemberId(1L);
-            ParticipantInfo bySocket = participantInfoRepository.getBySocketId("socket-1");
+            ParticipantInfo byMember = participantStorage.getByMemberId(1L);
+            ParticipantInfo bySocket = participantStorage.getBySocketId("socket-1");
 
             assertThat(byMember).isNotNull();
             assertThat(byMember).isEqualTo(bySocket);
@@ -295,7 +298,7 @@ class BlindDateIntegrationTest {
         @DisplayName("익명 이름 순차 할당 - 익명1, 익명2, 익명3...")
         void anonymousNames_AssignedSequentially() {
             // given
-            blindDateInfoRepository.start(5, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
 
             // when
             Map<String, Object> attr = new HashMap<>();
@@ -304,9 +307,9 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-3", 3L, attr);
 
             // then
-            assertThat(participantInfoRepository.getAnonymousName(1L)).isEqualTo("익명1");
-            assertThat(participantInfoRepository.getAnonymousName(2L)).isEqualTo("익명2");
-            assertThat(participantInfoRepository.getAnonymousName(3L)).isEqualTo("익명3");
+            assertThat(participantStorage.getAnonymousName(1L)).isEqualTo("익명1");
+            assertThat(participantStorage.getAnonymousName(2L)).isEqualTo("익명2");
+            assertThat(participantStorage.getAnonymousName(3L)).isEqualTo("익명3");
         }
     }
 
@@ -318,7 +321,7 @@ class BlindDateIntegrationTest {
         @DisplayName("기준 인원 충족 - 세션 시작 준비")
         void lastParticipant_PrepareToStartSession() throws InterruptedException {
             // given
-            blindDateInfoRepository.start(3, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(3, LocalDateTime.now().plusHours(1));
 
             // when - 3명 입장
             Map<String, Object> attr = new HashMap<>();
@@ -339,7 +342,7 @@ class BlindDateIntegrationTest {
         @DisplayName("기준 인원 미달 - 세션 대기 상태 유지")
         void notFull_RemainsWaiting() throws InterruptedException {
             // given
-            blindDateInfoRepository.start(5, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
 
             // when - 3명만 입장
             Map<String, Object> attr = new HashMap<>();
@@ -351,7 +354,7 @@ class BlindDateIntegrationTest {
             Thread.sleep(500);
 
             // then
-            SessionState state = sessionInfoRepository.getState(sessionId);
+            SessionState state = sessionStorage.getState(sessionId);
             assertThat(state).isEqualTo(SessionState.WAITING);
         }
     }
@@ -364,7 +367,7 @@ class BlindDateIntegrationTest {
         @DisplayName("소켓 연결 해제 - 참여 정보 제거")
         void disconnect_RemovesSocket() {
             // given
-            blindDateInfoRepository.start(5, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
             Map<String, Object> attr = new HashMap<>();
             connectHandler.execute("socket-1", 1L, attr);
             connectHandler.execute("socket-2", 2L, attr);
@@ -376,7 +379,7 @@ class BlindDateIntegrationTest {
             disconnectHandler.execute("socket-1", 1L, sessionId);
 
             // then
-            assertThat(participantInfoRepository.getByMemberId(1L)).isNull();
+            assertThat(participantStorage.getByMemberId(1L)).isNull();
         }
     }
 
@@ -388,7 +391,7 @@ class BlindDateIntegrationTest {
         @DisplayName("100명 동시 입장 - 정확한 세션 분배")
         void concurrent100Users_AccurateDistribution() throws Exception {
             // given
-            blindDateInfoRepository.start(10, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(10, LocalDateTime.now().plusHours(1));
 
             ExecutorService executor = Executors.newFixedThreadPool(20);
             CountDownLatch latch = new CountDownLatch(100);
@@ -432,7 +435,7 @@ class BlindDateIntegrationTest {
 
             // 모든 사용자가 세션에 배정되었는지
             for (int i = 1; i <= 100; i++) {
-                ParticipantInfo participant = participantInfoRepository.getByMemberId((long) i);
+                ParticipantInfo participant = participantStorage.getByMemberId((long) i);
                 assertThat(participant).as("Member " + i + "가 배정되어야 함").isNotNull();
             }
         }
@@ -441,7 +444,7 @@ class BlindDateIntegrationTest {
         @DisplayName("동시 입장 - Pointer 동기화 보장")
         void concurrentEnter_PointerSynchronized() throws Exception {
             // given
-            blindDateInfoRepository.start(5, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
 
             ExecutorService executor = Executors.newFixedThreadPool(10);
             CountDownLatch latch = new CountDownLatch(15);
@@ -477,7 +480,7 @@ class BlindDateIntegrationTest {
 
             Set<String> uniqueSessions = new java.util.HashSet<>();
             for (int i = 1; i <= 15; i++) {
-                ParticipantInfo p = participantInfoRepository.getByMemberId((long) i);
+                ParticipantInfo p = participantStorage.getByMemberId((long) i);
                 assertThat(p).as("Member " + i + "가 배정되어야 함").isNotNull();
                 uniqueSessions.add(p.getSessionId());
             }
@@ -489,7 +492,7 @@ class BlindDateIntegrationTest {
 
             // 각 세션의 인원 확인
             for (String sessionId : uniqueSessions) {
-                int count = participantInfoRepository.findAllBySessionId(sessionId).size();
+                int count = participantStorage.findAllBySessionId(sessionId).size();
                 log.info("Session {} has {} participants", sessionId, count);
 
                 // 정원 절대 초과 불가!
@@ -498,7 +501,7 @@ class BlindDateIntegrationTest {
 
             // 총 인원 확인 - 15명 모두 배정되어야 함
             int totalCount = uniqueSessions.stream()
-                    .mapToInt(sid -> participantInfoRepository.findAllBySessionId(sid).size())
+                    .mapToInt(sid -> participantStorage.findAllBySessionId(sid).size())
                     .sum();
             assertThat(totalCount).as("총 15명이 배정되어야 함").isEqualTo(15);
         }
@@ -512,7 +515,7 @@ class BlindDateIntegrationTest {
         @DisplayName("서로 선택 - 매칭 성공")
         void mutualChoice_Matches() {
             // given
-            blindDateInfoRepository.start(2, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(2, LocalDateTime.now().plusHours(1));
             Map<String, Object> attr = new HashMap<>();
             connectHandler.execute("socket-1", 1L, attr);
             connectHandler.execute("socket-2", 2L, attr);
@@ -523,19 +526,19 @@ class BlindDateIntegrationTest {
             choiceHandler.execute(sessionId, 2L, 1L);
 
             // then
-            Set<Long> notMatched = participantInfoRepository.getNotMatched(sessionId);
+            Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
             assertThat(notMatched).isEmpty();
 
             // 매칭 확인
-            assertThat(participantInfoRepository.isMatched(sessionId, 1L)).isTrue();
-            assertThat(participantInfoRepository.isMatched(sessionId, 2L)).isTrue();
+            assertThat(participantStorage.isMatched(sessionId, 1L)).isTrue();
+            assertThat(participantStorage.isMatched(sessionId, 2L)).isTrue();
         }
 
         @Test
         @DisplayName("한쪽만 선택 - 매칭 실패")
         void oneWayChoice_NoMatch() {
             // given
-            blindDateInfoRepository.start(2, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(2, LocalDateTime.now().plusHours(1));
             Map<String, Object> attr = new HashMap<>();
             connectHandler.execute("socket-1", 1L, attr);
             connectHandler.execute("socket-2", 2L, attr);
@@ -545,18 +548,18 @@ class BlindDateIntegrationTest {
             choiceHandler.execute(sessionId, 1L, 2L);
 
             // then
-            Set<Long> notMatched = participantInfoRepository.getNotMatched(sessionId);
+            Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
             assertThat(notMatched).containsExactlyInAnyOrder(1L, 2L);
 
-            assertThat(participantInfoRepository.isMatched(sessionId, 1L)).isFalse();
-            assertThat(participantInfoRepository.isMatched(sessionId, 2L)).isFalse();
+            assertThat(participantStorage.isMatched(sessionId, 1L)).isFalse();
+            assertThat(participantStorage.isMatched(sessionId, 2L)).isFalse();
         }
 
         @Test
         @DisplayName("삼각관계 - 모두 매칭 실패")
         void triangleChoice_AllFail() {
             // given
-            blindDateInfoRepository.start(3, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(3, LocalDateTime.now().plusHours(1));
             Map<String, Object> attr = new HashMap<>();
             connectHandler.execute("socket-1", 1L, attr);
             connectHandler.execute("socket-2", 2L, attr);
@@ -569,7 +572,7 @@ class BlindDateIntegrationTest {
             choiceHandler.execute(sessionId, 3L, 1L);
 
             // then
-            Set<Long> notMatched = participantInfoRepository.getNotMatched(sessionId);
+            Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
             assertThat(notMatched).containsExactlyInAnyOrder(1L, 2L, 3L);
         }
 
@@ -577,7 +580,7 @@ class BlindDateIntegrationTest {
         @DisplayName("5명 중 2쌍 매칭, 1명 실패")
         void partialMatching() {
             // given
-            blindDateInfoRepository.start(5, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
             Map<String, Object> attr = new HashMap<>();
             connectHandler.execute("socket-1", 1L, attr);
             for (long i = 2; i <= 5; i++) {
@@ -593,7 +596,7 @@ class BlindDateIntegrationTest {
             choiceHandler.execute(sessionId, 5L, 1L);
 
             // then
-            Set<Long> notMatched = participantInfoRepository.getNotMatched(sessionId);
+            Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
             assertThat(notMatched).containsExactly(5L);
         }
     }
@@ -626,12 +629,12 @@ class BlindDateIntegrationTest {
             choiceHandler.execute(sessionId, 2L, 1L);
 
             // 4. 매칭 결과 확인
-            Set<Long> notMatched = participantInfoRepository.getNotMatched(sessionId);
+            Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
             assertThat(notMatched).containsExactly(3L);
 
-            assertThat(participantInfoRepository.isMatched(sessionId, 1L)).isTrue();
-            assertThat(participantInfoRepository.isMatched(sessionId, 2L)).isTrue();
-            assertThat(participantInfoRepository.isMatched(sessionId, 3L)).isFalse();
+            assertThat(participantStorage.isMatched(sessionId, 1L)).isTrue();
+            assertThat(participantStorage.isMatched(sessionId, 2L)).isTrue();
+            assertThat(participantStorage.isMatched(sessionId, 3L)).isFalse();
         }
     }
 }

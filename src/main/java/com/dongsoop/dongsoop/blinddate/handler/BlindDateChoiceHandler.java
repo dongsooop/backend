@@ -1,7 +1,7 @@
 package com.dongsoop.dongsoop.blinddate.handler;
 
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
-import com.dongsoop.dongsoop.blinddate.repository.ParticipantInfoRepository;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import java.time.LocalDateTime;
@@ -16,13 +16,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class BlindDateChoiceHandler {
 
-    private final ParticipantInfoRepository participantInfoRepository;
+    private final BlindDateParticipantStorage participantStorage;
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatRoomService chatRoomService;
 
     public void execute(String sessionId, Long choicerId, Long targetId) {
         // 선택 및 매칭 확인
-        boolean isMatched = participantInfoRepository.recordChoice(sessionId, choicerId, targetId);
+        boolean isMatched = participantStorage.recordChoice(sessionId, choicerId, targetId);
 
         if (isMatched) {
             String chatRoomTitle = LocalDateTime.now().toString();

@@ -8,9 +8,12 @@ import com.dongsoop.dongsoop.blinddate.handler.BlindDateConnectHandler;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMatchingLock;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMemberLock;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
-import com.dongsoop.dongsoop.blinddate.repository.BlindDateInfoRepositoryImpl;
-import com.dongsoop.dongsoop.blinddate.repository.ParticipantInfoRepositoryImpl;
-import com.dongsoop.dongsoop.blinddate.repository.SessionInfoRepositoryImpl;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorageImpl;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateStorageImpl;
 import com.dongsoop.dongsoop.blinddate.scheduler.BlindDateSessionScheduler;
 import com.dongsoop.dongsoop.blinddate.scheduler.BlindDateTaskScheduler;
 import com.dongsoop.dongsoop.blinddate.service.BlindDateServiceImpl;
@@ -55,9 +58,9 @@ class BlindDateConcurrencyTest {
     private BlindDateConnectHandler connectHandler;
     private BlindDateServiceImpl blindDateService;
     private BlindDateSessionService sessionService;
-    private BlindDateInfoRepositoryImpl blindDateInfoRepository;
-    private SessionInfoRepositoryImpl sessionInfoRepository;
-    private ParticipantInfoRepositoryImpl participantInfoRepository;
+    private BlindDateStorage blindDateStorage;
+    private BlindDateSessionStorage sessionStorage;
+    private BlindDateParticipantStorage participantStorage;
     private BlindDateMatchingLock matchingLock;
     private BlindDateMemberLock memberLock;
     private BlindDateSessionScheduler sessionScheduler;
@@ -66,9 +69,9 @@ class BlindDateConcurrencyTest {
 
     @BeforeEach
     void setUp() {
-        blindDateInfoRepository = new BlindDateInfoRepositoryImpl();
-        participantInfoRepository = new ParticipantInfoRepositoryImpl();
-        sessionInfoRepository = new SessionInfoRepositoryImpl(participantInfoRepository);
+        blindDateStorage = new BlindDateStorageImpl();
+        participantStorage = new BlindDateParticipantStorageImpl();
+        sessionStorage = new BlindDateSessionStorageImpl();
 
         matchingLock = new BlindDateMatchingLock();
         memberLock = new BlindDateMemberLock();
@@ -79,23 +82,23 @@ class BlindDateConcurrencyTest {
         taskScheduler = new BlindDateTaskScheduler();
 
         blindDateService = new BlindDateServiceImpl(
-                participantInfoRepository,
-                blindDateInfoRepository,
+                participantStorage,
+                blindDateStorage,
                 notification,
-                sessionInfoRepository,
+                sessionStorage,
                 messagingTemplate,
                 taskScheduler
         );
 
         sessionService = new BlindDateSessionServiceImpl(
-                participantInfoRepository,
-                blindDateInfoRepository
+                participantStorage,
+                blindDateStorage
         );
 
         connectHandler = new BlindDateConnectHandler(
-                participantInfoRepository,
-                blindDateInfoRepository,
-                sessionInfoRepository,
+                participantStorage,
+                blindDateStorage,
+                sessionStorage,
                 blindDateService,
                 sessionService,
                 sessionScheduler,
@@ -115,7 +118,7 @@ class BlindDateConcurrencyTest {
     }
 
     private int getParticipantCount(String sessionId) {
-        return participantInfoRepository.findAllBySessionId(sessionId).size();
+        return participantStorage.findAllBySessionId(sessionId).size();
     }
 
     @Nested
@@ -125,7 +128,7 @@ class BlindDateConcurrencyTest {
         @RepeatedTest(10)
         @DisplayName("동시 첫 입장 - 하나의 세션만 생성")
         void concurrentFirstEntry_ShouldCreateOnlyOneSession() throws InterruptedException {
-            blindDateInfoRepository.start(10, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(10, LocalDateTime.now().plusHours(1));
             int threadCount = 10;
             ExecutorService executor = Executors.newFixedThreadPool(threadCount);
             CountDownLatch latch = new CountDownLatch(threadCount);
@@ -173,7 +176,7 @@ class BlindDateConcurrencyTest {
         @RepeatedTest(10)
         @DisplayName("세션 만원 후 동시 입장 - 새 세션 하나만 생성")
         void concurrentFullSession_ShouldCreateOnlyOneNewSession() throws InterruptedException {
-            blindDateInfoRepository.start(4, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(4, LocalDateTime.now().plusHours(1));
 
             Map<String, Object> attr = new HashMap<>();
             connectHandler.execute("socket-1", 1L, attr);
@@ -244,7 +247,7 @@ class BlindDateConcurrencyTest {
         @RepeatedTest(10)
         @DisplayName("Pointer 변경 중 동시 조회 - 일관된 세션 할당")
         void concurrentPointerChange_ShouldBeConsistent() throws InterruptedException {
-            blindDateInfoRepository.start(3, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(3, LocalDateTime.now().plusHours(1));
 
             Map<String, Object> attr = new HashMap<>();
             connectHandler.execute("socket-1", 1L, attr);
@@ -319,7 +322,7 @@ class BlindDateConcurrencyTest {
         @DisplayName("정원만큼 동시 입장 - 모두 성공")
         void concurrentExactCapacity_AllShouldSucceed() throws InterruptedException {
             int capacity = 8;
-            blindDateInfoRepository.start(capacity, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(capacity, LocalDateTime.now().plusHours(1));
 
             ExecutorService executor = Executors.newFixedThreadPool(capacity);
             CountDownLatch latch = new CountDownLatch(capacity);
@@ -369,7 +372,7 @@ class BlindDateConcurrencyTest {
         void concurrentOverCapacity_ShouldCreateNewSession() throws InterruptedException {
             int capacity = 4;
             int totalUsers = 10;
-            blindDateInfoRepository.start(capacity, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(capacity, LocalDateTime.now().plusHours(1));
 
             ExecutorService executor = Executors.newFixedThreadPool(totalUsers);
             CountDownLatch latch = new CountDownLatch(totalUsers);
@@ -431,7 +434,7 @@ class BlindDateConcurrencyTest {
         @DisplayName("마지막 자리 경쟁 - 정확히 한 명만 입장")
         void concurrentLastSlot_OnlyOneShouldEnter() throws InterruptedException {
             int capacity = 5;
-            blindDateInfoRepository.start(capacity, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(capacity, LocalDateTime.now().plusHours(1));
 
             // 먼저 4명 입장
             Map<String, Object> attr = new HashMap<>();
@@ -510,7 +513,7 @@ class BlindDateConcurrencyTest {
         @RepeatedTest(10)
         @DisplayName("동일 사용자 여러 탭 동시 접속")
         void concurrentMultipleTabs_ShouldShareSession() throws InterruptedException {
-            blindDateInfoRepository.start(10, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(10, LocalDateTime.now().plusHours(1));
 
             int tabCount = 5;
             ExecutorService executor = Executors.newFixedThreadPool(tabCount);
@@ -550,7 +553,7 @@ class BlindDateConcurrencyTest {
             assertThat(exceptions).as("예외 없어야 함").isEmpty();
             assertThat(sessionIds).as("모든 탭이 같은 세션에 접속해야 함").hasSize(1);
 
-            ParticipantInfo participant = participantInfoRepository.getByMemberId(1L);
+            ParticipantInfo participant = participantStorage.getByMemberId(1L);
             assertThat(participant).as("참가자 정보가 존재해야 함").isNotNull();
             int socketCount = participant.getSocketIds().size();
             log.info("Member 1 has {} sockets", socketCount);
@@ -565,7 +568,7 @@ class BlindDateConcurrencyTest {
         @RepeatedTest(10)
         @DisplayName("익명 이름 중복 없이 순차 할당")
         void concurrentAnonymousName_ShouldBeUnique() throws InterruptedException {
-            blindDateInfoRepository.start(50, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(50, LocalDateTime.now().plusHours(1));
 
             int userCount = 50;
             ExecutorService executor = Executors.newFixedThreadPool(userCount);
@@ -580,7 +583,7 @@ class BlindDateConcurrencyTest {
                     try {
                         Map<String, Object> sessionAttributes = new HashMap<>();
                         connectHandler.execute("socket-" + memberId, (long) memberId, sessionAttributes);
-                        ParticipantInfo participant = participantInfoRepository.getByMemberId((long) memberId);
+                        ParticipantInfo participant = participantStorage.getByMemberId((long) memberId);
                         if (participant != null) {
                             memberToName.put((long) memberId, participant.getAnonymousName());
                         }
@@ -632,7 +635,7 @@ class BlindDateConcurrencyTest {
         void stressTest_100Users() throws InterruptedException {
             int capacity = 10;
             int totalUsers = 100;
-            blindDateInfoRepository.start(capacity, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(capacity, LocalDateTime.now().plusHours(1));
 
             ExecutorService executor = Executors.newFixedThreadPool(50);
             CountDownLatch latch = new CountDownLatch(totalUsers);
@@ -701,7 +704,7 @@ class BlindDateConcurrencyTest {
         @Test
         @DisplayName("Pointer가 null인 상태에서 대규모 동시 입장")
         void edgeCase_NullPointer() throws InterruptedException {
-            blindDateInfoRepository.start(5, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
 
             int userCount = 100;
             ExecutorService executor = Executors.newFixedThreadPool(userCount);
@@ -734,7 +737,7 @@ class BlindDateConcurrencyTest {
         @Test
         @DisplayName("정원 1명 세션에 대규모 동시 입장")
         void edgeCase_CapacityOne() throws InterruptedException {
-            blindDateInfoRepository.start(1, LocalDateTime.now().plusHours(1));
+            blindDateStorage.start(1, LocalDateTime.now().plusHours(1));
 
             int userCount = 50;
             ExecutorService executor = Executors.newFixedThreadPool(userCount);

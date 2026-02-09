@@ -3,9 +3,9 @@ package com.dongsoop.dongsoop.blinddate;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dongsoop.dongsoop.blinddate.dto.StartBlindDateRequest;
-import com.dongsoop.dongsoop.blinddate.repository.BlindDateInfoRepositoryImpl;
-import com.dongsoop.dongsoop.blinddate.repository.ParticipantInfoRepositoryImpl;
-import com.dongsoop.dongsoop.blinddate.repository.SessionInfoRepository;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateStorage;
 import com.dongsoop.dongsoop.blinddate.service.BlindDateService;
 import java.lang.reflect.Type;
 import java.time.LocalDateTime;
@@ -67,11 +67,11 @@ class BlindDateWebSocketIntegrationTest {
     @Autowired
     private BlindDateService blindDateService;
     @Autowired
-    private BlindDateInfoRepositoryImpl blindDateInfoRepository;
+    private BlindDateStorage blindDateStorage;
     @Autowired
-    private SessionInfoRepository sessionInfoRepository;
+    private BlindDateSessionStorage sessionStorage;
     @Autowired
-    private ParticipantInfoRepositoryImpl participantInfoRepository;
+    private BlindDateParticipantStorage participantStorage;
     @Autowired
     private TestJwtTokenGenerator tokenGenerator;
 
@@ -95,8 +95,8 @@ class BlindDateWebSocketIntegrationTest {
     @AfterEach
     void tearDown() {
         // 정리
-        if (blindDateInfoRepository.isAvailable()) {
-            blindDateInfoRepository.close();
+        if (blindDateStorage.isAvailable()) {
+            blindDateStorage.close();
         }
     }
 
@@ -109,8 +109,8 @@ class BlindDateWebSocketIntegrationTest {
         StartBlindDateRequest request = new StartBlindDateRequest(expiredDate, 2);
         blindDateService.startBlindDate(request);
 
-        assertThat(blindDateInfoRepository.isAvailable()).isTrue();
-        assertThat(blindDateInfoRepository.getMaxSessionMemberCount()).isEqualTo(2);
+        assertThat(blindDateStorage.isAvailable()).isTrue();
+        assertThat(blindDateStorage.getMaxSessionMemberCount()).isEqualTo(2);
         log.info("✅ 과팅 시작 완료\n");
 
         // ========== STEP 2: 클라이언트 2명 접속 ==========

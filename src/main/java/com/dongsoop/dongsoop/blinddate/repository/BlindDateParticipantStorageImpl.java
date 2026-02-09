@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
 
 @Slf4j
 @Repository
-public class ParticipantInfoRepositoryImpl implements ParticipantInfoRepository {
+public class BlindDateParticipantStorageImpl implements BlindDateParticipantStorage {
 
     // memberId -> ParticipantInfo (한 사용자당 1개, 여러 소켓 보유 가능)
     private final Map<Long, ParticipantInfo> participants = new ConcurrentHashMap<>();
@@ -247,7 +247,8 @@ public class ParticipantInfoRepositoryImpl implements ParticipantInfoRepository 
         nameCounters.clear();
         choices.clear();
         matches.clear();
-        log.info("All participant data cleared");
+
+        log.info("[BlindDate] All participant data cleared");
     }
 
     /**

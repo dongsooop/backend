@@ -3,7 +3,7 @@ package com.dongsoop.dongsoop.blinddate.repository;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo.SessionState;
 
-public interface SessionInfoRepository {
+public interface BlindDateSessionStorage {
 
     SessionInfo create();
 

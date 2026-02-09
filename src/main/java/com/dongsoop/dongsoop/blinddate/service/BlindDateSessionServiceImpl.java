@@ -1,8 +1,8 @@
 package com.dongsoop.dongsoop.blinddate.service;
 
 import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
-import com.dongsoop.dongsoop.blinddate.repository.BlindDateInfoRepositoryImpl;
-import com.dongsoop.dongsoop.blinddate.repository.ParticipantInfoRepository;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateStorage;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -11,12 +11,12 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class BlindDateSessionServiceImpl implements BlindDateSessionService {
 
-    private final ParticipantInfoRepository participantInfoRepository;
-    private final BlindDateInfoRepositoryImpl blindDateInfoRepository;
+    private final BlindDateParticipantStorage participantStorage;
+    private final BlindDateStorage blindDateStorage;
 
     public boolean isSessionFull(String sessionId) {
-        List<ParticipantInfo> participantInfos = participantInfoRepository.findAllBySessionId(sessionId);
-        int maxCount = blindDateInfoRepository.getMaxSessionMemberCount();
+        List<ParticipantInfo> participantInfos = participantStorage.findAllBySessionId(sessionId);
+        int maxCount = blindDateStorage.getMaxSessionMemberCount();
         return participantInfos.size() >= maxCount;
     }
 }

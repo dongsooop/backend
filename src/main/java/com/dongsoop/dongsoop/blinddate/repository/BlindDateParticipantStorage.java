@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public interface ParticipantInfoRepository {
+public interface BlindDateParticipantStorage {
 
     /**
      * 참여자 추가 또는 소켓 추가

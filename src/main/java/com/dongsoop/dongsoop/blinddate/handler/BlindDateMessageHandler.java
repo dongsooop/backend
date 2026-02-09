@@ -1,7 +1,7 @@
 package com.dongsoop.dongsoop.blinddate.handler;
 
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
-import com.dongsoop.dongsoop.blinddate.repository.ParticipantInfoRepository;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class BlindDateMessageHandler {
 
-    private final ParticipantInfoRepository participantInfoRepository;
+    private final BlindDateParticipantStorage participantStorage;
     private final SimpMessagingTemplate messagingTemplate;
 
     /**
@@ -24,7 +24,7 @@ public class BlindDateMessageHandler {
      * @param message   발신 내용
      */
     public void execute(String sessionId, Long senderId, String message) {
-        String senderName = participantInfoRepository.getAnonymousName(senderId);
+        String senderName = participantStorage.getAnonymousName(senderId);
         if (senderName == null) {
             log.warn("Sender not found: senderId={}", senderId);
             return;

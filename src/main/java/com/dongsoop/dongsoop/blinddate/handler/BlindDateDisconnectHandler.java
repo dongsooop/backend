@@ -4,8 +4,8 @@ import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo.SessionState;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMatchingLock;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMemberLock;
-import com.dongsoop.dongsoop.blinddate.repository.ParticipantInfoRepository;
-import com.dongsoop.dongsoop.blinddate.repository.SessionInfoRepository;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import com.dongsoop.dongsoop.blinddate.service.BlindDateService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -17,15 +17,15 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class BlindDateDisconnectHandler {
 
-    private final ParticipantInfoRepository participantInfoRepository;
-    private final SessionInfoRepository sessionInfoRepository;
+    private final BlindDateParticipantStorage participantStorage;
+    private final BlindDateSessionStorage sessionStorage;
     private final BlindDateService blindDateService;
     private final BlindDateMatchingLock matchingLock;
     private final BlindDateMemberLock memberLock;
 
     public void execute(String socketId, Long memberId, String sessionId) {
         // 종료된 세션에서 나가는 경우 별도 처리 안 함
-        if (this.sessionInfoRepository.getState(sessionId) == null) {
+        if (this.sessionStorage.getState(sessionId) == null) {
             log.info("Session ID {} has been deleted", sessionId);
             return;
         }
@@ -47,7 +47,7 @@ public class BlindDateDisconnectHandler {
         try {
             // 소켓만 제거 (모든 소켓이 제거되면 자동으로 참여자도 제거됨)
             // 제거 후 모든 소켓을 제거했는지 여부 반환
-            return participantInfoRepository.removeSocket(socketId);
+            return participantStorage.removeSocket(socketId);
         } catch (IllegalArgumentException e) {
             log.warn("Socket already removed or not found: socketId={}, memberId={}", socketId, memberId);
             return false;
@@ -63,7 +63,7 @@ public class BlindDateDisconnectHandler {
 
         try {
             // 세션 상태 확인
-            SessionState state = sessionInfoRepository.getState(sessionId);
+            SessionState state = sessionStorage.getState(sessionId);
 
             // PROCESSING 상태면 포인터가 아니며, 퇴장 처리 안 함
             if (state != SessionState.WAITING) {
@@ -71,9 +71,9 @@ public class BlindDateDisconnectHandler {
             }
 
             // WAITING 상태일 때만 퇴장 처리
-            participantInfoRepository.removeParticipant(memberId);
+            participantStorage.removeParticipant(memberId);
 
-            List<ParticipantInfo> participantInfos = participantInfoRepository.findAllBySessionId(sessionId);
+            List<ParticipantInfo> participantInfos = participantStorage.findAllBySessionId(sessionId);
 
             // 인원 업데이트 브로드캐스트
             blindDateService.broadcastJoinedCount(sessionId, participantInfos.size());

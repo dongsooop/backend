@@ -5,9 +5,9 @@ import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMatchingLock;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMemberLock;
-import com.dongsoop.dongsoop.blinddate.repository.BlindDateInfoRepositoryImpl;
-import com.dongsoop.dongsoop.blinddate.repository.ParticipantInfoRepository;
-import com.dongsoop.dongsoop.blinddate.repository.SessionInfoRepository;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateStorage;
 import com.dongsoop.dongsoop.blinddate.scheduler.BlindDateSessionScheduler;
 import com.dongsoop.dongsoop.blinddate.scheduler.BlindDateTaskScheduler;
 import com.dongsoop.dongsoop.blinddate.service.BlindDateService;
@@ -24,9 +24,9 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class BlindDateConnectHandler {
 
-    private final ParticipantInfoRepository participantInfoRepository;
-    private final BlindDateInfoRepositoryImpl blindDateInfoRepository;
-    private final SessionInfoRepository sessionInfoRepository;
+    private final BlindDateParticipantStorage participantStorage;
+    private final BlindDateStorage blindDateStorage;
+    private final BlindDateSessionStorage sessionStorage;
     private final BlindDateService blindDateService;
     private final BlindDateSessionService sessionService;
     private final BlindDateSessionScheduler sessionScheduler;
@@ -93,18 +93,18 @@ public class BlindDateConnectHandler {
             sessionAttributes.put("sessionId", sessionId);
 
             // 참여 정보 추가 (assignSession에서 편입 가능한 과팅 세션 여부를 확인했기에 바로 저장)
-            ParticipantInfo participant = participantInfoRepository.addParticipant(sessionId, memberId, socketId);
+            ParticipantInfo participant = participantStorage.addParticipant(sessionId, memberId, socketId);
 
             // 과팅 세션 편입 후 참가자 수 조회
-            List<ParticipantInfo> participantInfos = participantInfoRepository.findAllBySessionId(sessionId);
+            List<ParticipantInfo> participantInfos = participantStorage.findAllBySessionId(sessionId);
             int currentCount = participantInfos.size();
-            int maxCount = blindDateInfoRepository.getMaxSessionMemberCount();
+            int maxCount = blindDateStorage.getMaxSessionMemberCount();
 
             joinResult = new BlindDateJoinResult(participant, sessionId, currentCount, maxCount);
         } catch (Exception e) {
             // 입장 과정에서 오류 발생 시 회원 제거
             log.error("[BlindDate] Exception from enter process: memberId={}", memberId, e);
-            this.participantInfoRepository.removeParticipant(memberId);
+            this.participantStorage.removeParticipant(memberId);
             sessionAttributes.remove("sessionId");
 
             return null;
@@ -146,7 +146,7 @@ public class BlindDateConnectHandler {
         blindDateMemberLock.lockByMemberId(memberId);
 
         try {
-            ParticipantInfo existingParticipant = participantInfoRepository.getByMemberId(memberId);
+            ParticipantInfo existingParticipant = participantStorage.getByMemberId(memberId);
             // 첫 매칭인 경우
             if (existingParticipant == null) {
                 return null;
@@ -155,7 +155,7 @@ public class BlindDateConnectHandler {
             String existingSessionId = existingParticipant.getSessionId();
 
             // 재연결된 세션이 존재하지 않는 경우 (세션 종료 후 재연결 시도 등) 예외 처리
-            if (this.sessionInfoRepository.getState(existingSessionId) == null) {
+            if (this.sessionStorage.getState(existingSessionId) == null) {
                 throw new IllegalArgumentException("재연결된 세션 정보가 존재하지 않습니다.");
             }
 
@@ -173,24 +173,24 @@ public class BlindDateConnectHandler {
      */
     private String assignSession() {
         // Pointer 조회
-        String pointer = blindDateInfoRepository.getPointer();
+        String pointer = blindDateStorage.getPointer();
 
         // Pointer가 없는 경우 새 세션 생성
         if (pointer == null) {
-            SessionInfo newSession = sessionInfoRepository.create();
+            SessionInfo newSession = this.sessionStorage.create();
             String newSessionId = newSession.getSessionId();
 
-            blindDateInfoRepository.setPointer(newSessionId);
+            blindDateStorage.setPointer(newSessionId);
 
             return newSessionId;
         }
 
         // Pointer 세션이 꽉 찬 경우 새 세션 생성
         if (sessionService.isSessionFull(pointer)) {
-            SessionInfo newSession = sessionInfoRepository.create();
+            SessionInfo newSession = this.sessionStorage.create();
             String newSessionId = newSession.getSessionId();
 
-            blindDateInfoRepository.setPointer(newSessionId);
+            blindDateStorage.setPointer(newSessionId);
 
             return newSessionId;
         }

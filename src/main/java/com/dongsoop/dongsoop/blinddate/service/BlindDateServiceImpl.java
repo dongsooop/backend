@@ -3,11 +3,10 @@ package com.dongsoop.dongsoop.blinddate.service;
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
 import com.dongsoop.dongsoop.blinddate.dto.StartBlindDateRequest;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
-import com.dongsoop.dongsoop.blinddate.repository.BlindDateInfoRepositoryImpl;
-import com.dongsoop.dongsoop.blinddate.repository.ParticipantInfoRepository;
-import com.dongsoop.dongsoop.blinddate.repository.SessionInfoRepository;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateStorage;
 import com.dongsoop.dongsoop.blinddate.scheduler.BlindDateTaskScheduler;
-import java.time.LocalDateTime;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,10 +21,10 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class BlindDateServiceImpl implements BlindDateService {
 
-    private final ParticipantInfoRepository participantInfoRepository;
-    private final BlindDateInfoRepositoryImpl blindDateInfoRepository;
+    private final BlindDateParticipantStorage participantStorage;
+    private final BlindDateStorage blindDateStorage;
     private final BlindDateNotification blindDateNotification;
-    private final SessionInfoRepository sessionInfoRepository;
+    private final BlindDateSessionStorage sessionStorage;
     private final SimpMessagingTemplate messagingTemplate;
     private final BlindDateTaskScheduler taskScheduler;
 
@@ -33,7 +32,7 @@ public class BlindDateServiceImpl implements BlindDateService {
      * 과팅 운영 상태 확인
      */
     public boolean isAvailable() {
-        return blindDateInfoRepository.isAvailable();
+        return blindDateStorage.isAvailable();
     }
 
     /**
@@ -45,54 +44,41 @@ public class BlindDateServiceImpl implements BlindDateService {
         log.info("Starting blind date: expiredDate={}, maxSessionMemberCount={}",
                 request.getExpiredDate(), request.getMaxSessionMemberCount());
 
+        // 과팅 시작을 위한 데이터 초기화
+        blindDateStorage.start(request.getMaxSessionMemberCount(), request.getExpiredDate());
+
         try {
-            // 과팅 시작
-            blindDateInfoRepository.start(request.getMaxSessionMemberCount(), request.getExpiredDate());
-
             // 자동 종료 스케줄링 (TaskScheduler 사용)
-            scheduleAutoClose(request.getExpiredDate());
+            // TaskScheduler에 과팅 종료 작업 등록
+            taskScheduler.schedule(this::scheduleAutoClose, request.getExpiredDate());
+        } catch (Exception e) {
+            log.error("[BlindDate] Failed to scheduled close", e);
+            throw new RuntimeException("[BlindDate] Failed to scheduled close: " + e.getMessage(), e);
+        }
 
+        try {
             // 과팅 오픈 알림 전송
             blindDateNotification.send();
-
-            log.info("[BlindDate] started successfully");
         } catch (Exception e) {
-            log.error("[BlindDate] Failed to start", e);
-            throw new RuntimeException("[BlindDate] Failed to start: " + e.getMessage(), e);
+            log.warn("[BlindDate] Cannot send notification message: {}", e.getMessage(), e);
         }
     }
 
     /**
      * 자동 종료 스케줄링 (TaskScheduler 사용)
-     *
-     * @param expiredDate 종료 시간
      */
-    private void scheduleAutoClose(LocalDateTime expiredDate) {
-        try {
-            // TaskScheduler에 과팅 종료 작업 등록
-            taskScheduler.scheduleBlindDateEnd(expiredDate, () -> {
-                log.info("Auto closing blind date at: {}", LocalDateTime.now());
+    private void scheduleAutoClose() {
+        // 과팅 상태 종료
+        blindDateStorage.close();
 
-                // 모든 세션 종료
-                sessionInfoRepository.clear();
+        // 모든 세션 정보 삭제
+        sessionStorage.clear();
 
-                // 모든 참가자 정보 삭제
-                participantInfoRepository.clear();
+        // 모든 참가자 정보 삭제
+        participantStorage.clear();
 
-                // 과팅 상태 종료
-                blindDateInfoRepository.close();
-
-                // TaskScheduler 정리
-                taskScheduler.cleanupAllSessions();
-
-                log.info("BlindDate closed successfully");
-            });
-
-            log.info("Scheduled auto close at: {}", expiredDate);
-        } catch (Exception e) {
-            log.error("Failed to schedule auto close", e);
-            throw new RuntimeException("Failed to schedule auto close: " + e.getMessage(), e);
-        }
+        // TaskScheduler 정리
+        taskScheduler.cleanupAllSessions();
     }
 
     /**

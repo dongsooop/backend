@@ -8,17 +8,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/**
- * BlindDateInfoRepository 단위 테스트
- */
-@DisplayName("BlindDateInfoRepository 단위 테스트")
-class BlindDateInfoRepositoryTest {
+@DisplayName("BlindDateStorageTest 단위 테스트")
+class BlindDateStorageTest {
 
-    private BlindDateInfoRepositoryImpl repository;
+    private BlindDateStorage storage;
 
     @BeforeEach
     void setUp() {
-        repository = new BlindDateInfoRepositoryImpl();
+        storage = new BlindDateStorageImpl();
     }
 
     @Nested
@@ -32,11 +29,11 @@ class BlindDateInfoRepositoryTest {
             LocalDateTime expiredDate = LocalDateTime.now().plusHours(1);
 
             // when
-            repository.start(5, expiredDate);
+            storage.start(5, expiredDate);
 
             // then
-            assertThat(repository.isAvailable()).isTrue();
-            assertThat(repository.getMaxSessionMemberCount()).isEqualTo(5);
+            assertThat(storage.isAvailable()).isTrue();
+            assertThat(storage.getMaxSessionMemberCount()).isEqualTo(5);
         }
 
         @Test
@@ -47,10 +44,10 @@ class BlindDateInfoRepositoryTest {
             int maxCount = 10;
 
             // when
-            repository.start(maxCount, expiredDate);
+            storage.start(maxCount, expiredDate);
 
             // then
-            assertThat(repository.getMaxSessionMemberCount()).isEqualTo(maxCount);
+            assertThat(storage.getMaxSessionMemberCount()).isEqualTo(maxCount);
         }
     }
 
@@ -62,14 +59,14 @@ class BlindDateInfoRepositoryTest {
         @DisplayName("과팅 종료 - available false")
         void close_SetsAvailableFalse() {
             // given
-            repository.start(5, LocalDateTime.now().plusHours(1));
-            assertThat(repository.isAvailable()).isTrue();
+            storage.start(5, LocalDateTime.now().plusHours(1));
+            assertThat(storage.isAvailable()).isTrue();
 
             // when
-            repository.close();
+            storage.close();
 
             // then
-            assertThat(repository.isAvailable()).isFalse();
+            assertThat(storage.isAvailable()).isFalse();
         }
     }
 
@@ -81,7 +78,7 @@ class BlindDateInfoRepositoryTest {
         @DisplayName("초기 상태 - Pointer null")
         void initial_PointerIsNull() {
             // when & then
-            assertThat(repository.getPointer()).isNull();
+            assertThat(storage.getPointer()).isNull();
         }
 
         @Test
@@ -91,10 +88,10 @@ class BlindDateInfoRepositoryTest {
             String sessionId = "session-123";
 
             // when
-            repository.setPointer(sessionId);
+            storage.setPointer(sessionId);
 
             // then
-            assertThat(repository.getPointer()).isEqualTo(sessionId);
+            assertThat(storage.getPointer()).isEqualTo(sessionId);
         }
 
 
@@ -102,12 +99,12 @@ class BlindDateInfoRepositoryTest {
         @DisplayName("여러 번 setPointer - 마지막 값으로 업데이트")
         void setPointerMultipleTimes_UpdatesToLatest() {
             // when
-            repository.setPointer("session-1");
-            repository.setPointer("session-2");
-            repository.setPointer("session-3");
+            storage.setPointer("session-1");
+            storage.setPointer("session-2");
+            storage.setPointer("session-3");
 
             // then
-            assertThat(repository.getPointer()).isEqualTo("session-3");
+            assertThat(storage.getPointer()).isEqualTo("session-3");
         }
     }
 }

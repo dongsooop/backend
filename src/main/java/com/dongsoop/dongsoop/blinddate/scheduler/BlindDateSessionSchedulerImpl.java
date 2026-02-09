@@ -3,8 +3,8 @@ package com.dongsoop.dongsoop.blinddate.scheduler;
 import com.dongsoop.dongsoop.blinddate.config.BlindDateMessageProvider;
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo.SessionState;
-import com.dongsoop.dongsoop.blinddate.repository.ParticipantInfoRepository;
-import com.dongsoop.dongsoop.blinddate.repository.SessionInfoRepository;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,8 +26,8 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
     private static final long CHATTING_TIME = 3 * 60 * 1000; // 3분
     private static final long CHOICE_TIME = 10 * 1000;
 
-    private final ParticipantInfoRepository participantInfoRepository;
-    private final SessionInfoRepository sessionInfoRepository;
+    private final BlindDateParticipantStorage participantStorage;
+    private final BlindDateSessionStorage sessionStorage;
     private final BlindDateMessageProvider messageProvider;
     private final SimpMessagingTemplate messagingTemplate;
     private final BlindDateTaskScheduler taskScheduler;
@@ -41,16 +41,16 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
      * @param sessionId 시작할 세션 id
      */
     public void start(String sessionId) {
-        if (this.sessionInfoRepository.getState(sessionId) != SessionState.WAITING) {
+        if (this.sessionStorage.getState(sessionId) != SessionState.WAITING) {
             log.warn("[BlindDate] Starting session is not waiting");
             return;
         }
-        
+
         try {
             log.info("Session starting: {}", sessionId);
 
             // 세션 상태 변경 - PROCESSING
-            sessionInfoRepository.start(sessionId);
+            sessionStorage.start(sessionId);
 
             // 클라이언트가 세션 토픽을 구독할 시간 확보 (START 이벤트 전송 전에 대기)
             Thread.sleep(SUBSCRIPTION_DELAY);
@@ -77,10 +77,10 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
         } catch (InterruptedException e) {
             log.error("Session interrupted: {}", sessionId, e);
             Thread.currentThread().interrupt();
-            this.sessionInfoRepository.terminate(sessionId);
+            this.sessionStorage.terminate(sessionId);
         } catch (Exception e) {
             log.error("Error in session: {}", sessionId, e);
-            this.sessionInfoRepository.terminate(sessionId);
+            this.sessionStorage.terminate(sessionId);
         }
     }
 
@@ -104,7 +104,7 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
      * @param eventMessages 이벤트 메시지 목록
      */
     private void sendEventMessage(int index, String sessionId, List<String> eventMessages) {
-        if (this.sessionInfoRepository.getState(sessionId) == null) {
+        if (this.sessionStorage.getState(sessionId) == null) {
             log.info("[BlindDate] Session already terminated, skipping event message {} for session {}", index + 1,
                     sessionId);
             return;
@@ -124,7 +124,7 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
                     MESSAGE_WAITING_TIME);
         } catch (Exception e) {
             log.error("Error sending event message {} for session {}", index, sessionId, e);
-            sessionInfoRepository.terminate(sessionId);
+            sessionStorage.terminate(sessionId);
         }
     }
 
@@ -145,7 +145,7 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
         } catch (Exception e) {
             // 위 코드에서 예외 발생 시 세션 종료
             log.error("[BlindDate] Error in scheduled thaw/next for session {}", sessionId, e);
-            sessionInfoRepository.terminate(sessionId);
+            sessionStorage.terminate(sessionId);
         }
     }
 
@@ -175,7 +175,7 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
      */
     private void finalizeSession(String sessionId) {
         try {
-            if (this.sessionInfoRepository.getState(sessionId) == null) {
+            if (this.sessionStorage.getState(sessionId) == null) {
                 log.warn("[BlindDate] Session already terminated: {}", sessionId);
                 return;
             }
@@ -186,10 +186,10 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
             sendFailedToUnmatched(sessionId);
 
             // 세션 종료
-            sessionInfoRepository.terminate(sessionId);
+            sessionStorage.terminate(sessionId);
 
             // 회원 정보는 재 접속 방지를 위해 제거하지 않음
-            // participantInfoRepository.clearSession(sessionId);
+            // participantStorage.clearSession(sessionId);
 
             log.info("Session ended: {}", sessionId);
         } catch (Exception e) {
@@ -221,7 +221,7 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
      * @param sessionId 대상 세션 id
      */
     private void sendFailedToUnmatched(String sessionId) {
-        Set<Long> notMatched = participantInfoRepository.getNotMatched(sessionId);
+        Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
         // 모두 매치되었다면 이벤트를 발행하지 않음
         if (notMatched.isEmpty()) {
             return;
@@ -276,7 +276,7 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
      * @param sessionId 대상 세션 id
      */
     private void sendParticipantsList(String sessionId) {
-        Map<Long, String> participants = participantInfoRepository.getParticipantsIdAndName(sessionId);
+        Map<Long, String> participants = participantStorage.getParticipantsIdAndName(sessionId);
         messagingTemplate.convertAndSend(
                 BlindDateTopic.participants(sessionId),
                 Map.of("participants", participants)

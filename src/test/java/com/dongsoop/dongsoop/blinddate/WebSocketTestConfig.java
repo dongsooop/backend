@@ -8,11 +8,12 @@ import com.dongsoop.dongsoop.blinddate.handler.BlindDateMessageHandler;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMatchingLock;
 import com.dongsoop.dongsoop.blinddate.lock.BlindDateMemberLock;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
-import com.dongsoop.dongsoop.blinddate.repository.BlindDateInfoRepositoryImpl;
-import com.dongsoop.dongsoop.blinddate.repository.ParticipantInfoRepository;
-import com.dongsoop.dongsoop.blinddate.repository.ParticipantInfoRepositoryImpl;
-import com.dongsoop.dongsoop.blinddate.repository.SessionInfoRepository;
-import com.dongsoop.dongsoop.blinddate.repository.SessionInfoRepositoryImpl;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorageImpl;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateStorageImpl;
 import com.dongsoop.dongsoop.blinddate.scheduler.BlindDateSessionScheduler;
 import com.dongsoop.dongsoop.blinddate.scheduler.BlindDateTaskScheduler;
 import com.dongsoop.dongsoop.blinddate.service.BlindDateService;
@@ -41,20 +42,20 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
 
     @Bean
     @Primary
-    public BlindDateInfoRepositoryImpl blindDateInfoRepository() {
-        return new BlindDateInfoRepositoryImpl();
+    public BlindDateStorageImpl blindDateStorage() {
+        return new BlindDateStorageImpl();
     }
 
     @Bean
     @Primary
-    public ParticipantInfoRepository participantInfoRepository() {
-        return new ParticipantInfoRepositoryImpl();
+    public BlindDateParticipantStorage participantStorage() {
+        return new BlindDateParticipantStorageImpl();
     }
 
     @Bean
     @Primary
-    public SessionInfoRepository sessionInfoRepository() {
-        return new SessionInfoRepositoryImpl(participantInfoRepository());
+    public BlindDateSessionStorage sessionStorage() {
+        return new BlindDateSessionStorageImpl();
     }
 
     @Bean
@@ -97,18 +98,18 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
     @Bean
     @Primary
     public BlindDateService blindDateService(
-            ParticipantInfoRepository participantInfoRepository,
-            BlindDateInfoRepositoryImpl blindDateInfoRepository,
+            BlindDateParticipantStorage participantStorage,
+            BlindDateStorage blindDateStorage,
             BlindDateNotification notification,
-            SessionInfoRepository sessionInfoRepository,
+            BlindDateSessionStorage sessionStorage,
             SimpMessagingTemplate messagingTemplate,
             BlindDateTaskScheduler taskScheduler
     ) {
         return new BlindDateServiceImpl(
-                participantInfoRepository,
-                blindDateInfoRepository,
+                participantStorage,
+                blindDateStorage,
                 notification,
-                sessionInfoRepository,
+                sessionStorage,
                 messagingTemplate,
                 taskScheduler
         );
@@ -117,21 +118,21 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
     @Bean
     @Primary
     public BlindDateSessionService blindDateSessionService(
-            ParticipantInfoRepository participantInfoRepository,
-            BlindDateInfoRepositoryImpl blindDateInfoRepository
+            BlindDateParticipantStorage participantStorage,
+            BlindDateStorageImpl blindDateStorage
     ) {
         return new BlindDateSessionServiceImpl(
-                participantInfoRepository,
-                blindDateInfoRepository
+                participantStorage,
+                blindDateStorage
         );
     }
 
     @Bean
     @Primary
     public BlindDateConnectHandler blindDateConnectHandler(
-            ParticipantInfoRepository participantInfoRepository,
-            BlindDateInfoRepositoryImpl blindDateInfoRepository,
-            SessionInfoRepository sessionInfoRepository,
+            BlindDateParticipantStorage participantStorage,
+            BlindDateStorageImpl blindDateStorage,
+            BlindDateSessionStorage sessionStorage,
             BlindDateService blindDateService,
             BlindDateSessionService sessionService,
             BlindDateSessionScheduler sessionScheduler,
@@ -141,9 +142,9 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
             BlindDateMemberLock memberLock
     ) {
         return new BlindDateConnectHandler(
-                participantInfoRepository,
-                blindDateInfoRepository,
-                sessionInfoRepository,
+                participantStorage,
+                blindDateStorage,
+                sessionStorage,
                 blindDateService,
                 sessionService,
                 sessionScheduler,
@@ -157,15 +158,15 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
     @Bean
     @Primary
     public BlindDateDisconnectHandler blindDateDisconnectHandler(
-            ParticipantInfoRepository participantInfoRepository,
-            SessionInfoRepository sessionInfoRepository,
+            BlindDateParticipantStorage participantStorage,
+            BlindDateSessionStorage sessionStorage,
             BlindDateService blindDateService,
             BlindDateMatchingLock matchingLock,
             BlindDateMemberLock memberLock
     ) {
         return new BlindDateDisconnectHandler(
-                participantInfoRepository,
-                sessionInfoRepository,
+                participantStorage,
+                sessionStorage,
                 blindDateService,
                 matchingLock,
                 memberLock
@@ -175,11 +176,11 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
     @Bean
     @Primary
     public BlindDateMessageHandler blindDateMessageHandler(
-            ParticipantInfoRepository participantInfoRepository,
+            BlindDateParticipantStorage participantStorage,
             SimpMessagingTemplate messagingTemplate
     ) {
         return new BlindDateMessageHandler(
-                participantInfoRepository,
+                participantStorage,
                 messagingTemplate
         );
     }
@@ -187,12 +188,12 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
     @Bean
     @Primary
     public BlindDateChoiceHandler blindDateChoiceHandler(
-            ParticipantInfoRepository participantInfoRepository,
+            BlindDateParticipantStorage participantStorage,
             SimpMessagingTemplate messagingTemplate,
             ChatRoomService chatRoomService
     ) {
         return new BlindDateChoiceHandler(
-                participantInfoRepository,
+                participantStorage,
                 messagingTemplate,
                 chatRoomService
         );
