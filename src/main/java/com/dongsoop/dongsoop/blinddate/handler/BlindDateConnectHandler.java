@@ -9,7 +9,6 @@ import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateStorage;
 import com.dongsoop.dongsoop.blinddate.scheduler.BlindDateSessionScheduler;
-import com.dongsoop.dongsoop.blinddate.scheduler.BlindDateTaskScheduler;
 import com.dongsoop.dongsoop.blinddate.service.BlindDateService;
 import com.dongsoop.dongsoop.blinddate.service.BlindDateSessionService;
 import java.util.List;
@@ -30,7 +29,6 @@ public class BlindDateConnectHandler {
     private final BlindDateService blindDateService;
     private final BlindDateSessionService sessionService;
     private final BlindDateSessionScheduler sessionScheduler;
-    private final BlindDateTaskScheduler blindDateTaskScheduler;
     private final SimpMessagingTemplate messagingTemplate;
     private final BlindDateMatchingLock blindDateMatchingLock;
     private final BlindDateMemberLock blindDateMemberLock;
@@ -60,19 +58,28 @@ public class BlindDateConnectHandler {
             return;
         }
 
-        this.blindDateTaskScheduler.execute(() -> {
-            // 마지막 참여자인지 검증 후 과팅 세션 시작 시도
-            if (!tryStartSession(joinResult.sessionId())) {
-                // 마지막 참여자가 아닌 경우 인원 업데이트 브로드캐스트
-                blindDateService.broadcastJoinedCount(joinResult.sessionId(), joinResult.currentCount());
-            }
-        });
+        String sessionId = joinResult.sessionId();
+
+        // 마지막 참여자인지 검증 후 과팅 세션 시작 시도
+        if (tryStart(sessionId)) {
+            sessionScheduler.start(sessionId);
+            return;
+        }
+
+        // 마지막 참여자가 아닌 경우 인원 업데이트 브로드캐스트
+        blindDateService.broadcastJoinedCount(joinResult.sessionId(), joinResult.currentCount());
     }
 
-    private boolean tryStartSession(String sessionId) {
+    private synchronized boolean tryStart(String sessionId) {
         // 마지막 참여자인 경우 세션 시작
         if (sessionService.isSessionFull(sessionId)) {
-            sessionScheduler.start(sessionId);
+            if (!sessionStorage.isWaiting(sessionId)) {
+                log.warn("[BlindDate] Is last member by session {}, but not waiting", sessionId);
+                return false;
+            }
+
+            // 세션 상태 변경 - PROCESSING
+            sessionStorage.start(sessionId);
             return true;
         }
 

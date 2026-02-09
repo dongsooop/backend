@@ -73,4 +73,14 @@ public class BlindDateSessionStorageImpl implements BlindDateSessionStorage {
     public synchronized void clear() {
         this.sessions.clear();
     }
+
+    @Override
+    public synchronized boolean isWaiting(String sessionId) {
+        SessionInfo sessionInfo = this.sessions.get(sessionId);
+        if (sessionInfo == null) {
+            return false;
+        }
+
+        return sessionInfo.isWaiting();
+    }
 }

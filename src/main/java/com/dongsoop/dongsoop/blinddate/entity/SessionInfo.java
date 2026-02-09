@@ -28,6 +28,10 @@ public class SessionInfo {
         return this.state == SessionState.PROCESSING;
     }
 
+    public boolean isWaiting() {
+        return this.state == SessionState.WAITING;
+    }
+
     public enum SessionState {
         WAITING,     // 대기 중
         PROCESSING  // 진행 중
