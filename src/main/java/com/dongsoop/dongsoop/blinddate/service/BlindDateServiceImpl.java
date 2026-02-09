@@ -55,6 +55,7 @@ public class BlindDateServiceImpl implements BlindDateService {
             taskScheduler.schedule(this::scheduleAutoClose, request.getExpiredDate());
         } catch (Exception e) {
             log.error("[BlindDate] Failed to scheduled close", e);
+            blindDateStorage.close();
             throw new RuntimeException("[BlindDate] Failed to scheduled close: " + e.getMessage(), e);
         }
 
