@@ -69,7 +69,8 @@ public class BlindDateConnectHandler {
         try {
             // 마지막 참여자인지 검증 후 과팅 세션 시작 시도
             if (tryStart(sessionId)) {
-                sessionScheduler.start(sessionId);
+                // 마지막으로 입장한 사용자의 소켓 수신을 위해 현재 스레드를 종료하고 새 스레드에서 처리
+                new Thread(() -> sessionScheduler.start(sessionId)).start();
                 return;
             }
         } finally {
