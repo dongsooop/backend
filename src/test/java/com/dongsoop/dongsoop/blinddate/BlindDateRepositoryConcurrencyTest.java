@@ -34,9 +34,9 @@ import org.slf4j.LoggerFactory;
  * addParticipant, nameCounter 등의 동시성 문제를 검증합니다.
  */
 @DisplayName("Repository 동시성 검증 테스트")
-class blindDateStorageConcurrencyTest {
+class BlindDateStorageConcurrencyTest {
 
-    private static final Logger log = LoggerFactory.getLogger(blindDateStorageConcurrencyTest.class);
+    private static final Logger log = LoggerFactory.getLogger(BlindDateStorageConcurrencyTest.class);
 
     private BlindDateParticipantStorage participantStorage;
     private BlindDateSessionStorageImpl sessionStorage;
@@ -136,7 +136,7 @@ class blindDateStorageConcurrencyTest {
                 try {
                     startLatch.await();
 
-                    ParticipantInfo participant = participantRepository.addParticipant(
+                    ParticipantInfo participant = participantStorage.addParticipant(
                             sessionId, memberId, socketId
                     );
                     anonymousNames.add(participant.getAnonymousName());
@@ -163,7 +163,7 @@ class blindDateStorageConcurrencyTest {
         assertThat(exceptions).isEmpty();
         assertThat(anonymousNames).as("익명 이름은 하나만 있어야 함").hasSize(1);
 
-        ParticipantInfo participant = participantRepository.getByMemberId(memberId);
+        ParticipantInfo participant = participantStorage.getByMemberId(memberId);
         assertThat(participant).isNotNull();
         assertThat(participant.getSocketIds()).as("모든 소켓이 등록되어야 함").hasSize(socketCount);
     }
@@ -263,11 +263,11 @@ class blindDateStorageConcurrencyTest {
 
         // 먼저 참여자와 소켓들을 추가
         for (int i = 0; i < socketCount; i++) {
-            participantRepository.addParticipant(sessionId, memberId, "socket-" + i);
+            participantStorage.addParticipant(sessionId, memberId, "socket-" + i);
         }
 
         // 확인
-        ParticipantInfo participant = participantRepository.getByMemberId(memberId);
+        ParticipantInfo participant = participantStorage.getByMemberId(memberId);
         assertThat(participant.getSocketIds()).hasSize(socketCount);
 
         // 동시에 모든 소켓 제거
@@ -285,7 +285,7 @@ class blindDateStorageConcurrencyTest {
                 try {
                     startLatch.await();
 
-                    boolean removed = participantRepository.removeSocket(socketId);
+                    boolean removed = participantStorage.removeSocket(socketId);
                     removeResults.add(removed);
 
                 } catch (Exception e) {
@@ -310,7 +310,7 @@ class blindDateStorageConcurrencyTest {
         assertThat(exceptions).isEmpty();
 
         // 모든 소켓이 제거되었으므로 참여자도 제거되어야 함
-        ParticipantInfo afterRemoval = participantRepository.getByMemberId(memberId);
+        ParticipantInfo afterRemoval = participantStorage.getByMemberId(memberId);
         assertThat(afterRemoval).as("모든 소켓 제거 후 참여자도 제거되어야 함").isNull();
 
         // 대부분의 제거 시도는 성공해야 함
