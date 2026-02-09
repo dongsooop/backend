@@ -55,8 +55,8 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
 
     @Bean
     @Primary
-    public BlindDateSessionStorage sessionStorage() {
-        return new BlindDateSessionStorageImpl();
+    public BlindDateSessionStorage sessionStorage(BlindDateSessionLock sessionLock) {
+        return new BlindDateSessionStorageImpl(sessionLock);
     }
 
     @Bean

@@ -79,7 +79,7 @@ class BlindDateIntegrationTest {
         // Repository 초기화
         blindDateStorage = new BlindDateStorageImpl();
         participantStorage = new BlindDateParticipantStorageImpl();
-        sessionStorage = new BlindDateSessionStorageImpl();
+        sessionStorage = new BlindDateSessionStorageImpl(sessionLock);
 
         // Lock 초기화
         matchingLock = new BlindDateMatchingLock();

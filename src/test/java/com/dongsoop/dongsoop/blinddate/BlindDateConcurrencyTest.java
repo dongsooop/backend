@@ -73,7 +73,7 @@ class BlindDateConcurrencyTest {
     void setUp() {
         blindDateStorage = new BlindDateStorageImpl();
         participantStorage = new BlindDateParticipantStorageImpl();
-        sessionStorage = new BlindDateSessionStorageImpl();
+        sessionStorage = new BlindDateSessionStorageImpl(sessionLock);
 
         matchingLock = new BlindDateMatchingLock();
         memberLock = new BlindDateMemberLock();
