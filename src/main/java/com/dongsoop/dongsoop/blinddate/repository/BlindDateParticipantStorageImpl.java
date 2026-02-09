@@ -64,9 +64,9 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
         }
 
         // 다른 세션에 이미 참여 중
-        log.warn("[BlindDate] Member already in another session: memberId={}, existingSession={}, newSession={}",
-                memberId, existing.getSessionId(), sessionId);
-        return existing;
+        throw new IllegalStateException(
+                String.format("[BlindDate] Member %d already in session %s, cannot join session %s",
+                        memberId, existing.getSessionId(), sessionId));
     }
 
     /**
@@ -121,15 +121,6 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
                 .filter(p -> p.getSocketIds().contains(socketId))
                 .findFirst()
                 .orElse(null);
-    }
-
-    /**
-     * 세션의 모든 참여자 조회
-     */
-    public List<ParticipantInfo> getParticipantsBySession(String sessionId) {
-        return participants.values().stream()
-                .filter(p -> p.getSessionId().equals(sessionId))
-                .collect(Collectors.toList());
     }
 
     /**
@@ -191,52 +182,6 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
     public boolean isMatched(String sessionId, Long memberId) {
         Set<Long> sessionMatches = matches.get(sessionId);
         return sessionMatches != null && sessionMatches.contains(memberId);
-    }
-
-    /**
-     * 매칭된 상대 찾기
-     */
-    public Long getMatchedPartner(String sessionId, Long memberId) {
-        Map<Long, Long> sessionChoices = choices.get(sessionId);
-        if (sessionChoices == null) {
-            return null;
-        }
-
-        Long myChoice = sessionChoices.get(memberId);
-        if (myChoice == null) {
-            return null;
-        }
-
-        Long reverseChoice = sessionChoices.get(myChoice);
-        if (reverseChoice != null && reverseChoice.equals(memberId)) {
-            return myChoice;
-        }
-
-        return null;
-    }
-
-    /**
-     * 세션 데이터 정리
-     */
-    public synchronized void clearSession(String sessionId) {
-        // 해당 세션의 참여자 제거
-        List<Long> memberIds = participants.values().stream()
-                .filter(p -> p.getSessionId().equals(sessionId))
-                .map(ParticipantInfo::getMemberId)
-                .collect(Collectors.toList());
-
-        memberIds.forEach(participants::remove);
-
-        // 카운터 제거
-        nameCounters.remove(sessionId);
-
-        // 선택 기록 제거
-        choices.remove(sessionId);
-
-        // 매칭 기록 제거
-        matches.remove(sessionId);
-
-        log.info("Session data cleared: sessionId={}, removed {} participants", sessionId, memberIds.size());
     }
 
     /**
