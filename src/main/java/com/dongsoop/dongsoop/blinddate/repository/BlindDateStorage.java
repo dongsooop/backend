@@ -6,6 +6,8 @@ public interface BlindDateStorage {
 
     void start(Integer maxSessionMemberCount, LocalDateTime expiredDate);
 
+    void stop();
+
     void close();
 
     String getPointer();

@@ -21,6 +21,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class BlindDateServiceImpl implements BlindDateService {
 
+    private static final int BLINDDATE_CLOSE_DELAY = 30 * 60 * 1000; // 30분
+
     private final BlindDateParticipantStorage participantStorage;
     private final BlindDateStorage blindDateStorage;
     private final BlindDateNotification blindDateNotification;
@@ -68,17 +70,22 @@ public class BlindDateServiceImpl implements BlindDateService {
      * 자동 종료 스케줄링 (TaskScheduler 사용)
      */
     private void scheduleAutoClose() {
-        // 과팅 상태 종료
-        blindDateStorage.close();
+        blindDateStorage.stop();
 
-        // 모든 세션 정보 삭제
-        sessionStorage.clear();
+        // 과팅 종료 상태 설정 후 BLINDDATE_CLOSE_DELAY만큼 지난 뒤 데이터 초기화
+        taskScheduler.schedule(() -> {
+            // 과팅 상태 종료
+            blindDateStorage.close();
 
-        // 모든 참가자 정보 삭제
-        participantStorage.clear();
+            // 모든 세션 정보 삭제
+            sessionStorage.clear();
 
-        // TaskScheduler 정리
-        taskScheduler.cleanupAllSessions();
+            // 모든 참가자 정보 삭제
+            participantStorage.clear();
+
+            // TaskScheduler 정리
+            taskScheduler.cleanupAllSessions();
+        }, BLINDDATE_CLOSE_DELAY);
     }
 
     /**

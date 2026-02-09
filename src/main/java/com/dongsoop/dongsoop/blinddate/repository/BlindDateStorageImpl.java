@@ -19,6 +19,11 @@ public class BlindDateStorageImpl implements BlindDateStorage {
         log.info("[BlindDate] started: maxCount={}, expiredDate={}", maxSessionMemberCount, expiredDate);
     }
 
+    @Override
+    public synchronized void stop() {
+        this.available = false;
+    }
+
     public synchronized void close() {
         this.available = false;             // 가장 먼저 available 종료
         this.currentPointer = null;         // 포인터 초기화
