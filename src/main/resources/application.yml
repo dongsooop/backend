@@ -113,3 +113,6 @@ meal:
 resource:
   static:
     base-path: static/
+
+blinddate:
+  event-message-amount: 3

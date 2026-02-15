@@ -55,6 +55,10 @@ public class StompHandler implements ChannelInterceptor {
         setAuthentication(accessor, token);
 
         Long userId = getUserIdFromToken(token);
+        if (accessor.getSessionAttributes() != null) {
+            accessor.getSessionAttributes().put("memberId", userId);
+        }
+
         String sessionId = accessor.getSessionId();
 
         if (sessionId != null) {
