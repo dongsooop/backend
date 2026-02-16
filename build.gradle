@@ -70,7 +70,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
 
     runtimeOnly 'org.postgresql:postgresql'
-    
+
+    // k6 테스트 시 runtimeOnly로
     developmentOnly 'com.h2database:h2'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
