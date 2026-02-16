@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.common.config;
 import com.dongsoop.dongsoop.common.handler.websocket.CustomStompErrorHandler;
 import com.dongsoop.dongsoop.common.handler.websocket.StompHandler;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
@@ -21,6 +22,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final StompHandler stompHandler;
     private final CustomStompErrorHandler customStompErrorHandler;
 
+    @Value("${authentication.origins}")
+    private String[] origins;
+
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
         registry.enableSimpleBroker("/topic", "/queue");
@@ -29,7 +33,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws/chat", "/ws/blinddate")
+        registry.addEndpoint("/ws/chat")
                 .setAllowedOriginPatterns("*")
                 .withSockJS()
                 .setDisconnectDelay(30 * 1000)
@@ -37,6 +41,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setWebSocketEnabled(true)
                 .setStreamBytesLimit(512 * 1024)
                 .setHttpMessageCacheSize(1000);
+
+        registry.addEndpoint("/ws/blinddate")
+                .setAllowedOriginPatterns(origins);
     }
 
     @Override
