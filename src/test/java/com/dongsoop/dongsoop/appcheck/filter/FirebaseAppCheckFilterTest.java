@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.appcheck.filter;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
@@ -16,6 +17,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.servlet.HandlerExceptionResolver;
@@ -155,5 +158,41 @@ class FirebaseAppCheckFilterTest {
         verify(firebaseAppCheck, never()).validate(any());
         verify(filterChain, never()).doFilter(request, response);
         verify(exceptionResolver).resolveException(any(), any(), any(), any());
+    }
+
+    @ParameterizedTest(name = "경로 ''{0}'' → shouldNotFilter: {1}")
+    @CsvSource({
+            "/ws/connect,    true",
+            "/ws/room/123,   true",
+            "/ws/,           true",
+            "/member/login,  false",
+            "/device,        false",
+            "/ws-other,      false"
+    })
+    @DisplayName("shouldNotFilter: Ant 경로 패턴(/ws/**)에 대한 매칭 검증")
+    void shouldNotFilter_withAntPattern(String requestUri, boolean expectedResult) throws Exception {
+        // given
+        FirebaseAppCheckFilter filterWithPaths = new FirebaseAppCheckFilter(
+                firebaseAppCheck, exceptionResolver, new String[]{"/ws/**"});
+        when(request.getRequestURI()).thenReturn(requestUri);
+
+        // when
+        boolean result = filterWithPaths.shouldNotFilter(request);
+
+        // then
+        assertThat(result).isEqualTo(expectedResult);
+    }
+
+    @Test
+    @DisplayName("shouldNotFilter: ignorePaths가 비어있으면 모든 경로에 필터를 적용한다")
+    void shouldNotFilter_whenIgnorePathsEmpty_thenAlwaysFilter() throws Exception {
+        // given
+        when(request.getRequestURI()).thenReturn("/ws/connect");
+
+        // when
+        boolean result = firebaseAppCheckFilter.shouldNotFilter(request);
+
+        // then
+        assertThat(result).isFalse();
     }
 }
