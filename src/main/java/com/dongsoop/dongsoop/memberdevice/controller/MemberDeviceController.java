@@ -57,6 +57,7 @@ public class MemberDeviceController {
      *
      * <p>해당 기기에 Silent FCM 메시지({@code FORCE_LOGOUT})를 전송하고,
      * anonymous 토픽을 재구독한 뒤 회원과의 바인딩을 해제한다.
+     * FCM 전송 실패 여부와 관계없이 바인딩 해제는 항상 실행된다.
      *
      * @param deviceId 강제 로그아웃할 기기의 ID
      * @return 응답 본문 없음 (204 No Content)
@@ -69,9 +70,12 @@ public class MemberDeviceController {
 
         String deviceToken = memberDeviceService.getDeviceTokenIfOwned(memberId, deviceId);
 
-        fcmService.sendSilentMessage(deviceToken, FcmSilentType.FORCE_LOGOUT);
-        fcmService.subscribeTopic(List.of(deviceToken), anonymousTopic);
-        memberDeviceService.unbindDevice(deviceId);
+        try {
+            fcmService.sendSilentMessage(deviceToken, FcmSilentType.FORCE_LOGOUT);
+            fcmService.subscribeTopic(List.of(deviceToken), anonymousTopic);
+        } finally {
+            memberDeviceService.unbindDevice(deviceId);
+        }
 
         return ResponseEntity.noContent().build();
     }

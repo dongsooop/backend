@@ -269,27 +269,30 @@ public class FCMServiceImpl implements FCMService {
 
     @Override
     public void sendSilentMessage(String deviceToken, FcmSilentType type) {
+        if (deviceToken == null || deviceToken.isBlank()) {
+            throw new IllegalArgumentException("deviceToken must not be null or empty");
+        }
+
         String typeName = type.name();
 
         ApnsConfig apnsConfig = ApnsConfig.builder()
                 .setAps(Aps.builder()
                         .setContentAvailable(true)
                         .build())
-                .putCustomData("type", typeName)
                 .build();
 
         AndroidConfig androidConfig = AndroidConfig.builder()
                 .setPriority(AndroidConfig.Priority.HIGH)
                 .build();
 
-        MulticastMessage message = MulticastMessage.builder()
-                .addAllTokens(List.of(deviceToken))
+        Message message = Message.builder()
+                .setToken(deviceToken)
                 .putData("type", typeName)
                 .setApnsConfig(apnsConfig)
                 .setAndroidConfig(androidConfig)
                 .build();
 
-        sendMessages(message, List.of(deviceToken));
+        sendMessage(message);
     }
 
     public void updateNotificationBadge(List<String> deviceTokens, int badge) {

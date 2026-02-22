@@ -130,8 +130,6 @@ mail:
   format:
     file:
       name: verify-mail.html
-  login-notification:
-    template: login-notification-mail.html
   verify:
     register:
       redis:

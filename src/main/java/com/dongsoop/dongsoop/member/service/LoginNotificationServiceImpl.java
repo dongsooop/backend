@@ -7,6 +7,7 @@ import com.dongsoop.dongsoop.notification.service.NotificationSendService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -76,7 +77,7 @@ public class LoginNotificationServiceImpl implements LoginNotificationService {
             helper.setText(htmlContent, true);
             mailSender.send(message);
         } catch (MessagingException | IOException e) {
-            log.error("Failed to send login notification email to {}", email, e);
+            log.error("Failed to send login notification email to {}", maskEmail(email), e);
         }
     }
 
@@ -88,7 +89,19 @@ public class LoginNotificationServiceImpl implements LoginNotificationService {
      */
     private String loadHtmlTemplate() throws IOException {
         ClassPathResource resource = new ClassPathResource(staticResourceBasePath + loginMailTemplate);
-        return new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        try (InputStream inputStream = resource.getInputStream()) {
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    private String maskEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return "****";
+        }
+        String[] parts = email.split("@", 2);
+        String local = parts[0];
+        String masked = local.length() <= 2 ? "****" : local.substring(0, 2) + "****";
+        return masked + "@" + parts[1];
     }
 
     /**
@@ -100,7 +113,7 @@ public class LoginNotificationServiceImpl implements LoginNotificationService {
      */
     private void sendPushNotification(Long memberId) {
         List<String> deviceTokens = memberDeviceService.getDeviceByMemberId(memberId);
-        if (deviceTokens.isEmpty()) {
+        if (deviceTokens == null || deviceTokens.isEmpty()) {
             return;
         }
         NotificationSend push = new NotificationSend(0L, PUSH_TITLE, PUSH_BODY, NotificationType.NEW_DEVICE_LOGIN, "");
