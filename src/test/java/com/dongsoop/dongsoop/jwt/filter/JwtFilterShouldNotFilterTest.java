@@ -3,7 +3,6 @@ package com.dongsoop.dongsoop.jwt.filter;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import jakarta.servlet.FilterChain;
@@ -32,8 +31,6 @@ class JwtFilterShouldNotFilterTest {
     @Mock
     private JwtValidator jwtValidator;
     @Mock
-    private FirebaseAppCheck firebaseAppCheck;
-    @Mock
     private HandlerExceptionResolver exceptionResolver;
     @Mock
     private HttpServletRequest request;
@@ -45,7 +42,7 @@ class JwtFilterShouldNotFilterTest {
 
     @BeforeEach
     void setUp() {
-        jwtFilter = new JwtFilter(jwtUtil, jwtValidator, firebaseAppCheck, exceptionResolver, ignorePaths);
+        jwtFilter = new JwtFilter(jwtUtil, jwtValidator, exceptionResolver, ignorePaths);
     }
 
     @Test

@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.dongsoop.dongsoop.feedback.controller.FeedbackController;
 import com.dongsoop.dongsoop.feedback.entity.ServiceFeature;
 import com.dongsoop.dongsoop.feedback.service.FeedbackService;
+import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +34,8 @@ class FeedbackContentTest {
 
     @MockitoBean
     private JwtFilter jwtFilter;
+    @MockitoBean
+    private FirebaseAppCheck firebaseAppCheck;
 
     @Test
     @DisplayName("피드백이 1글자 미만일 때 예외와 400 에러를 던져야 한다.")

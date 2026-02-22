@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import com.dongsoop.dongsoop.chat.service.ChatService;
+import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
@@ -54,6 +55,8 @@ public class MemberUnblockTest {
 
     @MockitoBean
     private JwtFilter jwtFilter;
+    @MockitoBean
+    private FirebaseAppCheck firebaseAppCheck;
 
     @Test
     @DisplayName("DB에 저장된 멤버 차단 정보를 제거한다.")

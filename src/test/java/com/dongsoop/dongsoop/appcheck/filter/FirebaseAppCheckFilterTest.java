@@ -38,7 +38,7 @@ class FirebaseAppCheckFilterTest {
 
     @BeforeEach
     void setUp() {
-        firebaseAppCheckFilter = new FirebaseAppCheckFilter(firebaseAppCheck, exceptionResolver);
+        firebaseAppCheckFilter = new FirebaseAppCheckFilter(firebaseAppCheck, exceptionResolver, new String[]{});
     }
 
     @Test

@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.notification.service;
 
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
+import com.dongsoop.dongsoop.notification.constant.FcmSilentType;
 import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.dongsoop.dongsoop.notification.exception.NotificationSendException;
 import com.dongsoop.dongsoop.notification.exception.ResponseSizeUnmatchedToTokenSizeException;
@@ -264,6 +265,31 @@ public class FCMServiceImpl implements FCMService {
         boolean isInvalidArgument = messagingErrorCode.equals(MessagingErrorCode.INVALID_ARGUMENT);
 
         return isUnregistered || isInvalidArgument;
+    }
+
+    @Override
+    public void sendSilentMessage(String deviceToken, FcmSilentType type) {
+        String typeName = type.name();
+
+        ApnsConfig apnsConfig = ApnsConfig.builder()
+                .setAps(Aps.builder()
+                        .setContentAvailable(true)
+                        .build())
+                .putCustomData("type", typeName)
+                .build();
+
+        AndroidConfig androidConfig = AndroidConfig.builder()
+                .setPriority(AndroidConfig.Priority.HIGH)
+                .build();
+
+        MulticastMessage message = MulticastMessage.builder()
+                .addAllTokens(List.of(deviceToken))
+                .putData("type", typeName)
+                .setApnsConfig(apnsConfig)
+                .setAndroidConfig(androidConfig)
+                .build();
+
+        sendMessages(message, List.of(deviceToken));
     }
 
     public void updateNotificationBadge(List<String> deviceTokens, int badge) {
