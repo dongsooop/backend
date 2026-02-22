@@ -1,15 +1,18 @@
 package com.dongsoop.dongsoop.member.service;
 
-import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
+import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
-import com.dongsoop.dongsoop.notification.dto.NotificationSend;
+import com.dongsoop.dongsoop.notification.entity.MemberNotification;
+import com.dongsoop.dongsoop.notification.service.NotificationSaveService;
 import com.dongsoop.dongsoop.notification.service.NotificationSendService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,8 +35,11 @@ public class LoginNotificationServiceImpl implements LoginNotificationService {
     private static final String LOGIN_MAIL_SUBJECT = "[동숲] 계정 로그인 알림";
     private static final String PUSH_TITLE = "로그인 감지";
     private static final String PUSH_BODY = "계정에 새로운 로그인이 감지되었습니다. 본인이 아니라면 비밀번호를 변경해 주세요.";
+    private static final DateTimeFormatter LOGIN_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    private final MemberDeviceService memberDeviceService;
+    private final MemberRepository memberRepository;
+    private final NotificationSaveService notificationSaveService;
     private final NotificationSendService notificationSendService;
     private final JavaMailSender mailSender;
 
@@ -53,22 +59,25 @@ public class LoginNotificationServiceImpl implements LoginNotificationService {
      * 이메일 발송 실패는 로그로 기록되며 푸시 알림 발송은 계속 진행된다.
      */
     @Override
-    public void sendLoginNotification(Long memberId, String email) {
-        sendEmail(email);
+    public void sendLoginNotification(Long memberId, String email, String ipAddress, String userAgent) {
+        sendEmail(email, ipAddress, userAgent);
         sendPushNotification(memberId);
     }
 
     /**
      * 로그인 알림 이메일을 발송한다.
      *
-     * <p>HTML 템플릿을 로드하여 지정된 이메일 주소로 발송한다.
+     * <p>HTML 템플릿을 로드하고 로그인 컨텍스트(시간·IP·기기)를 주입하여 지정된 이메일 주소로 발송한다.
      * 발송 실패 시 예외를 전파하지 않고 에러 로그만 기록한다.
      *
-     * @param email 수신자 이메일 주소
+     * @param email     수신자 이메일 주소
+     * @param ipAddress 로그인 클라이언트 IP
+     * @param userAgent 로그인 클라이언트 User-Agent
      */
-    private void sendEmail(String email) {
+    private void sendEmail(String email, String ipAddress, String userAgent) {
         try {
             String htmlContent = loadHtmlTemplate();
+            htmlContent = injectLoginContext(htmlContent, ipAddress, userAgent);
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             helper.setFrom(senderEmail);
@@ -94,6 +103,24 @@ public class LoginNotificationServiceImpl implements LoginNotificationService {
         }
     }
 
+    /**
+     * HTML 템플릿의 플레이스홀더에 로그인 컨텍스트를 주입한다.
+     *
+     * @param html      원본 HTML 문자열
+     * @param ipAddress 로그인 클라이언트 IP (null이면 "알 수 없음")
+     * @param userAgent User-Agent 헤더 (null이면 "알 수 없음")
+     * @return 플레이스홀더가 치환된 HTML 문자열
+     */
+    private String injectLoginContext(String html, String ipAddress, String userAgent) {
+        String loginTime = LocalDateTime.now().format(LOGIN_TIME_FORMATTER);
+        String ip = (ipAddress != null && !ipAddress.isBlank()) ? ipAddress : "알 수 없음";
+        String device = (userAgent != null && !userAgent.isBlank()) ? userAgent : "알 수 없음";
+        return html
+                .replace("{{loginTime}}", loginTime)
+                .replace("{{ipAddress}}", ip)
+                .replace("{{deviceInfo}}", device);
+    }
+
     private String maskEmail(String email) {
         if (email == null || !email.contains("@")) {
             return "****";
@@ -107,16 +134,16 @@ public class LoginNotificationServiceImpl implements LoginNotificationService {
     /**
      * 회원의 모든 등록 기기에 FCM 푸시 알림을 발송한다.
      *
-     * <p>등록된 기기가 없는 경우 발송하지 않고 종료한다.
+     * <p>알림을 {@link NotificationSaveService}로 저장한 뒤 반환된 {@link MemberNotification}을
+     * {@link NotificationSendService}로 전달하여 발송한다. 디바이스 조회 및 뱃지 카운트 처리는
+     * {@link NotificationSendService} 내부에서 수행된다.
      *
      * @param memberId 푸시 알림을 수신할 회원의 ID
      */
     private void sendPushNotification(Long memberId) {
-        List<String> deviceTokens = memberDeviceService.getDeviceByMemberId(memberId);
-        if (deviceTokens == null || deviceTokens.isEmpty()) {
-            return;
-        }
-        NotificationSend push = new NotificationSend(0L, PUSH_TITLE, PUSH_BODY, NotificationType.NEW_DEVICE_LOGIN, "");
-        notificationSendService.send(deviceTokens, push);
+        Member member = memberRepository.getReferenceById(memberId);
+        MemberNotification notification = notificationSaveService.save(
+                member, PUSH_TITLE, PUSH_BODY, NotificationType.NEW_DEVICE_LOGIN, "");
+        notificationSendService.send(notification);
     }
 }

@@ -13,6 +13,20 @@
     <div style="padding: 30px; color: #333333; line-height: 1.6;">
         <p>안녕하세요.</p>
         <p>회원님의 동숲 계정에 로그인이 감지되었습니다.</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
+            <tr>
+                <td style="padding: 10px 14px; background-color: #f8f9fa; border: 1px solid #dee2e6; font-weight: bold; width: 30%; color: #495057;">로그인 시간</td>
+                <td style="padding: 10px 14px; border: 1px solid #dee2e6; color: #212529;">{{loginTime}}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px 14px; background-color: #f8f9fa; border: 1px solid #dee2e6; font-weight: bold; color: #495057;">접속 IP</td>
+                <td style="padding: 10px 14px; border: 1px solid #dee2e6; color: #212529;">{{ipAddress}}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px 14px; background-color: #f8f9fa; border: 1px solid #dee2e6; font-weight: bold; color: #495057;">기기 정보</td>
+                <td style="padding: 10px 14px; border: 1px solid #dee2e6; color: #212529; word-break: break-all;">{{deviceInfo}}</td>
+            </tr>
+        </table>
         <div style="margin: 20px 0; padding: 16px 20px; background-color: #FFF3CD; border-left: 4px solid #FFC107; border-radius: 4px; color: #856404; font-size: 14px;">
             본인이 로그인한 것이 맞다면 이 메일을 무시하셔도 됩니다.<br>
             본인이 아니라면 즉시 비밀번호를 변경해 주세요.
