@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -88,7 +89,7 @@ public class LoginNotificationServiceImpl implements LoginNotificationService {
             helper.setSubject(LOGIN_MAIL_SUBJECT);
             helper.setText(htmlContent, true);
             mailSender.send(message);
-        } catch (MessagingException | IOException e) {
+        } catch (MessagingException | IOException | MailException e) {
             log.error("Failed to send login notification email to {}", maskEmail(email), e);
         }
     }
