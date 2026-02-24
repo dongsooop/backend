@@ -25,6 +25,7 @@ import lombok.NoArgsConstructor;
 public class MemberDevice {
 
     @Id
+    @Getter
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "member_device_sequence_generator")
     private Long id;
 
@@ -37,6 +38,7 @@ public class MemberDevice {
     @Column(nullable = false, unique = true)
     private String deviceToken;
 
+    @Getter
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MemberDeviceType memberDeviceType;

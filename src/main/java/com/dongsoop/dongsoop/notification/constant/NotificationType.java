@@ -14,7 +14,8 @@ public enum NotificationType {
     CALENDAR(true),
     MARKETING(false),
     FEEDBACK(true),
-    BLINDDATE(true);
+    BLINDDATE(true),
+    NEW_DEVICE_LOGIN(true);
 
     private final boolean defaultActiveState;
 

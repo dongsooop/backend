@@ -5,9 +5,11 @@ import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
+import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.exception.AlreadyRegisteredDeviceException;
+import com.dongsoop.dongsoop.memberdevice.exception.UnauthorizedDeviceAccessException;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import java.util.List;
@@ -97,5 +99,41 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
     @Transactional
     public void deleteByToken(String deviceToken) {
         memberDeviceRepository.deleteByDeviceToken(deviceToken);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<MemberDeviceResponse> getDeviceList(Long memberId) {
+        return memberDeviceRepository.findByMemberId(memberId).stream()
+                .map(device -> new MemberDeviceResponse(device.getId(), device.getMemberDeviceType()))
+                .toList();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getDeviceTokenIfOwned(Long memberId, Long deviceId) {
+        MemberDevice device = memberDeviceRepository.findById(deviceId)
+                .orElseThrow(UnregisteredDeviceException::new);
+
+        Member deviceMember = device.getMember();
+        if (deviceMember == null || !deviceMember.getId().equals(memberId)) {
+            throw new UnauthorizedDeviceAccessException();
+        }
+
+        return device.getDeviceToken();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional
+    public void unbindDevice(Long deviceId) {
+        memberDeviceRepository.findById(deviceId)
+                .ifPresent(device -> device.bindMember(null));
     }
 }

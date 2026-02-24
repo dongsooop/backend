@@ -10,10 +10,12 @@ import com.dongsoop.dongsoop.member.dto.LoginResponse;
 import com.dongsoop.dongsoop.member.dto.NicknameValidateRequest;
 import com.dongsoop.dongsoop.member.dto.SignupRequest;
 import com.dongsoop.dongsoop.member.dto.UpdatePasswordRequest;
+import com.dongsoop.dongsoop.member.service.LoginNotificationService;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.member.validate.MemberDuplicationValidator;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.service.FCMService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class MemberController {
 
     private final MemberService memberService;
+    private final LoginNotificationService loginNotificationService;
     private final MemberDuplicationValidator memberDuplicationValidator;
     private final PasswordUpdateMailValidator passwordUpdateMailValidator;
     private final RegisterMailValidator registerMailValidator;
@@ -63,22 +66,35 @@ public class MemberController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest,
+                                               HttpServletRequest request) {
         LoginDetails loginDetail = memberService.login(loginRequest);
 
         IssuedToken issuedToken = loginDetail.getIssuedToken();
         String accessToken = issuedToken.getAccessToken();
         String refreshToken = issuedToken.getRefreshToken();
 
+        Long memberId = loginDetail.getLoginMemberDetail().getId();
+
         if (StringUtils.hasText(loginRequest.getFcmToken())) {
-            memberDeviceService.bindDeviceWithMemberId(
-                    loginDetail.getLoginMemberDetail().getId(),
-                    loginRequest.getFcmToken());
+            memberDeviceService.bindDeviceWithMemberId(memberId, loginRequest.getFcmToken());
             fcmService.unsubscribeTopic(List.of(loginRequest.getFcmToken()), anonymousTopic);
         }
 
+        String ipAddress = resolveClientIp(request);
+        String userAgent = request.getHeader("User-Agent");
+        loginNotificationService.sendLoginNotification(memberId, loginRequest.getEmail(), ipAddress, userAgent);
+
         LoginResponse loginResponse = new LoginResponse(loginDetail.getLoginMemberDetail(), accessToken, refreshToken);
         return ResponseEntity.ok(loginResponse);
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (StringUtils.hasText(xForwardedFor)) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     @PostMapping("/validate/email")

@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.notification.service;
 
+import com.dongsoop.dongsoop.notification.constant.FcmSilentType;
 import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.MulticastMessage;
@@ -20,4 +21,6 @@ public interface FCMService {
     void sendMessage(Message message);
 
     void updateNotificationBadge(List<String> deviceTokens, int badge);
+
+    void sendSilentMessage(String deviceToken, FcmSilentType type);
 }

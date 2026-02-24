@@ -114,5 +114,9 @@ resource:
   static:
     base-path: static/
 
+mail:
+  login-notification:
+    template: login-notification-mail.html
+
 blinddate:
   event-message-amount: 3
