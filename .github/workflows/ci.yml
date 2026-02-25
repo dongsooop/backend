@@ -33,10 +33,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Set up Firebase admin SDK
-        run: |
-          echo "${{ secrets.FIREBASE_ADMIN_SDK_BASE64 }}" | base64 --decode > src/main/resources/DongSoopFirebaseAdminSDK.json
-
       - name: Run tests
         run: |
           chmod +x ./gradlew
