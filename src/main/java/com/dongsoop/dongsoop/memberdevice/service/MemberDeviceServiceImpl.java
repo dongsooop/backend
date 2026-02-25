@@ -110,7 +110,8 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
                 .map(device -> new MemberDeviceResponse(
                         device.getId(),
                         device.getMemberDeviceType(),
-                        currentDeviceToken != null && currentDeviceToken.equals(device.getDeviceToken())))
+                        currentDeviceToken != null && currentDeviceToken.equals(device.getDeviceToken()),
+                        device.getUpdatedAt()))
                 .toList();
     }
 
