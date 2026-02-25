@@ -10,7 +10,7 @@ import software.amazon.awssdk.regions.providers.AwsRegionProvider;
 import software.amazon.awssdk.services.s3.S3Client;
 
 @Configuration
-@Profile("local")
+@Profile({"local", "test"})
 @Slf4j
 public class LocalS3Config {
 

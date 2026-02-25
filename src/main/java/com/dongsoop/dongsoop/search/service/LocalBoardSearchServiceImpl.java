@@ -17,7 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Slf4j
-@Profile("local")
+@Profile({"local", "test"})
 @Service
 @RequiredArgsConstructor
 public class LocalBoardSearchServiceImpl implements BoardSearchService {
