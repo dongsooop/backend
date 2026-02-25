@@ -189,8 +189,6 @@ home:
 firebase:
   project:
     number: 0 # Firebase 푸시 알림 테스트가 필요하면 실제 프로젝트 번호로 변경
-  service-account:
-    path: "src/test/resources/firebase-service-account.json"
 
 text:
   filtering:
