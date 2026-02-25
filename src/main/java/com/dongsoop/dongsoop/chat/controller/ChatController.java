@@ -4,7 +4,6 @@ import com.dongsoop.dongsoop.chat.dto.*;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
-import com.dongsoop.dongsoop.chat.service.ChatMessageService;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.member.entity.Member;
@@ -26,7 +25,6 @@ import java.util.stream.Collectors;
 public class ChatController {
     private final ChatService chatService;
     private final ChatRoomService chatRoomService;
-    private final ChatMessageService chatMessageService;
     private final MemberService memberService;
 
     @GetMapping("/room/{roomId}/initialize")
@@ -54,7 +52,7 @@ public class ChatController {
     }
 
     @PostMapping("/room")
-    public ResponseEntity<ChatRoom> createRoom(@RequestBody CreateRoomRequest request) {
+    public ResponseEntity<ChatRoom> createRoom(@RequestBody @Valid CreateRoomRequest request) {
         Long currentUserId = getCurrentUserId();
         Long targetUserId = request.getTargetUserId();
         ChatRoom createdRoom = chatRoomService.createOneToOneChatRoom(currentUserId, targetUserId, request.getTitle());
@@ -80,14 +78,12 @@ public class ChatController {
     public ResponseEntity<List<ChatRoomListResponse>> getRoomsForUser() {
         Long currentUserId = getCurrentUserId();
         List<ChatRoom> rooms = chatRoomService.getRoomsForUserId(currentUserId);
-        List<ChatRoomListResponse> roomResponses = rooms.stream()
-                .map(room -> buildRoomListResponse(room, currentUserId))
-                .toList();
+        List<ChatRoomListResponse> roomResponses = chatService.buildRoomListResponses(rooms, currentUserId);
         return ResponseEntity.ok(roomResponses);
     }
 
     @PostMapping("/room/group")
-    public ResponseEntity<ChatRoom> createGroupRoom(@RequestBody CreateGroupRoomRequest request) {
+    public ResponseEntity<ChatRoom> createGroupRoom(@RequestBody @Valid CreateGroupRoomRequest request) {
         Long currentUserId = getCurrentUserId();
         ChatRoom groupRoom = chatRoomService.createGroupChatRoom(currentUserId, request.getParticipants(),
                 request.getTitle());
@@ -115,7 +111,7 @@ public class ChatController {
     @PostMapping("/room/{roomId}/kick")
     public ResponseEntity<ChatRoom> kickUser(
             @PathVariable("roomId") String roomId,
-            @RequestBody KickUserRequest request) {
+            @RequestBody @Valid KickUserRequest request) {
         Long currentUserId = getCurrentUserId();
         ChatRoom updatedRoom = chatService.kickUserFromRoom(roomId, currentUserId, request.getUserId());
         return ResponseEntity.ok(updatedRoom);
@@ -165,7 +161,7 @@ public class ChatController {
     }
 
     @PostMapping("/room/contact")
-    public ResponseEntity<ChatRoom> createContactRoom(@RequestBody CreateContactRoomRequest request) {
+    public ResponseEntity<ChatRoom> createContactRoom(@RequestBody @Valid CreateContactRoomRequest request) {
         Long currentUserId = getCurrentUserId();
         ChatRoom contactRoom = chatRoomService.createContactChatRoom(
                 currentUserId,
@@ -175,32 +171,6 @@ public class ChatController {
                 request.getBoardTitle()
         );
         return ResponseEntity.ok(contactRoom);
-    }
-
-    private ChatRoomListResponse buildRoomListResponse(ChatRoom room, Long userId) {
-        String lastMessage = chatMessageService.getLastMessageText(room.getRoomId());
-        int unreadCount = chatService.getUnreadMessageCount(room.getRoomId(), userId);
-
-        return ChatRoomListResponse.builder()
-                .roomId(room.getRoomId())
-                .title(room.getTitle())
-                .participantCount(room.getParticipants().size())
-                .lastMessage(lastMessage)
-                .unreadCount(unreadCount)
-                .lastActivityAt(room.getLastActivityAt())
-                .isGroupChat(room.isGroupChat())
-                .roomType(determineRoomType(room))
-                .build();
-    }
-
-    private String determineRoomType(ChatRoom room) {
-        if (room.getTitle() != null && room.getTitle().startsWith("[문의]")) {
-            return "contact";
-        }
-        if (room.isGroupChat()) {
-            return "group";
-        }
-        return "oneToOne";
     }
 
     private Long getCurrentUserId() {

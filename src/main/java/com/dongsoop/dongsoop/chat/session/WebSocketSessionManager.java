@@ -22,4 +22,8 @@ public class WebSocketSessionManager {
             userSessions.remove(userId);
         }
     }
+
+    public boolean isUserOnline(Long userId) {
+        return userSessions.containsKey(userId);
+    }
 }

@@ -7,6 +7,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -40,6 +43,40 @@ public class ReadStatusService {
         String timestampStr = redisTemplate.opsForValue().get(key);
 
         return parseTimestampOrGetJoinTime(timestampStr, userId, roomId);
+    }
+
+    public Map<String, LocalDateTime> getLastReadTimestampsBatch(Long userId, List<String> roomIds) {
+        List<String> keys = roomIds.stream()
+                .map(roomId -> buildUserLastReadKey(userId, roomId))
+                .toList();
+
+        List<String> values = redisTemplate.opsForValue().multiGet(keys);
+
+        Map<String, LocalDateTime> result = new HashMap<>();
+        for (int i = 0; i < roomIds.size(); i++) {
+            String roomId = roomIds.get(i);
+            String timestampStr = (values != null && i < values.size()) ? values.get(i) : null;
+            LocalDateTime timestamp = parseTimestampOrGetJoinTime(timestampStr, userId, roomId);
+            result.put(roomId, timestamp);
+        }
+        return result;
+    }
+
+    public Map<Long, LocalDateTime> getLastReadTimestampsBatchForUsers(List<Long> userIds, String roomId) {
+        List<String> keys = userIds.stream()
+                .map(userId -> buildUserLastReadKey(userId, roomId))
+                .toList();
+
+        List<String> values = redisTemplate.opsForValue().multiGet(keys);
+
+        Map<Long, LocalDateTime> result = new HashMap<>();
+        for (int i = 0; i < userIds.size(); i++) {
+            Long userId = userIds.get(i);
+            String timestampStr = (values != null && i < values.size()) ? values.get(i) : null;
+            LocalDateTime timestamp = parseTimestampOrGetJoinTime(timestampStr, userId, roomId);
+            result.put(userId, timestamp);
+        }
+        return result;
     }
 
     public LocalDateTime getUserJoinTime(Long userId, String roomId) {

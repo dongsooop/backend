@@ -12,7 +12,6 @@ import java.util.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatRoom {
-    private static final int BACKUP_DAYS_THRESHOLD = 25;
     private static final String DEFAULT_GROUP_TITLE = "그룹 채팅";
 
     private String roomId;
@@ -132,10 +131,7 @@ public class ChatRoom {
     }
 
     private LocalDateTime getEffectiveCreatedAt() {
-        if (createdAt != null) {
-            return createdAt;
-        }
-        return getCurrentTime().minusDays(BACKUP_DAYS_THRESHOLD);
+        return createdAt;
     }
 
     private LocalDateTime getEffectiveLastActivityAt() {
