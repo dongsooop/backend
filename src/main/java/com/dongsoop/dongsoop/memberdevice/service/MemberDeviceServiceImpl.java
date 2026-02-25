@@ -106,13 +106,7 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
      */
     @Override
     public List<MemberDeviceResponse> getDeviceList(Long memberId, String currentDeviceToken) {
-        return memberDeviceRepository.findByMemberId(memberId).stream()
-                .map(device -> new MemberDeviceResponse(
-                        device.getId(),
-                        device.getMemberDeviceType(),
-                        currentDeviceToken != null && currentDeviceToken.equals(device.getDeviceToken()),
-                        device.getUpdatedAt()))
-                .toList();
+        return memberDeviceRepository.findDeviceListByMemberId(memberId, currentDeviceToken);
     }
 
     /**

@@ -3,11 +3,14 @@ package com.dongsoop.dongsoop.memberdevice.repository;
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
+import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
 import com.dongsoop.dongsoop.memberdevice.entity.QMemberDevice;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.setting.entity.QNotificationSetting;
+import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +48,25 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     @Override
     public List<String> getDeviceByMemberId(Long memberId) {
         return queryFactory.select(memberDevice.deviceToken)
+                .from(memberDevice)
+                .where(memberDevice.member.id.eq(memberId))
+                .fetch();
+    }
+
+    @Override
+    public List<MemberDeviceResponse> findDeviceListByMemberId(Long memberId, String currentDeviceToken) {
+        Expression<Boolean> currentExpr = currentDeviceToken != null
+                ? new com.querydsl.core.types.dsl.CaseBuilder()
+                .when(memberDevice.deviceToken.eq(currentDeviceToken))
+                .then(true)
+                .otherwise(false)
+                : Expressions.constant(false);
+
+        return queryFactory.select(Projections.constructor(MemberDeviceResponse.class,
+                        memberDevice.id,
+                        memberDevice.memberDeviceType,
+                        currentExpr,
+                        memberDevice.updatedAt))
                 .from(memberDevice)
                 .where(memberDevice.member.id.eq(memberId))
                 .fetch();
