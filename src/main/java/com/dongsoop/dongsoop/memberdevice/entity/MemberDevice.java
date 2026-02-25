@@ -12,7 +12,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
-import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -44,10 +43,6 @@ public class MemberDevice extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MemberDeviceType memberDeviceType;
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
 
     public void bindMember(Member member) {
         this.member = member;
