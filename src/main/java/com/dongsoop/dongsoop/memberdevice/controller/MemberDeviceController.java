@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -44,12 +45,14 @@ public class MemberDeviceController {
     /**
      * 현재 인증된 회원의 등록 기기 목록을 조회한다.
      *
-     * @return 기기 ID와 타입 목록 (200 OK)
+     * @param deviceToken 현재 요청을 보낸 기기의 FCM 토큰 ({@code X-Device-Token} 헤더, 선택). 전달 시 해당 기기의 {@code current} 필드가 {@code true}로 반환된다.
+     * @return 기기 ID, 타입, 현재 기기 여부 목록 (200 OK)
      */
     @GetMapping("/list")
-    public ResponseEntity<List<MemberDeviceResponse>> getDeviceList() {
+    public ResponseEntity<List<MemberDeviceResponse>> getDeviceList(
+            @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
         Long memberId = memberService.getMemberIdByAuthentication();
-        List<MemberDeviceResponse> devices = memberDeviceService.getDeviceList(memberId);
+        List<MemberDeviceResponse> devices = memberDeviceService.getDeviceList(memberId, deviceToken);
 
         return ResponseEntity.ok(devices);
     }

@@ -21,10 +21,11 @@ public interface MemberDeviceService {
     /**
      * 회원의 등록 기기 목록을 조회한다.
      *
-     * @param memberId 조회할 회원의 ID
-     * @return 기기 ID와 타입을 담은 응답 목록
+     * @param memberId            조회할 회원의 ID
+     * @param currentDeviceToken  현재 요청을 보낸 기기의 FCM 토큰 (null 허용)
+     * @return 기기 ID, 타입, 현재 기기 여부를 담은 응답 목록
      */
-    List<MemberDeviceResponse> getDeviceList(Long memberId);
+    List<MemberDeviceResponse> getDeviceList(Long memberId, String currentDeviceToken);
 
     /**
      * 요청한 회원이 소유한 기기의 FCM 토큰을 반환한다.
