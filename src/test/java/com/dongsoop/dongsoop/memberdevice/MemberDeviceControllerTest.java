@@ -13,6 +13,7 @@ import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.service.FCMService;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,8 +49,8 @@ class MemberDeviceControllerTest {
     void returns_all_current_false_when_header_is_absent() throws Exception {
         given(memberService.getMemberIdByAuthentication()).willReturn(MEMBER_ID);
         given(memberDeviceService.getDeviceList(MEMBER_ID, null)).willReturn(List.of(
-                new MemberDeviceResponse(1L, MemberDeviceType.ANDROID, false),
-                new MemberDeviceResponse(2L, MemberDeviceType.IOS, false)
+                new MemberDeviceResponse(1L, MemberDeviceType.ANDROID, false, null),
+                new MemberDeviceResponse(2L, MemberDeviceType.IOS, false, null)
         ));
 
         mockMvc.perform(get("/device/list"))
@@ -63,8 +64,8 @@ class MemberDeviceControllerTest {
     void returns_current_true_for_matching_device() throws Exception {
         given(memberService.getMemberIdByAuthentication()).willReturn(MEMBER_ID);
         given(memberDeviceService.getDeviceList(MEMBER_ID, TOKEN_A)).willReturn(List.of(
-                new MemberDeviceResponse(1L, MemberDeviceType.ANDROID, true),
-                new MemberDeviceResponse(2L, MemberDeviceType.IOS, false)
+                new MemberDeviceResponse(1L, MemberDeviceType.ANDROID, true, LocalDateTime.of(2025, 1, 1, 12, 0)),
+                new MemberDeviceResponse(2L, MemberDeviceType.IOS, false, LocalDateTime.of(2025, 1, 1, 10, 0))
         ));
 
         mockMvc.perform(get("/device/list")
@@ -79,8 +80,8 @@ class MemberDeviceControllerTest {
     void returns_all_current_false_when_token_does_not_match() throws Exception {
         given(memberService.getMemberIdByAuthentication()).willReturn(MEMBER_ID);
         given(memberDeviceService.getDeviceList(MEMBER_ID, "unknown-token")).willReturn(List.of(
-                new MemberDeviceResponse(1L, MemberDeviceType.ANDROID, false),
-                new MemberDeviceResponse(2L, MemberDeviceType.IOS, false)
+                new MemberDeviceResponse(1L, MemberDeviceType.ANDROID, false, null),
+                new MemberDeviceResponse(2L, MemberDeviceType.IOS, false, null)
         ));
 
         mockMvc.perform(get("/device/list")
