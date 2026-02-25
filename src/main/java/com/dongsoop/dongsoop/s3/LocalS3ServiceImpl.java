@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 @Component
-@Profile("local")
+@Profile({"local", "test"})
 @Slf4j
 public class LocalS3ServiceImpl implements S3Service {
 
