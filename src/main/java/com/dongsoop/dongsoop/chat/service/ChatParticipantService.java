@@ -131,6 +131,9 @@ public class ChatParticipantService {
 
     private boolean isNewInvitedUser(String roomId, ChatRoom room, Long userId, LocalDateTime userJoinTime) {
         LocalDateTime roomCreatedAt = room.getCreatedAt();
+        if (roomCreatedAt == null) {
+            return false;
+        }
         boolean isLaterThanRoomCreation = userJoinTime.isAfter(roomCreatedAt);
 
         return isLaterThanRoomCreation && hasNotEnteredBefore(roomId, userId, userJoinTime);

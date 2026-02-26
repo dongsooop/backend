@@ -32,6 +32,7 @@ public class RedisChatRepository implements ChatRepository {
         saveWithTTL(key, room);
         indexRoomForUsers(room);
         redisTemplate.opsForSet().add(ACTIVE_ROOMS_KEY, room.getRoomId());
+        redisTemplate.expire(ACTIVE_ROOMS_KEY, CHAT_TTL, TimeUnit.DAYS);
         return room;
     }
 
@@ -74,6 +75,10 @@ public class RedisChatRepository implements ChatRepository {
     }
 
     public Map<String, ChatMessage> findLastMessagesByRoomIds(List<String> roomIds) {
+        if (roomIds == null || roomIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
         Map<String, ChatMessage> result = new HashMap<>();
 
         Map<String, String> lastMessageIdByRoom = new HashMap<>();
