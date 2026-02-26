@@ -30,6 +30,6 @@ public class TestJwtTokenGenerator {
         List<GrantedAuthority> auth = List.of(new SimpleGrantedAuthority(RoleType.USER_ROLE));
         UsernamePasswordAuthenticationToken user = new UsernamePasswordAuthenticationToken(memberId, null, auth);
 
-        return tokenGenerator.generateAccessToken(user);
+        return tokenGenerator.generateAccessToken(user, null);
     }
 }

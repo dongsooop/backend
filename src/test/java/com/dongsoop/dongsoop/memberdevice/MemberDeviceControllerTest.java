@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
+import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.controller.MemberDeviceController;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
@@ -36,6 +37,8 @@ class MemberDeviceControllerTest {
     private MemberService memberService;
     @MockitoBean
     private FCMService fcmService;
+    @MockitoBean
+    private DeviceBlacklistService deviceBlacklistService;
     @MockitoBean
     private JwtFilter jwtFilter;
     @MockitoBean

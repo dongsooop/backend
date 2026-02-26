@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import com.dongsoop.dongsoop.jwt.exception.TokenMalformedException;
+import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
@@ -48,11 +49,13 @@ class JwtFilterAuthenticationTest {
     private Claims claims;
     @Mock
     private Authentication authentication;
+    @Mock
+    private DeviceBlacklistService deviceBlacklistService;
     private JwtFilter jwtFilter;
 
     @BeforeEach
     void setUp() {
-        jwtFilter = new JwtFilter(jwtUtil, jwtValidator, exceptionResolver, ignorePaths);
+        jwtFilter = new JwtFilter(jwtUtil, jwtValidator, deviceBlacklistService, exceptionResolver, ignorePaths);
         SecurityContextHolder.clearContext();
     }
 
