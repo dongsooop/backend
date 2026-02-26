@@ -72,7 +72,7 @@ public class DeviceBlacklistService {
             return;
         }
 
-        if (issuedAt.getTime() < blacklistedAt) {
+        if (issuedAt.getTime() <= blacklistedAt) {
             throw new BlacklistedTokenException();
         }
     }

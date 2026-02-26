@@ -27,9 +27,20 @@ public class TestJwtTokenGenerator {
      * @return JWT Access Token
      */
     public String generateAccessToken(Long memberId) {
+        return generateAccessToken(memberId, null);
+    }
+
+    /**
+     * 테스트용 Access Token 생성 (deviceId 포함)
+     *
+     * @param memberId 회원 ID
+     * @param deviceId 디바이스 ID (null 허용)
+     * @return JWT Access Token
+     */
+    public String generateAccessToken(Long memberId, Long deviceId) {
         List<GrantedAuthority> auth = List.of(new SimpleGrantedAuthority(RoleType.USER_ROLE));
         UsernamePasswordAuthenticationToken user = new UsernamePasswordAuthenticationToken(memberId, null, auth);
 
-        return tokenGenerator.generateAccessToken(user, null);
+        return tokenGenerator.generateAccessToken(user, deviceId);
     }
 }

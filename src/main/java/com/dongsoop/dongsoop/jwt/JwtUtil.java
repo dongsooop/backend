@@ -7,6 +7,7 @@ import com.dongsoop.dongsoop.jwt.exception.TokenSignatureException;
 import com.dongsoop.dongsoop.jwt.exception.TokenUnsupportedException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
@@ -82,7 +83,7 @@ public class JwtUtil {
     protected String issue(Date tokenExpiredTime, String id, List<String> roleList, JWTType type, Long deviceId) {
         SecretKey key = jwtKeyManager.getSecretKey();
 
-        var builder = Jwts.builder()
+        JwtBuilder builder = Jwts.builder()
                 .subject(id)
                 .claim(roleClaimName, roleList)
                 .claim(typeClaimName, type.name())

@@ -14,6 +14,7 @@ import com.dongsoop.dongsoop.member.dto.LoginMemberDetails;
 import com.dongsoop.dongsoop.member.dto.LoginResponse;
 import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
+import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.oauth.entity.MemberSocialAccount;
 import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
 import com.dongsoop.dongsoop.oauth.exception.InvalidProviderTypeException;
@@ -54,6 +55,9 @@ class OAuth2ServiceTest {
     private MemberRepository memberRepository;
 
     @Mock
+    private MemberDeviceRepository memberDeviceRepository;
+
+    @Mock
     private TokenGenerator tokenGenerator;
 
     @Mock
@@ -83,7 +87,7 @@ class OAuth2ServiceTest {
         when(memberRepository.findLoginMemberDetailById(MEMBER_ID)).thenReturn(Optional.of(memberDetails));
 
         // when
-        LoginResponse response = oAuth2Service.acceptLogin(authentication, MEMBER_ID);
+        LoginResponse response = oAuth2Service.acceptLogin(authentication, MEMBER_ID, null);
 
         // then
         assertThat(response).isNotNull();
@@ -107,7 +111,7 @@ class OAuth2ServiceTest {
         when(memberRepository.findLoginMemberDetailById(MEMBER_ID)).thenReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> oAuth2Service.acceptLogin(authentication, MEMBER_ID))
+        assertThatThrownBy(() -> oAuth2Service.acceptLogin(authentication, MEMBER_ID, null))
                 .isInstanceOf(MemberNotFoundException.class);
     }
 

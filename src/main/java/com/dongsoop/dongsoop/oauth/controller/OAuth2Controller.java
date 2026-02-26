@@ -85,7 +85,7 @@ public class OAuth2Controller {
         memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
         this.unsubscribeAnonymous(request.deviceToken());
 
-        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId);
+        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, request.deviceToken());
         return ResponseEntity.ok(response);
     }
 
@@ -97,7 +97,7 @@ public class OAuth2Controller {
         memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
         this.unsubscribeAnonymous(request.deviceToken());
 
-        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId);
+        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, request.deviceToken());
         return ResponseEntity.ok(response);
     }
 
@@ -108,7 +108,7 @@ public class OAuth2Controller {
         memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
         this.unsubscribeAnonymous(request.deviceToken());
 
-        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId);
+        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, request.deviceToken());
         return ResponseEntity.ok(response);
     }
 
