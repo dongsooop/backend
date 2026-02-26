@@ -30,8 +30,8 @@ public class OAuth2ServiceImpl implements OAuth2Service {
 
     @Override
     public LoginResponse acceptLogin(Authentication authentication, Long memberId) {
-        String accessToken = tokenGenerator.generateAccessToken(authentication);
-        String refreshToken = tokenGenerator.generateRefreshToken(authentication);
+        String accessToken = tokenGenerator.generateAccessToken(authentication, null);
+        String refreshToken = tokenGenerator.generateRefreshToken(authentication, null);
 
         LoginMemberDetails loginMemberDetails = memberRepository.findLoginMemberDetailById(memberId)
                 .orElseThrow(MemberNotFoundException::new);

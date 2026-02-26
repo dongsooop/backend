@@ -1,10 +1,10 @@
 package com.dongsoop.dongsoop.memberdevice.controller;
 
+import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.dto.DeviceRegisterRequest;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
-import com.dongsoop.dongsoop.notification.constant.FcmSilentType;
 import com.dongsoop.dongsoop.notification.service.FCMService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -30,6 +30,7 @@ public class MemberDeviceController {
     private final MemberDeviceService memberDeviceService;
     private final MemberService memberService;
     private final FCMService fcmService;
+    private final DeviceBlacklistService deviceBlacklistService;
 
     @Value("${notification.topic.anonymous}")
     private String anonymousTopic;
@@ -60,10 +61,10 @@ public class MemberDeviceController {
     /**
      * 특정 기기를 강제 로그아웃 처리한다.
      *
-     * <p>해당 기기에 Silent FCM 메시지({@code FORCE_LOGOUT})를 전송하고,
+     * <p>해당 기기의 JWT를 블랙리스트에 등록하여 이후 모든 요청을 즉시 차단하고,
      * anonymous 토픽을 재구독한 뒤 회원과의 바인딩을 해제한다.
-     * FCM 전송 또는 토픽 재구독 실패 시 경고 로그를 남기고 계속 진행하며,
-     * 바인딩 해제는 FCM 결과와 무관하게 항상 실행된다.
+     * 토픽 재구독 실패 시 경고 로그를 남기고 계속 진행하며,
+     * 블랙리스트 등록과 바인딩 해제는 항상 실행된다.
      *
      * @param deviceId 강제 로그아웃할 기기의 ID
      * @return 응답 본문 없음 (204 No Content)
@@ -76,11 +77,7 @@ public class MemberDeviceController {
 
         String deviceToken = memberDeviceService.getDeviceTokenIfOwned(memberId, deviceId);
 
-        try {
-            fcmService.sendSilentMessage(deviceToken, FcmSilentType.FORCE_LOGOUT);
-        } catch (Exception e) {
-            log.warn("Failed to send FORCE_LOGOUT FCM message to device {}: {}", deviceId, e.getMessage());
-        }
+        deviceBlacklistService.blacklist(deviceId);
 
         try {
             fcmService.subscribeTopic(List.of(deviceToken), anonymousTopic);

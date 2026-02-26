@@ -102,8 +102,9 @@ public class MemberServiceImpl implements MemberService {
 
         Authentication authentication = getAuthenticationByLoginAuthenticate(loginAuthenticate);
 
-        String accessToken = tokenGenerator.generateAccessToken(authentication);
-        String refreshToken = tokenGenerator.generateRefreshToken(authentication);
+        Long deviceId = resolveDeviceId(loginRequest.getFcmToken());
+        String accessToken = tokenGenerator.generateAccessToken(authentication, deviceId);
+        String refreshToken = tokenGenerator.generateRefreshToken(authentication, deviceId);
 
         IssuedToken issuedToken = new IssuedToken(accessToken, refreshToken);
         LoginMemberDetails loginMemberDetails = memberRepository.findLoginMemberDetailById(
@@ -111,6 +112,21 @@ public class MemberServiceImpl implements MemberService {
                 .orElseThrow(MemberNotFoundException::new);
 
         return new LoginDetails(loginMemberDetails, issuedToken);
+    }
+
+    /**
+     * FCM 토큰으로 디바이스 ID를 조회한다.
+     *
+     * <p>FCM 토큰이 없거나 등록된 디바이스가 없으면 {@code null}을 반환한다.
+     * JWT에 포함되는 값으로, {@code null}인 경우 블랙리스트 검사를 건너뛴다.
+     */
+    private Long resolveDeviceId(String fcmToken) {
+        if (!StringUtils.hasText(fcmToken)) {
+            return null;
+        }
+        return memberDeviceRepository.findByDeviceToken(fcmToken)
+                .map(MemberDevice::getId)
+                .orElse(null);
     }
 
     private void validateMemberExists(String email) {

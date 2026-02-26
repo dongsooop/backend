@@ -77,16 +77,24 @@ public class JwtUtil {
         }
     }
 
-    protected String issue(Date tokenExpiredTime, String id, List<String> roleList, JWTType type) {
+    public static final String DEVICE_ID_CLAIM = "did";
+
+    protected String issue(Date tokenExpiredTime, String id, List<String> roleList, JWTType type, Long deviceId) {
         SecretKey key = jwtKeyManager.getSecretKey();
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(id)
                 .claim(roleClaimName, roleList)
                 .claim(typeClaimName, type.name())
+                .issuedAt(new Date())
                 .signWith(key)
-                .expiration(tokenExpiredTime)
-                .compact();
+                .expiration(tokenExpiredTime);
+
+        if (deviceId != null) {
+            builder.claim(DEVICE_ID_CLAIM, deviceId);
+        }
+
+        return builder.compact();
     }
 
     public AuthenticationInformationByToken getTokenInformation(String token) {

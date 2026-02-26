@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.jwt.handler;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.exception.DeviceInformationNotIncludedInHeaderException;
 import com.dongsoop.dongsoop.jwt.exception.TokenNotFoundException;
+import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
@@ -30,6 +31,7 @@ public class JwtLogoutHandler implements LogoutHandler {
     private final MemberDeviceRepository memberDeviceRepository;
     private final JwtUtil jwtUtil;
     private final FCMService fcmService;
+    private final DeviceBlacklistService deviceBlacklistService;
 
     @Value("${notification.topic.anonymous}")
     private String anonymousTopic;
@@ -37,7 +39,6 @@ public class JwtLogoutHandler implements LogoutHandler {
     @Override
     @Transactional
     public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
-        // TODO: 화이트리스트 추가 시 메모리에 유효한 토큰 만료일 갱신(화이트리스트)
         String deviceToken = request.getHeader("Device-Token");
         if (!StringUtils.hasText(deviceToken)) {
             throw new DeviceInformationNotIncludedInHeaderException();
@@ -50,6 +51,7 @@ public class JwtLogoutHandler implements LogoutHandler {
         MemberDevice device = memberDeviceRepository.findByMemberIdAndDeviceToken(memberId, deviceToken)
                 .orElseThrow(UnregisteredDeviceException::new);
 
+        deviceBlacklistService.blacklist(device.getId());
         device.bindMember(null);
         fcmService.subscribeTopic(List.of(deviceToken), anonymousTopic);
         fcmService.updateNotificationBadge(List.of(deviceToken), 0);
