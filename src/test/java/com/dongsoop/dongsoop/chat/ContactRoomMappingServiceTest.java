@@ -11,6 +11,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
+import org.mockito.ArgumentCaptor;
+
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -84,11 +88,13 @@ class ContactRoomMappingServiceTest {
     @Test
     @DisplayName("findExistingContactRoomId - userId 순서에 관계없이 동일한 키 사용")
     void findExistingContactRoomId_keyOrderIndependent() {
-        when(valueOperations.get(anyString())).thenReturn("room-123");
+        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        when(valueOperations.get(keyCaptor.capture())).thenReturn("room-123");
 
-        String result1 = contactRoomMappingService.findExistingContactRoomId(1L, 2L, BoardType.PROJECT, 10L);
-        String result2 = contactRoomMappingService.findExistingContactRoomId(2L, 1L, BoardType.PROJECT, 10L);
+        contactRoomMappingService.findExistingContactRoomId(1L, 2L, BoardType.PROJECT, 10L);
+        contactRoomMappingService.findExistingContactRoomId(2L, 1L, BoardType.PROJECT, 10L);
 
-        assertThat(result1).isEqualTo(result2);
+        List<String> capturedKeys = keyCaptor.getAllValues();
+        assertThat(capturedKeys.get(0)).isEqualTo(capturedKeys.get(1));
     }
 }

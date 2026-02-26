@@ -12,7 +12,10 @@ public class WebSocketSessionManager {
     private final Map<String, Long> sessionToUser = new ConcurrentHashMap<>();
 
     public void addUserSession(Long userId, String sessionId) {
-        userSessions.put(userId, sessionId);
+        String previousSessionId = userSessions.put(userId, sessionId);
+        if (previousSessionId != null && !previousSessionId.equals(sessionId)) {
+            sessionToUser.remove(previousSessionId);
+        }
         sessionToUser.put(sessionId, userId);
     }
 
@@ -25,6 +28,6 @@ public class WebSocketSessionManager {
     }
 
     public boolean isUserOnline(Long userId) {
-        return userSessions.containsKey(userId);
+        return userId != null && userSessions.containsKey(userId);
     }
 }
