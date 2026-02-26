@@ -131,7 +131,13 @@ public class ChatRoom {
     }
 
     private LocalDateTime getEffectiveCreatedAt() {
-        return createdAt;
+        if (createdAt != null) {
+            return createdAt;
+        }
+        if (lastActivityAt != null) {
+            return lastActivityAt;
+        }
+        return LocalDateTime.now();
     }
 
     private LocalDateTime getEffectiveLastActivityAt() {

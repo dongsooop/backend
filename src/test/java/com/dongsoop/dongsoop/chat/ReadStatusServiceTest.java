@@ -60,7 +60,10 @@ class ReadStatusServiceTest {
         List<String> nullList = new java.util.ArrayList<>();
         nullList.add(null);
         when(valueOperations.multiGet(List.of("user:lastread:1:room1"))).thenReturn(nullList);
-        when(valueOperations.get("user:jointime:1:room1")).thenReturn(joinTimeStr);
+
+        List<String> joinTimeList = new java.util.ArrayList<>();
+        joinTimeList.add(joinTimeStr);
+        when(valueOperations.multiGet(List.of("user:jointime:1:room1"))).thenReturn(joinTimeList);
 
         Map<String, LocalDateTime> result = readStatusService.getLastReadTimestampsBatch(1L, List.of("room1"));
 

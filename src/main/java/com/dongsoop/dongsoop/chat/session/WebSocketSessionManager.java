@@ -19,7 +19,8 @@ public class WebSocketSessionManager {
     public void removeSession(String sessionId) {
         Long userId = sessionToUser.remove(sessionId);
         if (userId != null) {
-            userSessions.remove(userId);
+            userSessions.computeIfPresent(userId, (key, currentSession) ->
+                    sessionId.equals(currentSession) ? null : currentSession);
         }
     }
 

@@ -73,6 +73,43 @@ public class RedisChatRepository implements ChatRepository {
         return (ChatMessage) redisTemplate.opsForValue().get(messageKey);
     }
 
+    public Map<String, ChatMessage> findLastMessagesByRoomIds(List<String> roomIds) {
+        Map<String, ChatMessage> result = new HashMap<>();
+
+        Map<String, String> lastMessageIdByRoom = new HashMap<>();
+        List<String> messageKeys = new ArrayList<>();
+
+        for (String roomId : roomIds) {
+            String zsetKey = buildMessageZSetKey(roomId);
+            Set<Object> lastMessageIds = redisTemplate.opsForZSet().reverseRange(zsetKey, 0, 0);
+
+            if (lastMessageIds != null && !lastMessageIds.isEmpty()) {
+                String lastMessageId = (String) lastMessageIds.iterator().next();
+                lastMessageIdByRoom.put(roomId, lastMessageId);
+                messageKeys.add(buildMessageKey(roomId, lastMessageId));
+            }
+        }
+
+        if (messageKeys.isEmpty()) {
+            return result;
+        }
+
+        List<Object> messages = redisTemplate.opsForValue().multiGet(messageKeys);
+
+        int index = 0;
+        for (String roomId : roomIds) {
+            if (lastMessageIdByRoom.containsKey(roomId)) {
+                Object msg = (messages != null && index < messages.size()) ? messages.get(index) : null;
+                if (msg instanceof ChatMessage chatMessage) {
+                    result.put(roomId, chatMessage);
+                }
+                index++;
+            }
+        }
+
+        return result;
+    }
+
     public List<ChatMessage> findMessagesByRoomIdAfterTime(String roomId, LocalDateTime afterTime) {
         String zsetKey = buildMessageZSetKey(roomId);
         double afterTimestamp = convertToTimestamp(afterTime);
@@ -117,8 +154,8 @@ public class RedisChatRepository implements ChatRepository {
         if (room != null) {
             removeRoomIndexes(room);
             deleteRoomData(roomId);
-            redisTemplate.opsForSet().remove(ACTIVE_ROOMS_KEY, roomId);
         }
+        redisTemplate.opsForSet().remove(ACTIVE_ROOMS_KEY, roomId);
     }
 
     private void saveMessageToIndividualKey(ChatMessage message) {

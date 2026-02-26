@@ -130,7 +130,7 @@ public class ChatRoomService {
 
         contactRoomMappingService.saveContactRoomMapping(userId, targetUserId, boardType, boardId, room.getRoomId());
 
-        return saveRoom(room);
+        return room;
     }
 
     private String buildChatRoomTitle(BoardType boardType, String boardTitle) {

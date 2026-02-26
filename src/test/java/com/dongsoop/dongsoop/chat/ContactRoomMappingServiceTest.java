@@ -67,7 +67,7 @@ class ContactRoomMappingServiceTest {
 
         contactRoomMappingService.deleteContactRoomMapping("room-123");
 
-        verify(redisTemplate).delete("contact_mapping:1:2:PROJECT:10");
+        verify(redisTemplate).delete("contact:1:2:PROJECT:10");
         verify(redisTemplate).delete("room_to_contact:room-123");
     }
 

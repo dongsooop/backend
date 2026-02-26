@@ -16,7 +16,7 @@ public final class ChatMessageUtils {
         if (userId == null) {
             throw new UnauthorizedChatAccessException();
         }
-        if (userId < 0) {
+        if (userId <= 0) {
             throw new UnauthorizedChatAccessException();
         }
     }
@@ -32,7 +32,7 @@ public final class ChatMessageUtils {
     public static void enrichMessageId(ChatMessage message) {
         String currentMessageId = message.getMessageId();
 
-        if (currentMessageId == null || currentMessageId.isEmpty()) {
+        if (currentMessageId == null || currentMessageId.trim().isEmpty()) {
             message.setMessageId(generateMessageId());
         }
     }

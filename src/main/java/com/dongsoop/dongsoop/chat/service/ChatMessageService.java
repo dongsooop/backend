@@ -80,9 +80,11 @@ public class ChatMessageService {
     }
 
     public Map<String, String> getLastMessageTextsBatch(List<String> roomIds) {
+        Map<String, ChatMessage> lastMessages = redisChatRepository.findLastMessagesByRoomIds(roomIds);
         Map<String, String> result = new HashMap<>();
         for (String roomId : roomIds) {
-            result.put(roomId, getLastMessageText(roomId));
+            ChatMessage message = lastMessages.get(roomId);
+            result.put(roomId, message != null ? message.getContent() : null);
         }
         return result;
     }

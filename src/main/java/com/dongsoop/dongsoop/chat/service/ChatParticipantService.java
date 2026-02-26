@@ -140,7 +140,7 @@ public class ChatParticipantService {
         List<ChatMessage> enterMessages = chatMessageService.loadMessagesAfterJoinTime(roomId, joinTime)
                 .stream()
                 .filter(msg -> msg.getType() == MessageType.ENTER)
-                .filter(msg -> msg.getSenderId().equals(userId))
+                .filter(msg -> Objects.equals(msg.getSenderId(), userId))
                 .toList();
 
         return enterMessages.isEmpty();

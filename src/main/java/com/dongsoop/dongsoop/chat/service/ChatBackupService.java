@@ -47,6 +47,10 @@ public class ChatBackupService {
 
         for (ChatRoom room : expiredRooms) {
             try {
+                if (chatBackupWorker.isRoomNotBackedUp(room.getRoomId())) {
+                    log.warn("백업 미완료 채팅방 삭제 건너뜀: roomId={}", room.getRoomId());
+                    continue;
+                }
                 redisChatRepository.deleteRoom(room.getRoomId());
                 String roomType = room.isGroupChat() ? "그룹" : "1:1";
                 log.info("만료된 {} 채팅방 삭제 완료: {}", roomType, room.getRoomId());

@@ -46,35 +46,57 @@ public class ReadStatusService {
     }
 
     public Map<String, LocalDateTime> getLastReadTimestampsBatch(Long userId, List<String> roomIds) {
-        List<String> keys = roomIds.stream()
+        List<String> lastReadKeys = roomIds.stream()
                 .map(roomId -> buildUserLastReadKey(userId, roomId))
                 .toList();
 
-        List<String> values = redisTemplate.opsForValue().multiGet(keys);
+        List<String> lastReadValues = redisTemplate.opsForValue().multiGet(lastReadKeys);
+
+        List<String> joinTimeKeys = roomIds.stream()
+                .map(roomId -> buildUserJoinTimeKey(userId, roomId))
+                .toList();
+
+        List<String> joinTimeValues = redisTemplate.opsForValue().multiGet(joinTimeKeys);
 
         Map<String, LocalDateTime> result = new HashMap<>();
         for (int i = 0; i < roomIds.size(); i++) {
             String roomId = roomIds.get(i);
-            String timestampStr = (values != null && i < values.size()) ? values.get(i) : null;
-            LocalDateTime timestamp = parseTimestampOrGetJoinTime(timestampStr, userId, roomId);
-            result.put(roomId, timestamp);
+            String timestampStr = (lastReadValues != null && i < lastReadValues.size()) ? lastReadValues.get(i) : null;
+
+            if (timestampStr != null) {
+                result.put(roomId, parseTimestamp(timestampStr));
+            } else {
+                String joinTimeStr = (joinTimeValues != null && i < joinTimeValues.size()) ? joinTimeValues.get(i) : null;
+                result.put(roomId, parseTimestamp(joinTimeStr));
+            }
         }
         return result;
     }
 
     public Map<Long, LocalDateTime> getLastReadTimestampsBatchForUsers(List<Long> userIds, String roomId) {
-        List<String> keys = userIds.stream()
+        List<String> lastReadKeys = userIds.stream()
                 .map(userId -> buildUserLastReadKey(userId, roomId))
                 .toList();
 
-        List<String> values = redisTemplate.opsForValue().multiGet(keys);
+        List<String> lastReadValues = redisTemplate.opsForValue().multiGet(lastReadKeys);
+
+        List<String> joinTimeKeys = userIds.stream()
+                .map(userId -> buildUserJoinTimeKey(userId, roomId))
+                .toList();
+
+        List<String> joinTimeValues = redisTemplate.opsForValue().multiGet(joinTimeKeys);
 
         Map<Long, LocalDateTime> result = new HashMap<>();
         for (int i = 0; i < userIds.size(); i++) {
             Long userId = userIds.get(i);
-            String timestampStr = (values != null && i < values.size()) ? values.get(i) : null;
-            LocalDateTime timestamp = parseTimestampOrGetJoinTime(timestampStr, userId, roomId);
-            result.put(userId, timestamp);
+            String timestampStr = (lastReadValues != null && i < lastReadValues.size()) ? lastReadValues.get(i) : null;
+
+            if (timestampStr != null) {
+                result.put(userId, parseTimestamp(timestampStr));
+            } else {
+                String joinTimeStr = (joinTimeValues != null && i < joinTimeValues.size()) ? joinTimeValues.get(i) : null;
+                result.put(userId, parseTimestamp(joinTimeStr));
+            }
         }
         return result;
     }

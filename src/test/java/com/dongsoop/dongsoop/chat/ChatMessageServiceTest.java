@@ -110,8 +110,8 @@ class ChatMessageServiceTest {
         ChatMessage msg1 = ChatMessage.builder().content("msg1").build();
         ChatMessage msg2 = ChatMessage.builder().content("msg2").build();
 
-        when(redisChatRepository.findLastMessageByRoomId("room1")).thenReturn(msg1);
-        when(redisChatRepository.findLastMessageByRoomId("room2")).thenReturn(msg2);
+        when(redisChatRepository.findLastMessagesByRoomIds(List.of("room1", "room2")))
+                .thenReturn(Map.of("room1", msg1, "room2", msg2));
 
         Map<String, String> result = chatMessageService.getLastMessageTextsBatch(List.of("room1", "room2"));
 

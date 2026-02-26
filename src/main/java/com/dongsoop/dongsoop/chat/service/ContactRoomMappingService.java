@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class ContactRoomMappingService {
-    private static final String CONTACT_MAPPING_KEY_PREFIX = "contact_mapping";
+    private static final String CONTACT_MAPPING_KEY_PREFIX = "contact";
     private static final String MARKETPLACE = "MARKETPLACE";
 
     private final RedisTemplate<String, Object> redisTemplate;
