@@ -59,16 +59,19 @@ public class ReadStatusService {
         List<String> joinTimeValues = redisTemplate.opsForValue().multiGet(joinTimeKeys);
 
         Map<String, LocalDateTime> result = new HashMap<>();
-        for (int i = 0; i < roomIds.size(); i++) {
-            String roomId = roomIds.get(i);
-            String timestampStr = (lastReadValues != null && i < lastReadValues.size()) ? lastReadValues.get(i) : null;
+        for (int index = 0; index < roomIds.size(); index++) {
+            String roomId = roomIds.get(index);
+            String timestampStr = (lastReadValues != null && index < lastReadValues.size()) ? lastReadValues.get(index) : null;
 
+            // 읽음 시간이 있으면 바로 저장 후 다음으로
             if (timestampStr != null) {
                 result.put(roomId, parseTimestamp(timestampStr));
-            } else {
-                String joinTimeStr = (joinTimeValues != null && i < joinTimeValues.size()) ? joinTimeValues.get(i) : null;
-                result.put(roomId, parseTimestamp(joinTimeStr));
+                continue;
             }
+
+            // 읽음 시간 없으면 joinTime으로 대체
+            String joinTimeStr = (joinTimeValues != null && index < joinTimeValues.size()) ? joinTimeValues.get(index) : null;
+            result.put(roomId, parseTimestamp(joinTimeStr));
         }
         return result;
     }
@@ -87,16 +90,19 @@ public class ReadStatusService {
         List<String> joinTimeValues = redisTemplate.opsForValue().multiGet(joinTimeKeys);
 
         Map<Long, LocalDateTime> result = new HashMap<>();
-        for (int i = 0; i < userIds.size(); i++) {
-            Long userId = userIds.get(i);
-            String timestampStr = (lastReadValues != null && i < lastReadValues.size()) ? lastReadValues.get(i) : null;
+        for (int index = 0; index < userIds.size(); index++) {
+            Long userId = userIds.get(index);
+            String timestampStr = (lastReadValues != null && index < lastReadValues.size()) ? lastReadValues.get(index) : null;
 
+            // 읽음 시간이 있으면 바로 저장 후 다음으로
             if (timestampStr != null) {
                 result.put(userId, parseTimestamp(timestampStr));
-            } else {
-                String joinTimeStr = (joinTimeValues != null && i < joinTimeValues.size()) ? joinTimeValues.get(i) : null;
-                result.put(userId, parseTimestamp(joinTimeStr));
+                continue;
             }
+
+            // 읽음 시간 없으면 joinTime으로 대체
+            String joinTimeStr = (joinTimeValues != null && index < joinTimeValues.size()) ? joinTimeValues.get(index) : null;
+            result.put(userId, parseTimestamp(joinTimeStr));
         }
         return result;
     }

@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.recruitment.apply.tutoring.service;
 
-import com.dongsoop.dongsoop.chat.service.ChatService;
+import com.dongsoop.dongsoop.chat.service.ChatParticipantService;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
@@ -36,7 +36,7 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
     private final TutoringApplyRepository tutoringApplyRepository;
     private final TutoringBoardRepository tutoringBoardRepository;
     private final TutoringApplyRepositoryCustom tutoringApplyRepositoryCustom;
-    private final ChatService chatService;
+    private final ChatParticipantService chatParticipantService;
     private final TutoringApplyNotification tutoringApplyNotification;
 
     public void apply(ApplyTutoringBoardRequest request) {
@@ -116,7 +116,7 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
             return;
         }
 
-        chatService.inviteUserToGroupChat(tutoringBoard.getRoomId(), authorId, applierId);
+        chatParticipantService.inviteUserToGroupChat(tutoringBoard.getRoomId(), authorId, applierId);
     }
 
     @Override

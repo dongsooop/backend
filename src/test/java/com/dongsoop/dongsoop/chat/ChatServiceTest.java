@@ -198,18 +198,6 @@ class ChatServiceTest {
     }
 
     @Test
-    @DisplayName("inviteUserToGroupChat - 서비스 파라미터 없이 호출")
-    void inviteUserToGroupChat_callsWithoutServiceParams() {
-        ChatMessage enterMsg = ChatMessage.builder().messageId("m1").build();
-        when(chatParticipantService.inviteUserToGroupChat("room1", 1L, 2L)).thenReturn(enterMsg);
-
-        ChatMessage result = chatService.inviteUserToGroupChat("room1", 1L, 2L);
-
-        assertThat(result).isEqualTo(enterMsg);
-        verify(chatParticipantService).inviteUserToGroupChat("room1", 1L, 2L);
-    }
-
-    @Test
     @DisplayName("kickUserFromRoom - 서비스 파라미터 없이 호출")
     void kickUserFromRoom_callsWithoutServiceParams() {
         ChatRoom room = ChatRoom.builder().roomId("room1").build();

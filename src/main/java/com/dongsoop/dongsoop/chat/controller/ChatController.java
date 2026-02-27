@@ -4,8 +4,10 @@ import com.dongsoop.dongsoop.chat.dto.*;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
+import com.dongsoop.dongsoop.chat.service.ChatParticipantService;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import com.dongsoop.dongsoop.chat.service.ChatService;
+import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
@@ -25,6 +27,8 @@ import java.util.stream.Collectors;
 public class ChatController {
     private final ChatService chatService;
     private final ChatRoomService chatRoomService;
+    private final ChatParticipantService chatParticipantService;
+    private final ChatValidator chatValidator;
     private final MemberService memberService;
 
     @GetMapping("/room/{roomId}/initialize")
@@ -97,7 +101,8 @@ public class ChatController {
         Long currentUserId = getCurrentUserId();
         Long targetUserId = request.targetUserId();
 
-        ChatMessage inviteMessage = chatService.inviteUserToGroupChat(roomId, currentUserId, targetUserId);
+        // ChatParticipantService 직접 호출
+        ChatMessage inviteMessage = chatParticipantService.inviteUserToGroupChat(roomId, currentUserId, targetUserId);
         return ResponseEntity.ok(inviteMessage);
     }
 
@@ -147,7 +152,8 @@ public class ChatController {
     @GetMapping("/room/{roomId}/participants")
     public ResponseEntity<Map<Long, String>> getRoomParticipants(@PathVariable("roomId") String roomId) {
         Long currentUserId = getCurrentUserId();
-        chatService.validateUserAccess(roomId, currentUserId);
+        // ChatValidator 직접 호출
+        chatValidator.validateUserForRoom(roomId, currentUserId);
 
         ChatRoom room = chatRoomService.getChatRoomById(roomId);
 

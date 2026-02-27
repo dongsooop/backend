@@ -2,8 +2,10 @@ package com.dongsoop.dongsoop.chat;
 
 import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
 import com.dongsoop.dongsoop.chat.controller.ChatController;
+import com.dongsoop.dongsoop.chat.service.ChatParticipantService;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import com.dongsoop.dongsoop.chat.service.ChatService;
+import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
@@ -30,6 +32,10 @@ class ChatControllerTest {
     private ChatService chatService;
     @MockitoBean
     private ChatRoomService chatRoomService;
+    @MockitoBean
+    private ChatParticipantService chatParticipantService;
+    @MockitoBean
+    private ChatValidator chatValidator;
     @MockitoBean
     private MemberService memberService;
     @MockitoBean

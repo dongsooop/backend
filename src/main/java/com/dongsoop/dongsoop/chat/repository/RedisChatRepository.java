@@ -103,13 +103,16 @@ public class RedisChatRepository implements ChatRepository {
 
         int index = 0;
         for (String roomId : roomIds) {
-            if (lastMessageIdByRoom.containsKey(roomId)) {
-                Object msg = (messages != null && index < messages.size()) ? messages.get(index) : null;
-                if (msg instanceof ChatMessage chatMessage) {
-                    result.put(roomId, chatMessage);
-                }
-                index++;
+            // 마지막 메시지가 없는 방은 건너뜀
+            if (!lastMessageIdByRoom.containsKey(roomId)) {
+                continue;
             }
+
+            Object msg = (messages != null && index < messages.size()) ? messages.get(index) : null;
+            if (msg instanceof ChatMessage chatMessage) {
+                result.put(roomId, chatMessage);
+            }
+            index++;
         }
 
         return result;

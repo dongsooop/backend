@@ -8,6 +8,7 @@ import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatNotificationType;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
+import com.dongsoop.dongsoop.chat.entity.ChatRoomType;
 import com.dongsoop.dongsoop.chat.notification.ChatNotification;
 import com.dongsoop.dongsoop.chat.session.WebSocketSessionManager;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
@@ -111,7 +112,7 @@ public class ChatService {
 
         for (Long participantId : participantList) {
             LocalDateTime lastReadTime = lastReadTimestamps.get(participantId);
-            int unreadCount = calculateUnreadCountFromTimestamp(roomId, participantId, lastReadTime);
+            int unreadCount = calculateUnreadCount(roomId, participantId, lastReadTime);
             ChatRoomUpdateDto updateDto = ChatRoomUpdateDto.createRoomUpdate(roomId, message, unreadCount);
             messagingTemplate.convertAndSend("/topic/user/" + participantId, updateDto);
         }
@@ -147,7 +148,7 @@ public class ChatService {
                 .map(room -> {
                     String roomId = room.getRoomId();
                     LocalDateTime lastReadTime = lastReadTimestamps.get(roomId);
-                    int unreadCount = calculateUnreadCountFromTimestamp(roomId, userId, lastReadTime);
+                    int unreadCount = calculateUnreadCount(roomId, userId, lastReadTime);
                     String lastMessage = lastMessages.get(roomId);
 
                     return ChatRoomListResponse.builder()
@@ -196,18 +197,6 @@ public class ChatService {
 
     public List<ChatRoom> getRoomsForUserId(Long userId) {
         return chatRoomService.getRoomsForUserId(userId);
-    }
-
-    public ChatMessage inviteUserToGroupChat(String roomId, Long inviterId, Long targetUserId) {
-        return chatParticipantService.inviteUserToGroupChat(roomId, inviterId, targetUserId);
-    }
-
-    public ChatMessage checkFirstTimeEntryAndCreateEnterMessage(String roomId, Long userId) {
-        return chatParticipantService.checkFirstTimeEntryAndCreateEnterMessage(roomId, userId);
-    }
-
-    public void validateUserAccess(String roomId, Long userId) {
-        chatValidator.validateUserForRoom(roomId, userId);
     }
 
     private ChatRoomInitResponse buildChatRoomInitResponse(ChatRoom room, List<ChatMessage> messages,
@@ -261,6 +250,7 @@ public class ChatService {
         }
     }
 
+    // 마지막 읽음 시간 이후 안 읽은 메시지 수 계산
     private int calculateUnreadCount(String roomId, Long userId, LocalDateTime lastReadTime) {
         if (lastReadTime == null) {
             return 0;
@@ -270,23 +260,15 @@ public class ChatService {
         return chatMessageService.countUnreadMessages(unreadMessages, userId);
     }
 
-    private int calculateUnreadCountFromTimestamp(String roomId, Long userId, LocalDateTime lastReadTime) {
-        if (lastReadTime == null) {
-            return 0;
-        }
-
-        List<ChatMessage> unreadMessages = chatMessageService.loadMessagesAfterJoinTime(roomId, lastReadTime);
-        return chatMessageService.countUnreadMessages(unreadMessages, userId);
-    }
-
+    // 채팅방 유형 판별
     private String determineRoomType(ChatRoom room) {
         if (room.getTitle() != null && room.getTitle().startsWith("[문의]")) {
-            return "contact";
+            return ChatRoomType.CONTACT.getValue();
         }
         if (room.isGroupChat()) {
-            return "group";
+            return ChatRoomType.GROUP.getValue();
         }
-        return "oneToOne";
+        return ChatRoomType.ONE_TO_ONE.getValue();
     }
 
     public BlockStatus getBlockStatus(String roomId, Long userId) {

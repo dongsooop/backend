@@ -12,11 +12,9 @@ public final class ChatMessageUtils {
     private ChatMessageUtils() {
     }
 
+    // userId가 null이거나 0 이하이면 접근 거부
     public static void validatePositiveUserId(Long userId) {
-        if (userId == null) {
-            throw new UnauthorizedChatAccessException();
-        }
-        if (userId <= 0) {
+        if (userId == null || userId <= 0) {
             throw new UnauthorizedChatAccessException();
         }
     }
@@ -49,13 +47,13 @@ public final class ChatMessageUtils {
         }
     }
 
+    // message null이면 무시
     public static void enrichMessage(ChatMessage message) {
+        if (message == null) {
+            return;
+        }
         enrichMessageId(message);
         enrichMessageTimestamp(message);
         enrichMessageType(message);
-    }
-
-    public static boolean isEmpty(String str) {
-        return str == null || str.trim().isEmpty();
     }
 }

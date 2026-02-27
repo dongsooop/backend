@@ -119,6 +119,13 @@ public class ChatRoom {
         this.lastActivityAt = getCurrentTime();
     }
 
+    // 자발적 퇴장 — 참여자/입장시간만 제거, kickedUsers에 추가하지 않음
+    public void leaveRoom(Long userId) {
+        participants.remove(userId);
+        participantJoinTimes.remove(userId);
+        updateActivity();
+    }
+
     public void kickUser(Long userId) {
         participants.remove(userId);
         participantJoinTimes.remove(userId);

@@ -113,8 +113,9 @@ public class ChatParticipantService {
         chatMessageService.createAndSaveSystemMessage(roomId, userToKick, MessageType.LEAVE);
     }
 
+    // 자발적 퇴장 — kickedUsers에 추가하지 않음
     private void processUserLeaveWithMessage(ChatRoom room, String roomId, Long userId) {
-        room.kickUser(userId);
+        room.leaveRoom(userId);
         chatMessageService.createAndSaveSystemMessage(roomId, userId, MessageType.LEAVE);
     }
 

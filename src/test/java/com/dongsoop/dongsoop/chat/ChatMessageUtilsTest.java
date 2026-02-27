@@ -118,26 +118,8 @@ class ChatMessageUtilsTest {
     }
 
     @Test
-    @DisplayName("isEmpty - null이면 true를 반환한다")
-    void isEmpty_returnsTrueForNull() {
-        assertTrue(ChatMessageUtils.isEmpty(null));
-    }
-
-    @Test
-    @DisplayName("isEmpty - 빈 문자열이면 true를 반환한다")
-    void isEmpty_returnsTrueForEmptyString() {
-        assertTrue(ChatMessageUtils.isEmpty(""));
-    }
-
-    @Test
-    @DisplayName("isEmpty - 공백만 있는 문자열이면 true를 반환한다")
-    void isEmpty_returnsTrueForBlankString() {
-        assertTrue(ChatMessageUtils.isEmpty("   "));
-    }
-
-    @Test
-    @DisplayName("isEmpty - 비어있지 않은 문자열이면 false를 반환한다")
-    void isEmpty_returnsFalseForNonEmptyString() {
-        assertFalse(ChatMessageUtils.isEmpty("hello"));
+    @DisplayName("enrichMessage - null 메시지를 전달하면 예외 없이 무시한다")
+    void enrichMessage_handlesNullMessageGracefully() {
+        assertDoesNotThrow(() -> ChatMessageUtils.enrichMessage(null));
     }
 }

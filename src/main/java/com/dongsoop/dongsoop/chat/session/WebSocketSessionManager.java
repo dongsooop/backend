@@ -22,6 +22,7 @@ public class WebSocketSessionManager {
     public void removeSession(String sessionId) {
         Long userId = sessionToUser.remove(sessionId);
         if (userId != null) {
+            // 현재 세션과 일치하면 매핑 제거 (null → ConcurrentHashMap에서 키 삭제)
             userSessions.computeIfPresent(userId, (key, currentSession) ->
                     sessionId.equals(currentSession) ? null : currentSession);
         }

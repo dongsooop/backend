@@ -6,8 +6,6 @@ import com.dongsoop.dongsoop.chat.repository.ChatRoomJpaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -15,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChatBackupWorker {
     private final ChatRoomJpaRepository chatRoomJpaRepository;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void backupRoom(ChatRoom room) {
         ChatRoomEntity entity = room.toChatRoomEntity();
         chatRoomJpaRepository.save(entity);

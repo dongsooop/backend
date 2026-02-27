@@ -12,6 +12,7 @@ import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoard
 import com.dongsoop.dongsoop.search.entity.BoardType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Set;
@@ -179,8 +180,8 @@ public class ChatRoomService {
     }
 
     private void updateRoomTitleIfNeeded(ChatRoom existingRoom, String requestedTitle) {
-        boolean hasRequestedTitle = !ChatMessageUtils.isEmpty(requestedTitle);
-        boolean currentTitleEmpty = ChatMessageUtils.isEmpty(existingRoom.getTitle());
+        boolean hasRequestedTitle = StringUtils.hasText(requestedTitle);
+        boolean currentTitleEmpty = !StringUtils.hasText(existingRoom.getTitle());
 
         if (hasRequestedTitle && currentTitleEmpty) {
             existingRoom.setTitle(requestedTitle);
