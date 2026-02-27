@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import com.dongsoop.dongsoop.jwt.exception.JWTException;
 import com.dongsoop.dongsoop.jwt.exception.TokenNotFoundException;
+import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,7 +29,6 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 @Slf4j
 public class JwtFilter extends OncePerRequestFilter {
 
-
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
     private static final int TOKEN_START_INDEX = BEARER_PREFIX.length();
@@ -36,17 +36,18 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final JwtValidator jwtValidator;
+    private final DeviceBlacklistService deviceBlacklistService;
     private final HandlerExceptionResolver exceptionResolver;
     private final String[] ignorePaths;
 
-
     public JwtFilter(JwtUtil jwtUtil,
                      JwtValidator jwtValidator,
+                     DeviceBlacklistService deviceBlacklistService,
                      @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver,
                      @Value("${authentication.filter.ignore.paths}") String[] ignorePaths) {
         this.jwtUtil = jwtUtil;
         this.jwtValidator = jwtValidator;
-
+        this.deviceBlacklistService = deviceBlacklistService;
         this.exceptionResolver = exceptionResolver;
         this.ignorePaths = ignorePaths;
     }
@@ -60,6 +61,13 @@ public class JwtFilter extends OncePerRequestFilter {
             Claims claims = jwtUtil.getClaims(token);
             jwtValidator.validate(claims);
             jwtValidator.validateAccessToken(claims);
+
+            // deviceId claim이 있는 경우에만 블랙리스트 검사 (없으면 기존 토큰으로 간주하여 스킵)
+            Long deviceId = claims.get(JwtUtil.DEVICE_ID_CLAIM, Long.class);
+            if (deviceId != null) {
+                deviceBlacklistService.validateNotBlacklisted(deviceId, claims.getIssuedAt());
+            }
+
             setAuthentication(token);
             log.debug("JWT token validation successful");
         } catch (TokenNotFoundException exception) {
@@ -85,7 +93,6 @@ public class JwtFilter extends OncePerRequestFilter {
         return Arrays.stream(ignorePaths)
                 .anyMatch(allowPath -> PATH_MATCHER.match(allowPath, path));
     }
-
 
     private String extractTokenFromHeader(HttpServletRequest request) throws TokenNotFoundException {
         String tokenHeader = request.getHeader(AUTHORIZATION_HEADER);

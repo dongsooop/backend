@@ -11,7 +11,9 @@ import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
+import com.dongsoop.dongsoop.jwt.exception.BlacklistedTokenException;
 import com.dongsoop.dongsoop.jwt.exception.TokenMalformedException;
+import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
@@ -48,11 +50,13 @@ class JwtFilterAuthenticationTest {
     private Claims claims;
     @Mock
     private Authentication authentication;
+    @Mock
+    private DeviceBlacklistService deviceBlacklistService;
     private JwtFilter jwtFilter;
 
     @BeforeEach
     void setUp() {
-        jwtFilter = new JwtFilter(jwtUtil, jwtValidator, exceptionResolver, ignorePaths);
+        jwtFilter = new JwtFilter(jwtUtil, jwtValidator, deviceBlacklistService, exceptionResolver, ignorePaths);
         SecurityContextHolder.clearContext();
     }
 
@@ -120,6 +124,28 @@ class JwtFilterAuthenticationTest {
 
         when(jwtUtil.getClaims(token)).thenReturn(claims);
         doThrow(new TokenMalformedException()).when(jwtValidator).validate(claims);
+
+        // when
+        jwtFilter.doFilterInternal(request, response, filterChain);
+
+        // then
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        verify(jwtUtil, never()).getAuthenticationByToken(any());
+        verify(filterChain, never()).doFilter(any(), any());
+    }
+
+    @Test
+    @DisplayName("블랙리스트에 등록된 디바이스 토큰은 인증 정보를 설정하지 않는다")
+    void whenBlacklistedDevice_thenNoAuthenticationSet() throws Exception {
+        // given
+        String token = "blacklistedToken";
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
+        when(jwtUtil.getClaims(token)).thenReturn(claims);
+        doNothing().when(jwtValidator).validate(claims);
+        doNothing().when(jwtValidator).validateAccessToken(claims);
+        when(claims.get(JwtUtil.DEVICE_ID_CLAIM, Long.class)).thenReturn(42L);
+        doThrow(new BlacklistedTokenException()).when(deviceBlacklistService)
+                .validateNotBlacklisted(any(), any());
 
         // when
         jwtFilter.doFilterInternal(request, response, filterChain);

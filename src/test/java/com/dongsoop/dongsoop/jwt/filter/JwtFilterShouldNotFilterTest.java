@@ -5,6 +5,7 @@ import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
+import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -38,11 +39,13 @@ class JwtFilterShouldNotFilterTest {
     private HttpServletResponse response;
     @Mock
     private FilterChain filterChain;
+    @Mock
+    private DeviceBlacklistService deviceBlacklistService;
     private JwtFilter jwtFilter;
 
     @BeforeEach
     void setUp() {
-        jwtFilter = new JwtFilter(jwtUtil, jwtValidator, exceptionResolver, ignorePaths);
+        jwtFilter = new JwtFilter(jwtUtil, jwtValidator, deviceBlacklistService, exceptionResolver, ignorePaths);
     }
 
     @Test

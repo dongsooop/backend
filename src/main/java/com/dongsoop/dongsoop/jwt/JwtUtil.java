@@ -7,6 +7,7 @@ import com.dongsoop.dongsoop.jwt.exception.TokenSignatureException;
 import com.dongsoop.dongsoop.jwt.exception.TokenUnsupportedException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
@@ -77,16 +78,24 @@ public class JwtUtil {
         }
     }
 
-    protected String issue(Date tokenExpiredTime, String id, List<String> roleList, JWTType type) {
+    public static final String DEVICE_ID_CLAIM = "did";
+
+    protected String issue(Date tokenExpiredTime, String id, List<String> roleList, JWTType type, Long deviceId) {
         SecretKey key = jwtKeyManager.getSecretKey();
 
-        return Jwts.builder()
+        JwtBuilder builder = Jwts.builder()
                 .subject(id)
                 .claim(roleClaimName, roleList)
                 .claim(typeClaimName, type.name())
+                .issuedAt(new Date())
                 .signWith(key)
-                .expiration(tokenExpiredTime)
-                .compact();
+                .expiration(tokenExpiredTime);
+
+        if (deviceId != null) {
+            builder.claim(DEVICE_ID_CLAIM, deviceId);
+        }
+
+        return builder.compact();
     }
 
     public AuthenticationInformationByToken getTokenInformation(String token) {

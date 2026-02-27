@@ -2,6 +2,8 @@ package com.dongsoop.dongsoop.oauth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -12,6 +14,7 @@ import com.dongsoop.dongsoop.member.dto.LoginMemberDetails;
 import com.dongsoop.dongsoop.member.dto.LoginResponse;
 import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
+import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.oauth.entity.MemberSocialAccount;
 import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
 import com.dongsoop.dongsoop.oauth.exception.InvalidProviderTypeException;
@@ -52,6 +55,9 @@ class OAuth2ServiceTest {
     private MemberRepository memberRepository;
 
     @Mock
+    private MemberDeviceRepository memberDeviceRepository;
+
+    @Mock
     private TokenGenerator tokenGenerator;
 
     @Mock
@@ -76,12 +82,12 @@ class OAuth2ServiceTest {
                 List.of(RoleType.USER)
         );
 
-        when(tokenGenerator.generateAccessToken(authentication)).thenReturn(ACCESS_TOKEN);
-        when(tokenGenerator.generateRefreshToken(authentication)).thenReturn(REFRESH_TOKEN);
+        when(tokenGenerator.generateAccessToken(eq(authentication), any())).thenReturn(ACCESS_TOKEN);
+        when(tokenGenerator.generateRefreshToken(eq(authentication), any())).thenReturn(REFRESH_TOKEN);
         when(memberRepository.findLoginMemberDetailById(MEMBER_ID)).thenReturn(Optional.of(memberDetails));
 
         // when
-        LoginResponse response = oAuth2Service.acceptLogin(authentication, MEMBER_ID);
+        LoginResponse response = oAuth2Service.acceptLogin(authentication, MEMBER_ID, null);
 
         // then
         assertThat(response).isNotNull();
@@ -90,8 +96,8 @@ class OAuth2ServiceTest {
         assertThat(response.getId()).isEqualTo(MEMBER_ID);
         assertThat(response.getNickname()).isEqualTo("테스터");
 
-        verify(tokenGenerator).generateAccessToken(authentication);
-        verify(tokenGenerator).generateRefreshToken(authentication);
+        verify(tokenGenerator).generateAccessToken(eq(authentication), any());
+        verify(tokenGenerator).generateRefreshToken(eq(authentication), any());
         verify(memberRepository).findLoginMemberDetailById(MEMBER_ID);
     }
 
@@ -100,12 +106,12 @@ class OAuth2ServiceTest {
     void acceptLogin_MemberNotFound() {
         // given
         Authentication authentication = mock(Authentication.class);
-        when(tokenGenerator.generateAccessToken(authentication)).thenReturn(ACCESS_TOKEN);
-        when(tokenGenerator.generateRefreshToken(authentication)).thenReturn(REFRESH_TOKEN);
+        when(tokenGenerator.generateAccessToken(eq(authentication), any())).thenReturn(ACCESS_TOKEN);
+        when(tokenGenerator.generateRefreshToken(eq(authentication), any())).thenReturn(REFRESH_TOKEN);
         when(memberRepository.findLoginMemberDetailById(MEMBER_ID)).thenReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> oAuth2Service.acceptLogin(authentication, MEMBER_ID))
+        assertThatThrownBy(() -> oAuth2Service.acceptLogin(authentication, MEMBER_ID, null))
                 .isInstanceOf(MemberNotFoundException.class);
     }
 

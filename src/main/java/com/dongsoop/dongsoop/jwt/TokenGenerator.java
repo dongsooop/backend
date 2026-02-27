@@ -24,7 +24,7 @@ public class TokenGenerator {
     @Value("${jwt.expired-time.refresh-token}")
     private Long refreshTokenExpiredTime;
 
-    public String generateAccessToken(Authentication authentication) {
+    public String generateAccessToken(Authentication authentication, Long deviceId) {
         long now = (new Date()).getTime();
         Date expireAt = new Date(now + this.accessTokenExpiredTime);
 
@@ -34,10 +34,10 @@ public class TokenGenerator {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-        return jwtUtil.issue(expireAt, id, roleList, JWTType.ACCESS);
+        return jwtUtil.issue(expireAt, id, roleList, JWTType.ACCESS, deviceId);
     }
 
-    public String generateRefreshToken(Authentication authentication) {
+    public String generateRefreshToken(Authentication authentication, Long deviceId) {
         long now = (new Date()).getTime();
         Date expireAt = new Date(now + this.refreshTokenExpiredTime);
 
@@ -47,7 +47,7 @@ public class TokenGenerator {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-        return jwtUtil.issue(expireAt, id, roleList, JWTType.REFRESH);
+        return jwtUtil.issue(expireAt, id, roleList, JWTType.REFRESH, deviceId);
     }
 
     public String generateSocialToken(Authentication authentication) {
@@ -60,6 +60,6 @@ public class TokenGenerator {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-        return jwtUtil.issue(expireAt, id, roleList, JWTType.SOCIAL);
+        return jwtUtil.issue(expireAt, id, roleList, JWTType.SOCIAL, null);
     }
 }
