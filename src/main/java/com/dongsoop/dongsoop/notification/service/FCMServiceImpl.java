@@ -245,8 +245,8 @@ public class FCMServiceImpl implements FCMService {
             // 만료된 토큰 확인
             if (isValidToken(exception)) {
                 String invalidToken = tokens.get(i);
-                memberDeviceService.deleteByToken(invalidToken);
-                log.warn("Invalid FCM token removed: {}", invalidToken);
+                memberDeviceService.unbindByToken(invalidToken);
+                log.warn("Invalid FCM token unbound: {}", invalidToken);
 
                 continue;
             }
