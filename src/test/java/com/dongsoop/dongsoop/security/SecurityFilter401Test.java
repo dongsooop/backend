@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.security;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -25,7 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("local")
+@ActiveProfiles("test")
 @DisplayName("보안 필터 체인 401 응답 통합 테스트")
 class SecurityFilter401Test {
 
@@ -66,6 +67,7 @@ class SecurityFilter401Test {
         mockMvc.perform(get("/device/list")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isUnauthorized());
+        verify(deviceBlacklistService).validateNotBlacklisted(any(), any());
     }
 
     @Test
@@ -78,6 +80,7 @@ class SecurityFilter401Test {
         mockMvc.perform(post("/logout")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isUnauthorized());
+        verify(deviceBlacklistService).validateNotBlacklisted(any(), any());
     }
 
     private String generateAccessToken(Long memberId, Long deviceId) {
