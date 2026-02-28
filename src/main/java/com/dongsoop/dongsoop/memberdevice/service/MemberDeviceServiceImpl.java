@@ -105,6 +105,16 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
      * {@inheritDoc}
      */
     @Override
+    @Transactional
+    public void unbindByToken(String deviceToken) {
+        memberDeviceRepository.findByDeviceToken(deviceToken)
+                .ifPresent(device -> device.bindMember(null));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public List<MemberDeviceResponse> getDeviceList(Long memberId, String currentDeviceToken) {
         return memberDeviceRepository.findDeviceListByMemberId(memberId, currentDeviceToken);
     }

@@ -19,6 +19,16 @@ public interface MemberDeviceService {
     void deleteByToken(String deviceToken);
 
     /**
+     * FCM 토큰으로 기기와 회원 간의 바인딩을 해제한다.
+     *
+     * <p>기기의 member 참조를 {@code null}로 설정하여 익명 상태로 전환한다.
+     * 알림 설정 등 기기에 연관된 데이터는 유지된다.
+     *
+     * @param deviceToken 바인딩을 해제할 기기의 FCM 토큰
+     */
+    void unbindByToken(String deviceToken);
+
+    /**
      * 회원의 등록 기기 목록을 조회한다.
      *
      * @param memberId            조회할 회원의 ID
