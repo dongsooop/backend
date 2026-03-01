@@ -107,7 +107,7 @@ public class ChatMessageService {
                 .roomId(roomId)
                 .senderId(userId)
                 .content(content)
-                .timestamp(ChatMessageUtils.getCurrentTime())
+                .timestamp(LocalDateTime.now())
                 .type(type)
                 .build();
     }

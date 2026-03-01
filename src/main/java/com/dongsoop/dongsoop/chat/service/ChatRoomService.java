@@ -68,13 +68,6 @@ public class ChatRoomService {
         return saveRoom(room);
     }
 
-    public void deleteRoomIfEmpty(ChatRoom room) {
-        boolean roomEmpty = room.getParticipants().isEmpty();
-        if (roomEmpty) {
-            deleteRoom(room.getRoomId());
-        }
-    }
-
     public void handleContactRoomLeave(String roomId, Long userId) {
         ChatRoom room = getChatRoomById(roomId);
         contactRoomMappingService.deleteContactRoomMapping(roomId);
@@ -129,21 +122,26 @@ public class ChatRoomService {
         String title = buildChatRoomTitle(boardType, boardTitle);
         ChatRoom room = createNewOneToOneRoom(userId, targetUserId, title);
 
-        contactRoomMappingService.saveContactRoomMapping(userId, targetUserId, boardType, boardId, room.getRoomId());
+        try {
+            contactRoomMappingService.saveContactRoomMapping(userId, targetUserId, boardType, boardId, room.getRoomId());
+        } catch (Exception e) {
+            deleteRoom(room.getRoomId());
+            throw e;
+        }
 
         return room;
     }
 
     private String buildChatRoomTitle(BoardType boardType, String boardTitle) {
         if (boardType == BoardType.MARKETPLACE) {
-            return String.format("[거래] %s", boardTitle);
+            return String.format("%s %s", ChatRoom.TRADE_ROOM_TITLE_PREFIX, boardTitle);
         }
 
         if (boardType == BoardType.BLINDDATE) {
-            return String.format("[과팅] %s", boardTitle);
+            return String.format("%s %s", ChatRoom.BLINDDATE_ROOM_TITLE_PREFIX, boardTitle);
         }
 
-        return String.format("[문의] %s", boardTitle);
+        return String.format("%s %s", ChatRoom.CONTACT_ROOM_TITLE_PREFIX, boardTitle);
     }
 
     private void validateBoard(BoardType boardType, Long boardId) {

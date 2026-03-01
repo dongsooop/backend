@@ -23,10 +23,6 @@ public final class ChatMessageUtils {
         return UUID.randomUUID().toString();
     }
 
-    public static LocalDateTime getCurrentTime() {
-        return LocalDateTime.now();
-    }
-
     public static void enrichMessageId(ChatMessage message) {
         String currentMessageId = message.getMessageId();
 
@@ -37,7 +33,7 @@ public final class ChatMessageUtils {
 
     public static void enrichMessageTimestamp(ChatMessage message) {
         if (message.getTimestamp() == null) {
-            message.setTimestamp(getCurrentTime());
+            message.setTimestamp(LocalDateTime.now());
         }
     }
 

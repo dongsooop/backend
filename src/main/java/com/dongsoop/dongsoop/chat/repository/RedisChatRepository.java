@@ -149,11 +149,21 @@ public class RedisChatRepository implements ChatRepository {
             return Collections.emptyList();
         }
 
-        return activeRoomIds.stream()
-                .map(id -> findRoomById(id.toString()).orElse(null))
-                .filter(Objects::nonNull)
-                .filter(room -> isLastActivityBefore(room, cutoffTime))
-                .toList();
+        List<ChatRoom> result = new ArrayList<>();
+        for (Object id : activeRoomIds) {
+            String roomId = id.toString();
+            ChatRoom room = findRoomById(roomId).orElse(null);
+
+            if (room == null) {
+                redisTemplate.opsForSet().remove(ACTIVE_ROOMS_KEY, id);
+                continue;
+            }
+
+            if (isLastActivityBefore(room, cutoffTime)) {
+                result.add(room);
+            }
+        }
+        return result;
     }
 
     public void deleteRoom(String roomId) {

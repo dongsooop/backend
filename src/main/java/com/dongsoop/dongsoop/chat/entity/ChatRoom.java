@@ -13,6 +13,9 @@ import java.util.*;
 @AllArgsConstructor
 public class ChatRoom {
     private static final String DEFAULT_GROUP_TITLE = "그룹 채팅";
+    public static final String CONTACT_ROOM_TITLE_PREFIX = "[문의]";
+    public static final String TRADE_ROOM_TITLE_PREFIX = "[거래]";
+    public static final String BLINDDATE_ROOM_TITLE_PREFIX = "[과팅]";
 
     private String roomId;
     private String title;
@@ -135,6 +138,10 @@ public class ChatRoom {
 
     public boolean isKicked(Long userId) {
         return ensureKickedUsersSet().contains(userId);
+    }
+
+    public boolean isContactRoom() {
+        return title != null && title.startsWith(CONTACT_ROOM_TITLE_PREFIX);
     }
 
     private LocalDateTime getEffectiveCreatedAt() {

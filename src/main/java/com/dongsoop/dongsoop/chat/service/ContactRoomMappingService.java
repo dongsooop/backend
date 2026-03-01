@@ -31,10 +31,11 @@ public class ContactRoomMappingService {
         redisTemplate.opsForValue().set(mappingKey, roomId);
 
         String reverseMappingKey = "room_to_contact:" + roomId;
+        String boardTypeCode = boardType != null ? boardType.getCode() : MARKETPLACE;
         String boardInfo = String.format("%d:%d:%s:%d",
                 Math.min(userId, targetUserId),
                 Math.max(userId, targetUserId),
-                boardType.getCode(),
+                boardTypeCode,
                 boardId);
         redisTemplate.opsForValue().set(reverseMappingKey, boardInfo);
     }

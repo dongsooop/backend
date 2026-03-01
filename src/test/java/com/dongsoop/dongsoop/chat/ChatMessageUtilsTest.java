@@ -24,14 +24,6 @@ class ChatMessageUtilsTest {
     }
 
     @Test
-    @DisplayName("getCurrentTime - non-null LocalDateTime을 반환한다")
-    void getCurrentTime_returnsNonNull() {
-        LocalDateTime time = ChatMessageUtils.getCurrentTime();
-
-        assertNotNull(time);
-    }
-
-    @Test
     @DisplayName("validatePositiveUserId - null이면 UnauthorizedChatAccessException을 던진다")
     void validatePositiveUserId_throwsOnNull() {
         assertThrows(UnauthorizedChatAccessException.class,

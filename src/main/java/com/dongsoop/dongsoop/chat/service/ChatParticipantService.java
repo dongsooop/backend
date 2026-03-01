@@ -45,9 +45,7 @@ public class ChatParticipantService {
     public void leaveChatRoom(String roomId, Long userId) {
         ChatRoom room = chatRoomService.getChatRoomById(roomId);
 
-        boolean isContactRoom = room.getTitle() != null && room.getTitle().startsWith("[문의]");
-
-        if (isContactRoom) {
+        if (room.isContactRoom()) {
             chatRoomService.handleContactRoomLeave(roomId, userId);
             chatMessageService.createAndSaveSystemMessage(roomId, userId, MessageType.LEAVE);
             return;
@@ -55,7 +53,10 @@ public class ChatParticipantService {
 
         processUserLeaveWithMessage(room, roomId, userId);
         chatRoomService.saveRoom(room);
-        chatRoomService.deleteRoomIfEmpty(room);
+
+        if (room.getParticipants().isEmpty()) {
+            chatRoomService.deleteRoom(room.getRoomId());
+        }
     }
 
     public ChatMessage checkFirstTimeEntryAndCreateEnterMessage(String roomId, Long userId) {
@@ -97,7 +98,7 @@ public class ChatParticipantService {
     }
 
     private void addUserToGroupChatRoom(ChatRoom room, Long userId) {
-        LocalDateTime joinTime = ChatMessageUtils.getCurrentTime();
+        LocalDateTime joinTime = LocalDateTime.now();
         room.addNewParticipant(userId);
         chatRoomService.saveRoom(room);
 
@@ -151,7 +152,7 @@ public class ChatParticipantService {
     }
 
     private LocalDateTime addNewParticipantAndGetJoinTime(ChatRoom room, Long userId) {
-        LocalDateTime joinTime = ChatMessageUtils.getCurrentTime();
+        LocalDateTime joinTime = LocalDateTime.now();
         room.addNewParticipant(userId);
         chatRoomService.saveRoom(room);
         return joinTime;

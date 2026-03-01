@@ -104,7 +104,6 @@ class ChatParticipantServiceTest {
 
         verify(chatMessageService).createAndSaveSystemMessage("room1", 2L, MessageType.LEAVE);
         verify(chatRoomService).saveRoom(any());
-        verify(chatRoomService).deleteRoomIfEmpty(any());
     }
 
     @Test
