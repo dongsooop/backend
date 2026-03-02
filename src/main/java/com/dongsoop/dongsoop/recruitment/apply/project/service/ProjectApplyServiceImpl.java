@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.recruitment.apply.project.service;
 
-import com.dongsoop.dongsoop.chat.service.ChatService;
+import com.dongsoop.dongsoop.chat.service.ChatParticipantService;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
@@ -41,7 +41,7 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
     private final ProjectBoardRepository projectBoardRepository;
     private final ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
     private final ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
-    private final ChatService chatService;
+    private final ChatParticipantService chatParticipantService;
     private final ProjectApplyNotification projectApplyNotification;
 
     public void apply(ApplyProjectBoardRequest request) {
@@ -136,7 +136,7 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
             return;
         }
 
-        chatService.inviteUserToGroupChat(projectBoard.getRoomId(), authorId, applierId);
+        chatParticipantService.inviteUserToGroupChat(projectBoard.getRoomId(), authorId, applierId);
     }
 
     @Override

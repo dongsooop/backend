@@ -13,6 +13,7 @@ import com.dongsoop.dongsoop.chat.exception.UserNotInRoomException;
 import com.dongsoop.dongsoop.chat.repository.ChatRepository;
 import com.dongsoop.dongsoop.chat.service.ChatSyncService;
 import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
+import com.dongsoop.dongsoop.chat.util.ChatMessageUtils;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.Optional;
@@ -53,7 +54,7 @@ public class ChatValidator {
         validateMessageRequirements(message);
         validateUserForRoom(message.getRoomId(), message.getSenderId());
 
-        ChatCommonUtils.enrichMessage(message);
+        ChatMessageUtils.enrichMessage(message);
         return message;
     }
 

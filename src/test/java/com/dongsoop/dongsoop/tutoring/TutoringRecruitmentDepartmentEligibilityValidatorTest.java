@@ -8,7 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.dongsoop.dongsoop.chat.service.ChatService;
+import com.dongsoop.dongsoop.chat.service.ChatParticipantService;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
@@ -52,7 +52,7 @@ class TutoringRecruitmentDepartmentEligibilityValidatorTest {
     private TutoringApplyRepositoryCustom tutoringApplyRepositoryCustom;
 
     @Mock
-    private ChatService chatService;
+    private ChatParticipantService chatParticipantService;
 
     @Mock
     private TutoringApplyNotification tutoringApplyNotification;

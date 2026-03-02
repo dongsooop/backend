@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.recruitment.apply.study.service;
 
-import com.dongsoop.dongsoop.chat.service.ChatService;
+import com.dongsoop.dongsoop.chat.service.ChatParticipantService;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
@@ -41,7 +41,7 @@ public class StudyApplyServiceImpl implements StudyApplyService {
     private final StudyBoardRepository studyBoardRepository;
     private final StudyBoardDepartmentRepository studyBoardDepartmentRepository;
     private final StudyApplyRepositoryCustom studyApplyRepositoryCustom;
-    private final ChatService chatService;
+    private final ChatParticipantService chatParticipantService;
     private final StudyApplyNotification studyApplyNotification;
 
     public void apply(ApplyStudyBoardRequest request) {
@@ -136,7 +136,7 @@ public class StudyApplyServiceImpl implements StudyApplyService {
             return;
         }
 
-        chatService.inviteUserToGroupChat(studyBoard.getRoomId(), authorId, applierId);
+        chatParticipantService.inviteUserToGroupChat(studyBoard.getRoomId(), authorId, applierId);
     }
 
 

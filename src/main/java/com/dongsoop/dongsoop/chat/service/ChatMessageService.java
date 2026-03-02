@@ -3,14 +3,16 @@ package com.dongsoop.dongsoop.chat.service;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.MessageType;
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
-import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
+import com.dongsoop.dongsoop.chat.util.ChatMessageUtils;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -22,7 +24,7 @@ public class ChatMessageService {
 
     public ChatMessage processMessage(ChatMessage message) {
         ChatMessage enrichedMessage = chatValidator.validateAndEnrichMessage(message);
-        redisChatRepository.saveMessage(message);
+        redisChatRepository.saveMessage(enrichedMessage);
         return enrichedMessage;
     }
 
@@ -77,6 +79,16 @@ public class ChatMessageService {
         return redisChatRepository.findMessagesByRoomIdAfterId(roomId, messageId);
     }
 
+    public Map<String, String> getLastMessageTextsBatch(List<String> roomIds) {
+        Map<String, ChatMessage> lastMessages = redisChatRepository.findLastMessagesByRoomIds(roomIds);
+        Map<String, String> result = new HashMap<>();
+        for (String roomId : roomIds) {
+            ChatMessage message = lastMessages.get(roomId);
+            result.put(roomId, message != null ? message.getContent() : null);
+        }
+        return result;
+    }
+
     public String getLastMessageText(String roomId) {
         ChatMessage lastMessage = redisChatRepository.findLastMessageByRoomId(roomId);
 
@@ -91,11 +103,11 @@ public class ChatMessageService {
         String content = createSystemMessageContent(userId, type);
 
         return ChatMessage.builder()
-                .messageId(ChatCommonUtils.generateMessageId())
+                .messageId(ChatMessageUtils.generateMessageId())
                 .roomId(roomId)
                 .senderId(userId)
                 .content(content)
-                .timestamp(ChatCommonUtils.getCurrentTime())
+                .timestamp(LocalDateTime.now())
                 .type(type)
                 .build();
     }
@@ -134,7 +146,7 @@ public class ChatMessageService {
         message.setSenderId(userId);
         message.setRoomId(roomId);
 
-        ChatCommonUtils.enrichMessage(message);
+        ChatMessageUtils.enrichMessage(message);
 
         return message;
     }

@@ -12,8 +12,10 @@ import java.util.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatRoom {
-    private static final int BACKUP_DAYS_THRESHOLD = 25;
     private static final String DEFAULT_GROUP_TITLE = "그룹 채팅";
+    public static final String CONTACT_ROOM_TITLE_PREFIX = "[문의]";
+    public static final String TRADE_ROOM_TITLE_PREFIX = "[거래]";
+    public static final String BLINDDATE_ROOM_TITLE_PREFIX = "[과팅]";
 
     private String roomId;
     private String title;
@@ -120,6 +122,13 @@ public class ChatRoom {
         this.lastActivityAt = getCurrentTime();
     }
 
+    // 자발적 퇴장 — 참여자/입장시간만 제거, kickedUsers에 추가하지 않음
+    public void leaveRoom(Long userId) {
+        participants.remove(userId);
+        participantJoinTimes.remove(userId);
+        updateActivity();
+    }
+
     public void kickUser(Long userId) {
         participants.remove(userId);
         participantJoinTimes.remove(userId);
@@ -131,11 +140,18 @@ public class ChatRoom {
         return ensureKickedUsersSet().contains(userId);
     }
 
+    public boolean isContactRoom() {
+        return title != null && title.startsWith(CONTACT_ROOM_TITLE_PREFIX);
+    }
+
     private LocalDateTime getEffectiveCreatedAt() {
         if (createdAt != null) {
             return createdAt;
         }
-        return getCurrentTime().minusDays(BACKUP_DAYS_THRESHOLD);
+        if (lastActivityAt != null) {
+            return lastActivityAt;
+        }
+        return LocalDateTime.now();
     }
 
     private LocalDateTime getEffectiveLastActivityAt() {

@@ -3,7 +3,7 @@ package com.dongsoop.dongsoop.chat.service;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.exception.BoardNotFoundException;
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
-import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
+import com.dongsoop.dongsoop.chat.util.ChatMessageUtils;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepository;
@@ -11,8 +11,8 @@ import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardReposi
 import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoardRepository;
 import com.dongsoop.dongsoop.search.entity.BoardType;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Set;
@@ -27,7 +27,7 @@ public class ChatRoomService {
     private final StudyBoardRepository studyBoardRepository;
     private final TutoringBoardRepository tutoringBoardRepository;
     private final MarketplaceBoardRepository marketplaceBoardRepository;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final ContactRoomMappingService contactRoomMappingService;
 
     public ChatRoom createOneToOneChatRoom(Long userId, Long targetUserId, String title) {
         validateOneToOneChatCreation(userId, targetUserId);
@@ -68,16 +68,9 @@ public class ChatRoomService {
         return saveRoom(room);
     }
 
-    public void deleteRoomIfEmpty(ChatRoom room) {
-        boolean roomEmpty = room.getParticipants().isEmpty();
-        if (roomEmpty) {
-            deleteRoom(room.getRoomId());
-        }
-    }
-
     public void handleContactRoomLeave(String roomId, Long userId) {
         ChatRoom room = getChatRoomById(roomId);
-        ChatCommonUtils.deleteContactRoomMapping(redisTemplate, roomId);
+        contactRoomMappingService.deleteContactRoomMapping(roomId);
         processUserLeaveWithoutKick(room, userId);
         saveRoom(room);
     }
@@ -90,8 +83,8 @@ public class ChatRoomService {
 
     private void validateOneToOneChatCreation(Long userId, Long targetUserId) {
         chatValidator.validateSelfChat(userId, targetUserId);
-        ChatCommonUtils.validatePositiveUserId(userId);
-        ChatCommonUtils.validatePositiveUserId(targetUserId);
+        ChatMessageUtils.validatePositiveUserId(userId);
+        ChatMessageUtils.validatePositiveUserId(targetUserId);
     }
 
     private void validateGroupChatCreation(Set<Long> participants) {
@@ -121,7 +114,7 @@ public class ChatRoomService {
                                           String boardTitle) {
         validateBoard(boardType, boardId);
 
-        String existingRoomId = ChatCommonUtils.findExistingContactRoomId(redisTemplate, userId, targetUserId, boardType, boardId);
+        String existingRoomId = contactRoomMappingService.findExistingContactRoomId(userId, targetUserId, boardType, boardId);
         if (existingRoomId != null) {
             return getChatRoomById(existingRoomId);
         }
@@ -129,21 +122,26 @@ public class ChatRoomService {
         String title = buildChatRoomTitle(boardType, boardTitle);
         ChatRoom room = createNewOneToOneRoom(userId, targetUserId, title);
 
-        ChatCommonUtils.saveContactRoomMapping(redisTemplate, userId, targetUserId, boardType, boardId, room.getRoomId());
+        try {
+            contactRoomMappingService.saveContactRoomMapping(userId, targetUserId, boardType, boardId, room.getRoomId());
+        } catch (Exception e) {
+            deleteRoom(room.getRoomId());
+            throw e;
+        }
 
-        return saveRoom(room);
+        return room;
     }
 
     private String buildChatRoomTitle(BoardType boardType, String boardTitle) {
         if (boardType == BoardType.MARKETPLACE) {
-            return String.format("[거래] %s", boardTitle);
+            return String.format("%s %s", ChatRoom.TRADE_ROOM_TITLE_PREFIX, boardTitle);
         }
 
         if (boardType == BoardType.BLINDDATE) {
-            return String.format("[과팅] %s", boardTitle);
+            return String.format("%s %s", ChatRoom.BLINDDATE_ROOM_TITLE_PREFIX, boardTitle);
         }
 
-        return String.format("[문의] %s", boardTitle);
+        return String.format("%s %s", ChatRoom.CONTACT_ROOM_TITLE_PREFIX, boardTitle);
     }
 
     private void validateBoard(BoardType boardType, Long boardId) {
@@ -180,8 +178,8 @@ public class ChatRoomService {
     }
 
     private void updateRoomTitleIfNeeded(ChatRoom existingRoom, String requestedTitle) {
-        boolean hasRequestedTitle = !ChatCommonUtils.isEmpty(requestedTitle);
-        boolean currentTitleEmpty = ChatCommonUtils.isEmpty(existingRoom.getTitle());
+        boolean hasRequestedTitle = StringUtils.hasText(requestedTitle);
+        boolean currentTitleEmpty = !StringUtils.hasText(existingRoom.getTitle());
 
         if (hasRequestedTitle && currentTitleEmpty) {
             existingRoom.setTitle(requestedTitle);

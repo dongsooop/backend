@@ -1,12 +1,14 @@
 package com.dongsoop.dongsoop.chat.service;
 
 import com.dongsoop.dongsoop.chat.dto.BlockStatusMessage;
+import com.dongsoop.dongsoop.chat.dto.ChatRoomListResponse;
 import com.dongsoop.dongsoop.chat.dto.ChatRoomUpdateDto;
 import com.dongsoop.dongsoop.chat.dto.ReadStatusUpdateRequest;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatNotificationType;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
+import com.dongsoop.dongsoop.chat.entity.ChatRoomType;
 import com.dongsoop.dongsoop.chat.notification.ChatNotification;
 import com.dongsoop.dongsoop.chat.session.WebSocketSessionManager;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
@@ -14,10 +16,13 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberblock.constant.BlockStatus;
 import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepository;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -42,7 +47,7 @@ public class ChatService {
         chatValidator.validateUserForRoom(roomId, userId);
 
         ChatRoom room = chatRoomService.getChatRoomById(roomId);
-        LocalDateTime userJoinTime = chatParticipantService.determineUserJoinTime(room, userId, chatRoomService);
+        LocalDateTime userJoinTime = chatParticipantService.determineUserJoinTime(room, userId);
         List<ChatMessage> afterJoinMessages = chatMessageService.loadMessagesAfterJoinTime(roomId, userJoinTime);
 
         readStatusService.initializeUserReadStatus(userId, roomId, userJoinTime);
@@ -68,7 +73,7 @@ public class ChatService {
         chatValidator.validateUserForRoom(roomId, userId);
         chatValidator.validateManagerCanLeave(room, userId);
 
-        chatParticipantService.leaveChatRoom(roomId, userId, chatRoomService, chatMessageService);
+        chatParticipantService.leaveChatRoom(roomId, userId);
     }
 
     public ChatMessage processWebSocketMessage(ChatMessage message, Long userId, String roomId) {
@@ -88,25 +93,63 @@ public class ChatService {
         if (receiver == null || receiver.isEmpty()) {
             return;
         }
+
+        Set<Long> offlineReceivers = receiver.stream()
+                .filter(id -> !sessionManager.isUserOnline(id))
+                .collect(Collectors.toSet());
+
+        if (offlineReceivers.isEmpty()) {
+            return;
+        }
+
         String senderName = memberService.getNicknameById(userId);
-        chatNotification.send(receiver, roomId, senderName, message.getContent());
+        chatNotification.send(offlineReceivers, roomId, senderName, message.getContent());
     }
 
     private void sendGlobalRoomUpdate(Set<Long> participants, String roomId, ChatMessage message) {
-        for (Long participantId : participants) {
-            sendRoomUpdateToUser(participantId, roomId, message);
+        List<Long> participantList = new ArrayList<>(participants);
+        Map<Long, LocalDateTime> lastReadTimestamps =
+                readStatusService.getLastReadTimestampsBatchForUsers(participantList, roomId);
+
+        // 가장 이른 lastReadTime 기준으로 메시지를 1회만 조회 후 메모리에서 참여자별 unread 계산
+        LocalDateTime earliestReadTime = findEarliestReadTime(lastReadTimestamps);
+        List<ChatMessage> allRecentMessages = (earliestReadTime != null)
+                ? chatMessageService.loadMessagesAfterJoinTime(roomId, earliestReadTime)
+                : List.of();
+
+        for (Long participantId : participantList) {
+            LocalDateTime lastReadTime = lastReadTimestamps.get(participantId);
+            int unreadCount = countUnreadFromMessages(allRecentMessages, participantId, lastReadTime);
+            ChatRoomUpdateDto updateDto = ChatRoomUpdateDto.createRoomUpdate(roomId, message, unreadCount);
+            messagingTemplate.convertAndSend("/topic/user/" + participantId, updateDto);
         }
     }
 
-    private void sendRoomUpdateToUser(Long userId, String roomId, ChatMessage message) {
-        Integer unreadCount = getUnreadMessageCount(roomId, userId);
-        ChatRoomUpdateDto updateDto = ChatRoomUpdateDto.createRoomUpdate(roomId, message, unreadCount);
-        messagingTemplate.convertAndSend("/topic/user/" + userId, updateDto);
+    private LocalDateTime findEarliestReadTime(Map<Long, LocalDateTime> timestamps) {
+        LocalDateTime earliest = null;
+        for (LocalDateTime time : timestamps.values()) {
+            if (time == null) {
+                continue;
+            }
+            if (earliest == null || time.isBefore(earliest)) {
+                earliest = time;
+            }
+        }
+        return earliest;
+    }
+
+    private int countUnreadFromMessages(List<ChatMessage> messages, Long userId, LocalDateTime lastReadTime) {
+        if (lastReadTime == null) {
+            return 0;
+        }
+        return (int) messages.stream()
+                .filter(msg -> msg.getTimestamp() != null && msg.getTimestamp().isAfter(lastReadTime))
+                .filter(msg -> !Objects.equals(msg.getSenderId(), userId))
+                .count();
     }
 
     public ChatMessage processWebSocketEnter(String roomId, Long userId) {
-        return chatParticipantService.checkFirstTimeEntryAndCreateEnterMessage(roomId, userId, chatRoomService,
-                chatMessageService);
+        return chatParticipantService.checkFirstTimeEntryAndCreateEnterMessage(roomId, userId);
     }
 
     public List<ChatMessage> getMessagesAfter(String roomId, Long userId, String messageId) {
@@ -116,9 +159,40 @@ public class ChatService {
 
     public void markAllMessagesAsRead(String roomId, Long userId) {
         chatValidator.validateUserForRoom(roomId, userId);
-        updateReadTimestamp(userId, roomId, LocalDateTime.now());
+        readStatusService.updateLastReadTimestamp(userId, roomId, LocalDateTime.now());
 
         notifyReadStatusChanged(roomId, userId);
+    }
+
+    public List<ChatRoomListResponse> buildRoomListResponses(List<ChatRoom> rooms, Long userId) {
+        List<String> roomIds = rooms.stream()
+                .map(ChatRoom::getRoomId)
+                .toList();
+
+        Map<String, LocalDateTime> lastReadTimestamps =
+                readStatusService.getLastReadTimestampsBatch(userId, roomIds);
+        Map<String, String> lastMessages =
+                chatMessageService.getLastMessageTextsBatch(roomIds);
+
+        return rooms.stream()
+                .map(room -> {
+                    String roomId = room.getRoomId();
+                    LocalDateTime lastReadTime = lastReadTimestamps.get(roomId);
+                    int unreadCount = calculateUnreadCount(roomId, userId, lastReadTime);
+                    String lastMessage = lastMessages.get(roomId);
+
+                    return ChatRoomListResponse.builder()
+                            .roomId(roomId)
+                            .title(room.getTitle())
+                            .participantCount(room.getParticipants().size())
+                            .lastMessage(lastMessage)
+                            .unreadCount(unreadCount)
+                            .lastActivityAt(room.getLastActivityAt())
+                            .isGroupChat(room.isGroupChat())
+                            .roomType(determineRoomType(room))
+                            .build();
+                })
+                .toList();
     }
 
     private void notifyReadStatusChanged(String roomId, Long readerId) {
@@ -148,26 +222,11 @@ public class ChatService {
     }
 
     public ChatRoom kickUserFromRoom(String roomId, Long managerId, Long userToKick) {
-        return chatParticipantService.kickUserFromRoom(roomId, managerId, userToKick, chatRoomService,
-                chatMessageService);
+        return chatParticipantService.kickUserFromRoom(roomId, managerId, userToKick);
     }
 
     public List<ChatRoom> getRoomsForUserId(Long userId) {
         return chatRoomService.getRoomsForUserId(userId);
-    }
-
-    public ChatMessage inviteUserToGroupChat(String roomId, Long inviterId, Long targetUserId) {
-        return chatParticipantService.inviteUserToGroupChat(roomId, inviterId, targetUserId, chatRoomService,
-                chatMessageService);
-    }
-
-    public ChatMessage checkFirstTimeEntryAndCreateEnterMessage(String roomId, Long userId) {
-        return chatParticipantService.checkFirstTimeEntryAndCreateEnterMessage(roomId, userId, chatRoomService,
-                chatMessageService);
-    }
-
-    public void validateUserAccess(String roomId, Long userId) {
-        chatValidator.validateUserForRoom(roomId, userId);
     }
 
     private ChatRoomInitResponse buildChatRoomInitResponse(ChatRoom room, List<ChatMessage> messages,
@@ -181,35 +240,17 @@ public class ChatService {
     }
 
     private void processReadStatusUpdate(Long userId, String roomId, ReadStatusUpdateRequest request) {
-        processReadTimeUpdate(userId, roomId, request.getReadUntilTime());
-        processMessageIdReadUpdate(roomId, userId, request.getLastReadMessageId());
-        processDefaultReadStatus(request, roomId, userId);
-    }
-
-    private void processReadTimeUpdate(Long userId, String roomId, LocalDateTime readUntilTime) {
-        if (readUntilTime != null) {
-            updateReadTimestamp(userId, roomId, readUntilTime);
+        if (request.getReadUntilTime() != null) {
+            readStatusService.updateLastReadTimestamp(userId, roomId, request.getReadUntilTime());
+            return;
         }
-    }
 
-    private void processMessageIdReadUpdate(String roomId, Long userId, String lastReadMessageId) {
-        if (lastReadMessageId != null) {
-            updateReadStatusByMessageId(roomId, userId, lastReadMessageId);
+        if (request.getLastReadMessageId() != null) {
+            updateReadStatusByMessageId(roomId, userId, request.getLastReadMessageId());
+            return;
         }
-    }
 
-    private void processDefaultReadStatus(ReadStatusUpdateRequest request, String roomId, Long userId) {
-        if (hasNoReadStatusRequest(request)) {
-            updateReadTimestamp(userId, roomId, LocalDateTime.now());
-        }
-    }
-
-    private boolean hasNoReadStatusRequest(ReadStatusUpdateRequest request) {
-        return request.getReadUntilTime() == null && request.getLastReadMessageId() == null;
-    }
-
-    private void updateReadTimestamp(Long userId, String roomId, LocalDateTime timestamp) {
-        readStatusService.updateLastReadTimestamp(userId, roomId, timestamp);
+        readStatusService.updateLastReadTimestamp(userId, roomId, LocalDateTime.now());
     }
 
     private void updateReadStatusByMessageId(String roomId, Long userId, String messageId) {
@@ -217,10 +258,11 @@ public class ChatService {
 
         ChatMessage targetMessage = chatMessageService.findMessageById(messages, messageId);
         if (targetMessage != null) {
-            updateReadTimestamp(userId, roomId, targetMessage.getTimestamp());
+            readStatusService.updateLastReadTimestamp(userId, roomId, targetMessage.getTimestamp());
         }
     }
 
+    // 마지막 읽음 시간 이후 안 읽은 메시지 수 계산
     private int calculateUnreadCount(String roomId, Long userId, LocalDateTime lastReadTime) {
         if (lastReadTime == null) {
             return 0;
@@ -230,6 +272,17 @@ public class ChatService {
         return chatMessageService.countUnreadMessages(unreadMessages, userId);
     }
 
+    // 채팅방 유형 판별
+    private String determineRoomType(ChatRoom room) {
+        if (room.isContactRoom()) {
+            return ChatRoomType.CONTACT.getValue();
+        }
+        if (room.isGroupChat()) {
+            return ChatRoomType.GROUP.getValue();
+        }
+        return ChatRoomType.ONE_TO_ONE.getValue();
+    }
+
     public BlockStatus getBlockStatus(String roomId, Long userId) {
         ChatRoom room = chatRoomService.getChatRoomById(roomId);
 
@@ -237,6 +290,10 @@ public class ChatService {
             return BlockStatus.NONE;
         }
         Long otherUserId = findOtherUserId(room, userId);
+
+        if (otherUserId == null) {
+            return BlockStatus.NONE;
+        }
 
         boolean iBlockedOther = memberBlockRepository.existsByBlockerIdAndBlockedId(userId, otherUserId);
         boolean otherBlockedMe = memberBlockRepository.existsByBlockerIdAndBlockedId(otherUserId, userId);

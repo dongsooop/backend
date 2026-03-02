@@ -7,6 +7,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -40,6 +43,68 @@ public class ReadStatusService {
         String timestampStr = redisTemplate.opsForValue().get(key);
 
         return parseTimestampOrGetJoinTime(timestampStr, userId, roomId);
+    }
+
+    public Map<String, LocalDateTime> getLastReadTimestampsBatch(Long userId, List<String> roomIds) {
+        List<String> lastReadKeys = roomIds.stream()
+                .map(roomId -> buildUserLastReadKey(userId, roomId))
+                .toList();
+
+        List<String> lastReadValues = redisTemplate.opsForValue().multiGet(lastReadKeys);
+
+        List<String> joinTimeKeys = roomIds.stream()
+                .map(roomId -> buildUserJoinTimeKey(userId, roomId))
+                .toList();
+
+        List<String> joinTimeValues = redisTemplate.opsForValue().multiGet(joinTimeKeys);
+
+        Map<String, LocalDateTime> result = new HashMap<>();
+        for (int index = 0; index < roomIds.size(); index++) {
+            String roomId = roomIds.get(index);
+            String timestampStr = (lastReadValues != null && index < lastReadValues.size()) ? lastReadValues.get(index) : null;
+
+            // 읽음 시간이 있으면 바로 저장 후 다음으로
+            if (timestampStr != null) {
+                result.put(roomId, parseTimestamp(timestampStr));
+                continue;
+            }
+
+            // 읽음 시간 없으면 joinTime으로 대체
+            String joinTimeStr = (joinTimeValues != null && index < joinTimeValues.size()) ? joinTimeValues.get(index) : null;
+            result.put(roomId, parseTimestamp(joinTimeStr));
+        }
+        return result;
+    }
+
+    public Map<Long, LocalDateTime> getLastReadTimestampsBatchForUsers(List<Long> userIds, String roomId) {
+        List<String> lastReadKeys = userIds.stream()
+                .map(userId -> buildUserLastReadKey(userId, roomId))
+                .toList();
+
+        List<String> lastReadValues = redisTemplate.opsForValue().multiGet(lastReadKeys);
+
+        List<String> joinTimeKeys = userIds.stream()
+                .map(userId -> buildUserJoinTimeKey(userId, roomId))
+                .toList();
+
+        List<String> joinTimeValues = redisTemplate.opsForValue().multiGet(joinTimeKeys);
+
+        Map<Long, LocalDateTime> result = new HashMap<>();
+        for (int index = 0; index < userIds.size(); index++) {
+            Long userId = userIds.get(index);
+            String timestampStr = (lastReadValues != null && index < lastReadValues.size()) ? lastReadValues.get(index) : null;
+
+            // 읽음 시간이 있으면 바로 저장 후 다음으로
+            if (timestampStr != null) {
+                result.put(userId, parseTimestamp(timestampStr));
+                continue;
+            }
+
+            // 읽음 시간 없으면 joinTime으로 대체
+            String joinTimeStr = (joinTimeValues != null && index < joinTimeValues.size()) ? joinTimeValues.get(index) : null;
+            result.put(userId, parseTimestamp(joinTimeStr));
+        }
+        return result;
     }
 
     public LocalDateTime getUserJoinTime(Long userId, String roomId) {
