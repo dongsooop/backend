@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  blinddate-test:
+    build:
+      context: ../../../../
+      dockerfile: src/test/k6/blinddate_load_test/Dockerfile
+    container_name: blinddate-test
+    ports:
+      - "8080:8080"
+
+    # t2.micro 스펙 제한
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'       # 1 vCPU
+          memory: 1G        # 1 GiB RAM
+
+    # 환경 변수 및 JVM 튜닝
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      # 1GB 메모리 환경에서는 힙을 75%(약 768MB)로 설정해야 안전
+      # 이 설정이 없으면 컨테이너가 OOM(Out Of Memory)으로 죽을 수 있음
+      - JAVA_OPTS=-XX:+UseContainerSupport -XX:InitialRAMPercentage=75.0 -XX:MaxRAMPercentage=75.0
+
+    healthcheck:
+      test:
+        [ 'CMD-SHELL', 'curl -f --silent http://localhost:8080/health || exit 1' ]
+      interval: 7s
+      timeout: 10s
+      retries: 5
+
+  k6:
+    image: grafana/k6:latest
+    container_name: k6-runner
+
+    volumes:
+      - ./script.js:/scripts/script.js
+
+    depends_on:
+      blinddate-test:
+        condition: service_healthy
+
+    # 마운트된 스크립트 실행
+    command: run /scripts/script.js
