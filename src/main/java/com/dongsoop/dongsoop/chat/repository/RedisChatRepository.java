@@ -79,9 +79,7 @@ public class RedisChatRepository implements ChatRepository {
             return Collections.emptyMap();
         }
 
-        Map<String, ChatMessage> result = new HashMap<>();
-
-        Map<String, String> lastMessageIdByRoom = new HashMap<>();
+        List<String> roomIdsWithMessage = new ArrayList<>();
         List<String> messageKeys = new ArrayList<>();
 
         for (String roomId : roomIds) {
@@ -90,29 +88,23 @@ public class RedisChatRepository implements ChatRepository {
 
             if (lastMessageIds != null && !lastMessageIds.isEmpty()) {
                 String lastMessageId = (String) lastMessageIds.iterator().next();
-                lastMessageIdByRoom.put(roomId, lastMessageId);
+                roomIdsWithMessage.add(roomId);
                 messageKeys.add(buildMessageKey(roomId, lastMessageId));
             }
         }
 
         if (messageKeys.isEmpty()) {
-            return result;
+            return Collections.emptyMap();
         }
 
         List<Object> messages = redisTemplate.opsForValue().multiGet(messageKeys);
+        Map<String, ChatMessage> result = new HashMap<>();
 
-        int index = 0;
-        for (String roomId : roomIds) {
-            // 마지막 메시지가 없는 방은 건너뜀
-            if (!lastMessageIdByRoom.containsKey(roomId)) {
-                continue;
-            }
-
-            Object msg = (messages != null && index < messages.size()) ? messages.get(index) : null;
+        for (int i = 0; i < roomIdsWithMessage.size(); i++) {
+            Object msg = (messages != null && i < messages.size()) ? messages.get(i) : null;
             if (msg instanceof ChatMessage chatMessage) {
-                result.put(roomId, chatMessage);
+                result.put(roomIdsWithMessage.get(i), chatMessage);
             }
-            index++;
         }
 
         return result;
