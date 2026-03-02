@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.chat.entity;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -11,6 +11,7 @@ import java.util.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ChatRoom {
     private static final String DEFAULT_GROUP_TITLE = "그룹 채팅";
     public static final String CONTACT_ROOM_TITLE_PREFIX = "[문의]";
@@ -33,8 +34,6 @@ public class ChatRoom {
 
     @Builder.Default
     private Map<Long, LocalDateTime> participantJoinTimes = new HashMap<>();
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
 
     public static ChatRoom create(Long user1, Long user2, String title) {
         return ChatRoom.builder()

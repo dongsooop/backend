@@ -69,7 +69,8 @@ authentication:
         /mail-verify/**,
         /notice/**,
         /device,
-        /oauth2/authorization
+        /oauth2/authorization,
+        /ws/**
 
 oauth:
   apple:
