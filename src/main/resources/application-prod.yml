@@ -187,6 +187,12 @@ firebase:
     path: ${FIREBASE_SERVICE_ACCOUNT_PATH}
   project:
     number: ${FIREBASE_PROJECT_NUMBER}
+  web:
+    app-id: ${FIREBASE_WEB_APP_ID}
+
+recaptcha:
+  secret-key: ${RECAPTCHA_SECRET_KEY}
+  score-threshold: ${RECAPTCHA_SCORE_THRESHOLD:0.5}
 
 text:
   filtering:
