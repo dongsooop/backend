@@ -187,6 +187,11 @@ home:
 firebase:
   project:
     number: 0 # Firebase 푸시 알림 테스트가 필요하면 실제 프로젝트 번호로 변경
+  web:
+    app-id: local-firebase-web-app-id-placeholder
+
+recaptcha:
+  secret-key: local-recaptcha-secret-placeholder
 
 text:
   filtering:
@@ -197,4 +202,4 @@ admin:
   id: 0 # 로컬 관리자 계정 ID
 
 appcheck:
-  ignore-path: /ws/**
+  ignore-path: /ws/**,/web-app-check

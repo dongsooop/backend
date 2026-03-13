@@ -11,7 +11,6 @@ logging:
   config: classpath:logback.xml
   file.path: logs/dongsoop.log
 
-
 rest:
   connectTimeout: 4000
   readTimeout: 4000
@@ -45,7 +44,8 @@ authentication:
       /oauth2/kakao,
       /oauth2/google,
       /oauth2/apple,
-      /oauth2/apple/callback
+      /oauth2/apple/callback,
+      /web-app-check
     user:
       /test/user
     admin:
@@ -70,7 +70,8 @@ authentication:
         /notice/**,
         /device,
         /oauth2/authorization,
-        /ws/**
+        /ws/**,
+        /web-app-check
 
 oauth:
   apple:
@@ -121,3 +122,8 @@ mail:
 
 blinddate:
   event-message-amount: 3
+
+recaptcha:
+  verify-url: https://www.google.com/recaptcha/api/siteverify
+  score-threshold: 0.5
+
