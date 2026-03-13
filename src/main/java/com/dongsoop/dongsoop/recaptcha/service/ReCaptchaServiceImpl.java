@@ -72,7 +72,7 @@ public class ReCaptchaServiceImpl implements ReCaptchaService {
             response = restTemplate.postForObject(verifyUrl, request, ReCaptchaVerificationResponse.class);
         } catch (RestClientException e) {
             log.warn("reCAPTCHA verify API call failed", e);
-            throw new ReCaptchaVerificationException();
+            throw new ReCaptchaVerificationException(e);
         }
 
         if (response == null) {

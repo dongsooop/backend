@@ -75,7 +75,9 @@ public class WebAppCheckServiceImpl implements WebAppCheckService {
         Map<?, ?> response = restTemplate.postForObject(url, request, Map.class);
 
         if (response == null || !(response.get("token") instanceof String token) || token.isBlank()) {
-            log.error("Firebase App Check token generation failed. response: {}", response);
+            log.error("Firebase App Check token generation failed. tokenKeyPresent: {}, tokenType: {}",
+                    response != null && response.containsKey("token"),
+                    response != null ? response.get("token") == null ? "null" : response.get("token").getClass().getSimpleName() : "N/A");
             throw new WebAppCheckTokenIssuanceException(new IllegalStateException("앱 체크 토큰 응답이 올바르지 않습니다."));
         }
 
