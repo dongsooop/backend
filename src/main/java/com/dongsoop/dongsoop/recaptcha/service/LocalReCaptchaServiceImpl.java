@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-@Profile("local")
+@Profile({"local", "test"})
 public class LocalReCaptchaServiceImpl implements ReCaptchaService {
 
     @Override

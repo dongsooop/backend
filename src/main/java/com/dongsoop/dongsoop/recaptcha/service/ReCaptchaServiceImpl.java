@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 @Slf4j
@@ -66,8 +67,13 @@ public class ReCaptchaServiceImpl implements ReCaptchaService {
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
 
-        ReCaptchaVerificationResponse response = restTemplate.postForObject(verifyUrl, request,
-                ReCaptchaVerificationResponse.class);
+        ReCaptchaVerificationResponse response;
+        try {
+            response = restTemplate.postForObject(verifyUrl, request, ReCaptchaVerificationResponse.class);
+        } catch (RestClientException e) {
+            log.warn("reCAPTCHA verify API call failed", e);
+            throw new ReCaptchaVerificationException();
+        }
 
         if (response == null) {
             log.error("reCAPTCHA verification response is null");

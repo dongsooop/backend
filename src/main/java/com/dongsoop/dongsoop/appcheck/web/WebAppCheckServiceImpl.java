@@ -74,12 +74,12 @@ public class WebAppCheckServiceImpl implements WebAppCheckService {
 
         Map<?, ?> response = restTemplate.postForObject(url, request, Map.class);
 
-        if (response == null || !response.containsKey("appCheckToken")) {
+        if (response == null || !response.containsKey("token")) {
             log.error("Firebase App Check token generation failed. response: {}", response);
             throw new WebAppCheckTokenIssuanceException(new IllegalStateException("앱 체크 토큰 응답이 올바르지 않습니다."));
         }
 
         log.debug("Firebase App Check token issued for web. appId: {}", webAppId);
-        return (String) response.get("appCheckToken");
+        return (String) response.get("token");
     }
 }
