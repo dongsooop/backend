@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.notice.entity.Notice;
+import com.dongsoop.dongsoop.notice.keyword.service.NoticeKeywordService;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.service.NotificationSaveService;
@@ -23,6 +24,7 @@ public class NoticeNotificationImpl implements NoticeNotification {
     private final NotificationSaveService notificationSaveService;
     private final NotificationSendService notificationSendService;
     private final MemberRepository memberRepository;
+    private final NoticeKeywordService noticeKeywordService;
 
     @Value("${university.domain}")
     private String universityDomain;
@@ -70,8 +72,9 @@ public class NoticeNotificationImpl implements NoticeNotification {
         String body = notice.getNoticeDetails().getTitle();
         List<Member> targetList = getMemberByDepartment(department);
 
+        List<Member> filteredList = noticeKeywordService.filterMembersByKeyword(targetList, body);
         String noticeLink = universityDomain + notice.getNoticeDetails().getLink();
-        return notificationSaveService.saveAll(targetList, title, body, NotificationType.NOTICE, noticeLink);
+        return notificationSaveService.saveAll(filteredList, title, body, NotificationType.NOTICE, noticeLink);
     }
 
     private String generateTitle(String departmentName) {
