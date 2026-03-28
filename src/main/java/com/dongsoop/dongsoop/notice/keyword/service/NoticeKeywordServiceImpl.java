@@ -88,6 +88,10 @@ public class NoticeKeywordServiceImpl implements NoticeKeywordService {
             return true;
         }
 
+        if (noticeTitle == null || noticeTitle.isBlank()) {
+            return true;
+        }
+
         String titleLower = noticeTitle.toLowerCase();
 
         List<String> includeKeywords = keywords.stream()
