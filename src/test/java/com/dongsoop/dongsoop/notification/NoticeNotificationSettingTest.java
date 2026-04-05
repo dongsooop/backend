@@ -108,11 +108,14 @@ public class NoticeNotificationSettingTest extends AbstractIntegrationTest {
                 new Member(null, "test3@dongyang.ac.kr", "이름3", "password", null, department2));
 
         memberDeviceRepository.save(
-                new MemberDevice(null, member1, "token1", MemberDeviceType.IOS));
+                MemberDevice.builder().member(member1).deviceToken("token1").memberDeviceType(MemberDeviceType.IOS)
+                        .build());
         MemberDevice memberDevice2 = memberDeviceRepository.save(
-                new MemberDevice(null, member2, "token2", MemberDeviceType.WEB));
+                MemberDevice.builder().member(member2).deviceToken("token2").memberDeviceType(MemberDeviceType.WEB)
+                        .build());
         memberDeviceRepository.save(
-                new MemberDevice(null, member3, "token3", MemberDeviceType.ANDROID));
+                MemberDevice.builder().member(member3).deviceToken("token3").memberDeviceType(MemberDeviceType.ANDROID)
+                        .build());
 
         NotificationSetting notificationSetting = new NotificationSetting(memberDevice2, NotificationType.NOTICE,
                 false);

@@ -99,11 +99,14 @@ public class CalendarNotificationSettingTest extends AbstractIntegrationTest {
 
         // 디바이스 정보 저장
         MemberDevice memberDevice1 = memberDeviceRepository.save(
-                new MemberDevice(null, member1, "token1", MemberDeviceType.IOS));
+                MemberDevice.builder().member(member1).deviceToken("token1").memberDeviceType(MemberDeviceType.IOS)
+                        .build());
         MemberDevice memberDevice2 = memberDeviceRepository.save(
-                new MemberDevice(null, member2, "token2", MemberDeviceType.WEB));
+                MemberDevice.builder().member(member2).deviceToken("token2").memberDeviceType(MemberDeviceType.WEB)
+                        .build());
         MemberDevice memberDevice3 = memberDeviceRepository.save(
-                new MemberDevice(null, member3, "token3", MemberDeviceType.ANDROID));
+                MemberDevice.builder().member(member3).deviceToken("token3").memberDeviceType(MemberDeviceType.ANDROID)
+                        .build());
 
         // 회원 일정 추가
         MemberSchedule memberSchedule1 = new MemberSchedule(null, "title", "content", LocalDateTime.now(),
