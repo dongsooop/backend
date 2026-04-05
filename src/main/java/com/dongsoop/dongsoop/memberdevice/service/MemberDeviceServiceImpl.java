@@ -11,7 +11,6 @@ import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.exception.AlreadyRegisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.exception.UnauthorizedDeviceAccessException;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
-import com.dongsoop.dongsoop.memberdevice.exception.WebDeviceLimitExceededException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import java.util.List;
 import java.util.Map;
@@ -26,8 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class MemberDeviceServiceImpl implements MemberDeviceService {
-
-    private static final int MAX_WEB_DEVICE_COUNT = 3;
 
     private final MemberDeviceRepository memberDeviceRepository;
     private final MemberRepository memberRepository;
@@ -55,7 +52,6 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
                 .orElseThrow(MemberNotFoundException::new);
 
         if (device.getMemberDeviceType() == MemberDeviceType.WEB) {
-            validateWebDeviceCount(memberId);
             MemberDevice boundDevice = MemberDevice.builder()
                     .deviceToken(deviceToken)
                     .memberDeviceType(MemberDeviceType.WEB)
@@ -67,13 +63,6 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
         } else {
             device.bindMember(member);
             memberDeviceRepository.save(device);
-        }
-    }
-
-    private void validateWebDeviceCount(Long memberId) {
-        int count = memberDeviceRepository.countByMemberIdAndMemberDeviceType(memberId, MemberDeviceType.WEB);
-        if (count >= MAX_WEB_DEVICE_COUNT) {
-            throw new WebDeviceLimitExceededException();
         }
     }
 
