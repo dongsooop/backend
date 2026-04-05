@@ -33,14 +33,20 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
 
     @Override
     @Transactional
-    public Long registerDevice(String deviceToken, MemberDeviceType deviceType) {
-        validateDuplicateDeviceToken(deviceToken);
+    public Long registerDevice(String deviceToken, MemberDeviceType deviceType, Long existingDeviceId) {
+        if (existingDeviceId != null) {
+            MemberDevice device = memberDeviceRepository.findById(existingDeviceId)
+                    .orElseThrow(UnregisteredDeviceException::new);
+            validateDuplicateDeviceToken(deviceToken);
+            device.updateDeviceToken(deviceToken);
+            return existingDeviceId;
+        }
 
+        validateDuplicateDeviceToken(deviceToken);
         MemberDevice memberDevice = MemberDevice.builder()
                 .deviceToken(deviceToken)
                 .memberDeviceType(deviceType)
                 .build();
-
         return memberDeviceRepository.save(memberDevice).getId();
     }
 
@@ -159,18 +165,4 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
                 .ifPresent(device -> device.updateLastAccess(LocalDateTime.now()));
     }
 
-    @Override
-    @Transactional
-    public void updateDeviceToken(Long memberId, Long deviceId, String newToken) {
-        MemberDevice device = memberDeviceRepository.findById(deviceId)
-                .orElseThrow(UnregisteredDeviceException::new);
-
-        Member deviceMember = device.getMember();
-        if (deviceMember == null || !deviceMember.getId().equals(memberId)) {
-            throw new UnauthorizedDeviceAccessException();
-        }
-
-        validateDuplicateDeviceToken(newToken);
-        device.updateDeviceToken(newToken);
-    }
 }

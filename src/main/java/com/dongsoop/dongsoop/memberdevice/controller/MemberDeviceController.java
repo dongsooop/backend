@@ -1,13 +1,14 @@
 package com.dongsoop.dongsoop.memberdevice.controller;
 
+import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.dto.DeviceRegisterRequest;
 import com.dongsoop.dongsoop.memberdevice.dto.DeviceRegisterResponse;
-import com.dongsoop.dongsoop.memberdevice.dto.DeviceTokenUpdateRequest;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.service.FCMService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -39,10 +39,24 @@ public class MemberDeviceController {
     @Value("${notification.topic.anonymous}")
     private String anonymousTopic;
 
+    /**
+     * 디바이스를 등록하거나 기존 디바이스의 토큰을 갱신한다.
+     *
+     * <p>JWT에 deviceId가 포함된 인증 요청인 경우 기존 디바이스의 토큰을 갱신하고,
+     * 미인증 요청이거나 deviceId가 없는 경우 새 디바이스를 등록한다.
+     * 새 디바이스 등록 시 anonymous 토픽을 구독한다.
+     *
+     * @return 디바이스 ID (201 Created)
+     */
     @PostMapping
-    public ResponseEntity<DeviceRegisterResponse> registerDevice(@RequestBody @Valid DeviceRegisterRequest request) {
-        Long id = memberDeviceService.registerDevice(request.deviceToken(), request.type());
-        fcmService.subscribeTopic(List.of(request.deviceToken()), anonymousTopic);
+    public ResponseEntity<DeviceRegisterResponse> registerDevice(@RequestBody @Valid DeviceRegisterRequest request,
+                                                                 HttpServletRequest httpRequest) {
+        Long existingDeviceId = (Long) httpRequest.getAttribute(JwtUtil.DEVICE_ID_CLAIM);
+        Long id = memberDeviceService.registerDevice(request.deviceToken(), request.type(), existingDeviceId);
+
+        if (existingDeviceId == null) {
+            fcmService.subscribeTopic(List.of(request.deviceToken()), anonymousTopic);
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(new DeviceRegisterResponse(id));
     }
@@ -60,24 +74,6 @@ public class MemberDeviceController {
         List<MemberDeviceResponse> devices = memberDeviceService.getDeviceList(memberId, deviceToken);
 
         return ResponseEntity.ok(devices);
-    }
-
-    /**
-     * 기기의 FCM 토큰을 갱신한다.
-     *
-     * <p>요청한 회원 소유의 기기인지 검증 후 토큰을 교체한다.
-     *
-     * @param deviceId 토큰을 갱신할 기기 ID
-     * @param request  새 FCM 토큰
-     * @return 응답 본문 없음 (204 No Content)
-     */
-    @PatchMapping("/{deviceId}/token")
-    public ResponseEntity<Void> updateDeviceToken(@PathVariable Long deviceId,
-                                                  @RequestBody @Valid DeviceTokenUpdateRequest request) {
-        Long memberId = memberService.getMemberIdByAuthentication();
-        memberDeviceService.updateDeviceToken(memberId, deviceId, request.deviceToken());
-
-        return ResponseEntity.noContent().build();
     }
 
     /**
