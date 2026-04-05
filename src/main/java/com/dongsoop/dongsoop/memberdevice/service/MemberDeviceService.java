@@ -8,7 +8,7 @@ import java.util.Map;
 
 public interface MemberDeviceService {
 
-    Long registerDevice(String deviceToken, MemberDeviceType deviceType, Long existingDeviceId);
+    void registerDevice(String deviceToken, MemberDeviceType deviceType, Long existingDeviceId);
 
     void bindDeviceWithMemberId(Long memberId, String deviceToken);
 

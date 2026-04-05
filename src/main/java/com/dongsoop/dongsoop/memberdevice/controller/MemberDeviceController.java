@@ -4,7 +4,6 @@ import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.dto.DeviceRegisterRequest;
-import com.dongsoop.dongsoop.memberdevice.dto.DeviceRegisterResponse;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.service.FCMService;
@@ -49,16 +48,16 @@ public class MemberDeviceController {
      * @return 디바이스 ID (201 Created)
      */
     @PostMapping
-    public ResponseEntity<DeviceRegisterResponse> registerDevice(@RequestBody @Valid DeviceRegisterRequest request,
-                                                                 HttpServletRequest httpRequest) {
+    public ResponseEntity<Void> registerDevice(@RequestBody @Valid DeviceRegisterRequest request,
+                                               HttpServletRequest httpRequest) {
         Long existingDeviceId = (Long) httpRequest.getAttribute(JwtUtil.DEVICE_ID_CLAIM);
-        Long id = memberDeviceService.registerDevice(request.deviceToken(), request.type(), existingDeviceId);
+        memberDeviceService.registerDevice(request.deviceToken(), request.type(), existingDeviceId);
 
         if (existingDeviceId == null) {
             fcmService.subscribeTopic(List.of(request.deviceToken()), anonymousTopic);
         }
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(new DeviceRegisterResponse(id));
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     /**

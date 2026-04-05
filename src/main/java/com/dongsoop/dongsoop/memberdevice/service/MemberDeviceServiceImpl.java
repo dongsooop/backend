@@ -33,13 +33,13 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
 
     @Override
     @Transactional
-    public Long registerDevice(String deviceToken, MemberDeviceType deviceType, Long existingDeviceId) {
+    public void registerDevice(String deviceToken, MemberDeviceType deviceType, Long existingDeviceId) {
         if (existingDeviceId != null) {
             MemberDevice device = memberDeviceRepository.findById(existingDeviceId)
                     .orElseThrow(UnregisteredDeviceException::new);
             validateDuplicateDeviceToken(deviceToken);
             device.updateDeviceToken(deviceToken);
-            return existingDeviceId;
+            return;
         }
 
         validateDuplicateDeviceToken(deviceToken);
@@ -47,7 +47,7 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
                 .deviceToken(deviceToken)
                 .memberDeviceType(deviceType)
                 .build();
-        return memberDeviceRepository.save(memberDevice).getId();
+        memberDeviceRepository.save(memberDevice);
     }
 
     @Override
