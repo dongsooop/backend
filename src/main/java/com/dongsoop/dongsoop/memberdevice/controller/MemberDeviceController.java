@@ -33,6 +33,7 @@ public class MemberDeviceController {
     private final MemberService memberService;
     private final FCMService fcmService;
     private final DeviceBlacklistService deviceBlacklistService;
+    private final DeviceUtil deviceUtil;
 
     @Value("${notification.topic.anonymous}")
     private String anonymousTopic;
@@ -48,7 +49,7 @@ public class MemberDeviceController {
      */
     @PostMapping
     public ResponseEntity<Void> registerDevice(@RequestBody @Valid DeviceRegisterRequest request) {
-        Long existingDeviceId = DeviceUtil.getDeviceIdFromContext();
+        Long existingDeviceId = deviceUtil.getDeviceIdFromContext();
         memberDeviceService.registerDevice(request.deviceToken(), request.type(), existingDeviceId);
 
         if (existingDeviceId == null) {

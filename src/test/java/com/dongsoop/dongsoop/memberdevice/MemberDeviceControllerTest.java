@@ -15,7 +15,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
-import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
 import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import com.dongsoop.dongsoop.member.service.MemberService;
@@ -23,6 +22,7 @@ import com.dongsoop.dongsoop.memberdevice.controller.MemberDeviceController;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
+import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import com.dongsoop.dongsoop.notification.service.FCMService;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -54,6 +54,8 @@ class MemberDeviceControllerTest {
     private JwtFilter jwtFilter;
     @MockitoBean
     private FirebaseAppCheck firebaseAppCheck;
+    @MockitoBean
+    private DeviceUtil deviceUtil;
 
     private static final Long MEMBER_ID = 1L;
     private static final Long DEVICE_ID = 10L;
@@ -114,6 +116,8 @@ class MemberDeviceControllerTest {
     @Test
     @DisplayName("JWT에 deviceId가 없으면 새 디바이스를 등록하고 anonymous 토픽을 구독한다")
     void registers_new_device_and_subscribes_anonymous_when_no_existing_device_id() throws Exception {
+        given(deviceUtil.getDeviceIdFromContext()).willReturn(null);
+
         mockMvc.perform(post("/device")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"deviceToken\":\"" + TOKEN_NEW + "\",\"type\":\"ANDROID\"}"))
@@ -126,10 +130,11 @@ class MemberDeviceControllerTest {
     @Test
     @DisplayName("JWT에 deviceId가 있으면 기존 디바이스 토큰을 갱신하고 anonymous 구독을 생략한다")
     void updates_existing_device_token_and_skips_subscribe_when_device_id_present() throws Exception {
+        given(deviceUtil.getDeviceIdFromContext()).willReturn(DEVICE_ID);
+
         mockMvc.perform(post("/device")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"deviceToken\":\"" + TOKEN_NEW + "\",\"type\":\"ANDROID\"}")
-                        .requestAttr(JwtUtil.DEVICE_ID_CLAIM, DEVICE_ID))
+                        .content("{\"deviceToken\":\"" + TOKEN_NEW + "\",\"type\":\"ANDROID\"}"))
                 .andExpect(status().isCreated());
 
         verify(memberDeviceService).registerDevice(TOKEN_NEW, MemberDeviceType.ANDROID, DEVICE_ID);

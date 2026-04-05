@@ -19,12 +19,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class DeviceLastAccessFilter extends OncePerRequestFilter {
 
     private final MemberDeviceService memberDeviceService;
+    private final DeviceUtil deviceUtil;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
-        Long deviceId = DeviceUtil.getDeviceIdFromContext();
+        Long deviceId = deviceUtil.getDeviceIdFromContext();
         if (deviceId != null) {
             try {
                 memberDeviceService.updateLastAccessAsync(deviceId);
