@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.memberdevice.filter;
 
-import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -10,6 +9,8 @@ import java.io.IOException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -24,7 +25,8 @@ public class DeviceLastAccessFilter extends OncePerRequestFilter {
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
-        Object deviceIdAttr = request.getAttribute(JwtUtil.DEVICE_ID_CLAIM);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Object deviceIdAttr = (auth != null) ? auth.getDetails() : null;
         if (deviceIdAttr instanceof Long deviceId) {
             try {
                 memberDeviceService.updateLastAccessAsync(deviceId);

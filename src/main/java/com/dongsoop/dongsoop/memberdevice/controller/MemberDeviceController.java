@@ -1,13 +1,11 @@
 package com.dongsoop.dongsoop.memberdevice.controller;
 
-import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.dto.DeviceRegisterRequest;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.service.FCMService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,9 +48,9 @@ public class MemberDeviceController {
      * @return 디바이스 ID (201 Created)
      */
     @PostMapping
-    public ResponseEntity<Void> registerDevice(@RequestBody @Valid DeviceRegisterRequest request,
-                                               HttpServletRequest httpRequest) {
-        Long existingDeviceId = (Long) httpRequest.getAttribute(JwtUtil.DEVICE_ID_CLAIM);
+    public ResponseEntity<Void> registerDevice(@RequestBody @Valid DeviceRegisterRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Long existingDeviceId = (auth != null && auth.getDetails() instanceof Long id) ? id : null;
         memberDeviceService.registerDevice(request.deviceToken(), request.type(), existingDeviceId);
 
         if (existingDeviceId == null) {

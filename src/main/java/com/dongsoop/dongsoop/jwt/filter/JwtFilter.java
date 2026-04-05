@@ -16,6 +16,7 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -66,10 +67,9 @@ public class JwtFilter extends OncePerRequestFilter {
             Long deviceId = claims.get(JwtUtil.DEVICE_ID_CLAIM, Long.class);
             if (deviceId != null) {
                 deviceBlacklistService.validateNotBlacklisted(deviceId, claims.getIssuedAt());
-                request.setAttribute(JwtUtil.DEVICE_ID_CLAIM, deviceId);
             }
 
-            setAuthentication(token);
+            setAuthentication(token, deviceId);
             log.debug("JWT token validation successful");
         } catch (TokenNotFoundException exception) {
             log.debug("No JWT token found in request: {}", exception.getMessage());
@@ -107,8 +107,10 @@ public class JwtFilter extends OncePerRequestFilter {
         return tokenHeader.substring(TOKEN_START_INDEX);
     }
 
-    private void setAuthentication(String token) {
-        Authentication auth = jwtUtil.getAuthenticationByToken(token);
+    private void setAuthentication(String token, Long deviceId) {
+        UsernamePasswordAuthenticationToken auth =
+                (UsernamePasswordAuthenticationToken) jwtUtil.getAuthenticationByToken(token);
+        auth.setDetails(deviceId);
 
         SecurityContext context = SecurityContextHolder.getContext();
         context.setAuthentication(auth);
