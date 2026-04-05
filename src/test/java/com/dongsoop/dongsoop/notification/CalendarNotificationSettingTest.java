@@ -144,11 +144,12 @@ public class CalendarNotificationSettingTest extends AbstractIntegrationTest {
 
         assertNotNull(capturedMap);
         assertFalse(capturedMap.isEmpty());
-        assertEquals(capturedMap.size(), 2,
-                "member2, member3를 포함한 2개 요소여야 합니다: [" + capturedMap.keySet().stream()
+        assertEquals(1, capturedMap.size(),
+                "WEB 디바이스(member2) 및 알림 거부(member1) 제외 후 member3만 포함한 1개 요소여야 합니다: ["
+                        + capturedMap.keySet().stream()
                         .map(String::valueOf)
                         .collect(java.util.stream.Collectors.joining(",")) + "]");
-        assertTrue(capturedMap.keySet().containsAll(List.of(member2.getId(), member3.getId())),
-                "member2, member3이 포함되어야 합니다.");
+        assertTrue(capturedMap.containsKey(member3.getId()),
+                "member3이 포함되어야 합니다.");
     }
 }
