@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.dto.DeviceRegisterRequest;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
+import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import com.dongsoop.dongsoop.notification.service.FCMService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -13,8 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -49,8 +48,7 @@ public class MemberDeviceController {
      */
     @PostMapping
     public ResponseEntity<Void> registerDevice(@RequestBody @Valid DeviceRegisterRequest request) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long existingDeviceId = (auth != null && auth.getDetails() instanceof Long id) ? id : null;
+        Long existingDeviceId = DeviceUtil.getDeviceIdFromContext();
         memberDeviceService.registerDevice(request.deviceToken(), request.type(), existingDeviceId);
 
         if (existingDeviceId == null) {
