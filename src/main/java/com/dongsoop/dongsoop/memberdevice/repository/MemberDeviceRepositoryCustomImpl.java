@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.entity.QMemberDevice;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.setting.entity.QNotificationSetting;
@@ -41,6 +42,7 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
                 .leftJoin(notificationSetting)
                 .on(notificationSettingEq(condition.notificationType())) // 디바이스 및 알림 타입 조건 일치
                 .where(member.id.in(condition.memberIds()) // memberIds 조건
+                        .and(memberDevice.memberDeviceType.ne(MemberDeviceType.WEB))
                         .and(enabledCondition)) // 알림 활성화 조건
                 .distinct()
                 .fetch();
@@ -50,7 +52,8 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     public List<String> getDeviceByMemberId(Long memberId) {
         return queryFactory.select(memberDevice.deviceToken)
                 .from(memberDevice)
-                .where(memberDevice.member.id.eq(memberId))
+                .where(memberDevice.member.id.eq(memberId)
+                        .and(memberDevice.memberDeviceType.ne(MemberDeviceType.WEB)))
                 .fetch();
     }
 
