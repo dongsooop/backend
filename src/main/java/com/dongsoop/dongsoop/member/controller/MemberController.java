@@ -76,6 +76,8 @@ public class MemberController {
 
         Long memberId = loginDetail.getLoginMemberDetail().getId();
 
+        System.out.println(loginRequest.getFcmToken() + " : " + loginRequest.getEmail() + " : " + memberId);
+
         if (StringUtils.hasText(loginRequest.getFcmToken())) {
             memberDeviceService.bindDeviceWithMemberId(memberId, loginRequest.getFcmToken());
             fcmService.unsubscribeTopic(List.of(loginRequest.getFcmToken()), anonymousTopic);
