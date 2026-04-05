@@ -36,7 +36,7 @@ public class MemberDevice extends BaseEntity {
     private Member member;
 
     @Getter
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String deviceToken;
 
     @Getter
@@ -46,5 +46,9 @@ public class MemberDevice extends BaseEntity {
 
     public void bindMember(Member member) {
         this.member = member;
+    }
+
+    public void updateDeviceToken(String deviceToken) {
+        this.deviceToken = deviceToken;
     }
 }

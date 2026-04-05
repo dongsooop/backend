@@ -11,6 +11,7 @@ import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.exception.AlreadyRegisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.exception.UnauthorizedDeviceAccessException;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
+import com.dongsoop.dongsoop.memberdevice.exception.WebDeviceLimitExceededException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import java.util.List;
 import java.util.Map;
@@ -26,11 +27,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class MemberDeviceServiceImpl implements MemberDeviceService {
 
+    private static final int MAX_WEB_DEVICE_COUNT = 3;
+
     private final MemberDeviceRepository memberDeviceRepository;
     private final MemberRepository memberRepository;
 
     @Override
-    public void registerDevice(String deviceToken, MemberDeviceType deviceType) {
+    @Transactional
+    public Long registerDevice(String deviceToken, MemberDeviceType deviceType) {
         validateDuplicateDeviceToken(deviceToken);
 
         MemberDevice memberDevice = MemberDevice.builder()
@@ -38,7 +42,7 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
                 .memberDeviceType(deviceType)
                 .build();
 
-        memberDeviceRepository.save(memberDevice);
+        return memberDeviceRepository.save(memberDevice).getId();
     }
 
     @Override
@@ -50,8 +54,27 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
-        device.bindMember(member);
-        memberDeviceRepository.save(device);
+        if (device.getMemberDeviceType() == MemberDeviceType.WEB) {
+            validateWebDeviceCount(memberId);
+            MemberDevice boundDevice = MemberDevice.builder()
+                    .deviceToken(deviceToken)
+                    .memberDeviceType(MemberDeviceType.WEB)
+                    .member(member)
+                    .build();
+            memberDeviceRepository.delete(device);
+            memberDeviceRepository.flush();
+            memberDeviceRepository.save(boundDevice);
+        } else {
+            device.bindMember(member);
+            memberDeviceRepository.save(device);
+        }
+    }
+
+    private void validateWebDeviceCount(Long memberId) {
+        int count = memberDeviceRepository.countByMemberIdAndMemberDeviceType(memberId, MemberDeviceType.WEB);
+        if (count >= MAX_WEB_DEVICE_COUNT) {
+            throw new WebDeviceLimitExceededException();
+        }
     }
 
     private void validateDuplicateDeviceToken(String deviceToken) {
@@ -60,23 +83,11 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
         }
     }
 
-    /**
-     * MemberId로 MemberDevice 조회
-     *
-     * @param memberId MemberId List
-     * @return MemberId를 key로, deviceToken List를 value로 갖는 Map
-     */
     @Override
     public List<String> getDeviceByMemberId(Long memberId) {
         return memberDeviceRepository.getDeviceByMemberId(memberId);
     }
 
-    /**
-     * MemberId List로 MemberDevice 조회
-     *
-     * @param condition 알림을 보낼 사용자 목록과 알림 타입
-     * @return MemberId를 key로, deviceToken List를 value로 갖는 Map
-     */
     @Override
     public Map<Long, List<String>> getDeviceByMember(MemberDeviceFindCondition condition) {
         List<MemberDeviceDto> memberDeviceDtos = memberDeviceRepository.findDevicesWithNotification(condition);
@@ -85,11 +96,6 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
                 .collect(deviceGroupByMemberId());
     }
 
-    /**
-     * MemberDevice에 대해 MemberId로 그룹화
-     *
-     * @return MemberId를 key로, deviceToken List를 value로 갖는 Map
-     */
     private Collector<MemberDeviceDto, ?, Map<Long, List<String>>> deviceGroupByMemberId() {
         return Collectors.groupingBy(
                 memberDeviceDto -> memberDeviceDto.member().getId(),
@@ -103,26 +109,25 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
     }
 
     /**
-     * {@inheritDoc}
+     * FCM 토큰 만료 시 deviceToken을 null로 설정한다.
+     *
+     * <p>기기 행은 유지하되 토큰만 무효화한다.
+     * 이후 알림 발송 쿼리에서 null 토큰은 자동 제외된다.
+     *
+     * @param deviceToken 무효화할 FCM 토큰
      */
     @Override
     @Transactional
     public void unbindByToken(String deviceToken) {
         memberDeviceRepository.findByDeviceToken(deviceToken)
-                .ifPresent(device -> device.bindMember(null));
+                .ifPresent(device -> device.updateDeviceToken(null));
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public List<MemberDeviceResponse> getDeviceList(Long memberId, String currentDeviceToken) {
         return memberDeviceRepository.findDeviceListByMemberId(memberId, currentDeviceToken);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public String getDeviceTokenIfOwned(Long memberId, Long deviceId) {
         MemberDevice device = memberDeviceRepository.findById(deviceId)
@@ -138,11 +143,35 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
 
     /**
      * {@inheritDoc}
+     * WEB 타입 디바이스는 행 자체를 삭제하고, 모바일은 회원 바인딩만 해제한다.
      */
     @Override
     @Transactional
     public void unbindDevice(Long deviceId) {
-        memberDeviceRepository.findById(deviceId)
-                .ifPresent(device -> device.bindMember(null));
+        memberDeviceRepository.findById(deviceId).ifPresent(device -> {
+            if (device.getMemberDeviceType() == MemberDeviceType.WEB) {
+                memberDeviceRepository.delete(device);
+            } else {
+                device.bindMember(null);
+            }
+        });
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional
+    public void updateDeviceToken(Long memberId, Long deviceId, String newToken) {
+        MemberDevice device = memberDeviceRepository.findById(deviceId)
+                .orElseThrow(UnregisteredDeviceException::new);
+
+        Member deviceMember = device.getMember();
+        if (deviceMember == null || !deviceMember.getId().equals(memberId)) {
+            throw new UnauthorizedDeviceAccessException();
+        }
+
+        validateDuplicateDeviceToken(newToken);
+        device.updateDeviceToken(newToken);
     }
 }

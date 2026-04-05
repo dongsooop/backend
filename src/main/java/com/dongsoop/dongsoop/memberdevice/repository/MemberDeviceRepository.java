@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.memberdevice.repository;
 
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,4 +16,6 @@ public interface MemberDeviceRepository extends JpaRepository<MemberDevice, Long
     void deleteByDeviceToken(String deviceToken);
 
     List<MemberDevice> findByMemberId(Long memberId);
+
+    int countByMemberIdAndMemberDeviceType(Long memberId, MemberDeviceType type);
 }
