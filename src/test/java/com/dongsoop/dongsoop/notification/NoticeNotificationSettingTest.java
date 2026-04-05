@@ -117,7 +117,7 @@ public class NoticeNotificationSettingTest extends AbstractIntegrationTest {
         NotificationSetting notificationSetting = new NotificationSetting(memberDevice2, NotificationType.NOTICE,
                 false);
 
-        notificationSettingRepository.save(notificationSetting); // member2는 공지 알림 수신 거부
+        notificationSettingRepository.save(notificationSetting); // member2는 WEB 타입 + 공지 알림 수신 거부
     }
 
     @Test
