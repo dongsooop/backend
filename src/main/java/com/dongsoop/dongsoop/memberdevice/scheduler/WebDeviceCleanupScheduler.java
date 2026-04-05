@@ -24,7 +24,7 @@ public class WebDeviceCleanupScheduler {
     @Transactional
     public void deleteExpiredWebDevices() {
         LocalDateTime cutoff = LocalDateTime.now().minusNanos(refreshTokenExpiryMs * 1_000_000L);
-        int deleted = memberDeviceRepository.deleteExpiredWebDevices(MemberDeviceType.WEB, cutoff);
-        log.info("Deleted {} expired WEB devices (cutoff={})", deleted, cutoff);
+        int deleted = memberDeviceRepository.deleteExpiredDevices(MemberDeviceType.WEB, cutoff);
+        log.info("Deleted {} expired devices (WEB or null token, cutoff={})", deleted, cutoff);
     }
 }

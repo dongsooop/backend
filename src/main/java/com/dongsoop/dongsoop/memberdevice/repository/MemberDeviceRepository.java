@@ -25,6 +25,6 @@ public interface MemberDeviceRepository extends JpaRepository<MemberDevice, Long
     int countByMemberIdAndMemberDeviceType(Long memberId, MemberDeviceType type);
 
     @Modifying
-    @Query("DELETE FROM MemberDevice d WHERE d.memberDeviceType = :type AND (d.lastAccess IS NULL OR d.lastAccess < :cutoff)")
-    int deleteExpiredWebDevices(@Param("type") MemberDeviceType type, @Param("cutoff") LocalDateTime cutoff);
+    @Query("DELETE FROM MemberDevice d WHERE d.lastAccess < :cutoff AND (d.memberDeviceType = :webType OR d.deviceToken IS NULL)")
+    int deleteExpiredDevices(@Param("webType") MemberDeviceType webType, @Param("cutoff") LocalDateTime cutoff);
 }
