@@ -186,7 +186,7 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
      * {@inheritDoc}
      */
     @Override
-    @Async
+    @Async("memberDeviceLastAccessExecutor")
     @Transactional
     public void updateLastAccessAsync(Long deviceId) {
         memberDeviceRepository.findById(deviceId)

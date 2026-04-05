@@ -18,4 +18,15 @@ public class AsyncConfig {
         executor.initialize();
         return executor;
     }
+
+    @Bean(name = "memberDeviceLastAccessExecutor")
+    public TaskExecutor memberDeviceLastAccessExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(8);
+        executor.setQueueCapacity(1000);
+        executor.setThreadNamePrefix("MemberDeviceLastAccess-");
+        executor.initialize();
+        return executor;
+    }
 }
