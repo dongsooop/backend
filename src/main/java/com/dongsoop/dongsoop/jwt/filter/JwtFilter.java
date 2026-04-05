@@ -66,6 +66,7 @@ public class JwtFilter extends OncePerRequestFilter {
             Long deviceId = claims.get(JwtUtil.DEVICE_ID_CLAIM, Long.class);
             if (deviceId != null) {
                 deviceBlacklistService.validateNotBlacklisted(deviceId, claims.getIssuedAt());
+                request.setAttribute(JwtUtil.DEVICE_ID_CLAIM, deviceId);
             }
 
             setAuthentication(token);

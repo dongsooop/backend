@@ -2,11 +2,16 @@ package com.dongsoop.dongsoop.memberdevice.repository;
 
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface MemberDeviceRepository extends JpaRepository<MemberDevice, Long>, MemberDeviceRepositoryCustom {
+
     boolean existsByDeviceToken(String deviceToken);
 
     Optional<MemberDevice> findByMemberIdAndDeviceToken(Long memberId, String deviceToken);
@@ -18,4 +23,8 @@ public interface MemberDeviceRepository extends JpaRepository<MemberDevice, Long
     List<MemberDevice> findByMemberId(Long memberId);
 
     int countByMemberIdAndMemberDeviceType(Long memberId, MemberDeviceType type);
+
+    @Modifying
+    @Query("DELETE FROM MemberDevice d WHERE d.memberDeviceType = :type AND (d.lastAccess IS NULL OR d.lastAccess < :cutoff)")
+    int deleteExpiredWebDevices(@Param("type") MemberDeviceType type, @Param("cutoff") LocalDateTime cutoff);
 }

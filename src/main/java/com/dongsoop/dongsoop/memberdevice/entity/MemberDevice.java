@@ -12,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -48,7 +49,14 @@ public class MemberDevice extends BaseEntity {
         this.member = member;
     }
 
+    @Column
+    private LocalDateTime lastAccess;
+
     public void updateDeviceToken(String deviceToken) {
         this.deviceToken = deviceToken;
+    }
+
+    public void updateLastAccess(LocalDateTime lastAccess) {
+        this.lastAccess = lastAccess;
     }
 }

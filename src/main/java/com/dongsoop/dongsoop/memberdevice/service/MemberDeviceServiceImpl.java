@@ -12,12 +12,14 @@ import com.dongsoop.dongsoop.memberdevice.exception.AlreadyRegisteredDeviceExcep
 import com.dongsoop.dongsoop.memberdevice.exception.UnauthorizedDeviceAccessException;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -149,6 +151,14 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
     /**
      * {@inheritDoc}
      */
+    @Override
+    @Async
+    @Transactional
+    public void updateLastAccessAsync(Long deviceId) {
+        memberDeviceRepository.findById(deviceId)
+                .ifPresent(device -> device.updateLastAccess(LocalDateTime.now()));
+    }
+
     @Override
     @Transactional
     public void updateDeviceToken(Long memberId, Long deviceId, String newToken) {

@@ -14,6 +14,8 @@ public interface MemberDeviceService {
 
     void updateDeviceToken(Long memberId, Long deviceId, String newToken);
 
+    void updateLastAccessAsync(Long deviceId);
+
     List<String> getDeviceByMemberId(Long memberId);
 
     Map<Long, List<String>> getDeviceByMember(MemberDeviceFindCondition condition);
