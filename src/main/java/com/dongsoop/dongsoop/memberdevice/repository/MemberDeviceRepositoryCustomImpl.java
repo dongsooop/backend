@@ -12,8 +12,10 @@ import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.jpa.impl.JPADeleteClause;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import io.micrometer.common.util.StringUtils;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -97,5 +99,14 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     private BooleanExpression notificationSettingEq(NotificationType notificationType) {
         return notificationSetting.id.device.eq(memberDevice)
                 .and(notificationSetting.id.notificationType.eq(notificationType));
+    }
+
+    @Override
+    public long deleteExpiredDevices(LocalDateTime cutoff) {
+        return queryFactory.delete(memberDevice)
+                .where(memberDevice.lastAccess.lt(cutoff)
+                        .and(memberDevice.memberDeviceType.eq(MemberDeviceType.WEB)
+                                .or(memberDevice.deviceToken.isNull())))
+                .execute();
     }
 }

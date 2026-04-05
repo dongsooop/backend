@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.memberdevice.scheduler;
 
-import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +23,7 @@ public class WebDeviceCleanupScheduler {
     @Transactional
     public void deleteExpiredWebDevices() {
         LocalDateTime cutoff = LocalDateTime.now().minusNanos(refreshTokenExpiryMs * 1_000_000L);
-        int deleted = memberDeviceRepository.deleteExpiredDevices(MemberDeviceType.WEB, cutoff);
+        long deleted = memberDeviceRepository.deleteExpiredDevices(cutoff);
         log.info("Deleted {} expired devices (WEB or null token, cutoff={})", deleted, cutoff);
     }
 }
