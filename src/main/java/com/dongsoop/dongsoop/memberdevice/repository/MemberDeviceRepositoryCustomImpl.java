@@ -44,7 +44,7 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
                 .leftJoin(notificationSetting)
                 .on(notificationSettingEq(condition.notificationType())) // 디바이스 및 알림 타입 조건 일치
                 .where(member.id.in(condition.memberIds()) // memberIds 조건
-                        .and(memberDevice.memberDeviceType.ne(MemberDeviceType.WEB))
+                        .and(isNotWebDevice())
                         .and(memberDevice.deviceToken.isNotNull())
                         .and(enabledCondition)) // 알림 활성화 조건
                 .distinct()
@@ -56,7 +56,7 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
         return queryFactory.select(memberDevice.deviceToken)
                 .from(memberDevice)
                 .where(memberDevice.member.id.eq(memberId)
-                        .and(memberDevice.memberDeviceType.ne(MemberDeviceType.WEB))
+                        .and(isNotWebDevice())
                         .and(memberDevice.deviceToken.isNotNull()))
                 .fetch();
     }
@@ -81,6 +81,10 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
         }
 
         return memberDevice.deviceToken.eq(currentDeviceToken);
+    }
+
+    private BooleanExpression isNotWebDevice() {
+        return memberDevice.memberDeviceType.ne(MemberDeviceType.WEB);
     }
 
     private BooleanExpression isEnableNotificationDevice(boolean isEnabledDefault) {
