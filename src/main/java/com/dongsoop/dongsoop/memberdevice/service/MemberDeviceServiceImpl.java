@@ -51,6 +51,7 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
                 .orElseThrow(MemberNotFoundException::new);
 
         device.bindMember(member);
+        memberDeviceRepository.save(device);
     }
 
     private void validateDuplicateDeviceToken(String deviceToken) {
