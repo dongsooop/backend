@@ -51,7 +51,6 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
                 .orElseThrow(MemberNotFoundException::new);
 
         device.bindMember(member);
-        System.out.println(device.getDeviceToken() + " : " + device.getMember().getEmail());
     }
 
     private void validateDuplicateDeviceToken(String deviceToken) {
