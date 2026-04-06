@@ -24,6 +24,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import java.util.List;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.servlet.HandlerExceptionResolver;
@@ -48,8 +50,7 @@ class JwtFilterAuthenticationTest {
     private FilterChain filterChain;
     @Mock
     private Claims claims;
-    @Mock
-    private Authentication authentication;
+    private final Authentication authentication = new UsernamePasswordAuthenticationToken(1L, null, List.of());
     @Mock
     private DeviceBlacklistService deviceBlacklistService;
     private JwtFilter jwtFilter;
@@ -162,8 +163,8 @@ class JwtFilterAuthenticationTest {
         // given
         String token1 = "token1";
         String token2 = "token2";
-        Authentication auth1 = mock(Authentication.class);
-        Authentication auth2 = mock(Authentication.class);
+        UsernamePasswordAuthenticationToken auth1 = new UsernamePasswordAuthenticationToken(1L, null, List.of());
+        UsernamePasswordAuthenticationToken auth2 = new UsernamePasswordAuthenticationToken(2L, null, List.of());
 
 
 

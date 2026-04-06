@@ -5,12 +5,14 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.dto.DeviceRegisterRequest;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
+import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import com.dongsoop.dongsoop.notification.service.FCMService;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,16 +33,30 @@ public class MemberDeviceController {
     private final MemberService memberService;
     private final FCMService fcmService;
     private final DeviceBlacklistService deviceBlacklistService;
+    private final DeviceUtil deviceUtil;
 
     @Value("${notification.topic.anonymous}")
     private String anonymousTopic;
 
+    /**
+     * 디바이스를 등록하거나 기존 디바이스의 토큰을 갱신한다.
+     *
+     * <p>JWT에 deviceId가 포함된 인증 요청인 경우 기존 디바이스의 토큰을 갱신하고,
+     * 미인증 요청이거나 deviceId가 없는 경우 새 디바이스를 등록한다.
+     * 새 디바이스 등록 시 anonymous 토픽을 구독한다.
+     *
+     * @return 디바이스 ID (201 Created)
+     */
     @PostMapping
     public ResponseEntity<Void> registerDevice(@RequestBody @Valid DeviceRegisterRequest request) {
-        memberDeviceService.registerDevice(request.deviceToken(), request.type());
-        fcmService.subscribeTopic(List.of(request.deviceToken()), anonymousTopic);
+        Long existingDeviceId = deviceUtil.getDeviceIdFromContext();
+        memberDeviceService.registerDevice(request.deviceToken(), request.type(), existingDeviceId);
 
-        return ResponseEntity.noContent().build();
+        if (existingDeviceId == null) {
+            fcmService.subscribeTopic(List.of(request.deviceToken()), anonymousTopic);
+        }
+
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     /**
@@ -61,15 +77,11 @@ public class MemberDeviceController {
     /**
      * 특정 기기를 강제 로그아웃 처리한다.
      *
-     * <p>해당 기기의 JWT를 블랙리스트에 등록하여 이후 모든 요청을 즉시 차단하고,
-     * anonymous 토픽을 재구독한 뒤 회원과의 바인딩을 해제한다.
-     * 토픽 재구독 실패 시 경고 로그를 남기고 계속 진행하며,
-     * 블랙리스트 등록과 바인딩 해제는 항상 실행된다.
+     * <p>WEB 타입 기기는 디바이스 행을 삭제하고, 모바일은 회원 바인딩을 해제한다.
+     * 블랙리스트 등록과 anonymous 토픽 재구독(모바일)은 항상 실행된다.
      *
      * @param deviceId 강제 로그아웃할 기기의 ID
      * @return 응답 본문 없음 (204 No Content)
-     * @throws com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException     기기가 존재하지 않는 경우
-     * @throws com.dongsoop.dongsoop.memberdevice.exception.UnauthorizedDeviceAccessException 본인 소유 기기가 아닌 경우
      */
     @DeleteMapping("/{deviceId}")
     public ResponseEntity<Void> forceLogout(@PathVariable Long deviceId) {
@@ -79,10 +91,12 @@ public class MemberDeviceController {
 
         deviceBlacklistService.blacklist(deviceId);
 
-        try {
-            fcmService.subscribeTopic(List.of(deviceToken), anonymousTopic);
-        } catch (Exception e) {
-            log.warn("Failed to resubscribe device {} to anonymous topic: {}", deviceId, e.getMessage());
+        if (deviceToken != null) {
+            try {
+                fcmService.subscribeTopic(List.of(deviceToken), anonymousTopic);
+            } catch (Exception e) {
+                log.warn("Failed to resubscribe device {} to anonymous topic: {}", deviceId, e.getMessage());
+            }
         }
 
         memberDeviceService.unbindDevice(deviceId);

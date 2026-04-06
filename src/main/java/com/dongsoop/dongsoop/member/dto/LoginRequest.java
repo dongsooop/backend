@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.member.dto;
 
 import com.dongsoop.dongsoop.email.annotation.SchoolEmail;
 import com.dongsoop.dongsoop.member.constant.MemberPassword;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
@@ -21,4 +22,6 @@ public class LoginRequest {
     private String password;
 
     private String fcmToken;
+
+    private MemberDeviceType deviceType;
 }

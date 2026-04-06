@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.oauth.controller;
 import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.member.dto.LoginResponse;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.service.FCMService;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountOverview;
@@ -82,8 +83,7 @@ public class OAuth2Controller {
         Authentication authentication = this.kakaoSocialProvider.login(request.token());
         Long memberId = this.getMemberIdByAuthentication(authentication);
 
-        memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
-        this.unsubscribeAnonymous(request.deviceToken());
+        bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
 
         LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, request.deviceToken());
         return ResponseEntity.ok(response);
@@ -94,8 +94,7 @@ public class OAuth2Controller {
         Authentication authentication = this.googleSocialProvider.login(request.token());
         Long memberId = this.getMemberIdByAuthentication(authentication);
 
-        memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
-        this.unsubscribeAnonymous(request.deviceToken());
+        bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
 
         LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, request.deviceToken());
         return ResponseEntity.ok(response);
@@ -105,8 +104,8 @@ public class OAuth2Controller {
     public ResponseEntity<LoginResponse> appleLogin(@RequestBody @Valid SocialLoginRequest request) {
         Authentication authentication = this.appleSocialProvider.login(request.token());
         Long memberId = this.getMemberIdByAuthentication(authentication);
-        memberDeviceService.bindDeviceWithMemberId(memberId, request.deviceToken());
-        this.unsubscribeAnonymous(request.deviceToken());
+
+        bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
 
         LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, request.deviceToken());
         return ResponseEntity.ok(response);
@@ -176,6 +175,15 @@ public class OAuth2Controller {
                 memberService.getMemberIdByAuthentication());
 
         return ResponseEntity.ok(socialAccountState);
+    }
+
+    private void bindOrCreateDevice(Long memberId, String deviceToken, MemberDeviceType deviceType) {
+        if (deviceType == MemberDeviceType.WEB) {
+            memberDeviceService.createAndBindWebDevice(memberId, deviceToken);
+        } else {
+            memberDeviceService.bindDeviceWithMemberId(memberId, deviceToken);
+            unsubscribeAnonymous(deviceToken);
+        }
     }
 
     private void unsubscribeAnonymous(String deviceToken) {

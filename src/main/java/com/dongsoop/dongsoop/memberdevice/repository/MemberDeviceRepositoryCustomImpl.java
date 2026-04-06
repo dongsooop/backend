@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.entity.QMemberDevice;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.setting.entity.QNotificationSetting;
@@ -11,8 +12,10 @@ import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.jpa.impl.JPADeleteClause;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import io.micrometer.common.util.StringUtils;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -41,6 +44,8 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
                 .leftJoin(notificationSetting)
                 .on(notificationSettingEq(condition.notificationType())) // 디바이스 및 알림 타입 조건 일치
                 .where(member.id.in(condition.memberIds()) // memberIds 조건
+                        .and(isNotWebDevice())
+                        .and(memberDevice.deviceToken.isNotNull())
                         .and(enabledCondition)) // 알림 활성화 조건
                 .distinct()
                 .fetch();
@@ -50,7 +55,9 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     public List<String> getDeviceByMemberId(Long memberId) {
         return queryFactory.select(memberDevice.deviceToken)
                 .from(memberDevice)
-                .where(memberDevice.member.id.eq(memberId))
+                .where(memberDevice.member.id.eq(memberId)
+                        .and(isNotWebDevice())
+                        .and(memberDevice.deviceToken.isNotNull()))
                 .fetch();
     }
 
@@ -76,6 +83,10 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
         return memberDevice.deviceToken.eq(currentDeviceToken);
     }
 
+    private BooleanExpression isNotWebDevice() {
+        return memberDevice.memberDeviceType.ne(MemberDeviceType.WEB);
+    }
+
     private BooleanExpression isEnableNotificationDevice(boolean isEnabledDefault) {
         // 기본 설정이 비활성화인 경우
         if (!isEnabledDefault) {
@@ -92,5 +103,14 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     private BooleanExpression notificationSettingEq(NotificationType notificationType) {
         return notificationSetting.id.device.eq(memberDevice)
                 .and(notificationSetting.id.notificationType.eq(notificationType));
+    }
+
+    @Override
+    public long deleteExpiredDevices(LocalDateTime cutoff) {
+        return queryFactory.delete(memberDevice)
+                .where(memberDevice.lastAccess.lt(cutoff)
+                        .and(memberDevice.memberDeviceType.eq(MemberDeviceType.WEB)
+                                .or(memberDevice.deviceToken.isNull())))
+                .execute();
     }
 }

@@ -13,6 +13,7 @@ import com.dongsoop.dongsoop.member.dto.UpdatePasswordRequest;
 import com.dongsoop.dongsoop.member.service.LoginNotificationService;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.member.validate.MemberDuplicationValidator;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.service.FCMService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -77,8 +78,12 @@ public class MemberController {
         Long memberId = loginDetail.getLoginMemberDetail().getId();
 
         if (StringUtils.hasText(loginRequest.getFcmToken())) {
-            memberDeviceService.bindDeviceWithMemberId(memberId, loginRequest.getFcmToken());
-            fcmService.unsubscribeTopic(List.of(loginRequest.getFcmToken()), anonymousTopic);
+            if (loginRequest.getDeviceType() == MemberDeviceType.WEB) {
+                memberDeviceService.createAndBindWebDevice(memberId, loginRequest.getFcmToken());
+            } else {
+                memberDeviceService.bindDeviceWithMemberId(memberId, loginRequest.getFcmToken());
+                fcmService.unsubscribeTopic(List.of(loginRequest.getFcmToken()), anonymousTopic);
+            }
         }
 
         String ipAddress = resolveClientIp(request);

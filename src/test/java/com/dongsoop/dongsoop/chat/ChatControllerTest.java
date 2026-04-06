@@ -8,6 +8,8 @@ import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
+import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,6 +44,10 @@ class ChatControllerTest {
     private JwtFilter jwtFilter;
     @MockitoBean
     private FirebaseAppCheck firebaseAppCheck;
+    @MockitoBean
+    private DeviceUtil deviceUtil;
+    @MockitoBean
+    private MemberDeviceService memberDeviceService;
 
     private void mockCurrentUser() {
         Member member = Member.builder().id(1L).build();

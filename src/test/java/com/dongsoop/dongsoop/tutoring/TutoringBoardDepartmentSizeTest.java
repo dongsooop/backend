@@ -10,6 +10,8 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
+import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
+import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.controller.TutoringBoardController;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.dto.CreateTutoringBoardRequest;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.entity.TutoringBoard;
@@ -46,6 +48,10 @@ class TutoringBoardDepartmentSizeTest {
     private JwtFilter jwtFilter;
     @MockitoBean
     private FirebaseAppCheck firebaseAppCheck;
+    @MockitoBean
+    private DeviceUtil deviceUtil;
+    @MockitoBean
+    private MemberDeviceService memberDeviceService;
 
     @Autowired
     private MockMvc mockMvc;

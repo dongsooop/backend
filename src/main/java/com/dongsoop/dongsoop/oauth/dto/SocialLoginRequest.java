@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.oauth.dto;
 
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import jakarta.validation.constraints.NotBlank;
 
 public record SocialLoginRequest(
@@ -8,6 +9,8 @@ public record SocialLoginRequest(
         String token,
 
         @NotBlank
-        String deviceToken
+        String deviceToken,
+
+        MemberDeviceType deviceType
 ) {
 }

@@ -68,7 +68,6 @@ authentication:
         /member/signup,
         /mail-verify/**,
         /notice/**,
-        /device,
         /oauth2/authorization,
         /ws/**,
         /web-app-check
