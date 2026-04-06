@@ -12,12 +12,14 @@ import com.dongsoop.dongsoop.memberdevice.exception.AlreadyRegisteredDeviceExcep
 import com.dongsoop.dongsoop.memberdevice.exception.UnauthorizedDeviceAccessException;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,14 +32,21 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
     private final MemberRepository memberRepository;
 
     @Override
-    public void registerDevice(String deviceToken, MemberDeviceType deviceType) {
-        validateDuplicateDeviceToken(deviceToken);
+    @Transactional
+    public void registerDevice(String deviceToken, MemberDeviceType deviceType, Long existingDeviceId) {
+        if (existingDeviceId != null) {
+            MemberDevice device = memberDeviceRepository.findById(existingDeviceId)
+                    .orElseThrow(UnregisteredDeviceException::new);
+            validateDuplicateDeviceToken(deviceToken);
+            device.updateDeviceToken(deviceToken);
+            return;
+        }
 
+        validateDuplicateDeviceToken(deviceToken);
         MemberDevice memberDevice = MemberDevice.builder()
                 .deviceToken(deviceToken)
                 .memberDeviceType(deviceType)
                 .build();
-
         memberDeviceRepository.save(memberDevice);
     }
 
@@ -52,6 +61,27 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
 
         device.bindMember(member);
         memberDeviceRepository.save(device);
+    }
+
+    // 새로운 WEB 바인딩 메서드: WEB 로그인 흐름에서 디바이스 행을 직접 생성하고 회원을 바인딩한다.
+    @Override
+    @Transactional
+    public void createAndBindWebDevice(Long memberId, String deviceToken) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(MemberNotFoundException::new);
+
+        // 토큰이 비어있지 않으면 중복 검증
+        if (deviceToken != null && !deviceToken.isBlank()) {
+            validateDuplicateDeviceToken(deviceToken);
+        }
+
+        MemberDevice memberDevice = MemberDevice.builder()
+                .deviceToken(deviceToken)
+                .memberDeviceType(MemberDeviceType.WEB)
+                .member(member)
+                .build();
+
+        memberDeviceRepository.save(memberDevice);
     }
 
     private void validateDuplicateDeviceToken(String deviceToken) {
@@ -103,26 +133,25 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
     }
 
     /**
-     * {@inheritDoc}
+     * FCM 토큰 만료 시 deviceToken을 null로 설정한다.
+     *
+     * <p>기기 행은 유지하되 토큰만 무효화한다.
+     * 이후 알림 발송 쿼리에서 null 토큰은 자동 제외된다.
+     *
+     * @param deviceToken 무효화할 FCM 토큰
      */
     @Override
     @Transactional
     public void unbindByToken(String deviceToken) {
         memberDeviceRepository.findByDeviceToken(deviceToken)
-                .ifPresent(device -> device.bindMember(null));
+                .ifPresent(device -> device.updateDeviceToken(null));
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public List<MemberDeviceResponse> getDeviceList(Long memberId, String currentDeviceToken) {
         return memberDeviceRepository.findDeviceListByMemberId(memberId, currentDeviceToken);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public String getDeviceTokenIfOwned(Long memberId, Long deviceId) {
         MemberDevice device = memberDeviceRepository.findById(deviceId)
@@ -137,12 +166,31 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
     }
 
     /**
-     * {@inheritDoc}
+     * {@inheritDoc} WEB 타입 디바이스는 행 자체를 삭제하고, 모바일은 회원 바인딩만 해제한다.
      */
     @Override
     @Transactional
     public void unbindDevice(Long deviceId) {
-        memberDeviceRepository.findById(deviceId)
-                .ifPresent(device -> device.bindMember(null));
+        memberDeviceRepository.findById(deviceId).ifPresent(device -> {
+            if (device.getMemberDeviceType() == MemberDeviceType.WEB) {
+                memberDeviceRepository.delete(device);
+
+                return;
+            }
+
+            device.bindMember(null);
+        });
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Async("memberDeviceLastAccessExecutor")
+    @Transactional
+    public void updateLastAccessAsync(Long deviceId) {
+        memberDeviceRepository.findById(deviceId)
+                .ifPresent(device -> device.updateLastAccess(LocalDateTime.now()));
+    }
+
 }

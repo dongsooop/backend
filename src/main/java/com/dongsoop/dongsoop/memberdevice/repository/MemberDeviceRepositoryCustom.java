@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.memberdevice.repository;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface MemberDeviceRepositoryCustom {
@@ -12,4 +13,6 @@ public interface MemberDeviceRepositoryCustom {
     List<String> getDeviceByMemberId(Long memberId);
 
     List<MemberDeviceResponse> findDeviceListByMemberId(Long memberId, String currentDeviceToken);
+
+    long deleteExpiredDevices(LocalDateTime cutoff);
 }

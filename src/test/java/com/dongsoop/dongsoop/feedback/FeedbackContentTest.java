@@ -11,6 +11,7 @@ import com.dongsoop.dongsoop.feedback.entity.ServiceFeature;
 import com.dongsoop.dongsoop.feedback.service.FeedbackService;
 import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
+import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,8 @@ class FeedbackContentTest {
     private JwtFilter jwtFilter;
     @MockitoBean
     private FirebaseAppCheck firebaseAppCheck;
+    @MockitoBean
+    private DeviceUtil deviceUtil;
 
     @Test
     @DisplayName("피드백이 1글자 미만일 때 예외와 400 에러를 던져야 한다.")

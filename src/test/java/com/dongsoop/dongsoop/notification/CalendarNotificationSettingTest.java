@@ -99,11 +99,14 @@ public class CalendarNotificationSettingTest extends AbstractIntegrationTest {
 
         // 디바이스 정보 저장
         MemberDevice memberDevice1 = memberDeviceRepository.save(
-                new MemberDevice(null, member1, "token1", MemberDeviceType.IOS));
+                MemberDevice.builder().member(member1).deviceToken("token1").memberDeviceType(MemberDeviceType.IOS)
+                        .build());
         MemberDevice memberDevice2 = memberDeviceRepository.save(
-                new MemberDevice(null, member2, "token2", MemberDeviceType.WEB));
+                MemberDevice.builder().member(member2).deviceToken("token2").memberDeviceType(MemberDeviceType.WEB)
+                        .build());
         MemberDevice memberDevice3 = memberDeviceRepository.save(
-                new MemberDevice(null, member3, "token3", MemberDeviceType.ANDROID));
+                MemberDevice.builder().member(member3).deviceToken("token3").memberDeviceType(MemberDeviceType.ANDROID)
+                        .build());
 
         // 회원 일정 추가
         MemberSchedule memberSchedule1 = new MemberSchedule(null, "title", "content", LocalDateTime.now(),
@@ -144,11 +147,12 @@ public class CalendarNotificationSettingTest extends AbstractIntegrationTest {
 
         assertNotNull(capturedMap);
         assertFalse(capturedMap.isEmpty());
-        assertEquals(capturedMap.size(), 2,
-                "member2, member3를 포함한 2개 요소여야 합니다: [" + capturedMap.keySet().stream()
+        assertEquals(1, capturedMap.size(),
+                "WEB 디바이스(member2) 및 알림 거부(member1) 제외 후 member3만 포함한 1개 요소여야 합니다: ["
+                        + capturedMap.keySet().stream()
                         .map(String::valueOf)
                         .collect(java.util.stream.Collectors.joining(",")) + "]");
-        assertTrue(capturedMap.keySet().containsAll(List.of(member2.getId(), member3.getId())),
-                "member2, member3이 포함되어야 합니다.");
+        assertTrue(capturedMap.containsKey(member3.getId()),
+                "member3이 포함되어야 합니다.");
     }
 }

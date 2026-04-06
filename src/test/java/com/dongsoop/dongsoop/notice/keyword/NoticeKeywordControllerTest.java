@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
+import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.notice.keyword.controller.NoticeKeywordController;
@@ -59,6 +60,8 @@ class NoticeKeywordControllerTest {
 
     @MockitoBean
     private FirebaseAppCheck firebaseAppCheck;
+    @MockitoBean
+    private DeviceUtil deviceUtil;
 
     @Test
     @DisplayName("키워드 목록 조회 시 200과 목록을 반환한다")

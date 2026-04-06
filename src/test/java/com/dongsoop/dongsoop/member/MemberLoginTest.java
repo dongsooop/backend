@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
+import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import com.dongsoop.dongsoop.member.service.LoginNotificationService;
 import com.dongsoop.dongsoop.mailverify.passwordupdate.PasswordUpdateMailValidator;
 import com.dongsoop.dongsoop.mailverify.register.RegisterMailValidator;
@@ -46,6 +47,8 @@ class MemberLoginTest {
     private LoginNotificationService loginNotificationService;
     @MockitoBean
     private FirebaseAppCheck firebaseAppCheck;
+    @MockitoBean
+    private DeviceUtil deviceUtil;
 
     @Test
     @DisplayName("비밀번호가 8자 미만일 경우 예외 발생")

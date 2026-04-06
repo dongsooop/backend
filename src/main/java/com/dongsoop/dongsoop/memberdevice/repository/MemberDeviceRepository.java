@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MemberDeviceRepository extends JpaRepository<MemberDevice, Long>, MemberDeviceRepositoryCustom {
+
     boolean existsByDeviceToken(String deviceToken);
 
     Optional<MemberDevice> findByMemberIdAndDeviceToken(Long memberId, String deviceToken);
