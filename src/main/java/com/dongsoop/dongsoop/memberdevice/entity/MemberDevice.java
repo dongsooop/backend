@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.SequenceGenerator;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
@@ -51,6 +52,13 @@ public class MemberDevice extends BaseEntity {
 
     @Column
     private LocalDateTime lastAccess;
+
+    @PrePersist
+    protected void initLastAccess() {
+        if (this.lastAccess == null) {
+            this.lastAccess = LocalDateTime.now();
+        }
+    }
 
     public void updateDeviceToken(String deviceToken) {
         this.deviceToken = deviceToken;
