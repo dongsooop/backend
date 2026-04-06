@@ -11,6 +11,7 @@ import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
+import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
@@ -60,6 +61,8 @@ public class MemberUnblockTest {
     private FirebaseAppCheck firebaseAppCheck;
     @MockitoBean
     private DeviceUtil deviceUtil;
+    @MockitoBean
+    private MemberDeviceService memberDeviceService;
 
     @Test
     @DisplayName("DB에 저장된 멤버 차단 정보를 제거한다.")

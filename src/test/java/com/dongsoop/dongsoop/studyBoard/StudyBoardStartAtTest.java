@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
+import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import com.dongsoop.dongsoop.recruitment.board.study.controller.StudyBoardController;
 import com.dongsoop.dongsoop.recruitment.board.study.dto.CreateStudyBoardRequest;
@@ -53,6 +54,8 @@ class StudyBoardStartAtTest {
     private FirebaseAppCheck firebaseAppCheck;
     @MockitoBean
     private DeviceUtil deviceUtil;
+    @MockitoBean
+    private MemberDeviceService memberDeviceService;
 
     @BeforeEach
     void setUp() throws JSONException {

@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.report;
 
 import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
+import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import com.dongsoop.dongsoop.report.controller.ReportController;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
@@ -37,6 +38,8 @@ class ReportControllerTest {
     private FirebaseAppCheck firebaseAppCheck;
     @MockitoBean
     private DeviceUtil deviceUtil;
+    @MockitoBean
+    private MemberDeviceService memberDeviceService;
 
     @Test
     @DisplayName("제재당하지 않은 사용자의 제재 상태 확인 시 정상 응답을 반환한다")
