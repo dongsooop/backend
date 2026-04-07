@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.jwt.exception.DeviceInformationNotIncludedInHeaderE
 import com.dongsoop.dongsoop.jwt.exception.TokenNotFoundException;
 import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.notification.service.FCMService;
@@ -52,6 +53,12 @@ public class JwtLogoutHandler implements LogoutHandler {
                 .orElseThrow(UnregisteredDeviceException::new);
 
         deviceBlacklistService.blacklist(device.getId());
+
+        if (device.getMemberDeviceType() == MemberDeviceType.WEB) {
+            memberDeviceRepository.delete(device);
+            return;
+        }
+
         device.bindMember(null);
         fcmService.subscribeTopic(List.of(deviceToken), anonymousTopic);
         fcmService.updateNotificationBadge(List.of(deviceToken), 0);
