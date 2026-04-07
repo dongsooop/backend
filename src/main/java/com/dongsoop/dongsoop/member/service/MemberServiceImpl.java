@@ -19,7 +19,9 @@ import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.validate.MemberDuplicationValidator;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
+import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.oauth.service.OAuth2Service;
 import com.dongsoop.dongsoop.report.validator.ReportValidator;
 import com.dongsoop.dongsoop.role.entity.MemberRole;
@@ -58,6 +60,7 @@ public class MemberServiceImpl implements MemberService {
     private final MemberDuplicationValidator memberDuplicationValidator;
     private final ReportValidator reportValidator;
     private final MemberDeviceRepository memberDeviceRepository;
+    private final MemberDeviceService memberDeviceService;
     private final OAuth2Service oAuth2Service;
 
     @Override
@@ -102,7 +105,7 @@ public class MemberServiceImpl implements MemberService {
 
         Authentication authentication = getAuthenticationByLoginAuthenticate(loginAuthenticate);
 
-        Long deviceId = resolveDeviceId(loginRequest.getFcmToken());
+        Long deviceId = resolveDeviceId(loginRequest, loginAuthenticate.getId());
         String accessToken = tokenGenerator.generateAccessToken(authentication, deviceId);
         String refreshToken = tokenGenerator.generateRefreshToken(authentication, deviceId);
 
@@ -123,9 +126,13 @@ public class MemberServiceImpl implements MemberService {
      * <p>로그인 시점에는 디바이스 바인딩이 완료되기 전이므로 member_id 조건 없이 조회한다.
      * 바인딩은 로그인 완료 후 컨트롤러에서 수행된다.
      */
-    private Long resolveDeviceId(String fcmToken) {
+    private Long resolveDeviceId(LoginRequest loginRequest, Long memberId) {
+        String fcmToken = loginRequest.getFcmToken();
         if (!StringUtils.hasText(fcmToken)) {
             return null;
+        }
+        if (loginRequest.getDeviceType() == MemberDeviceType.WEB) {
+            return memberDeviceService.createAndBindWebDevice(memberId, fcmToken);
         }
         return memberDeviceRepository.findByDeviceToken(fcmToken)
                 .map(MemberDevice::getId)

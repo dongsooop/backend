@@ -12,7 +12,7 @@ public interface MemberDeviceService {
 
     void bindDeviceWithMemberId(Long memberId, String deviceToken);
 
-    void createAndBindWebDevice(Long memberId, String deviceToken);
+    Long createAndBindWebDevice(Long memberId, String deviceToken);
 
     void updateLastAccessAsync(Long deviceId);
 
