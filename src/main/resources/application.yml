@@ -52,6 +52,7 @@ authentication:
       /admin
   origins:
     http://localhost:3000,
+    http://dongsoop.site,
     https://appleid.apple.com
   methods:
     POST,
