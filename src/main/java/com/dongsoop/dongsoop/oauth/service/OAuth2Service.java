@@ -11,6 +11,8 @@ public interface OAuth2Service {
 
     LoginResponse acceptLogin(Authentication authentication, Long memberId, String deviceToken);
 
+    LoginResponse acceptLoginWithDeviceId(Authentication authentication, Long memberId, Long deviceId);
+
     void unlinkMemberWithProviderType(Long memberId,
                                       OAuthProviderType providerType,
                                       UnlinkSocialAccountRequest request);

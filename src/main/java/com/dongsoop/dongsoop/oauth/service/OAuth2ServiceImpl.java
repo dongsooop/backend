@@ -35,6 +35,15 @@ public class OAuth2ServiceImpl implements OAuth2Service {
     @Override
     public LoginResponse acceptLogin(Authentication authentication, Long memberId, String deviceToken) {
         Long deviceId = resolveDeviceId(memberId, deviceToken);
+        return buildLoginResponse(authentication, memberId, deviceId);
+    }
+
+    @Override
+    public LoginResponse acceptLoginWithDeviceId(Authentication authentication, Long memberId, Long deviceId) {
+        return buildLoginResponse(authentication, memberId, deviceId);
+    }
+
+    private LoginResponse buildLoginResponse(Authentication authentication, Long memberId, Long deviceId) {
         String accessToken = tokenGenerator.generateAccessToken(authentication, deviceId);
         String refreshToken = tokenGenerator.generateRefreshToken(authentication, deviceId);
 
