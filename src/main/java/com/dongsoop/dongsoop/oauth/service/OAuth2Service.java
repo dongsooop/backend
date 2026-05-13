@@ -9,7 +9,7 @@ import org.springframework.security.core.Authentication;
 
 public interface OAuth2Service {
 
-    LoginResponse acceptLogin(Authentication authentication, Long memberId, String deviceToken);
+    LoginResponse acceptLogin(Authentication authentication, Long memberId, Long deviceId);
 
     void unlinkMemberWithProviderType(Long memberId,
                                       OAuthProviderType providerType,

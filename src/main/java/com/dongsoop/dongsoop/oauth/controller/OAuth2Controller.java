@@ -83,9 +83,9 @@ public class OAuth2Controller {
         Authentication authentication = this.kakaoSocialProvider.login(request.token());
         Long memberId = this.getMemberIdByAuthentication(authentication);
 
-        bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
+        Long deviceId = bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
 
-        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, request.deviceToken());
+        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, deviceId);
         return ResponseEntity.ok(response);
     }
 
@@ -94,9 +94,9 @@ public class OAuth2Controller {
         Authentication authentication = this.googleSocialProvider.login(request.token());
         Long memberId = this.getMemberIdByAuthentication(authentication);
 
-        bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
+        Long deviceId = bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
 
-        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, request.deviceToken());
+        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, deviceId);
         return ResponseEntity.ok(response);
     }
 
@@ -105,9 +105,9 @@ public class OAuth2Controller {
         Authentication authentication = this.appleSocialProvider.login(request.token());
         Long memberId = this.getMemberIdByAuthentication(authentication);
 
-        bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
+        Long deviceId = bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
 
-        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, request.deviceToken());
+        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, deviceId);
         return ResponseEntity.ok(response);
     }
 
@@ -177,13 +177,14 @@ public class OAuth2Controller {
         return ResponseEntity.ok(socialAccountState);
     }
 
-    private void bindOrCreateDevice(Long memberId, String deviceToken, MemberDeviceType deviceType) {
+    private Long bindOrCreateDevice(Long memberId, String deviceToken, MemberDeviceType deviceType) {
         if (deviceType == MemberDeviceType.WEB) {
-            memberDeviceService.createAndBindWebDevice(memberId, deviceToken);
-        } else {
-            memberDeviceService.bindDeviceWithMemberId(memberId, deviceToken);
-            unsubscribeAnonymous(deviceToken);
+            return memberDeviceService.createAndBindWebDevice(memberId, deviceToken);
         }
+
+        Long deviceId = memberDeviceService.bindDeviceWithMemberId(memberId, deviceToken);
+        unsubscribeAnonymous(deviceToken);
+        return deviceId;
     }
 
     private void unsubscribeAnonymous(String deviceToken) {

@@ -8,7 +8,6 @@ public record SocialLoginRequest(
         @NotBlank
         String token,
 
-        @NotBlank
         String deviceToken,
 
         MemberDeviceType deviceType

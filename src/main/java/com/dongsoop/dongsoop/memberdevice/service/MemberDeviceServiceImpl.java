@@ -52,7 +52,7 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
 
     @Override
     @Transactional
-    public void bindDeviceWithMemberId(Long memberId, String deviceToken) {
+    public Long bindDeviceWithMemberId(Long memberId, String deviceToken) {
         MemberDevice device = memberDeviceRepository.findByDeviceToken(deviceToken)
                 .orElseThrow(UnregisteredDeviceException::new);
 
@@ -61,6 +61,7 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
 
         device.bindMember(member);
         memberDeviceRepository.save(device);
+        return device.getId();
     }
 
     // 새로운 WEB 바인딩 메서드: WEB 로그인 흐름에서 디바이스 행을 직접 생성하고 회원을 바인딩한다.
