@@ -10,7 +10,7 @@ public interface MemberDeviceService {
 
     void registerDevice(String deviceToken, MemberDeviceType deviceType, Long existingDeviceId);
 
-    Long bindDeviceWithMemberId(Long memberId, String deviceToken);
+    void bindDeviceWithMemberId(Long memberId, String deviceToken);
 
     Long createAndBindWebDevice(Long memberId, String deviceToken);
 
