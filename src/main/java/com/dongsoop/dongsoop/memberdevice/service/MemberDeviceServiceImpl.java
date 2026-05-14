@@ -15,6 +15,7 @@ import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -64,24 +65,27 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
     }
 
     // 새로운 WEB 바인딩 메서드: WEB 로그인 흐름에서 디바이스 행을 직접 생성하고 회원을 바인딩한다.
+    // deviceToken이 없으면 UUID를 생성하여 사용하고, 실제로 사용된 토큰을 반환한다.
     @Override
     @Transactional
-    public void createAndBindWebDevice(Long memberId, String deviceToken) {
+    public String createAndBindWebDevice(Long memberId, String deviceToken) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
 
-        // 토큰이 비어있지 않으면 중복 검증
-        if (deviceToken != null && !deviceToken.isBlank()) {
-            validateDuplicateDeviceToken(deviceToken);
-        }
+        String effectiveToken = (deviceToken != null && !deviceToken.isBlank())
+                ? deviceToken
+                : UUID.randomUUID().toString();
+
+        validateDuplicateDeviceToken(effectiveToken);
 
         MemberDevice memberDevice = MemberDevice.builder()
-                .deviceToken(deviceToken)
+                .deviceToken(effectiveToken)
                 .memberDeviceType(MemberDeviceType.WEB)
                 .member(member)
                 .build();
 
         memberDeviceRepository.save(memberDevice);
+        return effectiveToken;
     }
 
     private void validateDuplicateDeviceToken(String deviceToken) {
