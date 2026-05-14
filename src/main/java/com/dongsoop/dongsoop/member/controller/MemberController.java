@@ -77,13 +77,10 @@ public class MemberController {
 
         Long memberId = loginDetail.getLoginMemberDetail().getId();
 
-        if (StringUtils.hasText(loginRequest.getFcmToken())) {
-            if (loginRequest.getDeviceType() == MemberDeviceType.WEB) {
-                memberDeviceService.createAndBindWebDevice(memberId, loginRequest.getFcmToken());
-            } else {
-                memberDeviceService.bindDeviceWithMemberId(memberId, loginRequest.getFcmToken());
-                fcmService.unsubscribeTopic(List.of(loginRequest.getFcmToken()), anonymousTopic);
-            }
+        if (StringUtils.hasText(loginRequest.getFcmToken())
+                && loginRequest.getDeviceType() != MemberDeviceType.WEB) {
+            memberDeviceService.bindDeviceWithMemberId(memberId, loginRequest.getFcmToken());
+            fcmService.unsubscribeTopic(List.of(loginRequest.getFcmToken()), anonymousTopic);
         }
 
         String ipAddress = resolveClientIp(request);
