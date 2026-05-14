@@ -83,9 +83,9 @@ public class OAuth2Controller {
         Authentication authentication = this.kakaoSocialProvider.login(request.token());
         Long memberId = this.getMemberIdByAuthentication(authentication);
 
-        bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
+        String effectiveToken = bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
 
-        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, request.deviceToken());
+        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, effectiveToken);
         return ResponseEntity.ok(response);
     }
 
@@ -94,9 +94,9 @@ public class OAuth2Controller {
         Authentication authentication = this.googleSocialProvider.login(request.token());
         Long memberId = this.getMemberIdByAuthentication(authentication);
 
-        bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
+        String effectiveToken = bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
 
-        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, request.deviceToken());
+        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, effectiveToken);
         return ResponseEntity.ok(response);
     }
 
@@ -105,9 +105,9 @@ public class OAuth2Controller {
         Authentication authentication = this.appleSocialProvider.login(request.token());
         Long memberId = this.getMemberIdByAuthentication(authentication);
 
-        bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
+        String effectiveToken = bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
 
-        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, request.deviceToken());
+        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, effectiveToken);
         return ResponseEntity.ok(response);
     }
 
@@ -177,13 +177,14 @@ public class OAuth2Controller {
         return ResponseEntity.ok(socialAccountState);
     }
 
-    private void bindOrCreateDevice(Long memberId, String deviceToken, MemberDeviceType deviceType) {
-        if (deviceType == MemberDeviceType.WEB) {
-            memberDeviceService.createAndBindWebDevice(memberId, deviceToken);
-        } else {
-            memberDeviceService.bindDeviceWithMemberId(memberId, deviceToken);
-            unsubscribeAnonymous(deviceToken);
+    private String bindOrCreateDevice(Long memberId, String deviceToken, MemberDeviceType deviceType) {
+        if (deviceType == MemberDeviceType.WEB || !org.springframework.util.StringUtils.hasText(deviceToken)) {
+            return memberDeviceService.createAndBindWebDevice(memberId, deviceToken);
         }
+
+        memberDeviceService.bindDeviceWithMemberId(memberId, deviceToken);
+        unsubscribeAnonymous(deviceToken);
+        return deviceToken;
     }
 
     private void unsubscribeAnonymous(String deviceToken) {
