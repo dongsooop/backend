@@ -23,7 +23,6 @@ import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.util.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -179,7 +178,7 @@ public class OAuth2Controller {
     }
 
     private String bindOrCreateDevice(Long memberId, String deviceToken, MemberDeviceType deviceType) {
-        if (deviceType == MemberDeviceType.WEB || !StringUtils.hasText(deviceToken)) {
+        if (deviceType == MemberDeviceType.WEB || !org.springframework.util.StringUtils.hasText(deviceToken)) {
             return memberDeviceService.createAndBindWebDevice(memberId, deviceToken);
         }
 
