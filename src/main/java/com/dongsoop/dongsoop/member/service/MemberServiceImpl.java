@@ -132,10 +132,7 @@ public class MemberServiceImpl implements MemberService {
             return null;
         }
         if (loginRequest.getDeviceType() == MemberDeviceType.WEB) {
-            String webToken = memberDeviceService.createAndBindWebDevice(memberId, fcmToken);
-            return memberDeviceRepository.findByDeviceToken(webToken)
-                    .map(MemberDevice::getId)
-                    .orElse(null);
+            return memberDeviceService.createAndBindWebDevice(memberId, fcmToken);
         }
         return memberDeviceRepository.findByDeviceToken(fcmToken)
                 .map(MemberDevice::getId)
