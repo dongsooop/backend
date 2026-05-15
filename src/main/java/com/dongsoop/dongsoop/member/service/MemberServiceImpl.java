@@ -238,6 +238,10 @@ public class MemberServiceImpl implements MemberService {
         devices.forEach(device -> device.bindMember(null));
     }
 
+    private String generateEmailAlias() {
+        return generateRawUUID();
+    }
+
     private String generatePasswordAlias() {
         String uuid = generateRawUUID();
 
