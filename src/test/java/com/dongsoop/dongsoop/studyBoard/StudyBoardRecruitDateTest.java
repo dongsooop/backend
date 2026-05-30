@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
 import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
+import com.dongsoop.dongsoop.common.ratelimit.RateLimitFilter;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
@@ -62,6 +63,8 @@ class StudyBoardRecruitDateTest {
 
     @MockitoBean
     private JwtFilter jwtFilter;
+    @MockitoBean
+    private RateLimitFilter rateLimitFilter;
     @MockitoBean
     private FirebaseAppCheck firebaseAppCheck;
     @MockitoBean
