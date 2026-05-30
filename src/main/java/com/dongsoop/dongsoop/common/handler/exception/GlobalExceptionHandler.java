@@ -12,6 +12,7 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 @Slf4j
@@ -38,6 +39,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ProblemDetail> handleGlobalException(MethodArgumentNotValidException exception) {
         return createExceptionResponse("요청 데이터의 포맷이 올바르지 않습니다.", exception, HttpStatus.BAD_REQUEST);
+    }
+
+    // 업로드 파일 크기 초과 (413 Payload Too Large) — 컨테이너가 FileValidator보다 먼저 던지는 예외 처리
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ProblemDetail> handleMaxUploadSize(MaxUploadSizeExceededException exception) {
+        return createExceptionResponse("업로드 가능한 파일 크기를 초과했습니다.", exception, HttpStatus.PAYLOAD_TOO_LARGE);
     }
 
     // 정의되지 않은 예외처리
