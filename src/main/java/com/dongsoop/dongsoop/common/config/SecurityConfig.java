@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.common.config;
 
 import com.dongsoop.dongsoop.common.handler.authentication.CustomAccessDeniedHandler;
 import com.dongsoop.dongsoop.common.handler.authentication.CustomAuthenticationEntryPoint;
+import com.dongsoop.dongsoop.common.ratelimit.RateLimitFilter;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
 import com.dongsoop.dongsoop.oauth.handler.OAuth2LoginFailureHandler;
 import com.dongsoop.dongsoop.oauth.handler.OAuth2LoginSuccessHandler;
@@ -28,6 +29,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
+
+    private final RateLimitFilter rateLimitFilter;
 
     private final LogoutHandler logoutHandler;
 
@@ -72,6 +75,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable) // JWT를 사용하기 때문에 form login 비활성화
                 .addFilterBefore(jwtFilter, LogoutFilter.class)
+                .addFilterBefore(rateLimitFilter, JwtFilter.class)
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                         .successHandler(oAuth2LoginSuccessHandler)
