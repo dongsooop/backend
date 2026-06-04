@@ -110,11 +110,11 @@ public class CalendarNotificationSettingTest extends AbstractIntegrationTest {
 
         // 회원 일정 추가
         MemberSchedule memberSchedule1 = new MemberSchedule(null, "title", "content", LocalDateTime.now(),
-                LocalDateTime.now(), member1);
+                LocalDateTime.now(), null, member1);
         MemberSchedule memberSchedule2 = new MemberSchedule(null, "title", "content", LocalDateTime.now(),
-                LocalDateTime.now(), member2);
+                LocalDateTime.now(), null, member2);
         MemberSchedule memberSchedule3 = new MemberSchedule(null, "title", "content", LocalDateTime.now(),
-                LocalDateTime.now(), member3);
+                LocalDateTime.now(), null, member3);
 
         memberScheduleRepository.saveAll(List.of(memberSchedule1, memberSchedule2, memberSchedule3));
 
