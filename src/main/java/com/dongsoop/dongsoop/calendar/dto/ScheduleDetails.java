@@ -24,4 +24,6 @@ public class ScheduleDetails {
     private LocalDateTime endAt;
 
     private ScheduleType type;
+
+    private String color;
 }

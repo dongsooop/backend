@@ -50,6 +50,9 @@ public class MemberSchedule extends BaseEntity {
     @Column(name = "end_at", nullable = false)
     private LocalDateTime endAt;
 
+    @Column(name = "color", length = 6)
+    private String color;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
     @Getter
@@ -72,6 +75,7 @@ public class MemberSchedule extends BaseEntity {
                 .startAt(startAt)
                 .endAt(endAt)
                 .type(ScheduleType.MEMBER)
+                .color(color)
                 .build();
     }
 
@@ -90,6 +94,10 @@ public class MemberSchedule extends BaseEntity {
 
         if (request.getEndAt() != null) {
             this.endAt = request.getEndAt();
+        }
+
+        if (request.getColor() != null) {
+            this.color = request.getColor();
         }
     }
 }
