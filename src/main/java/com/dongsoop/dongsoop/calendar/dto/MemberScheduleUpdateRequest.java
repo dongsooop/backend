@@ -22,6 +22,6 @@ public class MemberScheduleUpdateRequest {
 
     private LocalDateTime endAt;
 
-    @Pattern(regexp = "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$", message = "색상은 유효한 HEX 형식이어야 합니다 (예: #FFFFFF)")
+    @Pattern(regexp = "^[A-Fa-f0-9]{6}$", message = "색상은 # 없이 6자리 HEX 형식이어야 합니다 (예: FFFFFF)")
     private String color;
 }

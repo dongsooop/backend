@@ -50,7 +50,7 @@ public class MemberSchedule extends BaseEntity {
     @Column(name = "end_at", nullable = false)
     private LocalDateTime endAt;
 
-    @Column(name = "color", length = 7)
+    @Column(name = "color", length = 6)
     private String color;
 
     @ManyToOne(fetch = FetchType.LAZY)
