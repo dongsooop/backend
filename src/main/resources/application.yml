@@ -29,6 +29,7 @@ authentication:
       /meal/current,
       /error,
       /ws/**,
+      /notice/**,
       /timetable/**,
       /token/reissue,
       /search/**,
