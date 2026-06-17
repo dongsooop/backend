@@ -47,7 +47,9 @@ authentication:
       /oauth2/apple/callback,
       /web-app-check
     user:
-      /test/user
+      /test/user,
+      /notice/keywords,
+      /notice/keywords/**
     admin:
       /admin
   origins:
@@ -69,7 +71,6 @@ authentication:
         /member/login,
         /member/signup,
         /mail-verify/**,
-        /notice/**,
         /oauth2/authorization,
         /ws/**,
         /web-app-check
