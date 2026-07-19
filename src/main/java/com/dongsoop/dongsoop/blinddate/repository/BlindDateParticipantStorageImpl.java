@@ -33,7 +33,7 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
     /**
      * 참여자 추가 또는 소켓 추가
      * <p>
-     * memberId 기준으로 ConcurrentHashMap#compute를 사용해 조회와 반영을 원자적으로 묶는다. (외부에서 BlindDateMatchingLock을
+     * memberId 기준으로 ConcurrentHashMap#compute를 사용해 조회와 반영을 원자적으로 묶는다. (외부에서 별도 락을
      * 잡고 호출하지 않아도 이 메서드 자체로 스레드 안전함)
      *
      * @param sessionId 참여하려는 세션 id

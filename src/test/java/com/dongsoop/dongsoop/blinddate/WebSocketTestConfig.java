@@ -5,9 +5,7 @@ import com.dongsoop.dongsoop.blinddate.handler.BlindDateChoiceHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateConnectHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateDisconnectHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateMessageHandler;
-import com.dongsoop.dongsoop.blinddate.lock.BlindDateMatchingLock;
-import com.dongsoop.dongsoop.blinddate.lock.BlindDateMemberLock;
-import com.dongsoop.dongsoop.blinddate.lock.BlindDateSessionLock;
+import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
@@ -55,20 +53,14 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
 
     @Bean
     @Primary
-    public BlindDateSessionStorage sessionStorage(BlindDateSessionLock sessionLock) {
-        return new BlindDateSessionStorageImpl(sessionLock);
+    public BlindDateSessionStorage sessionStorage() {
+        return new BlindDateSessionStorageImpl();
     }
 
     @Bean
     @Primary
-    public BlindDateMatchingLock blindDateMatchingLock() {
-        return new BlindDateMatchingLock();
-    }
-
-    @Bean
-    @Primary
-    public BlindDateMemberLock blindDateMemberLock() {
-        return new BlindDateMemberLock();
+    public BlindDateEventQueue blindDateEventQueue() {
+        return new BlindDateEventQueue();
     }
 
     @Bean
@@ -105,8 +97,7 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
             BlindDateSessionStorage sessionStorage,
             SimpMessagingTemplate messagingTemplate,
             BlindDateTaskScheduler taskScheduler,
-            BlindDateMemberLock memberLock,
-            BlindDateSessionLock sessionLock
+            BlindDateEventQueue eventQueue
     ) {
         return new BlindDateServiceImpl(
                 participantStorage,
@@ -115,8 +106,7 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
                 sessionStorage,
                 messagingTemplate,
                 taskScheduler,
-                memberLock,
-                sessionLock
+                eventQueue
         );
     }
 
@@ -142,9 +132,7 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
             BlindDateSessionService sessionService,
             BlindDateSessionScheduler sessionScheduler,
             SimpMessagingTemplate messagingTemplate,
-            BlindDateMatchingLock matchingLock,
-            BlindDateMemberLock memberLock,
-            BlindDateSessionLock sessionLock
+            BlindDateEventQueue eventQueue
     ) {
         return new BlindDateConnectHandler(
                 participantStorage,
@@ -154,9 +142,7 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
                 sessionService,
                 sessionScheduler,
                 messagingTemplate,
-                matchingLock,
-                memberLock,
-                sessionLock
+                eventQueue
         );
     }
 
@@ -166,17 +152,13 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
             BlindDateParticipantStorage participantStorage,
             BlindDateSessionStorage sessionStorage,
             BlindDateService blindDateService,
-            BlindDateMatchingLock matchingLock,
-            BlindDateMemberLock memberLock,
-            BlindDateSessionLock sessionLock
+            BlindDateEventQueue eventQueue
     ) {
         return new BlindDateDisconnectHandler(
                 participantStorage,
                 sessionStorage,
                 blindDateService,
-                matchingLock,
-                memberLock,
-                sessionLock
+                eventQueue
         );
     }
 

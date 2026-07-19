@@ -4,9 +4,7 @@ import com.dongsoop.dongsoop.blinddate.dto.BlindDateJoinResult;
 import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo;
 import com.dongsoop.dongsoop.blinddate.exception.SessionTerminatedException;
-import com.dongsoop.dongsoop.blinddate.lock.BlindDateMatchingLock;
-import com.dongsoop.dongsoop.blinddate.lock.BlindDateMemberLock;
-import com.dongsoop.dongsoop.blinddate.lock.BlindDateSessionLock;
+import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateStorage;
@@ -32,9 +30,7 @@ public class BlindDateConnectHandler {
     private final BlindDateSessionService sessionService;
     private final BlindDateSessionScheduler sessionScheduler;
     private final SimpMessagingTemplate messagingTemplate;
-    private final BlindDateMatchingLock blindDateMatchingLock;
-    private final BlindDateMemberLock blindDateMemberLock;
-    private final BlindDateSessionLock sessionLock;
+    private final BlindDateEventQueue eventQueue;
 
     /**
      * 세션 참여 및 세션 id 반환
@@ -46,6 +42,11 @@ public class BlindDateConnectHandler {
         // 과팅 운영 중이 아닌 경우 종료
         this.validateBlindDateAvailability();
 
+        // 참가자/세션 상태를 건드리는 처리는 전부 큐에서 순서대로 처리
+        eventQueue.submit(() -> handle(socketId, memberId, sessionAttributes));
+    }
+
+    private void handle(String socketId, Long memberId, Map<String, Object> sessionAttributes) {
         // 이미 참여 중인 경우 소켓만 추가 후 종료
         String existingSessionId = this.tryHandleReconnection(socketId, memberId);
         if (existingSessionId != null) {
@@ -63,19 +64,11 @@ public class BlindDateConnectHandler {
 
         String sessionId = joinResult.sessionId();
 
-        // 세션 시작 시 연결 해제 및 추가 연결을 막기 위한 세션 락
-        this.sessionLock.lockBySessionId(sessionId);
-
-        try {
-            // 마지막 참여자인지 검증 후 과팅 세션 시작 시도
-            if (tryStart(sessionId)) {
-                // 마지막으로 입장한 사용자의 소켓 수신을 위해 현재 스레드를 종료하고 새 스레드에서 처리
-                new Thread(() -> sessionScheduler.start(sessionId)).start();
-                return;
-            }
-        } finally {
-            // 세션 락 해제
-            this.sessionLock.unlockBySessionId(sessionId);
+        // 마지막 참여자인지 검증 후 과팅 세션 시작 시도
+        if (tryStart(sessionId)) {
+            // 마지막으로 입장한 사용자의 소켓 수신을 위해 현재 스레드를 종료하고 새 스레드에서 처리
+            new Thread(() -> sessionScheduler.start(sessionId)).start();
+            return;
         }
 
         // 마지막 참여자가 아닌 경우 인원 업데이트 브로드캐스트
@@ -99,13 +92,10 @@ public class BlindDateConnectHandler {
     }
 
     private BlindDateJoinResult join(String socketId, Long memberId, Map<String, Object> sessionAttributes) {
-        // 처음 입장 시 포인터 할당을 위해 매칭 획득
-        blindDateMatchingLock.lock();
-
         BlindDateJoinResult joinResult;
 
         try {
-            // 과팅 세션 할당 (Pointer 기반, Lock으로 동시성 보장)
+            // 과팅 세션 할당 (Pointer 기반, 큐에서 순서대로 처리되므로 동시성 보장)
             String sessionId = assignSession();
 
             // 과팅 세션 id 세션 속성에 저장
@@ -127,9 +117,6 @@ public class BlindDateConnectHandler {
             sessionAttributes.remove("sessionId");
 
             return null;
-        } finally {
-            // 회원 편입 후 회원 락 해제
-            blindDateMatchingLock.unlock();
         }
 
         try {
@@ -161,32 +148,25 @@ public class BlindDateConnectHandler {
      * @return 기존 세션 ID (재연결인 경우), null (첫 연결인 경우)
      */
     private String tryHandleReconnection(String socketId, Long memberId) {
-        // 이미 참여중인 시나리오에 대해 안전한 소켓 추가를 위해 회원 락 획득
-        blindDateMemberLock.lockByMemberId(memberId);
-
-        try {
-            ParticipantInfo existingParticipant = participantStorage.getByMemberId(memberId);
-            // 첫 매칭인 경우
-            if (existingParticipant == null) {
-                return null;
-            }
-
-            String existingSessionId = existingParticipant.getSessionId();
-
-            // 재연결된 세션이 존재하지 않는 경우 (세션 종료 후 재연결 시도 등) 예외 처리
-            if (this.sessionStorage.getState(existingSessionId) == null) {
-                throw new SessionTerminatedException();
-            }
-
-            existingParticipant.addSocket(socketId);
-            return existingSessionId;
-        } finally {
-            blindDateMemberLock.unlockByMemberId(memberId); // 회원 락 해제
+        ParticipantInfo existingParticipant = participantStorage.getByMemberId(memberId);
+        // 첫 매칭인 경우
+        if (existingParticipant == null) {
+            return null;
         }
+
+        String existingSessionId = existingParticipant.getSessionId();
+
+        // 재연결된 세션이 존재하지 않는 경우 (세션 종료 후 재연결 시도 등) 예외 처리
+        if (this.sessionStorage.getState(existingSessionId) == null) {
+            throw new SessionTerminatedException();
+        }
+
+        existingParticipant.addSocket(socketId);
+        return existingSessionId;
     }
 
     /**
-     * 세션 할당 (Lock으로 동시성 보장)
+     * 세션 할당 (큐에서 순서대로 처리되어 동시성 보장)
      *
      * @return 할당된 세션 ID
      */
