@@ -79,12 +79,12 @@ public class BlindDateSessionStorageImpl implements BlindDateSessionStorage {
      * 세션 전체 삭제
      */
     @Override
-    public synchronized void clear() {
+    public void clear() {
         this.sessions.clear();
     }
 
     @Override
-    public synchronized boolean isWaiting(String sessionId) {
+    public boolean isWaiting(String sessionId) {
         SessionInfo sessionInfo = this.sessions.get(sessionId);
         if (sessionInfo == null) {
             return false;
@@ -94,7 +94,7 @@ public class BlindDateSessionStorageImpl implements BlindDateSessionStorage {
     }
 
     @Override
-    public synchronized boolean isProcessing(String sessionId) {
+    public boolean isProcessing(String sessionId) {
         SessionInfo sessionInfo = this.sessions.get(sessionId);
         if (sessionInfo == null) {
             return false;
