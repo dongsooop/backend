@@ -40,7 +40,7 @@ public class BlindDateDisconnectHandler {
             boolean isExit = this.removeSocketByParticipantInfo(socketId, memberId);
 
             // 사용자의 연결된 소켓이 없는 경우 퇴장 처리
-            if (isExit && this.sessionStorage.isProcessing(sessionId)) {
+            if (isExit && this.sessionStorage.isWaiting(sessionId)) {
                 // 참여중인 세션이 포인터 세션인 경우 회원도 제거 시도
                 this.tryRemoveMember(memberId, sessionId);
             }
