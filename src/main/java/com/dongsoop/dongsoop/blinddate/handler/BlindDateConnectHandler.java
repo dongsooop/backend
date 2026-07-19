@@ -48,7 +48,18 @@ public class BlindDateConnectHandler {
 
     private void handle(String socketId, Long memberId, Map<String, Object> sessionAttributes) {
         // 이미 참여 중인 경우 소켓만 추가 후 종료
-        String existingSessionId = this.tryHandleReconnection(socketId, memberId);
+        String existingSessionId;
+        try {
+            existingSessionId = this.tryHandleReconnection(socketId, memberId);
+        } catch (SessionTerminatedException e) {
+            // 재접속하려는 세션이 이미 종료된 경우: 죽은 참가자 기록을 정리하고 클라이언트에 알림
+            log.info("[BlindDate] Reconnect target session already terminated: memberId={}", memberId);
+            participantStorage.removeParticipant(memberId);
+            sessionAttributes.remove("sessionId");
+            sendSessionTerminatedEvent(memberId);
+            return;
+        }
+
         if (existingSessionId != null) {
             sessionAttributes.put("sessionId", existingSessionId);
             return;
@@ -222,6 +233,25 @@ public class BlindDateConnectHandler {
         } catch (Exception e) {
             log.error("Failed to send JOIN event: memberId={}", participantInfo.getMemberId(), e);
             throw e;
+        }
+    }
+
+    /**
+     * 재접속하려는 세션이 이미 종료되었음을 클라이언트에 알림
+     *
+     * @param memberId 알림 대상 회원 id
+     */
+    private void sendSessionTerminatedEvent(Long memberId) {
+        Map<String, Object> event = Map.of("state", "TERMINATED");
+
+        try {
+            messagingTemplate.convertAndSendToUser(
+                    memberId.toString(),
+                    "/queue/blinddate/join",
+                    event
+            );
+        } catch (Exception e) {
+            log.error("Failed to send SESSION_TERMINATED event: memberId={}", memberId, e);
         }
     }
 }
