@@ -104,7 +104,9 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
             BlindDateNotification notification,
             BlindDateSessionStorage sessionStorage,
             SimpMessagingTemplate messagingTemplate,
-            BlindDateTaskScheduler taskScheduler
+            BlindDateTaskScheduler taskScheduler,
+            BlindDateMemberLock memberLock,
+            BlindDateSessionLock sessionLock
     ) {
         return new BlindDateServiceImpl(
                 participantStorage,
@@ -112,7 +114,9 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
                 notification,
                 sessionStorage,
                 messagingTemplate,
-                taskScheduler
+                taskScheduler,
+                memberLock,
+                sessionLock
         );
     }
 

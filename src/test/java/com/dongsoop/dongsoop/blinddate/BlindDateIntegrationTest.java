@@ -114,7 +114,9 @@ class BlindDateIntegrationTest {
                 notification,
                 sessionStorage,
                 messagingTemplate,
-                taskScheduler
+                taskScheduler,
+                memberLock,
+                sessionLock
         );
 
         sessionService = new BlindDateSessionServiceImpl(
