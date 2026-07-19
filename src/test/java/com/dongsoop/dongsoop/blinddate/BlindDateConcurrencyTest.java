@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateConnectHandler;
+import com.dongsoop.dongsoop.blinddate.handler.BlindDateDisconnectHandler;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
@@ -93,6 +94,13 @@ class BlindDateConcurrencyTest {
                 blindDateStorage
         );
 
+        BlindDateDisconnectHandler disconnectHandler = new BlindDateDisconnectHandler(
+                participantStorage,
+                sessionStorage,
+                blindDateService,
+                eventQueue
+        );
+
         connectHandler = new BlindDateConnectHandler(
                 participantStorage,
                 blindDateStorage,
@@ -101,7 +109,8 @@ class BlindDateConcurrencyTest {
                 sessionService,
                 sessionScheduler,
                 messagingTemplate,
-                eventQueue
+                eventQueue,
+                disconnectHandler
         );
     }
 

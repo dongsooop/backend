@@ -132,7 +132,8 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
             BlindDateSessionService sessionService,
             BlindDateSessionScheduler sessionScheduler,
             SimpMessagingTemplate messagingTemplate,
-            BlindDateEventQueue eventQueue
+            BlindDateEventQueue eventQueue,
+            BlindDateDisconnectHandler disconnectHandler
     ) {
         return new BlindDateConnectHandler(
                 participantStorage,
@@ -142,7 +143,8 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
                 sessionService,
                 sessionScheduler,
                 messagingTemplate,
-                eventQueue
+                eventQueue,
+                disconnectHandler
         );
     }
 

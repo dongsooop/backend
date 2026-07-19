@@ -31,6 +31,7 @@ public class BlindDateConnectHandler {
     private final BlindDateSessionScheduler sessionScheduler;
     private final SimpMessagingTemplate messagingTemplate;
     private final BlindDateEventQueue eventQueue;
+    private final BlindDateDisconnectHandler disconnectHandler;
 
     /**
      * 세션 참여 및 세션 id 반환
@@ -103,24 +104,18 @@ public class BlindDateConnectHandler {
     }
 
     private BlindDateJoinResult join(String socketId, Long memberId, Map<String, Object> sessionAttributes) {
-        BlindDateJoinResult joinResult;
+        String sessionId;
+        ParticipantInfo participant;
 
         try {
             // 과팅 세션 할당 (Pointer 기반, 큐에서 순서대로 처리되므로 동시성 보장)
-            String sessionId = assignSession();
+            sessionId = assignSession();
 
             // 과팅 세션 id 세션 속성에 저장
             sessionAttributes.put("sessionId", sessionId);
 
             // 참여 정보 추가 (assignSession에서 편입 가능한 과팅 세션 여부를 확인했기에 바로 저장)
-            ParticipantInfo participant = participantStorage.addParticipant(sessionId, memberId, socketId);
-
-            // 과팅 세션 편입 후 참가자 수 조회
-            List<ParticipantInfo> participantInfos = participantStorage.findAllBySessionId(sessionId);
-            int currentCount = participantInfos.size();
-            int maxCount = blindDateStorage.getMaxSessionMemberCount();
-
-            joinResult = new BlindDateJoinResult(participant, sessionId, currentCount, maxCount);
+            participant = participantStorage.addParticipant(sessionId, memberId, socketId);
         } catch (Exception e) {
             // addParticipant는 compute() 기반이라 예외 발생 시 참가자 맵에 아무 것도 반영되지 않는다.
             // 따라서 여기서 회원을 제거하면, 다른 세션에 이미 정상 등록된 참가자 정보를 잘못 지울 수 있다.
@@ -131,15 +126,28 @@ public class BlindDateConnectHandler {
         }
 
         try {
+            // 과팅 세션 편입 후 참가자 수 조회
+            List<ParticipantInfo> participantInfos = participantStorage.findAllBySessionId(sessionId);
+            int currentCount = participantInfos.size();
+            int maxCount = blindDateStorage.getMaxSessionMemberCount();
+
+            BlindDateJoinResult joinResult = new BlindDateJoinResult(participant, sessionId, currentCount, maxCount);
+
             // 입장한 사용자에게 정보 전달
             sendJoinEvent(joinResult);
+
+            return joinResult;
         } catch (Exception e) {
-            // 입장한 사용자에게 정보 전달 실패 시 소켓 연결 해지로 보고 Disconnect에서 처리하도록 종료
-            log.info("[BlindDate] Failed to send JOIN event, rolling back participant: memberId={}", memberId, e);
+            // 이 시점엔 addParticipant가 이미 성공해 참가자가 등록된 상태다. 등록 이후 단계에서
+            // 실패하면(정원 조회 실패, 알림 전송 실패 등) 참가자가 고아로 남으므로, 방금 추가한
+            // 소켓을 그대로 퇴장 처리(큐에 위임)해 되돌리고, 클라이언트에는 재시도를 요청한다.
+            log.error("[BlindDate] Post-registration failure, rolling back: memberId={}", memberId, e);
+            sessionAttributes.remove("sessionId");
+            sendJoinFailedEvent(memberId);
+            disconnectHandler.execute(socketId, memberId, sessionId);
+
             return null;
         }
-
-        return joinResult;
     }
 
     /**
@@ -236,6 +244,25 @@ public class BlindDateConnectHandler {
         } catch (Exception e) {
             log.error("Failed to send JOIN event: memberId={}", participantInfo.getMemberId(), e);
             throw e;
+        }
+    }
+
+    /**
+     * 등록 이후 단계(정원 조회, 알림 전송 등) 실패로 입장을 되돌렸음을 클라이언트에 알리고 재시도를 요청
+     *
+     * @param memberId 알림 대상 회원 id
+     */
+    private void sendJoinFailedEvent(Long memberId) {
+        Map<String, Object> event = Map.of("state", "FAILED");
+
+        try {
+            messagingTemplate.convertAndSendToUser(
+                    memberId.toString(),
+                    "/queue/blinddate/join",
+                    event
+            );
+        } catch (Exception e) {
+            log.error("Failed to send JOIN_FAILED event: memberId={}", memberId, e);
         }
     }
 

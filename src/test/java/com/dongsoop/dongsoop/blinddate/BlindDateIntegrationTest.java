@@ -118,6 +118,13 @@ class BlindDateIntegrationTest {
         );
 
         // Handler 초기화
+        disconnectHandler = new BlindDateDisconnectHandler(
+                participantStorage,
+                sessionStorage,
+                blindDateService,
+                eventQueue
+        );
+
         connectHandler = new BlindDateConnectHandler(
                 participantStorage,
                 blindDateStorage,
@@ -126,20 +133,14 @@ class BlindDateIntegrationTest {
                 sessionService,
                 sessionScheduler,
                 messagingTemplate,
-                eventQueue
+                eventQueue,
+                disconnectHandler
         );
 
         choiceHandler = new BlindDateChoiceHandler(
                 participantStorage,
                 messagingTemplate,
                 chatRoomService
-        );
-
-        disconnectHandler = new BlindDateDisconnectHandler(
-                participantStorage,
-                sessionStorage,
-                blindDateService,
-                eventQueue
         );
     }
 
