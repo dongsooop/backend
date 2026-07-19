@@ -82,7 +82,7 @@ public class BlindDateConnectHandler {
         blindDateService.broadcastJoinedCount(joinResult.sessionId(), joinResult.currentCount());
     }
 
-    private synchronized boolean tryStart(String sessionId) {
+    private boolean tryStart(String sessionId) {
         // 마지막 참여자인 경우 세션 시작
         if (sessionService.isSessionFull(sessionId)) {
             if (!sessionStorage.isWaiting(sessionId)) {
