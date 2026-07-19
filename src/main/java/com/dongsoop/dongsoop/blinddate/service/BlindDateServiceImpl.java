@@ -2,6 +2,8 @@ package com.dongsoop.dongsoop.blinddate.service;
 
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
 import com.dongsoop.dongsoop.blinddate.dto.StartBlindDateRequest;
+import com.dongsoop.dongsoop.blinddate.lock.BlindDateMemberLock;
+import com.dongsoop.dongsoop.blinddate.lock.BlindDateSessionLock;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
@@ -29,6 +31,8 @@ public class BlindDateServiceImpl implements BlindDateService {
     private final BlindDateSessionStorage sessionStorage;
     private final SimpMessagingTemplate messagingTemplate;
     private final BlindDateTaskScheduler taskScheduler;
+    private final BlindDateMemberLock memberLock;
+    private final BlindDateSessionLock sessionLock;
 
     /**
      * 과팅 운영 상태 확인
@@ -83,6 +87,10 @@ public class BlindDateServiceImpl implements BlindDateService {
 
             // 모든 참가자 정보 삭제
             participantStorage.clear();
+
+            // 세션별/회원별 락 맵 정리 (누적 누수 방지)
+            sessionLock.clear();
+            memberLock.clear();
 
             // TaskScheduler 정리
             taskScheduler.cleanupAllSessions();
