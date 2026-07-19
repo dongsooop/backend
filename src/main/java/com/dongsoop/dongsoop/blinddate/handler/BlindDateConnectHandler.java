@@ -172,7 +172,10 @@ public class BlindDateConnectHandler {
             throw new SessionTerminatedException();
         }
 
-        existingParticipant.addSocket(socketId);
+        // addParticipant는 같은 세션이면 소켓 추가 + socketId->memberId 역인덱스 갱신까지 함께 처리한다.
+        // existingParticipant.addSocket()을 직접 호출하면 역인덱스가 안 갱신되어, 이 소켓이
+        // 나중에 연결을 끊어도 removeSocket()이 찾지 못해 참가자가 정리되지 않는 문제가 있었다.
+        participantStorage.addParticipant(existingSessionId, memberId, socketId);
         return existingSessionId;
     }
 
