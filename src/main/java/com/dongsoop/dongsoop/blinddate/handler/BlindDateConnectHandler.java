@@ -52,9 +52,9 @@ public class BlindDateConnectHandler {
         try {
             existingSessionId = this.tryHandleReconnection(socketId, memberId);
         } catch (SessionTerminatedException e) {
-            // 재접속하려는 세션이 이미 종료된 경우: 죽은 참가자 기록을 정리하고 클라이언트에 알림
+            // 재접속하려는 세션이 이미 종료된 경우: 참가자 기록은 재입장 방지를 위해 그대로 두고
+            // 클라이언트에만 알림 (BlindDateSessionSchedulerImpl.finalizeSession 참고)
             log.info("[BlindDate] Reconnect target session already terminated: memberId={}", memberId);
-            participantStorage.removeParticipant(memberId);
             sessionAttributes.remove("sessionId");
             sendSessionTerminatedEvent(memberId);
             return;
