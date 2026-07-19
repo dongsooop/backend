@@ -121,9 +121,9 @@ public class BlindDateConnectHandler {
 
             joinResult = new BlindDateJoinResult(participant, sessionId, currentCount, maxCount);
         } catch (Exception e) {
-            // 입장 과정에서 오류 발생 시 회원 제거
+            // addParticipant는 compute() 기반이라 예외 발생 시 참가자 맵에 아무 것도 반영되지 않는다.
+            // 따라서 여기서 회원을 제거하면, 다른 세션에 이미 정상 등록된 참가자 정보를 잘못 지울 수 있다.
             log.error("[BlindDate] Exception from enter process: memberId={}", memberId, e);
-            this.participantStorage.removeParticipant(memberId);
             sessionAttributes.remove("sessionId");
 
             return null;
