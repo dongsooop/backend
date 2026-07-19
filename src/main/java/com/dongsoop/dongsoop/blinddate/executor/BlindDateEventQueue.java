@@ -21,19 +21,28 @@ public class BlindDateEventQueue {
 
     /**
      * 이벤트를 큐에 넣는다. 이미 큐에 있는 다른 이벤트들이 처리된 뒤 순서대로 실행된다.
+     * <p>
+     * executor가 이미 종료된 상태에서 호출되어도(RejectedExecutionException 등) 호출자 스레드로
+     * 예외가 전파되지 않도록 방어한다.
      */
     public void submit(Runnable event) {
-        executor.execute(() -> {
-            try {
-                event.run();
-            } catch (Exception e) {
-                log.error("[BlindDate] Event processing failed", e);
-            }
-        });
+        try {
+            executor.execute(() -> {
+                try {
+                    event.run();
+                } catch (Exception e) {
+                    log.error("[BlindDate] Event processing failed", e);
+                }
+            });
+        } catch (Exception e) {
+            log.error("[BlindDate] Failed to submit event to queue", e);
+        }
     }
 
     /**
-     * 과팅 종료 시 큐 정리
+     * 애플리케이션(빈) 종료 시 큐 정리. 과팅 라운드 종료(scheduleAutoClose)와는 다른 시점이다 —
+     * 한 번 호출되면 이 executor는 다시 못 쓰게 되므로, 다음 과팅 라운드를 위해 라운드 종료
+     * 시점에는 절대 호출하면 안 된다.
      */
     public void shutdown() {
         executor.shutdownNow();
