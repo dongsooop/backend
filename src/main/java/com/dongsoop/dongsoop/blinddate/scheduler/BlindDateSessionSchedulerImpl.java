@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.blinddate.scheduler;
 
 import com.dongsoop.dongsoop.blinddate.config.BlindDateMessageProvider;
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
+import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import java.util.List;
@@ -30,6 +31,7 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
     private final BlindDateMessageProvider messageProvider;
     private final SimpMessagingTemplate messagingTemplate;
     private final BlindDateTaskScheduler taskScheduler;
+    private final BlindDateEventQueue eventQueue;
 
     @Value("${blinddate.event-message-amount}")
     private int eventMessageAmount;
@@ -68,10 +70,10 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
         } catch (InterruptedException e) {
             log.error("Session interrupted: {}", sessionId, e);
             Thread.currentThread().interrupt();
-            this.sessionStorage.terminate(sessionId);
+            eventQueue.submit(() -> sessionStorage.terminate(sessionId));
         } catch (Exception e) {
             log.error("Error in session: {}", sessionId, e);
-            this.sessionStorage.terminate(sessionId);
+            eventQueue.submit(() -> sessionStorage.terminate(sessionId));
         }
     }
 
@@ -115,7 +117,7 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
                     MESSAGE_WAITING_TIME);
         } catch (Exception e) {
             log.error("Error sending event message {} for session {}", index, sessionId, e);
-            sessionStorage.terminate(sessionId);
+            eventQueue.submit(() -> sessionStorage.terminate(sessionId));
         }
     }
 
@@ -136,7 +138,7 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
         } catch (Exception e) {
             // 위 코드에서 예외 발생 시 세션 종료
             log.error("[BlindDate] Error in scheduled thaw/next for session {}", sessionId, e);
-            sessionStorage.terminate(sessionId);
+            eventQueue.submit(() -> sessionStorage.terminate(sessionId));
         }
     }
 
@@ -177,7 +179,7 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
             sendFailedToUnmatched(sessionId);
 
             // 세션 종료
-            sessionStorage.terminate(sessionId);
+            eventQueue.submit(() -> sessionStorage.terminate(sessionId));
 
             // 회원 정보는 재 접속 방지를 위해 제거하지 않음
             // participantStorage.clearSession(sessionId);

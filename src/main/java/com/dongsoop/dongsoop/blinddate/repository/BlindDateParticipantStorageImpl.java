@@ -18,6 +18,9 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
     // memberId -> ParticipantInfo (한 사용자당 1개, 여러 소켓 보유 가능)
     private final Map<Long, ParticipantInfo> participants = new ConcurrentHashMap<>();
 
+    // socketId -> memberId (socketId로 참여자를 O(1)에 찾기 위한 역방향 인덱스)
+    private final Map<String, Long> socketIdToMemberId = new ConcurrentHashMap<>();
+
     // sessionId -> 익명 번호 카운터
     private final Map<String, AtomicInteger> nameCounters = new ConcurrentHashMap<>();
 
@@ -29,55 +32,59 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
 
     /**
      * 참여자 추가 또는 소켓 추가
+     * <p>
+     * memberId 기준으로 ConcurrentHashMap#compute를 사용해 조회와 반영을 원자적으로 묶는다. (외부에서 별도 락을
+     * 잡고 호출하지 않아도 이 메서드 자체로 스레드 안전함)
      *
      * @param sessionId 참여하려는 세션 id
      * @param memberId  참여 주체 회원 id
      * @param socketId  참여 주체 소켓 id
      */
-    public synchronized ParticipantInfo addParticipant(String sessionId, Long memberId, String socketId) {
-        // 이미 참여 중인지 확인
-        ParticipantInfo existing = participants.get(memberId);
+    public ParticipantInfo addParticipant(String sessionId, Long memberId, String socketId) {
+        ParticipantInfo participant = participants.compute(memberId, (id, existing) -> {
+            // 처음 참여하는 경우
+            if (existing == null) {
+                AtomicInteger atomicCounter = nameCounters.computeIfAbsent(sessionId, k -> new AtomicInteger(1));
+                int counter = atomicCounter.getAndIncrement();
+                String anonymousName = "익명" + counter;
 
-        // 처음 참여하는 경우
-        if (existing == null) {
-            // 익명 이름 생성 (synchronized 메서드이므로 완전히 순차적으로 처리됨)
-            AtomicInteger atomicCounter = nameCounters.computeIfAbsent(sessionId, k -> new AtomicInteger(1));
-            int counter = atomicCounter.getAndIncrement();
-            String anonymousName = "익명" + counter;
+                ParticipantInfo created = ParticipantInfo.create(sessionId, memberId, socketId, anonymousName);
 
-            ParticipantInfo participant = ParticipantInfo.create(sessionId, memberId, socketId, anonymousName);
-            participants.put(memberId, participant);
+                log.info("[BlindDate] Participant added: sessionId={}, memberId={}, socketId={}, name={}",
+                        sessionId, memberId, socketId, anonymousName);
 
-            log.info("[BlindDate] Participant added: sessionId={}, memberId={}, socketId={}, name={}",
-                    sessionId, memberId, socketId, anonymousName);
+                return created;
+            }
 
-            return participant;
-        }
+            // 참여중인 경우
+            // 같은 세션이면 소켓만 추가
+            if (existing.getSessionId().equals(sessionId)) {
+                existing.addSocket(socketId);
+                log.info("[BlindDate] Socket added to existing participant: memberId={}, socketId={}, totalSockets={}",
+                        memberId, socketId, existing.getSocketIds().size());
 
-        // 참여중인 경우
-        // 같은 세션이면 소켓만 추가
-        if (existing.getSessionId().equals(sessionId)) {
-            existing.addSocket(socketId);
-            log.info("[BlindDate] Socket added to existing participant: memberId={}, socketId={}, totalSockets={}",
-                    memberId, socketId, existing.getSocketIds().size());
-            return existing;
-        }
+                return existing;
+            }
 
-        // 다른 세션에 이미 참여 중
-        throw new IllegalStateException(
-                String.format("[BlindDate] Member %d already in session %s, cannot join session %s",
-                        memberId, existing.getSessionId(), sessionId));
+            // 다른 세션에 이미 참여 중
+            throw new IllegalStateException(
+                    String.format("[BlindDate] Member %d already in session %s, cannot join session %s",
+                            memberId, existing.getSessionId(), sessionId));
+        });
+
+        // socketId -> memberId 인덱스 갱신 (compute가 예외 없이 끝난 경우에만 도달)
+        socketIdToMemberId.put(socketId, memberId);
+
+        return participant;
     }
 
     /**
      * 소켓 제거 (연결 해제) 모든 소켓이 제거되면 참여자도 제거
      */
     public boolean removeSocket(String socketId) throws IllegalArgumentException {
-        // socketId를 가진 참여자 찾기
-        ParticipantInfo participant = participants.values().stream()
-                .filter(p -> p.getSocketIds().contains(socketId))
-                .findFirst()
-                .orElse(null);
+        // socketId -> memberId 인덱스로 O(1) 조회
+        Long memberId = socketIdToMemberId.remove(socketId);
+        ParticipantInfo participant = memberId != null ? participants.get(memberId) : null;
 
         if (participant == null) {
             log.warn("[BlindDate] Participant not found for socketId: {}", socketId);
@@ -117,10 +124,8 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
      * 소켓 ID로 참여 정보 조회
      */
     public ParticipantInfo getBySocketId(String socketId) {
-        return participants.values().stream()
-                .filter(p -> p.getSocketIds().contains(socketId))
-                .findFirst()
-                .orElse(null);
+        Long memberId = socketIdToMemberId.get(socketId);
+        return memberId != null ? participants.get(memberId) : null;
     }
 
     /**
@@ -148,16 +153,15 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
     /**
      * 선택 기록
      */
-    public synchronized boolean recordChoice(String sessionId, Long choicerId, Long targetId) {
+    public boolean recordChoice(String sessionId, Long choicerId, Long targetId) {
         Map<Long, Long> sessionChoices = choices.computeIfAbsent(sessionId, k -> new ConcurrentHashMap<>());
 
-        // 이미 선택했는지 확인
-        if (sessionChoices.containsKey(choicerId)) {
+        // 이미 선택했는지 확인 + 반영을 원자적으로 처리 (확인과 반영 사이 공백 제거)
+        if (sessionChoices.putIfAbsent(choicerId, targetId) != null) {
             log.warn("Already chosen: sessionId={}, choicerId={}", sessionId, choicerId);
             return false;
         }
 
-        sessionChoices.put(choicerId, targetId);
         log.info("Choice recorded: sessionId={}, choicerId={} -> targetId={}", sessionId, choicerId, targetId);
 
         // 매칭 확인
@@ -189,6 +193,7 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
      */
     public synchronized void clear() {
         participants.clear();
+        socketIdToMemberId.clear();
         nameCounters.clear();
         choices.clear();
         matches.clear();
@@ -202,6 +207,7 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
     public synchronized void removeParticipant(Long memberId) {
         ParticipantInfo participant = participants.remove(memberId);
         if (participant != null) {
+            participant.getSocketIds().forEach(socketIdToMemberId::remove);
             log.info("Participant removed: memberId={}, sessionId={}", memberId, participant.getSessionId());
         }
     }

@@ -10,7 +10,7 @@ import lombok.Getter;
 public class SessionInfo {
     private final String sessionId;
     private final LocalDateTime createdAt;
-    private SessionState state;
+    private volatile SessionState state;
 
     public static SessionInfo create() {
         return SessionInfo.builder()

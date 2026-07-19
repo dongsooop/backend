@@ -3,7 +3,6 @@ package com.dongsoop.dongsoop.blinddate;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
-import com.dongsoop.dongsoop.blinddate.lock.BlindDateSessionLock;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorageImpl;
@@ -45,9 +44,8 @@ class BlindDateStorageConcurrencyTest {
 
     @BeforeEach
     void setUp() {
-        BlindDateSessionLock sessionLock = new BlindDateSessionLock();
         participantStorage = new BlindDateParticipantStorageImpl();
-        sessionStorage = new BlindDateSessionStorageImpl(sessionLock);
+        sessionStorage = new BlindDateSessionStorageImpl();
         blindDateStorage = new BlindDateStorageImpl();
     }
 

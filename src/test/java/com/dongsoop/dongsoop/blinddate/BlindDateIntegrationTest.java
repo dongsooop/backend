@@ -13,9 +13,7 @@ import com.dongsoop.dongsoop.blinddate.entity.SessionInfo.SessionState;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateChoiceHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateConnectHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateDisconnectHandler;
-import com.dongsoop.dongsoop.blinddate.lock.BlindDateMatchingLock;
-import com.dongsoop.dongsoop.blinddate.lock.BlindDateMemberLock;
-import com.dongsoop.dongsoop.blinddate.lock.BlindDateSessionLock;
+import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
@@ -69,22 +67,18 @@ class BlindDateIntegrationTest {
     private BlindDateDisconnectHandler disconnectHandler;
     private BlindDateSessionScheduler sessionScheduler;
     private BlindDateTaskScheduler taskScheduler;
-    private BlindDateMatchingLock matchingLock;
-    private BlindDateMemberLock memberLock;
+    private BlindDateEventQueue eventQueue;
     private SimpMessagingTemplate messagingTemplate;
-    private BlindDateSessionLock sessionLock;
 
     @BeforeEach
     void setUp() {
         // Repository 초기화
         blindDateStorage = new BlindDateStorageImpl();
         participantStorage = new BlindDateParticipantStorageImpl();
-        sessionStorage = new BlindDateSessionStorageImpl(sessionLock);
+        sessionStorage = new BlindDateSessionStorageImpl();
 
-        // Lock 초기화
-        matchingLock = new BlindDateMatchingLock();
-        memberLock = new BlindDateMemberLock();
-        sessionLock = new BlindDateSessionLock();
+        // 큐 초기화
+        eventQueue = new BlindDateEventQueue();
 
         // Mock 초기화
         messagingTemplate = mock(SimpMessagingTemplate.class);
@@ -114,7 +108,8 @@ class BlindDateIntegrationTest {
                 notification,
                 sessionStorage,
                 messagingTemplate,
-                taskScheduler
+                taskScheduler,
+                eventQueue
         );
 
         sessionService = new BlindDateSessionServiceImpl(
@@ -123,6 +118,13 @@ class BlindDateIntegrationTest {
         );
 
         // Handler 초기화
+        disconnectHandler = new BlindDateDisconnectHandler(
+                participantStorage,
+                sessionStorage,
+                blindDateService,
+                eventQueue
+        );
+
         connectHandler = new BlindDateConnectHandler(
                 participantStorage,
                 blindDateStorage,
@@ -131,24 +133,14 @@ class BlindDateIntegrationTest {
                 sessionService,
                 sessionScheduler,
                 messagingTemplate,
-                matchingLock,
-                memberLock,
-                sessionLock
+                eventQueue,
+                disconnectHandler
         );
 
         choiceHandler = new BlindDateChoiceHandler(
                 participantStorage,
                 messagingTemplate,
                 chatRoomService
-        );
-
-        disconnectHandler = new BlindDateDisconnectHandler(
-                participantStorage,
-                sessionStorage,
-                blindDateService,
-                matchingLock,
-                memberLock,
-                sessionLock
         );
     }
 
@@ -180,6 +172,7 @@ class BlindDateIntegrationTest {
             // when
             Map<String, Object> sessionAttributes = new HashMap<>();
             connectHandler.execute("socket-1", 1L, sessionAttributes);
+            eventQueue.awaitIdle();
             String sessionId = (String) sessionAttributes.get("sessionId");
 
             // then
@@ -206,6 +199,7 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-1", 1L, attr1);
             connectHandler.execute("socket-2", 2L, attr2);
             connectHandler.execute("socket-3", 3L, attr3);
+            eventQueue.awaitIdle();
 
             String session1 = (String) attr1.get("sessionId");
             String session2 = (String) attr2.get("sessionId");
@@ -227,11 +221,13 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-1", 1L, attr1);
             connectHandler.execute("socket-2", 2L, attr1);
             connectHandler.execute("socket-3", 3L, attr1);
+            eventQueue.awaitIdle();
             String session1 = (String) attr1.get("sessionId");
 
             // 4번째 사용자
             Map<String, Object> attr2 = new HashMap<>();
             connectHandler.execute("socket-4", 4L, attr2);
+            eventQueue.awaitIdle();
             String session2 = (String) attr2.get("sessionId");
 
             // then
@@ -246,11 +242,13 @@ class BlindDateIntegrationTest {
             blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
             Map<String, Object> attr1 = new HashMap<>();
             connectHandler.execute("socket-1", 1L, attr1);
+            eventQueue.awaitIdle();
             String session1 = (String) attr1.get("sessionId");
 
             // when - 같은 memberId로 재연결
             Map<String, Object> attr2 = new HashMap<>();
             connectHandler.execute("socket-2", 1L, attr2);
+            eventQueue.awaitIdle();
             String session2 = (String) attr2.get("sessionId");
 
             // then
@@ -285,6 +283,7 @@ class BlindDateIntegrationTest {
             // when
             Map<String, Object> attr = new HashMap<>();
             connectHandler.execute("socket-1", 1L, attr);
+            eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
 
             // then
@@ -309,6 +308,7 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-1", 1L, attr);
             connectHandler.execute("socket-2", 2L, attr);
             connectHandler.execute("socket-3", 3L, attr);
+            eventQueue.awaitIdle();
 
             // then
             assertThat(participantStorage.getAnonymousName(1L)).isEqualTo("익명1");
@@ -332,6 +332,7 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-1", 1L, attr);
             connectHandler.execute("socket-2", 2L, attr);
             connectHandler.execute("socket-3", 3L, attr);
+            eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
 
             // 세션 시작은 비동기이므로 잠시 대기
@@ -353,6 +354,7 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-1", 1L, attr);
             connectHandler.execute("socket-2", 2L, attr);
             connectHandler.execute("socket-3", 3L, attr);
+            eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
 
             Thread.sleep(500);
@@ -375,12 +377,14 @@ class BlindDateIntegrationTest {
             Map<String, Object> attr = new HashMap<>();
             connectHandler.execute("socket-1", 1L, attr);
             connectHandler.execute("socket-2", 2L, attr);
+            eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
 
             assertThat(getParticipantCount(sessionId)).isEqualTo(2);
 
             // when
             disconnectHandler.execute("socket-1", 1L, sessionId);
+            eventQueue.awaitIdle();
 
             // then
             assertThat(participantStorage.getByMemberId(1L)).isNull();
@@ -409,6 +413,7 @@ class BlindDateIntegrationTest {
                     try {
                         Map<String, Object> attr = new HashMap<>();
                         connectHandler.execute("socket-" + memberId, memberId, attr);
+                        eventQueue.awaitIdle();
                         String sessionId = (String) attr.get("sessionId");
                         if (sessionId != null) {
                             sessions.add(sessionId);
@@ -425,6 +430,7 @@ class BlindDateIntegrationTest {
             assertThat(latch.await(30, TimeUnit.SECONDS)).as("모든 스레드가 완료되어야 함").isTrue();
             executor.shutdown();
             executor.awaitTermination(10, TimeUnit.SECONDS);
+            eventQueue.awaitIdle();
 
             if (!exceptions.isEmpty()) {
                 log.error("=== Exceptions in 100 users test ===");
@@ -473,6 +479,7 @@ class BlindDateIntegrationTest {
             assertThat(latch.await(15, TimeUnit.SECONDS)).as("모든 스레드가 완료되어야 함").isTrue();
             executor.shutdown();
             executor.awaitTermination(10, TimeUnit.SECONDS);
+            eventQueue.awaitIdle();
 
             if (!exceptions.isEmpty()) {
                 log.error("=== Exceptions in pointer sync test ===");
@@ -523,6 +530,7 @@ class BlindDateIntegrationTest {
             Map<String, Object> attr = new HashMap<>();
             connectHandler.execute("socket-1", 1L, attr);
             connectHandler.execute("socket-2", 2L, attr);
+            eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
 
             // when
@@ -546,6 +554,7 @@ class BlindDateIntegrationTest {
             Map<String, Object> attr = new HashMap<>();
             connectHandler.execute("socket-1", 1L, attr);
             connectHandler.execute("socket-2", 2L, attr);
+            eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
 
             // when
@@ -568,6 +577,7 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-1", 1L, attr);
             connectHandler.execute("socket-2", 2L, attr);
             connectHandler.execute("socket-3", 3L, attr);
+            eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
 
             // when - 1→2, 2→3, 3→1
@@ -590,6 +600,7 @@ class BlindDateIntegrationTest {
             for (long i = 2; i <= 5; i++) {
                 connectHandler.execute("socket-" + i, i, attr);
             }
+            eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
 
             // when - 1↔2, 3↔4, 5 혼자
@@ -624,6 +635,7 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-1", 1L, attr);
             connectHandler.execute("socket-2", 2L, attr);
             connectHandler.execute("socket-3", 3L, attr);
+            eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
 
             Thread.sleep(500);

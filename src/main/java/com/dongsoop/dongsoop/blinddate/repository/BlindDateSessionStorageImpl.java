@@ -2,20 +2,16 @@ package com.dongsoop.dongsoop.blinddate.repository;
 
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo.SessionState;
-import com.dongsoop.dongsoop.blinddate.lock.BlindDateSessionLock;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
 @Slf4j
 @Repository
-@RequiredArgsConstructor
 public class BlindDateSessionStorageImpl implements BlindDateSessionStorage {
 
     private final Map<String, SessionInfo> sessions = new ConcurrentHashMap<>();
-    private final BlindDateSessionLock sessionLock;
 
     /**
      * 세션 생성
@@ -63,15 +59,10 @@ public class BlindDateSessionStorageImpl implements BlindDateSessionStorage {
      */
     @Override
     public void terminate(String sessionId) {
-        sessionLock.lockBySessionId(sessionId);
-        try {
-            SessionInfo session = sessions.get(sessionId);
-            if (session != null) {
-                this.sessions.remove(sessionId); // 종료된 세션 정보 제거
-                log.info("[BlindDate] Session terminated: sessionId={}", sessionId);
-            }
-        } finally {
-            sessionLock.unlockBySessionId(sessionId);
+        SessionInfo session = sessions.get(sessionId);
+        if (session != null) {
+            this.sessions.remove(sessionId); // 종료된 세션 정보 제거
+            log.info("[BlindDate] Session terminated: sessionId={}", sessionId);
         }
     }
 
@@ -79,12 +70,12 @@ public class BlindDateSessionStorageImpl implements BlindDateSessionStorage {
      * 세션 전체 삭제
      */
     @Override
-    public synchronized void clear() {
+    public void clear() {
         this.sessions.clear();
     }
 
     @Override
-    public synchronized boolean isWaiting(String sessionId) {
+    public boolean isWaiting(String sessionId) {
         SessionInfo sessionInfo = this.sessions.get(sessionId);
         if (sessionInfo == null) {
             return false;
@@ -94,7 +85,7 @@ public class BlindDateSessionStorageImpl implements BlindDateSessionStorage {
     }
 
     @Override
-    public synchronized boolean isProcessing(String sessionId) {
+    public boolean isProcessing(String sessionId) {
         SessionInfo sessionInfo = this.sessions.get(sessionId);
         if (sessionInfo == null) {
             return false;

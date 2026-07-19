@@ -4,10 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
+import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateConnectHandler;
-import com.dongsoop.dongsoop.blinddate.lock.BlindDateMatchingLock;
-import com.dongsoop.dongsoop.blinddate.lock.BlindDateMemberLock;
-import com.dongsoop.dongsoop.blinddate.lock.BlindDateSessionLock;
+import com.dongsoop.dongsoop.blinddate.handler.BlindDateDisconnectHandler;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
@@ -62,22 +61,18 @@ class BlindDateConcurrencyTest {
     private BlindDateStorage blindDateStorage;
     private BlindDateSessionStorage sessionStorage;
     private BlindDateParticipantStorage participantStorage;
-    private BlindDateMatchingLock matchingLock;
-    private BlindDateMemberLock memberLock;
+    private BlindDateEventQueue eventQueue;
     private BlindDateSessionScheduler sessionScheduler;
     private BlindDateTaskScheduler taskScheduler;
     private SimpMessagingTemplate messagingTemplate;
-    private BlindDateSessionLock sessionLock;
 
     @BeforeEach
     void setUp() {
         blindDateStorage = new BlindDateStorageImpl();
         participantStorage = new BlindDateParticipantStorageImpl();
-        sessionStorage = new BlindDateSessionStorageImpl(sessionLock);
+        sessionStorage = new BlindDateSessionStorageImpl();
 
-        matchingLock = new BlindDateMatchingLock();
-        memberLock = new BlindDateMemberLock();
-        sessionLock = new BlindDateSessionLock();
+        eventQueue = new BlindDateEventQueue();
 
         messagingTemplate = mock(SimpMessagingTemplate.class);
         BlindDateNotification notification = mock(BlindDateNotification.class);
@@ -90,12 +85,20 @@ class BlindDateConcurrencyTest {
                 notification,
                 sessionStorage,
                 messagingTemplate,
-                taskScheduler
+                taskScheduler,
+                eventQueue
         );
 
         sessionService = new BlindDateSessionServiceImpl(
                 participantStorage,
                 blindDateStorage
+        );
+
+        BlindDateDisconnectHandler disconnectHandler = new BlindDateDisconnectHandler(
+                participantStorage,
+                sessionStorage,
+                blindDateService,
+                eventQueue
         );
 
         connectHandler = new BlindDateConnectHandler(
@@ -106,9 +109,8 @@ class BlindDateConcurrencyTest {
                 sessionService,
                 sessionScheduler,
                 messagingTemplate,
-                matchingLock,
-                memberLock,
-                sessionLock
+                eventQueue,
+                disconnectHandler
         );
     }
 
@@ -145,6 +147,7 @@ class BlindDateConcurrencyTest {
                     try {
                         Map<String, Object> sessionAttributes = new HashMap<>();
                         connectHandler.execute("socket-" + memberId, (long) memberId, sessionAttributes);
+                        eventQueue.awaitIdle();
                         String sessionId = (String) sessionAttributes.get("sessionId");
                         if (sessionId != null) {
                             sessionIds.add(sessionId);
@@ -159,6 +162,7 @@ class BlindDateConcurrencyTest {
             }
 
             assertThat(latch.await(15, TimeUnit.SECONDS)).isTrue();
+            eventQueue.awaitIdle();
             executor.shutdown();
             executor.awaitTermination(5, TimeUnit.SECONDS);
 
@@ -186,6 +190,7 @@ class BlindDateConcurrencyTest {
             connectHandler.execute("socket-2", 2L, attr);
             connectHandler.execute("socket-3", 3L, attr);
             connectHandler.execute("socket-4", 4L, attr);
+            eventQueue.awaitIdle();
             String firstSessionId = (String) attr.get("sessionId");
 
             // 첫 번째 세션이 정확히 4명인지 확인
@@ -204,6 +209,7 @@ class BlindDateConcurrencyTest {
                     try {
                         Map<String, Object> sessionAttributes = new HashMap<>();
                         connectHandler.execute("socket-" + memberId, (long) memberId, sessionAttributes);
+                        eventQueue.awaitIdle();
                         String sessionId = (String) sessionAttributes.get("sessionId");
                         if (sessionId != null) {
                             newSessionIds.add(sessionId);
@@ -218,6 +224,7 @@ class BlindDateConcurrencyTest {
             }
 
             assertThat(latch.await(15, TimeUnit.SECONDS)).isTrue();
+            eventQueue.awaitIdle();
             executor.shutdown();
             executor.awaitTermination(5, TimeUnit.SECONDS);
 
@@ -255,6 +262,7 @@ class BlindDateConcurrencyTest {
             Map<String, Object> attr = new HashMap<>();
             connectHandler.execute("socket-1", 1L, attr);
             connectHandler.execute("socket-2", 2L, attr);
+            eventQueue.awaitIdle();
 
             // 첫 번째 세션에 2명이 있는지 확인
             String firstSession = (String) attr.get("sessionId");
@@ -273,6 +281,7 @@ class BlindDateConcurrencyTest {
                     try {
                         Map<String, Object> sessionAttributes = new HashMap<>();
                         connectHandler.execute("socket-" + memberId, (long) memberId, sessionAttributes);
+                        eventQueue.awaitIdle();
                         String sessionId = (String) sessionAttributes.get("sessionId");
                         if (sessionId != null) {
                             memberToSession.put((long) memberId, sessionId);
@@ -287,6 +296,7 @@ class BlindDateConcurrencyTest {
             }
 
             assertThat(latch.await(15, TimeUnit.SECONDS)).isTrue();
+            eventQueue.awaitIdle();
             executor.shutdown();
             executor.awaitTermination(5, TimeUnit.SECONDS);
 
@@ -339,6 +349,7 @@ class BlindDateConcurrencyTest {
                     try {
                         Map<String, Object> sessionAttributes = new HashMap<>();
                         connectHandler.execute("socket-" + memberId, (long) memberId, sessionAttributes);
+                        eventQueue.awaitIdle();
                         String sessionId = (String) sessionAttributes.get("sessionId");
                         if (sessionId != null) {
                             sessionIds.add(sessionId);
@@ -353,6 +364,7 @@ class BlindDateConcurrencyTest {
             }
 
             assertThat(latch.await(15, TimeUnit.SECONDS)).isTrue();
+            eventQueue.awaitIdle();
             executor.shutdown();
             executor.awaitTermination(5, TimeUnit.SECONDS);
 
@@ -389,6 +401,7 @@ class BlindDateConcurrencyTest {
                     try {
                         Map<String, Object> sessionAttributes = new HashMap<>();
                         connectHandler.execute("socket-" + memberId, (long) memberId, sessionAttributes);
+                        eventQueue.awaitIdle();
                         String sessionId = (String) sessionAttributes.get("sessionId");
                         if (sessionId != null) {
                             memberToSession.put((long) memberId, sessionId);
@@ -403,6 +416,7 @@ class BlindDateConcurrencyTest {
             }
 
             assertThat(latch.await(15, TimeUnit.SECONDS)).isTrue();
+            eventQueue.awaitIdle();
             executor.shutdown();
             executor.awaitTermination(5, TimeUnit.SECONDS);
 
@@ -445,6 +459,7 @@ class BlindDateConcurrencyTest {
             connectHandler.execute("socket-2", 2L, attr);
             connectHandler.execute("socket-3", 3L, attr);
             connectHandler.execute("socket-4", 4L, attr);
+            eventQueue.awaitIdle();
             String firstSessionId = (String) attr.get("sessionId");
 
             // 4명이 정확히 입장했는지 확인
@@ -464,6 +479,7 @@ class BlindDateConcurrencyTest {
                     try {
                         Map<String, Object> sessionAttributes = new HashMap<>();
                         connectHandler.execute("socket-" + memberId, (long) memberId, sessionAttributes);
+                        eventQueue.awaitIdle();
                         String sessionId = (String) sessionAttributes.get("sessionId");
                         if (sessionId != null) {
                             memberToSession.put((long) memberId, sessionId);
@@ -478,6 +494,7 @@ class BlindDateConcurrencyTest {
             }
 
             assertThat(latch.await(15, TimeUnit.SECONDS)).isTrue();
+            eventQueue.awaitIdle();
             executor.shutdown();
             executor.awaitTermination(5, TimeUnit.SECONDS);
 
@@ -531,6 +548,7 @@ class BlindDateConcurrencyTest {
                     try {
                         Map<String, Object> sessionAttributes = new HashMap<>();
                         connectHandler.execute("socket-" + socketNum, 1L, sessionAttributes);
+                        eventQueue.awaitIdle();
                         String sessionId = (String) sessionAttributes.get("sessionId");
                         if (sessionId != null) {
                             sessionIds.add(sessionId);
@@ -545,6 +563,7 @@ class BlindDateConcurrencyTest {
             }
 
             assertThat(latch.await(15, TimeUnit.SECONDS)).isTrue();
+            eventQueue.awaitIdle();
             executor.shutdown();
             executor.awaitTermination(5, TimeUnit.SECONDS);
 
@@ -586,6 +605,7 @@ class BlindDateConcurrencyTest {
                     try {
                         Map<String, Object> sessionAttributes = new HashMap<>();
                         connectHandler.execute("socket-" + memberId, (long) memberId, sessionAttributes);
+                        eventQueue.awaitIdle();
                         ParticipantInfo participant = participantStorage.getByMemberId((long) memberId);
                         if (participant != null) {
                             memberToName.put((long) memberId, participant.getAnonymousName());
@@ -600,6 +620,7 @@ class BlindDateConcurrencyTest {
             }
 
             assertThat(latch.await(20, TimeUnit.SECONDS)).isTrue();
+            eventQueue.awaitIdle();
             executor.shutdown();
             executor.awaitTermination(5, TimeUnit.SECONDS);
 
@@ -654,6 +675,7 @@ class BlindDateConcurrencyTest {
                     try {
                         Map<String, Object> sessionAttributes = new HashMap<>();
                         connectHandler.execute("socket-" + memberId, (long) memberId, sessionAttributes);
+                        eventQueue.awaitIdle();
                         String sessionId = (String) sessionAttributes.get("sessionId");
                         if (sessionId != null) {
                             memberToSession.put((long) memberId, sessionId);
@@ -668,6 +690,7 @@ class BlindDateConcurrencyTest {
             }
 
             boolean completed = latch.await(30, TimeUnit.SECONDS);
+            eventQueue.awaitIdle();
             executor.shutdown();
 
             long duration = System.currentTimeMillis() - startTime;
@@ -724,6 +747,7 @@ class BlindDateConcurrencyTest {
                     try {
                         Map<String, Object> sessionAttributes = new HashMap<>();
                         connectHandler.execute("socket-" + memberId, (long) memberId, sessionAttributes);
+                        eventQueue.awaitIdle();
                         memberToSession.put((long) memberId, (String) sessionAttributes.get("sessionId"));
                     } finally {
                         latch.countDown();
@@ -732,6 +756,7 @@ class BlindDateConcurrencyTest {
             }
 
             assertThat(latch.await(20, TimeUnit.SECONDS)).isTrue();
+            eventQueue.awaitIdle();
             executor.shutdown();
 
             Set<String> sessions = new HashSet<>(memberToSession.values());
@@ -757,6 +782,7 @@ class BlindDateConcurrencyTest {
                     try {
                         Map<String, Object> sessionAttributes = new HashMap<>();
                         connectHandler.execute("socket-" + memberId, (long) memberId, sessionAttributes);
+                        eventQueue.awaitIdle();
                         memberToSession.put((long) memberId, (String) sessionAttributes.get("sessionId"));
                     } finally {
                         latch.countDown();
@@ -765,6 +791,7 @@ class BlindDateConcurrencyTest {
             }
 
             assertThat(latch.await(20, TimeUnit.SECONDS)).isTrue();
+            eventQueue.awaitIdle();
             executor.shutdown();
 
             assertThat(memberToSession).hasSize(userCount);
