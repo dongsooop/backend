@@ -33,7 +33,7 @@ public class BlindDateTaskScheduler {
      * 지연 후 실행
      */
     public void schedule(Runnable task, long delay) {
-        ScheduledFuture<?> schedule = this.taskScheduler.schedule(task, Instant.now().plusMillis(delay));
+        ScheduledFuture<?> schedule = this.taskScheduler.schedule(() -> execute(task), Instant.now().plusMillis(delay));
 
         // 작업 등록
         futures.add(schedule);
@@ -43,7 +43,7 @@ public class BlindDateTaskScheduler {
      * 종료 시점 기준 실행
      */
     public void schedule(Runnable cleanupTask, LocalDateTime endTime) {
-        ScheduledFuture<?> schedule = taskScheduler.schedule(cleanupTask,
+        ScheduledFuture<?> schedule = taskScheduler.schedule(() -> execute(cleanupTask),
                 endTime.atZone(ZoneId.systemDefault()).toInstant());
 
         // 작업 등록
