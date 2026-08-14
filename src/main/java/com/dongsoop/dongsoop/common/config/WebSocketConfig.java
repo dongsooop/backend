@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.common.config;
 import com.dongsoop.dongsoop.common.handler.websocket.CustomStompErrorHandler;
 import com.dongsoop.dongsoop.common.handler.websocket.StompHandler;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
@@ -21,6 +22,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final StompHandler stompHandler;
     private final CustomStompErrorHandler customStompErrorHandler;
 
+    // REST CORS(SecurityConfig)와 동일한 출처 화이트리스트를 재사용하여 정책을 일원화한다.
+    @Value("${authentication.origins}")
+    private String[] allowedOrigins;
+
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
         registry.enableSimpleBroker("/topic", "/queue");
@@ -30,7 +35,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws/chat", "/ws/blinddate")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOriginPatterns(allowedOrigins)
                 .withSockJS()
                 .setDisconnectDelay(30 * 1000)
                 .setHeartbeatTime(15 * 1000)

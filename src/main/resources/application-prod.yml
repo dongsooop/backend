@@ -1,6 +1,9 @@
 server:
   address: ${SERVER_ADDRESS}
   port: ${SERVER_PORT}
+  # LB/리버스 프록시(OCI/Nginx) 뒤에서 X-Forwarded-* 를 신뢰 처리하여 request.getRemoteAddr()가 실제 클라이언트 IP를 반환하게 한다.
+  # (애플리케이션에서 raw XFF 헤더를 직접 파싱하면 스푸핑에 취약하므로 프레임워크 처리에 위임한다.)
+  forward-headers-strategy: framework
 
 spring:
   config:

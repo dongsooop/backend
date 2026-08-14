@@ -6,6 +6,11 @@ spring:
       local: local
       prod: prod
     default: local
+  servlet:
+    multipart:
+      # 컨테이너 기본값(1MB)을 FileValidator의 검증 상한(10MB)과 일치시킨다. (이미지 최대 3장)
+      max-file-size: 10MB
+      max-request-size: 35MB
 
 logging:
   config: classpath:logback.xml

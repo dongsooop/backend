@@ -6,6 +6,7 @@ import com.dongsoop.dongsoop.chat.service.ChatParticipantService;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
+import com.dongsoop.dongsoop.common.ratelimit.RateLimitFilter;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
@@ -42,6 +43,8 @@ class ChatControllerTest {
     private MemberService memberService;
     @MockitoBean
     private JwtFilter jwtFilter;
+    @MockitoBean
+    private RateLimitFilter rateLimitFilter;
     @MockitoBean
     private FirebaseAppCheck firebaseAppCheck;
     @MockitoBean

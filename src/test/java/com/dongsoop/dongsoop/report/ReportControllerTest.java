@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.report;
 
 import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
+import com.dongsoop.dongsoop.common.ratelimit.RateLimitFilter;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
@@ -34,6 +35,8 @@ class ReportControllerTest {
 
     @MockitoBean
     private JwtFilter jwtFilter;
+    @MockitoBean
+    private RateLimitFilter rateLimitFilter;
     @MockitoBean
     private FirebaseAppCheck firebaseAppCheck;
     @MockitoBean
