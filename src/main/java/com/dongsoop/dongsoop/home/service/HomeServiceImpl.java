@@ -107,6 +107,26 @@ public class HomeServiceImpl implements HomeService {
         return new HomeDto(Collections.emptyList(), schedules, notices, popularRecruitments);
     }
 
+    @Override
+    public HomeDto getGuestHome(DepartmentType departmentType) {
+        LocalDate today = LocalDate.now();
+
+        CompletableFuture<List<HomeSchedule>> fOfficialSchedules = call(
+                () -> officialScheduleRepository.searchHomeSchedule(today));
+        CompletableFuture<List<HomeNotice>> fNotices = call(
+                () -> noticeRepository.searchHomeNotices(departmentType));
+        CompletableFuture<List<HomeRecruitment>> fRecruitments = call(
+                () -> recruitmentRepository.searchHomeRecruitment(departmentType.name()));
+
+        CompletableFuture.allOf(fOfficialSchedules, fNotices, fRecruitments).join();
+
+        List<HomeSchedule> schedules = fOfficialSchedules.join().stream()
+                .sorted(Comparator.comparing(HomeSchedule::startAt).thenComparing(HomeSchedule::endAt))
+                .toList();
+
+        return new HomeDto(Collections.emptyList(), schedules, fNotices.join(), fRecruitments.join());
+    }
+
     private <T> CompletableFuture<T> call(Supplier<T> supplier) {
         return CompletableFuture.supplyAsync(supplier, homeThreadExecutor)
                 .orTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
