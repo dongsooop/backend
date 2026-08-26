@@ -3,9 +3,12 @@ package com.dongsoop.dongsoop.notice.notification;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
+import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notice.keyword.service.NoticeKeywordService;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
+import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.service.NotificationSaveService;
 import com.dongsoop.dongsoop.notification.service.NotificationSendService;
@@ -13,10 +16,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class NoticeNotificationImpl implements NoticeNotification {
@@ -24,6 +29,7 @@ public class NoticeNotificationImpl implements NoticeNotification {
     private final NotificationSaveService notificationSaveService;
     private final NotificationSendService notificationSendService;
     private final MemberRepository memberRepository;
+    private final MemberDeviceRepository memberDeviceRepository;
     private final NoticeKeywordService noticeKeywordService;
 
     @Value("${university.domain}")
@@ -45,6 +51,9 @@ public class NoticeNotificationImpl implements NoticeNotification {
 
         // 공지별 메시지 변환 후 전송
         notificationSendService.sendAll(memberNotificationList, NotificationType.NOTICE);
+
+        // 비회원 발송: 알림함을 남기지 않고 푸시만 보낸다
+        noticeDetailSet.forEach(this::sendToGuests);
     }
 
     /**
@@ -87,5 +96,39 @@ public class NoticeNotificationImpl implements NoticeNotification {
         }
 
         return memberRepository.searchAllByDepartmentAndDeviceNotEmpty(department);
+    }
+
+    /**
+     * 비회원 디바이스에 공지 푸시를 직접 전송한다.
+     *
+     * <p>비회원은 알림함({@code MemberNotification})을 갖지 않으므로 저장 없이 발송만 한다.
+     * 회원 발송이 이미 끝난 뒤 호출되므로, 여기서 발생한 예외가 회원 발송에 영향을 주지 않도록 삼킨다.
+     */
+    private void sendToGuests(Notice notice) {
+        try {
+            Department department = notice.getDepartment();
+            List<MemberDevice> devices = memberDeviceRepository.searchGuestDevicesByDepartment(department.getId());
+
+            String title = notice.getNoticeDetails().getTitle();
+            List<MemberDevice> filtered = noticeKeywordService.filterDevicesByKeyword(devices, title);
+            if (filtered.isEmpty()) {
+                return;
+            }
+
+            List<String> tokens = filtered.stream()
+                    .map(MemberDevice::getDeviceToken)
+                    .toList();
+
+            NotificationSend notificationSend = new NotificationSend(
+                    null,
+                    generateTitle(department.getId().getName()),
+                    title,
+                    NotificationType.NOTICE,
+                    universityDomain + notice.getNoticeDetails().getLink());
+
+            notificationSendService.send(tokens, notificationSend);
+        } catch (Exception exception) {
+            log.error("Failed to send notice push to guest devices", exception);
+        }
     }
 }
