@@ -1,11 +1,14 @@
 package com.dongsoop.dongsoop.memberdevice.repository;
 
+import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.entity.QMemberDevice;
+import com.dongsoop.dongsoop.notice.preference.entity.QDeviceNoticePreference;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.setting.entity.QNotificationSetting;
 import com.querydsl.core.types.Expression;
@@ -29,6 +32,8 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     private final QNotificationSetting notificationSetting = QNotificationSetting.notificationSetting;
     private final QMemberDevice memberDevice = QMemberDevice.memberDevice;
     private final QMember member = QMember.member;
+    private final QDeviceNoticePreference deviceNoticePreference =
+            QDeviceNoticePreference.deviceNoticePreference;
 
     @Override
     public List<MemberDeviceDto> findDevicesWithNotification(MemberDeviceFindCondition condition) {
@@ -58,6 +63,24 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
                 .where(memberDevice.member.id.eq(memberId)
                         .and(isNotWebDevice())
                         .and(memberDevice.deviceToken.isNotNull()))
+                .fetch();
+    }
+
+    @Override
+    public List<MemberDevice> searchGuestDevicesByDepartment(DepartmentType departmentType) {
+        boolean isEnabledDefault = NotificationType.NOTICE.getDefaultActiveState();
+
+        return queryFactory.selectFrom(memberDevice)
+                .leftJoin(notificationSetting)
+                .on(notificationSettingEq(NotificationType.NOTICE))
+                .leftJoin(deviceNoticePreference)
+                .on(deviceNoticePreference.memberDeviceId.eq(memberDevice.id))
+                .where(memberDevice.member.isNull() // 비회원
+                        .and(memberDevice.deviceToken.isNotNull())
+                        .and(isNotWebDevice())
+                        .and(guestDepartmentEq(departmentType))
+                        .and(isEnableNotificationDevice(isEnabledDefault)))
+                .distinct()
                 .fetch();
     }
 
@@ -103,6 +126,17 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     private BooleanExpression notificationSettingEq(NotificationType notificationType) {
         return notificationSetting.id.device.eq(memberDevice)
                 .and(notificationSetting.id.notificationType.eq(notificationType));
+    }
+
+    /**
+     * 대학 공지(DEPT_1001)는 학과 설정 여부와 무관하게 전체 비회원이 대상이므로 조건을 걸지 않는다.
+     */
+    private BooleanExpression guestDepartmentEq(DepartmentType departmentType) {
+        if (departmentType == DepartmentType.DEPT_1001) {
+            return null;
+        }
+
+        return deviceNoticePreference.department.id.eq(departmentType);
     }
 
     @Override
