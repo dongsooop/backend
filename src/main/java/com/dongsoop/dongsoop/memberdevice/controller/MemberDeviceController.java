@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.memberdevice.controller;
 import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.dto.DeviceRegisterRequest;
+import com.dongsoop.dongsoop.memberdevice.dto.DeviceRegisterResponse;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
@@ -14,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,15 +50,19 @@ public class MemberDeviceController {
      * @return 디바이스 ID (201 Created)
      */
     @PostMapping
-    public ResponseEntity<Void> registerDevice(@RequestBody @Valid DeviceRegisterRequest request) {
+    public ResponseEntity<DeviceRegisterResponse> registerDevice(
+            @RequestBody @Valid DeviceRegisterRequest request,
+            @RequestHeader(value = "X-Anonymous-Key", required = false) String anonymousKey) {
         Long existingDeviceId = deviceUtil.getDeviceIdFromContext();
-        memberDeviceService.registerDevice(request.deviceToken(), request.type(), existingDeviceId);
+        String issuedKey = memberDeviceService.registerDevice(
+                request.deviceToken(), request.type(), existingDeviceId, anonymousKey);
 
-        if (existingDeviceId == null) {
+        if (existingDeviceId == null && !StringUtils.hasText(anonymousKey)) {
             fcmService.subscribeTopic(List.of(request.deviceToken()), anonymousTopic);
         }
 
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new DeviceRegisterResponse(issuedKey));
     }
 
     /**

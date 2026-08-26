@@ -117,13 +117,15 @@ class MemberDeviceControllerTest {
     @DisplayName("JWT에 deviceId가 없으면 새 디바이스를 등록하고 anonymous 토픽을 구독한다")
     void registers_new_device_and_subscribes_anonymous_when_no_existing_device_id() throws Exception {
         given(deviceUtil.getDeviceIdFromContext()).willReturn(null);
+        given(memberDeviceService.registerDevice(anyString(), any(), isNull(), isNull())).willReturn("issued-key");
 
         mockMvc.perform(post("/device")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"deviceToken\":\"" + TOKEN_NEW + "\",\"type\":\"ANDROID\"}"))
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.anonymousKey").value("issued-key"));
 
-        verify(memberDeviceService).registerDevice(TOKEN_NEW, MemberDeviceType.ANDROID, null);
+        verify(memberDeviceService).registerDevice(TOKEN_NEW, MemberDeviceType.ANDROID, null, null);
         verify(fcmService).subscribeTopic(anyList(), anyString());
     }
 
@@ -137,7 +139,7 @@ class MemberDeviceControllerTest {
                         .content("{\"deviceToken\":\"" + TOKEN_NEW + "\",\"type\":\"ANDROID\"}"))
                 .andExpect(status().isCreated());
 
-        verify(memberDeviceService).registerDevice(TOKEN_NEW, MemberDeviceType.ANDROID, DEVICE_ID);
+        verify(memberDeviceService).registerDevice(TOKEN_NEW, MemberDeviceType.ANDROID, DEVICE_ID, null);
         verifyNoInteractions(fcmService);
     }
 

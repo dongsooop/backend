@@ -15,6 +15,7 @@ import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -23,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -34,21 +36,46 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
 
     @Override
     @Transactional
-    public void registerDevice(String deviceToken, MemberDeviceType deviceType, Long existingDeviceId) {
+    public String registerDevice(String deviceToken, MemberDeviceType deviceType, Long existingDeviceId,
+                                 String anonymousKey) {
+        // 회원: 기존 동작 유지
         if (existingDeviceId != null) {
             MemberDevice device = memberDeviceRepository.findById(existingDeviceId)
                     .orElseThrow(UnregisteredDeviceException::new);
             validateDuplicateDeviceToken(deviceToken);
             device.updateDeviceToken(deviceToken);
-            return;
+            return null;
         }
 
-        validateDuplicateDeviceToken(deviceToken);
+        // 비회원: 익명 키를 알고 있으면 같은 행의 토큰만 갱신한다
+        if (StringUtils.hasText(anonymousKey)) {
+            MemberDevice device = memberDeviceRepository.findByAnonymousKey(anonymousKey)
+                    .orElseThrow(UnregisteredDeviceException::new);
+            if (!deviceToken.equals(device.getDeviceToken())) {
+                validateDuplicateDeviceToken(deviceToken);
+                device.updateDeviceToken(deviceToken);
+            }
+            return device.getAnonymousKey();
+        }
+
+        // 비회원: 익명 키를 모르지만 같은 토큰의 행이 이미 있으면 키를 발급해 돌려준다 (기존 앱 마이그레이션 경로)
+        Optional<MemberDevice> existing = memberDeviceRepository.findByDeviceToken(deviceToken);
+        if (existing.isPresent()) {
+            MemberDevice device = existing.get();
+            if (device.getMember() != null) {
+                throw new AlreadyRegisteredDeviceException();
+            }
+            return device.issueAnonymousKeyIfAbsent();
+        }
+
         MemberDevice memberDevice = MemberDevice.builder()
                 .deviceToken(deviceToken)
                 .memberDeviceType(deviceType)
                 .build();
+        String issued = memberDevice.issueAnonymousKeyIfAbsent();
         memberDeviceRepository.save(memberDevice);
+
+        return issued;
     }
 
     @Override
