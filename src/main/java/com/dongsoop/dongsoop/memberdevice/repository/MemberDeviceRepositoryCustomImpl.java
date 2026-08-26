@@ -132,7 +132,7 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
      * 대학 공지(DEPT_1001)는 학과 설정 여부와 무관하게 전체 비회원이 대상이므로 조건을 걸지 않는다.
      */
     private BooleanExpression guestDepartmentEq(DepartmentType departmentType) {
-        if (departmentType == DepartmentType.DEPT_1001) {
+        if (departmentType.isAllDepartment()) {
             return null;
         }
 
