@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.notice.keyword.entity;
 
 import com.dongsoop.dongsoop.common.BaseEntity;
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -30,8 +31,12 @@ public class NoticeKeyword extends BaseEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
+    @JoinColumn(name = "member_id")
     private Member member;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_device_id")
+    private MemberDevice device;
 
     @Column(name = "keyword", length = 20, nullable = false)
     private String keyword;
@@ -42,6 +47,12 @@ public class NoticeKeyword extends BaseEntity {
 
     public NoticeKeyword(Member member, String keyword, NoticeKeywordType type) {
         this.member = member;
+        this.keyword = keyword;
+        this.type = type;
+    }
+
+    public NoticeKeyword(MemberDevice device, String keyword, NoticeKeywordType type) {
+        this.device = device;
         this.keyword = keyword;
         this.type = type;
     }

@@ -16,4 +16,12 @@ public interface NoticeKeywordRepository extends JpaRepository<NoticeKeyword, Lo
     boolean existsByMemberIdAndKeywordAndType(Long memberId, String keyword, NoticeKeywordType type);
 
     Optional<NoticeKeyword> findByIdAndMemberId(Long id, Long memberId);
+
+    List<NoticeKeyword> findAllByDeviceId(Long deviceId);
+
+    List<NoticeKeyword> findAllByDeviceIdIn(Collection<Long> deviceIds);
+
+    boolean existsByDeviceIdAndKeywordAndType(Long deviceId, String keyword, NoticeKeywordType type);
+
+    Optional<NoticeKeyword> findByIdAndDeviceId(Long id, Long deviceId);
 }
