@@ -47,15 +47,18 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
             return null;
         }
 
-        // 비회원: 익명 키를 알고 있으면 같은 행의 토큰만 갱신한다
+        // 비회원: 익명 키를 알고 있으면 같은 행의 토큰만 갱신한다.
+        // 알 수 없는 키는 실패가 아니라 신규 발급으로 떨어뜨린다 — 그러지 않으면 기기가 키를 되찾을 방법이 없다.
         if (StringUtils.hasText(anonymousKey)) {
-            MemberDevice device = memberDeviceRepository.findByAnonymousKey(anonymousKey)
-                    .orElseThrow(UnregisteredDeviceException::new);
-            if (!deviceToken.equals(device.getDeviceToken())) {
-                validateDuplicateDeviceToken(deviceToken);
-                device.updateDeviceToken(deviceToken);
+            Optional<MemberDevice> keyed = memberDeviceRepository.findByAnonymousKey(anonymousKey);
+            if (keyed.isPresent()) {
+                MemberDevice device = keyed.get();
+                if (!deviceToken.equals(device.getDeviceToken())) {
+                    validateDuplicateDeviceToken(deviceToken);
+                    device.updateDeviceToken(deviceToken);
+                }
+                return device.getAnonymousKey();
             }
-            return device.getAnonymousKey();
         }
 
         // 비회원: 익명 키를 모르지만 같은 토큰의 행이 이미 있으면 키를 발급해 돌려준다 (기존 앱 마이그레이션 경로)

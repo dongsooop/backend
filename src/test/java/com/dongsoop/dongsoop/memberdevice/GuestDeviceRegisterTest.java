@@ -16,6 +16,7 @@ import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.service.FCMService;
 import com.dongsoop.dongsoop.search.repository.BoardSearchRepository;
 import com.dongsoop.dongsoop.search.repository.RestaurantSearchRepository;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -115,5 +116,17 @@ class GuestDeviceRegisterTest {
         assertThatThrownBy(() ->
                 memberDeviceService.registerDevice("token-owned", MemberDeviceType.ANDROID, null, null))
                 .isInstanceOf(AlreadyRegisteredDeviceException.class);
+    }
+
+    @Test
+    @DisplayName("형식은 유효하지만 더 이상 존재하지 않는 익명 키로 등록하면 예외 대신 새 키를 발급받는다")
+    void issues_new_key_when_anonymous_key_is_unknown() {
+        String unknownKey = UUID.randomUUID().toString();
+
+        String issuedKey = memberDeviceService.registerDevice("token-unknown-key", MemberDeviceType.ANDROID, null,
+                unknownKey);
+
+        assertThat(issuedKey).isNotBlank();
+        assertThat(issuedKey).isNotEqualTo(unknownKey);
     }
 }
