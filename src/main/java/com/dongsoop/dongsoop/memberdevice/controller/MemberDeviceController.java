@@ -43,11 +43,13 @@ public class MemberDeviceController {
     /**
      * 디바이스를 등록하거나 기존 디바이스의 토큰을 갱신한다.
      *
-     * <p>JWT에 deviceId가 포함된 인증 요청인 경우 기존 디바이스의 토큰을 갱신하고,
-     * 미인증 요청이거나 deviceId가 없는 경우 새 디바이스를 등록한다.
-     * 새 디바이스 등록 시 anonymous 토픽을 구독한다.
+     * <p>JWT에 deviceId가 포함된 인증 요청인 경우 기존 디바이스의 토큰을 갱신하고 응답의 anonymousKey는 {@code null}이다.
+     * 미인증 요청은 {@code X-Anonymous-Key} 헤더로 비회원 기기를 식별한다: 헤더가 있으면 해당 키의 기기 토큰만 갱신하고 같은 키를 돌려주며,
+     * 헤더가 없더라도 같은 FCM 토큰의 비회원 기기가 이미 있으면(키를 모르는 기존 앱의 마이그레이션 경로) 새로 만들지 않고 그 기기에 키를 발급해 돌려준다.
+     * 그 외의 미인증 요청만 새 디바이스를 등록하며, 이때에 한해 anonymous 토픽을 구독한다.
      *
-     * @return 디바이스 ID (201 Created)
+     * @param anonymousKey 비회원 기기를 식별하는 키 ({@code X-Anonymous-Key} 헤더, 선택)
+     * @return 비회원이면 anonymousKey가 실린 응답, 회원이면 anonymousKey가 {@code null}인 응답 (201 Created)
      */
     @PostMapping
     public ResponseEntity<DeviceRegisterResponse> registerDevice(

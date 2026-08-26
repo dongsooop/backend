@@ -61,6 +61,7 @@ class MemberDeviceControllerTest {
     private static final Long DEVICE_ID = 10L;
     private static final String TOKEN_A = "token-device-a";
     private static final String TOKEN_NEW = "token-device-new";
+    private static final String ANONYMOUS_KEY = "anonymous-key-abc";
 
     // ──────────── GET /device/list ────────────
 
@@ -140,6 +141,24 @@ class MemberDeviceControllerTest {
                 .andExpect(status().isCreated());
 
         verify(memberDeviceService).registerDevice(TOKEN_NEW, MemberDeviceType.ANDROID, DEVICE_ID, null);
+        verifyNoInteractions(fcmService);
+    }
+
+    @Test
+    @DisplayName("X-Anonymous-Key 헤더가 있으면 해당 키로 갱신하고 anonymous 구독을 생략한다")
+    void updates_guest_device_and_skips_subscribe_when_anonymous_key_header_present() throws Exception {
+        given(deviceUtil.getDeviceIdFromContext()).willReturn(null);
+        given(memberDeviceService.registerDevice(anyString(), any(), isNull(), eq(ANONYMOUS_KEY)))
+                .willReturn(ANONYMOUS_KEY);
+
+        mockMvc.perform(post("/device")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Anonymous-Key", ANONYMOUS_KEY)
+                        .content("{\"deviceToken\":\"" + TOKEN_NEW + "\",\"type\":\"ANDROID\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.anonymousKey").value(ANONYMOUS_KEY));
+
+        verify(memberDeviceService).registerDevice(TOKEN_NEW, MemberDeviceType.ANDROID, null, ANONYMOUS_KEY);
         verifyNoInteractions(fcmService);
     }
 
