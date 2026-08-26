@@ -14,6 +14,7 @@ import com.dongsoop.dongsoop.home.dto.HomeDto;
 import com.dongsoop.dongsoop.home.service.HomeService;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import com.dongsoop.dongsoop.notice.preference.dto.GuestDepartmentResponse;
@@ -95,5 +96,19 @@ class GuestHomeControllerTest {
                 .andExpect(status().isOk());
 
         verify(homeService).getHome();
+    }
+
+    @Test
+    @DisplayName("익명 키가 무효하면 404 대신 기본 비로그인 홈을 반환한다")
+    void falls_back_when_anonymous_key_is_invalid() throws Exception {
+        given(guestNoticePreferenceService.getDepartment("stale-key"))
+                .willThrow(new UnregisteredDeviceException());
+        given(homeService.getHome()).willReturn(EMPTY_HOME);
+
+        mockMvc.perform(get("/home").header("X-Anonymous-Key", "stale-key"))
+                .andExpect(status().isOk());
+
+        verify(homeService).getHome();
+        verify(homeService, never()).getGuestHome(any());
     }
 }

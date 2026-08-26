@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.home.dto.HomeDto;
 import com.dongsoop.dongsoop.home.service.HomeService;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.notice.preference.service.GuestNoticePreferenceService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import lombok.RequiredArgsConstructor;
@@ -47,13 +48,19 @@ public class HomeController {
 
     /**
      * 익명 키가 없거나 학과가 설정되지 않았으면 null 을 반환해 기존 비로그인 홈으로 떨어뜨린다.
+     * 홈 화면은 어떤 익명 키 상태에서도 떠야 하므로, 무효한 키(미등록/이미 회원에 연결된 기기)도
+     * 실패가 아니라 기본 홈으로 떨어뜨린다.
      */
     private DepartmentType resolveGuestDepartment(String anonymousKey) {
         if (!StringUtils.hasText(anonymousKey)) {
             return null;
         }
 
-        return guestNoticePreferenceService.getDepartment(anonymousKey)
-                .departmentType();
+        try {
+            return guestNoticePreferenceService.getDepartment(anonymousKey)
+                    .departmentType();
+        } catch (UnregisteredDeviceException exception) {
+            return null;
+        }
     }
 }
