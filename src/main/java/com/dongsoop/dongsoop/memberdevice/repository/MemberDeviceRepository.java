@@ -18,6 +18,4 @@ public interface MemberDeviceRepository extends JpaRepository<MemberDevice, Long
     List<MemberDevice> findByMemberId(Long memberId);
 
     Optional<MemberDevice> findByAnonymousKey(String anonymousKey);
-
-    List<MemberDevice> findByMemberIsNullAndAnonymousKeyIsNull();
 }
