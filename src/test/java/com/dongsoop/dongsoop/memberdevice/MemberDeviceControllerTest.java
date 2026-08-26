@@ -162,6 +162,23 @@ class MemberDeviceControllerTest {
         verifyNoInteractions(fcmService);
     }
 
+    @Test
+    @DisplayName("알 수 없는 키로 새 키가 발급되면 anonymous 토픽을 구독한다")
+    void subscribes_anonymous_topic_when_new_key_issued_for_unknown_key() throws Exception {
+        given(deviceUtil.getDeviceIdFromContext()).willReturn(null);
+        given(memberDeviceService.registerDevice(anyString(), any(), isNull(), eq(ANONYMOUS_KEY)))
+                .willReturn("reissued-key");
+
+        mockMvc.perform(post("/device")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Anonymous-Key", ANONYMOUS_KEY)
+                        .content("{\"deviceToken\":\"" + TOKEN_NEW + "\",\"type\":\"ANDROID\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.anonymousKey").value("reissued-key"));
+
+        verify(fcmService).subscribeTopic(anyList(), anyString());
+    }
+
     // ──────────── DELETE /device/{deviceId} ────────────
 
     @Test

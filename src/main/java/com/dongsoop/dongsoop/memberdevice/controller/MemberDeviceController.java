@@ -59,7 +59,9 @@ public class MemberDeviceController {
         String issuedKey = memberDeviceService.registerDevice(
                 request.deviceToken(), request.type(), existingDeviceId, anonymousKey);
 
-        if (existingDeviceId == null && !StringUtils.hasText(anonymousKey)) {
+        // 알 수 없는 키로 신규 기기가 만들어진 경우(발급 키 != 요청 키)도 anonymous 토픽 구독이 필요하다
+        if (existingDeviceId == null
+                && (!StringUtils.hasText(anonymousKey) || !anonymousKey.equals(issuedKey))) {
             fcmService.subscribeTopic(List.of(request.deviceToken()), anonymousTopic);
         }
 

@@ -53,6 +53,10 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
             Optional<MemberDevice> keyed = memberDeviceRepository.findByAnonymousKey(anonymousKey);
             if (keyed.isPresent()) {
                 MemberDevice device = keyed.get();
+                // 익명 키는 회원 바인딩 후에도 남는다. 비인증 요청이 회원 기기의 토큰을 갈아끼우지 못하게 막는다.
+                if (device.getMember() != null) {
+                    throw new AlreadyRegisteredDeviceException();
+                }
                 if (!deviceToken.equals(device.getDeviceToken())) {
                     validateDuplicateDeviceToken(deviceToken);
                     device.updateDeviceToken(deviceToken);

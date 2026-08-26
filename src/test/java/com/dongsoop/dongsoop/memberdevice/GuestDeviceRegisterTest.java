@@ -119,6 +119,36 @@ class GuestDeviceRegisterTest {
     }
 
     @Test
+    @DisplayName("회원에 바인딩된 디바이스의 익명 키로는 토큰을 갱신할 수 없다")
+    void rejects_token_update_via_key_of_member_bound_device() {
+        departmentRepository.save(new Department(DepartmentType.DEPT_3001, "기계공학과", "https://example.test/notice"));
+        Department department = departmentRepository.getReferenceById(DepartmentType.DEPT_3001);
+        Member member = memberRepository.save(Member.builder()
+                .email("keyed-bound@dongyang.ac.kr")
+                .nickname("키드바운드")
+                .password("encoded")
+                .department(department)
+                .build());
+
+        MemberDevice device = MemberDevice.builder()
+                .deviceToken("token-keyed-bound")
+                .memberDeviceType(MemberDeviceType.ANDROID)
+                .build();
+        String key = device.issueAnonymousKeyIfAbsent();
+        device.bindMember(member);
+        memberDeviceRepository.save(device);
+
+        assertThatThrownBy(() ->
+                memberDeviceService.registerDevice("token-attacker", MemberDeviceType.ANDROID, null, key))
+                .isInstanceOf(AlreadyRegisteredDeviceException.class);
+
+        assertThat(memberDeviceRepository.findByAnonymousKey(key))
+                .get()
+                .extracting(MemberDevice::getDeviceToken)
+                .isEqualTo("token-keyed-bound");
+    }
+
+    @Test
     @DisplayName("형식은 유효하지만 더 이상 존재하지 않는 익명 키로 등록하면 예외 대신 새 키를 발급받는다")
     void issues_new_key_when_anonymous_key_is_unknown() {
         String unknownKey = UUID.randomUUID().toString();
