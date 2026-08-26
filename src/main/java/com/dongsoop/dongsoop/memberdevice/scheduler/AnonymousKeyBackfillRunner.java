@@ -24,6 +24,7 @@ public class AnonymousKeyBackfillRunner implements ApplicationRunner {
     private final MemberDeviceRepository memberDeviceRepository;
 
     @Override
+    @Transactional
     public void run(ApplicationArguments args) {
         backfill();
     }
