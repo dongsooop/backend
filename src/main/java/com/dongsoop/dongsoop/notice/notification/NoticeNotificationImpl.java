@@ -32,6 +32,9 @@ public class NoticeNotificationImpl implements NoticeNotification {
      */
     private static final int FCM_MULTICAST_MAX_TOKENS = 500;
 
+    // CalendarNotificationImpl.NON_SAVE_NOTIFICATION_ID 와 동일한 값: 알림함에 저장되지 않은 발송임을 나타낸다.
+    private static final Long NON_SAVE_NOTIFICATION_ID = -1L;
+
     private final NotificationSaveService notificationSaveService;
     private final NotificationSendService notificationSendService;
     private final MemberRepository memberRepository;
@@ -126,7 +129,7 @@ public class NoticeNotificationImpl implements NoticeNotification {
                     .toList();
 
             NotificationSend notificationSend = new NotificationSend(
-                    null,
+                    NON_SAVE_NOTIFICATION_ID,
                     generateTitle(department.getId().getName()),
                     title,
                     NotificationType.NOTICE,
