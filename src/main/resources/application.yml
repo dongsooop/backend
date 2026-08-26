@@ -35,6 +35,7 @@ authentication:
       /search/**,
       /mail-verify/**,
       /device,
+      /guest/**,
       /schedule/**,
       /home,
       /feedback,
