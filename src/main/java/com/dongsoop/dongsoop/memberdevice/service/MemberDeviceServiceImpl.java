@@ -38,7 +38,6 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
     @Transactional
     public String registerDevice(String deviceToken, MemberDeviceType deviceType, Long existingDeviceId,
                                  String anonymousKey) {
-        // 회원: 기존 동작 유지
         if (existingDeviceId != null) {
             MemberDevice device = memberDeviceRepository.findById(existingDeviceId)
                     .orElseThrow(UnregisteredDeviceException::new);
@@ -47,8 +46,7 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
             return null;
         }
 
-        // 비회원: 익명 키를 알고 있으면 같은 행의 토큰만 갱신한다.
-        // 알 수 없는 키는 실패가 아니라 신규 발급으로 떨어뜨린다 — 그러지 않으면 기기가 키를 되찾을 방법이 없다.
+        // 알 수 없는 키는 실패가 아니라 신규 발급으로 떨어뜨린다. 그러지 않으면 기기가 키를 되찾을 방법이 없다
         if (StringUtils.hasText(anonymousKey)) {
             Optional<MemberDevice> keyed = memberDeviceRepository.findByAnonymousKey(anonymousKey);
             if (keyed.isPresent()) {

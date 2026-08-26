@@ -26,13 +26,9 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class NoticeNotificationImpl implements NoticeNotification {
 
-    /**
-     * Firebase Admin SDK가 {@code MulticastMessage}에 허용하는 토큰 개수의 상한(500)이다.
-     * 이 값을 넘겨 build()하면 IllegalArgumentException이 발생하므로, 발송 전 이 크기로 나눠야 한다.
-     */
+    // Firebase Admin SDK가 MulticastMessage 하나에 허용하는 상한. 넘기면 build()에서 예외가 발생한다
     private static final int FCM_MULTICAST_MAX_TOKENS = 500;
 
-    // CalendarNotificationImpl.NON_SAVE_NOTIFICATION_ID 와 동일한 값: 알림함에 저장되지 않은 발송임을 나타낸다.
     private static final Long NON_SAVE_NOTIFICATION_ID = -1L;
 
     private final NotificationSaveService notificationSaveService;
