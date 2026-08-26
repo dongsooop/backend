@@ -26,6 +26,12 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class NoticeNotificationImpl implements NoticeNotification {
 
+    /**
+     * Firebase Admin SDK가 {@code MulticastMessage}에 허용하는 토큰 개수의 상한(500)이다.
+     * 이 값을 넘겨 build()하면 IllegalArgumentException이 발생하므로, 발송 전 이 크기로 나눠야 한다.
+     */
+    private static final int FCM_MULTICAST_MAX_TOKENS = 500;
+
     private final NotificationSaveService notificationSaveService;
     private final NotificationSendService notificationSendService;
     private final MemberRepository memberRepository;
@@ -126,7 +132,10 @@ public class NoticeNotificationImpl implements NoticeNotification {
                     NotificationType.NOTICE,
                     universityDomain + notice.getNoticeDetails().getLink());
 
-            notificationSendService.send(tokens, notificationSend);
+            for (int fromIndex = 0; fromIndex < tokens.size(); fromIndex += FCM_MULTICAST_MAX_TOKENS) {
+                int toIndex = Math.min(fromIndex + FCM_MULTICAST_MAX_TOKENS, tokens.size());
+                notificationSendService.send(tokens.subList(fromIndex, toIndex), notificationSend);
+            }
         } catch (Exception exception) {
             log.error("Failed to send notice push to guest devices", exception);
         }

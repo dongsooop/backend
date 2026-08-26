@@ -1,10 +1,12 @@
 package com.dongsoop.dongsoop.notice;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.dongsoop.dongsoop.department.entity.Department;
@@ -23,9 +25,11 @@ import com.dongsoop.dongsoop.notification.service.NotificationSendService;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -107,5 +111,37 @@ class GuestNoticeNotificationTest {
         noticeNotification.send(Set.of(notice));
 
         verify(notificationSendService, never()).send(anyList(), any(NotificationSend.class));
+    }
+
+    @Test
+    @DisplayName("비회원 대상이 500명을 넘으면 FCM 멀티캐스트 한도만큼 나눠서 전송한다")
+    void chunks_guest_push_when_over_fcm_multicast_limit() {
+        ReflectionTestUtils.setField(noticeNotification, "universityDomain", "https://example.test");
+        Notice notice = buildNotice();
+
+        List<MemberDevice> guests = IntStream.range(0, 501)
+                .<MemberDevice>mapToObj(i -> MemberDevice.builder()
+                        .deviceToken("guest-token-" + i)
+                        .memberDeviceType(MemberDeviceType.ANDROID)
+                        .build())
+                .toList();
+
+        given(memberRepository.searchAllByDepartmentAndDeviceNotEmpty(any())).willReturn(List.of());
+        given(noticeKeywordService.filterMembersByKeyword(anyList(), any())).willReturn(List.of());
+        given(notificationSaveService.saveAll(anyList(), any(), any(), any(), any())).willReturn(List.of());
+        given(memberDeviceRepository.searchGuestDevicesByDepartment(DepartmentType.DEPT_2001))
+                .willReturn(guests);
+        given(noticeKeywordService.filterDevicesByKeyword(guests, "장학금 안내"))
+                .willReturn(guests);
+
+        noticeNotification.send(Set.of(notice));
+
+        ArgumentCaptor<List<String>> tokensCaptor = ArgumentCaptor.forClass(List.class);
+        verify(notificationSendService, times(2)).send(tokensCaptor.capture(), any(NotificationSend.class));
+
+        List<List<String>> capturedChunks = tokensCaptor.getAllValues();
+        assertThat(capturedChunks).hasSize(2);
+        assertThat(capturedChunks.get(0)).hasSize(500);
+        assertThat(capturedChunks.get(1)).hasSize(1);
     }
 }
