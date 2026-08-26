@@ -56,6 +56,7 @@ class AnonymousKeyBackfillStartupTest {
 
     @AfterEach
     void cleanup() {
-        memberDeviceRepository.deleteByDeviceToken("token-legacy-runner");
+        memberDeviceRepository.findByDeviceToken("token-legacy-runner")
+                .ifPresent(memberDeviceRepository::delete);
     }
 }
