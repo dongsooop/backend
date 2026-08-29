@@ -3,7 +3,6 @@ package com.dongsoop.dongsoop.memberdevice.controller;
 import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.dto.DeviceRegisterRequest;
-import com.dongsoop.dongsoop.memberdevice.dto.DeviceRegisterResponse;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
@@ -15,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -43,30 +41,22 @@ public class MemberDeviceController {
     /**
      * 디바이스를 등록하거나 기존 디바이스의 토큰을 갱신한다.
      *
-     * <p>JWT에 deviceId가 포함된 인증 요청인 경우 기존 디바이스의 토큰을 갱신하고 응답의 anonymousKey는 {@code null}이다.
-     * 미인증 요청은 {@code X-Anonymous-Key} 헤더로 비회원 기기를 식별한다: 헤더가 있으면 해당 키의 기기 토큰만 갱신하고 같은 키를 돌려주며,
-     * 헤더가 없더라도 같은 FCM 토큰의 비회원 기기가 이미 있으면(키를 모르는 기존 앱의 마이그레이션 경로) 새로 만들지 않고 그 기기에 키를 발급해 돌려준다.
-     * 그 외의 미인증 요청만 새 디바이스를 등록하며, 이때에 한해 anonymous 토픽을 구독한다.
+     * <p>JWT에 deviceId가 포함된 인증 요청인 경우 기존 디바이스의 토큰을 갱신하고,
+     * 미인증 요청이거나 deviceId가 없는 경우 deviceToken으로 비회원 기기를 식별해 등록/갱신한다.
+     * 미인증 요청 처리 시 anonymous 토픽을 구독한다.
      *
-     * @param anonymousKey 비회원 기기를 식별하는 키 ({@code X-Anonymous-Key} 헤더, 선택)
-     * @return 비회원이면 anonymousKey가 실린 응답, 회원이면 anonymousKey가 {@code null}인 응답 (201 Created)
+     * @return 응답 본문 없음 (201 Created)
      */
     @PostMapping
-    public ResponseEntity<DeviceRegisterResponse> registerDevice(
-            @RequestBody @Valid DeviceRegisterRequest request,
-            @RequestHeader(value = "X-Anonymous-Key", required = false) String anonymousKey) {
+    public ResponseEntity<Void> registerDevice(@RequestBody @Valid DeviceRegisterRequest request) {
         Long existingDeviceId = deviceUtil.getDeviceIdFromContext();
-        String issuedKey = memberDeviceService.registerDevice(
-                request.deviceToken(), request.type(), existingDeviceId, anonymousKey);
+        memberDeviceService.registerDevice(request.deviceToken(), request.type(), existingDeviceId);
 
-        // 알 수 없는 키로 신규 기기가 만들어진 경우(발급 키 != 요청 키)도 anonymous 토픽 구독이 필요하다
-        if (existingDeviceId == null
-                && (!StringUtils.hasText(anonymousKey) || !anonymousKey.equals(issuedKey))) {
+        if (existingDeviceId == null) {
             fcmService.subscribeTopic(List.of(request.deviceToken()), anonymousTopic);
         }
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new DeviceRegisterResponse(issuedKey));
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     /**

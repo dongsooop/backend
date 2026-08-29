@@ -63,7 +63,6 @@ class GuestDeviceQueryTest {
                 .deviceToken(token)
                 .memberDeviceType(MemberDeviceType.ANDROID)
                 .build();
-        device.issueAnonymousKeyIfAbsent();
         memberDeviceRepository.save(device);
 
         if (departmentType != null) {

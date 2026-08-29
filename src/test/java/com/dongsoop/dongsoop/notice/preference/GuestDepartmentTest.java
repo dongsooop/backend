@@ -64,7 +64,6 @@ class GuestDepartmentTest {
                 .deviceToken(token)
                 .memberDeviceType(MemberDeviceType.ANDROID)
                 .build();
-        device.issueAnonymousKeyIfAbsent();
 
         return memberDeviceRepository.save(device);
     }
@@ -74,9 +73,9 @@ class GuestDepartmentTest {
     void sets_and_reads_department() {
         MemberDevice device = saveGuestDevice("token-dept-1");
 
-        service.updateDepartments(device.getAnonymousKey(), Set.of(DepartmentType.DEPT_2001));
+        service.updateDepartments(device.getDeviceToken(), Set.of(DepartmentType.DEPT_2001));
 
-        assertThat(service.getDepartments(device.getAnonymousKey()).departmentTypes())
+        assertThat(service.getDepartments(device.getDeviceToken()).departmentTypes())
                 .containsExactly(DepartmentType.DEPT_2001);
     }
 
@@ -85,9 +84,9 @@ class GuestDepartmentTest {
     void subscribes_to_multiple_departments() {
         MemberDevice device = saveGuestDevice("token-dept-multi");
 
-        service.updateDepartments(device.getAnonymousKey(), Set.of(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001));
+        service.updateDepartments(device.getDeviceToken(), Set.of(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001));
 
-        assertThat(service.getDepartments(device.getAnonymousKey()).departmentTypes())
+        assertThat(service.getDepartments(device.getDeviceToken()).departmentTypes())
                 .containsExactlyInAnyOrder(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001);
     }
 
@@ -96,10 +95,10 @@ class GuestDepartmentTest {
     void replaces_department_set() {
         MemberDevice device = saveGuestDevice("token-dept-2");
 
-        service.updateDepartments(device.getAnonymousKey(), Set.of(DepartmentType.DEPT_2001));
-        service.updateDepartments(device.getAnonymousKey(), Set.of(DepartmentType.DEPT_3001));
+        service.updateDepartments(device.getDeviceToken(), Set.of(DepartmentType.DEPT_2001));
+        service.updateDepartments(device.getDeviceToken(), Set.of(DepartmentType.DEPT_3001));
 
-        assertThat(service.getDepartments(device.getAnonymousKey()).departmentTypes())
+        assertThat(service.getDepartments(device.getDeviceToken()).departmentTypes())
                 .containsExactly(DepartmentType.DEPT_3001);
     }
 
@@ -108,18 +107,18 @@ class GuestDepartmentTest {
     void returns_empty_when_not_set() {
         MemberDevice device = saveGuestDevice("token-dept-3");
 
-        assertThat(service.getDepartments(device.getAnonymousKey()).departmentTypes()).isEmpty();
+        assertThat(service.getDepartments(device.getDeviceToken()).departmentTypes()).isEmpty();
     }
 
     @Test
-    @DisplayName("존재하지 않는 익명 키는 거부한다")
-    void rejects_unknown_key() {
-        assertThatThrownBy(() -> service.getDepartments("no-such-key"))
+    @DisplayName("존재하지 않는 디바이스 토큰은 거부한다")
+    void rejects_unknown_token() {
+        assertThatThrownBy(() -> service.getDepartments("no-such-token"))
                 .isInstanceOf(UnregisteredDeviceException.class);
     }
 
     @Test
-    @DisplayName("회원에 바인딩된 디바이스의 익명 키는 거부한다")
+    @DisplayName("회원에 바인딩된 디바이스의 토큰은 거부한다")
     void rejects_member_bound_device() {
         Department department = departmentRepository.getReferenceById(DepartmentType.DEPT_2001);
         Member member = memberRepository.save(Member.builder()
@@ -133,7 +132,7 @@ class GuestDepartmentTest {
         device.bindMember(member);
         memberDeviceRepository.save(device);
 
-        assertThatThrownBy(() -> service.getDepartments(device.getAnonymousKey()))
+        assertThatThrownBy(() -> service.getDepartments(device.getDeviceToken()))
                 .isInstanceOf(UnregisteredDeviceException.class);
     }
 }

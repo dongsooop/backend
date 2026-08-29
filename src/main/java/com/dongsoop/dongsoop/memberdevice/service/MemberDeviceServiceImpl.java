@@ -24,7 +24,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -36,51 +35,30 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
 
     @Override
     @Transactional
-    public String registerDevice(String deviceToken, MemberDeviceType deviceType, Long existingDeviceId,
-                                 String anonymousKey) {
+    public void registerDevice(String deviceToken, MemberDeviceType deviceType, Long existingDeviceId) {
         if (existingDeviceId != null) {
             MemberDevice device = memberDeviceRepository.findById(existingDeviceId)
                     .orElseThrow(UnregisteredDeviceException::new);
             validateDuplicateDeviceToken(deviceToken);
             device.updateDeviceToken(deviceToken);
-            return null;
+            return;
         }
 
-        // 알 수 없는 키는 실패가 아니라 신규 발급으로 떨어뜨린다. 그러지 않으면 기기가 키를 되찾을 방법이 없다
-        if (StringUtils.hasText(anonymousKey)) {
-            Optional<MemberDevice> keyed = memberDeviceRepository.findByAnonymousKey(anonymousKey);
-            if (keyed.isPresent()) {
-                MemberDevice device = keyed.get();
-                // 익명 키는 회원 바인딩 후에도 남는다. 비인증 요청이 회원 기기의 토큰을 갈아끼우지 못하게 막는다.
-                if (device.getMember() != null) {
-                    throw new AlreadyRegisteredDeviceException();
-                }
-                if (!deviceToken.equals(device.getDeviceToken())) {
-                    validateDuplicateDeviceToken(deviceToken);
-                    device.updateDeviceToken(deviceToken);
-                }
-                return device.getAnonymousKey();
-            }
-        }
-
-        // 비회원: 익명 키를 모르지만 같은 토큰의 행이 이미 있으면 키를 발급해 돌려준다 (기존 앱 마이그레이션 경로)
+        // 비회원: deviceToken 자체가 식별자이므로, 같은 토큰의 행이 이미 있으면 그 기기를 그대로 사용한다.
         Optional<MemberDevice> existing = memberDeviceRepository.findByDeviceToken(deviceToken);
         if (existing.isPresent()) {
             MemberDevice device = existing.get();
             if (device.getMember() != null) {
                 throw new AlreadyRegisteredDeviceException();
             }
-            return device.issueAnonymousKeyIfAbsent();
+            return;
         }
 
         MemberDevice memberDevice = MemberDevice.builder()
                 .deviceToken(deviceToken)
                 .memberDeviceType(deviceType)
                 .build();
-        String issued = memberDevice.issueAnonymousKeyIfAbsent();
         memberDeviceRepository.save(memberDevice);
-
-        return issued;
     }
 
     @Override

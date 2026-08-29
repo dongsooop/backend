@@ -42,7 +42,7 @@ import org.springframework.transaction.annotation.Transactional;
 @DisplayName("비회원 엔드포인트 보안 및 헤더 계약 통합 테스트")
 class GuestEndpointSecurityTest {
 
-    private static final String ANONYMOUS_KEY_HEADER = "X-Anonymous-Key";
+    private static final String DEVICE_TOKEN_HEADER = "X-Device-Token";
 
     // 모든 요청은 App Check 필터를 먼저 통과해야 한다. FirebaseAppCheck 는 목이라 값 자체는 검증되지 않는다
     private static final String APP_CHECK_HEADER = "X-Firebase-AppCheck";
@@ -72,18 +72,18 @@ class GuestEndpointSecurityTest {
     @MockitoBean
     private RestaurantSearchRepository restaurantSearchRepository;
 
-    private String anonymousKey;
+    private String deviceToken;
 
     @BeforeEach
     void setUp() {
         departmentRepository.save(new Department(DepartmentType.DEPT_2001, "컴퓨터소프트웨어공학과",
                 "https://example.test/notice"));
 
+        deviceToken = "token-security-test";
         MemberDevice device = MemberDevice.builder()
-                .deviceToken("token-security-test")
+                .deviceToken(deviceToken)
                 .memberDeviceType(MemberDeviceType.ANDROID)
                 .build();
-        anonymousKey = device.issueAnonymousKeyIfAbsent();
         memberDeviceRepository.save(device);
     }
 
@@ -92,14 +92,14 @@ class GuestEndpointSecurityTest {
     void guest_department_endpoints_are_permitted_without_authentication() throws Exception {
         mockMvc.perform(put("/guest/departments")
                         .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
-                        .header(ANONYMOUS_KEY_HEADER, anonymousKey)
+                        .header(DEVICE_TOKEN_HEADER, deviceToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"departmentTypes\":[\"DEPT_2001\"]}"))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/guest/departments")
                         .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
-                        .header(ANONYMOUS_KEY_HEADER, anonymousKey))
+                        .header(DEVICE_TOKEN_HEADER, deviceToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.departmentTypes[0]").value("DEPT_2001"));
     }
@@ -109,19 +109,19 @@ class GuestEndpointSecurityTest {
      * 헤더 계약만 깨졌다는 뜻이 되므로, 두 실패 원인이 구분된다.
      */
     @Test
-    @DisplayName("익명 키 헤더가 없으면 401이 아니라 404를 반환한다")
-    void missing_anonymous_key_header_returns_not_found_not_unauthorized() throws Exception {
+    @DisplayName("디바이스 토큰 헤더가 없으면 401이 아니라 404를 반환한다")
+    void missing_device_token_header_returns_not_found_not_unauthorized() throws Exception {
         mockMvc.perform(get("/guest/departments")
                         .header(APP_CHECK_HEADER, APP_CHECK_TOKEN))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("알 수 없는 익명 키는 404를 반환한다")
-    void unknown_anonymous_key_returns_not_found() throws Exception {
+    @DisplayName("알 수 없는 디바이스 토큰은 404를 반환한다")
+    void unknown_device_token_returns_not_found() throws Exception {
         mockMvc.perform(get("/guest/departments")
                         .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
-                        .header(ANONYMOUS_KEY_HEADER, "no-such-key"))
+                        .header(DEVICE_TOKEN_HEADER, "no-such-token"))
                 .andExpect(status().isNotFound());
     }
 }

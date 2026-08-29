@@ -14,7 +14,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.SequenceGenerator;
 import java.time.LocalDateTime;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -43,10 +42,6 @@ public class MemberDevice extends BaseEntity {
     private String deviceToken;
 
     @Getter
-    @Column(name = "anonymous_key", length = 36, unique = true)
-    private String anonymousKey;
-
-    @Getter
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MemberDeviceType memberDeviceType;
@@ -67,20 +62,6 @@ public class MemberDevice extends BaseEntity {
 
     public void updateDeviceToken(String deviceToken) {
         this.deviceToken = deviceToken;
-    }
-
-    /**
-     * 비회원 식별용 익명 키를 발급한다.
-     *
-     * <p>이미 발급된 키가 있으면 재발급하지 않고 기존 값을 반환한다.
-     * 앱이 보관 중인 키를 무효화하지 않기 위함이다.
-     */
-    public String issueAnonymousKeyIfAbsent() {
-        if (this.anonymousKey == null) {
-            this.anonymousKey = UUID.randomUUID().toString();
-        }
-
-        return this.anonymousKey;
     }
 
     public void updateLastAccess(LocalDateTime lastAccess) {

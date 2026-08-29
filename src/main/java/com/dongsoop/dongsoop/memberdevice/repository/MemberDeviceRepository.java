@@ -16,6 +16,4 @@ public interface MemberDeviceRepository extends JpaRepository<MemberDevice, Long
     void deleteByDeviceToken(String deviceToken);
 
     List<MemberDevice> findByMemberId(Long memberId);
-
-    Optional<MemberDevice> findByAnonymousKey(String anonymousKey);
 }
