@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
+import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
@@ -43,6 +45,9 @@ class GuestDeviceQueryTest {
     @Autowired
     private DepartmentRepository departmentRepository;
 
+    @Autowired
+    private MemberRepository memberRepository;
+
     @MockitoBean
     private FCMService fcmService;
 
@@ -59,9 +64,13 @@ class GuestDeviceQueryTest {
     }
 
     private MemberDevice saveGuest(String token, DepartmentType departmentType) {
+        return saveGuest(token, departmentType, MemberDeviceType.ANDROID);
+    }
+
+    private MemberDevice saveGuest(String token, DepartmentType departmentType, MemberDeviceType deviceType) {
         MemberDevice device = MemberDevice.builder()
                 .deviceToken(token)
-                .memberDeviceType(MemberDeviceType.ANDROID)
+                .memberDeviceType(deviceType)
                 .build();
         memberDeviceRepository.save(device);
 
@@ -105,5 +114,50 @@ class GuestDeviceQueryTest {
         List<MemberDevice> result = memberDeviceRepository.searchGuestDevicesByDepartment(DepartmentType.DEPT_2001);
 
         assertThat(result).extracting(MemberDevice::getId).doesNotContain(device.getId());
+    }
+
+    @Test
+    @DisplayName("NotificationSetting 행이 없으면 NOTICE 기본 활성 상태(true)를 따라 포함된다")
+    void falls_back_to_default_enabled_state_when_no_notification_setting_row() {
+        // NOTICE.getDefaultActiveState() == true 이므로, 설정 행이 없는 기기는 활성 취급되어 포함되어야 한다
+        MemberDevice device = saveGuest("token-q-6", DepartmentType.DEPT_2001);
+
+        List<MemberDevice> result = memberDeviceRepository.searchGuestDevicesByDepartment(DepartmentType.DEPT_2001);
+
+        assertThat(result).extracting(MemberDevice::getId).contains(device.getId());
+    }
+
+    @Test
+    @DisplayName("WEB 타입 비회원 기기는 푸시 대상에서 제외된다")
+    void excludes_web_type_guest_device() {
+        MemberDevice webDevice = saveGuest("token-q-7", DepartmentType.DEPT_2001, MemberDeviceType.WEB);
+
+        List<MemberDevice> result = memberDeviceRepository.searchGuestDevicesByDepartment(DepartmentType.DEPT_2001);
+
+        assertThat(result).extracting(MemberDevice::getId).doesNotContain(webDevice.getId());
+    }
+
+    @Test
+    @DisplayName("비회원으로 학과를 구독했던 기기가 회원으로 전환되면 더 이상 조회되지 않는다 (중복 발송 방지의 핵심 속성)")
+    void member_bound_device_no_longer_appears_in_guest_search() {
+        Department department = departmentRepository.getReferenceById(DepartmentType.DEPT_2001);
+        MemberDevice device = saveGuest("token-q-8", DepartmentType.DEPT_2001);
+
+        assertThat(memberDeviceRepository.searchGuestDevicesByDepartment(DepartmentType.DEPT_2001))
+                .extracting(MemberDevice::getId)
+                .contains(device.getId());
+
+        Member member = memberRepository.save(Member.builder()
+                .email("converted@dongyang.ac.kr")
+                .nickname("전환회원")
+                .password("encoded")
+                .department(department)
+                .build());
+        device.bindMember(member);
+        memberDeviceRepository.save(device);
+
+        assertThat(memberDeviceRepository.searchGuestDevicesByDepartment(DepartmentType.DEPT_2001))
+                .extracting(MemberDevice::getId)
+                .doesNotContain(device.getId());
     }
 }

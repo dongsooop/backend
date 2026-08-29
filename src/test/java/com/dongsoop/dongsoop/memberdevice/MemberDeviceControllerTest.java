@@ -138,6 +138,20 @@ class MemberDeviceControllerTest {
         verifyNoInteractions(fcmService);
     }
 
+    @Test
+    @DisplayName("WEB 타입 디바이스도 신규 등록 시 anonymous 토픽을 구독한다")
+    void registers_new_web_device_and_subscribes_anonymous() throws Exception {
+        given(deviceUtil.getDeviceIdFromContext()).willReturn(null);
+
+        mockMvc.perform(post("/device")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"deviceToken\":\"" + TOKEN_NEW + "\",\"type\":\"WEB\"}"))
+                .andExpect(status().isCreated());
+
+        verify(memberDeviceService).registerDevice(TOKEN_NEW, MemberDeviceType.WEB, null);
+        verify(fcmService).subscribeTopic(anyList(), anyString());
+    }
+
     // ──────────── DELETE /device/{deviceId} ────────────
 
     @Test
