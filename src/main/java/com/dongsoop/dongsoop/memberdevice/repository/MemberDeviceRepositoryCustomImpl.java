@@ -71,6 +71,7 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
         boolean isEnabledDefault = NotificationType.NOTICE.getDefaultActiveState();
 
         return queryFactory.selectFrom(memberDevice)
+                .leftJoin(memberDevice.member, member).fetchJoin()
                 .leftJoin(notificationSetting)
                 .on(notificationSettingEq(NotificationType.NOTICE))
                 .leftJoin(deviceNoticePreference)

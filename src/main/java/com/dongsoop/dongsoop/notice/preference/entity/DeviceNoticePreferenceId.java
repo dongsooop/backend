@@ -38,12 +38,12 @@ public class DeviceNoticePreferenceId {
             return false;
         }
         DeviceNoticePreferenceId that = (DeviceNoticePreferenceId) o;
-        return Objects.equals(this.device.getDeviceToken(), that.device.getDeviceToken())
+        return Objects.equals(this.device.getId(), that.device.getId())
                 && Objects.equals(this.department.getId(), that.department.getId());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(this.device.getDeviceToken(), this.department.getId());
+        return Objects.hash(this.device.getId(), this.department.getId());
     }
 }
