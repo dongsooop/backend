@@ -11,5 +11,7 @@ public interface NoticeService {
 
     Page<NoticeListResponse> getNoticeByDepartmentType(DepartmentType departmentType, Pageable pageable);
 
+    Page<NoticeListResponse> getNoticeForGuest(String deviceToken, Pageable pageable);
+
     Map<Department, Long> getNoticeRecentIdMap();
 }

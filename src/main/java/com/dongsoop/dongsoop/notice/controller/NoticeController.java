@@ -13,6 +13,7 @@ import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,6 +30,14 @@ public class NoticeController {
     public ResponseEntity<Page<NoticeListResponse>> getNotice(@PathVariable DepartmentType departmentType,
                                                               Pageable pageable) {
         Page<NoticeListResponse> noticeList = noticeService.getNoticeByDepartmentType(departmentType, pageable);
+        return ResponseEntity.ok(noticeList);
+    }
+
+    @GetMapping("/guest")
+    public ResponseEntity<Page<NoticeListResponse>> getNoticeForGuest(
+            @RequestHeader(value = "X-Device-Token", required = false) String deviceToken,
+            Pageable pageable) {
+        Page<NoticeListResponse> noticeList = noticeService.getNoticeForGuest(deviceToken, pageable);
         return ResponseEntity.ok(noticeList);
     }
 

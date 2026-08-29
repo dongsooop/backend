@@ -4,8 +4,10 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.exception.DepartmentNotFoundException;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
+import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.notice.dto.NoticeListResponse;
 import com.dongsoop.dongsoop.notice.dto.NoticeRecentIdByDepartment;
+import com.dongsoop.dongsoop.notice.preference.service.GuestNoticePreferenceService;
 import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
 import java.util.List;
 import java.util.Map;
@@ -25,12 +27,40 @@ public class NoticeServiceImpl implements NoticeService {
 
     private final NoticeRepository noticeRepository;
     private final DepartmentRepository departmentRepository;
+    private final GuestNoticePreferenceService guestNoticePreferenceService;
 
     public Page<NoticeListResponse> getNoticeByDepartmentType(DepartmentType departmentType, Pageable pageable) {
         Optional<Department> optionalDepartment = departmentRepository.findById(departmentType);
         Department department = optionalDepartment.orElseThrow(() -> new DepartmentNotFoundException(departmentType));
 
         return noticeRepository.findAllByDepartment(department, pageable);
+    }
+
+    /**
+     * 비회원이 구독한 학과들의 공지를 통합 조회한다.
+     *
+     * <p>키가 없거나 잘못되었거나 회원 바인딩된 기기여도 에러 없이 빈 페이지를 반환한다
+     * (비회원 화면은 실패 시에도 "설정 없음"과 동일하게 보여야 하는 게 이 표면의 관례이다).
+     */
+    @Override
+    public Page<NoticeListResponse> getNoticeForGuest(String deviceToken, Pageable pageable) {
+        List<DepartmentType> departmentTypes;
+        try {
+            departmentTypes = guestNoticePreferenceService.getDepartments(deviceToken).departmentTypes();
+        } catch (UnregisteredDeviceException e) {
+            return Page.empty(pageable);
+        }
+
+        if (departmentTypes.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        List<Department> departments = departmentRepository.findAllById(departmentTypes);
+        if (departments.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        return noticeRepository.findAllByDepartmentIn(departments, pageable);
     }
 
     /**
