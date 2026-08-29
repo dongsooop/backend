@@ -95,6 +95,8 @@ public class NoticeNotificationImpl implements NoticeNotification {
 
         String title = generateTitle(departmentName);
         String body = notice.getNoticeDetails().getTitle();
+        // 구독 기기 중 회원 소유(member != null)만 남기고, 같은 회원이 기기를 여러 개
+        // 구독했어도 알림함 저장은 회원 단위로 한 번만 되도록 distinct 처리한다
         List<Member> targetList = subscribedDevices.stream()
                 .map(MemberDevice::getMember)
                 .filter(Objects::nonNull)
@@ -121,6 +123,8 @@ public class NoticeNotificationImpl implements NoticeNotification {
      */
     private void sendToGuests(Notice notice, List<MemberDevice> subscribedDevices) {
         try {
+            // 구독 기기 중 회원 소유가 아닌(member == null) 게스트 기기만 대상으로 한다.
+            // 회원 소유 기기는 save()가 이미 알림함 저장 + 배지 계산까지 처리했다
             List<String> tokens = subscribedDevices.stream()
                     .filter(device -> device.getMember() == null)
                     .map(MemberDevice::getDeviceToken)
@@ -140,6 +144,8 @@ public class NoticeNotificationImpl implements NoticeNotification {
                     NotificationType.NOTICE,
                     universityDomain + notice.getNoticeDetails().getLink());
 
+            // FCM_MULTICAST_MAX_TOKENS(500)개씩 잘라서 보낸다. 한 번에 넘기면
+            // Firebase Admin SDK가 MulticastMessage.build()에서 예외를 던진다
             for (int fromIndex = 0; fromIndex < tokens.size(); fromIndex += FCM_MULTICAST_MAX_TOKENS) {
                 int toIndex = Math.min(fromIndex + FCM_MULTICAST_MAX_TOKENS, tokens.size());
                 notificationSendService.send(tokens.subList(fromIndex, toIndex), notificationSend);
