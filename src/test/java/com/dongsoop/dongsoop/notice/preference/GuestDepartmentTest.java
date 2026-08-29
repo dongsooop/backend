@@ -16,6 +16,7 @@ import com.dongsoop.dongsoop.notice.preference.service.GuestNoticePreferenceServ
 import com.dongsoop.dongsoop.notification.service.FCMService;
 import com.dongsoop.dongsoop.search.repository.BoardSearchRepository;
 import com.dongsoop.dongsoop.search.repository.RestaurantSearchRepository;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -73,36 +74,47 @@ class GuestDepartmentTest {
     void sets_and_reads_department() {
         MemberDevice device = saveGuestDevice("token-dept-1");
 
-        service.updateDepartment(device.getAnonymousKey(), DepartmentType.DEPT_2001);
+        service.updateDepartments(device.getAnonymousKey(), Set.of(DepartmentType.DEPT_2001));
 
-        assertThat(service.getDepartment(device.getAnonymousKey()).departmentType())
-                .isEqualTo(DepartmentType.DEPT_2001);
+        assertThat(service.getDepartments(device.getAnonymousKey()).departmentTypes())
+                .containsExactly(DepartmentType.DEPT_2001);
     }
 
     @Test
-    @DisplayName("학과를 다시 설정하면 덮어쓴다")
-    void overwrites_department() {
+    @DisplayName("비회원은 여러 학과를 동시에 구독할 수 있다")
+    void subscribes_to_multiple_departments() {
+        MemberDevice device = saveGuestDevice("token-dept-multi");
+
+        service.updateDepartments(device.getAnonymousKey(), Set.of(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001));
+
+        assertThat(service.getDepartments(device.getAnonymousKey()).departmentTypes())
+                .containsExactlyInAnyOrder(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001);
+    }
+
+    @Test
+    @DisplayName("학과 목록을 다시 설정하면 전체 교체된다 (빠진 학과는 삭제, 새 학과는 추가)")
+    void replaces_department_set() {
         MemberDevice device = saveGuestDevice("token-dept-2");
 
-        service.updateDepartment(device.getAnonymousKey(), DepartmentType.DEPT_2001);
-        service.updateDepartment(device.getAnonymousKey(), DepartmentType.DEPT_3001);
+        service.updateDepartments(device.getAnonymousKey(), Set.of(DepartmentType.DEPT_2001));
+        service.updateDepartments(device.getAnonymousKey(), Set.of(DepartmentType.DEPT_3001));
 
-        assertThat(service.getDepartment(device.getAnonymousKey()).departmentType())
-                .isEqualTo(DepartmentType.DEPT_3001);
+        assertThat(service.getDepartments(device.getAnonymousKey()).departmentTypes())
+                .containsExactly(DepartmentType.DEPT_3001);
     }
 
     @Test
-    @DisplayName("학과를 설정하지 않은 비회원은 null을 반환한다")
-    void returns_null_when_not_set() {
+    @DisplayName("학과를 설정하지 않은 비회원은 빈 목록을 반환한다")
+    void returns_empty_when_not_set() {
         MemberDevice device = saveGuestDevice("token-dept-3");
 
-        assertThat(service.getDepartment(device.getAnonymousKey()).departmentType()).isNull();
+        assertThat(service.getDepartments(device.getAnonymousKey()).departmentTypes()).isEmpty();
     }
 
     @Test
     @DisplayName("존재하지 않는 익명 키는 거부한다")
     void rejects_unknown_key() {
-        assertThatThrownBy(() -> service.getDepartment("no-such-key"))
+        assertThatThrownBy(() -> service.getDepartments("no-such-key"))
                 .isInstanceOf(UnregisteredDeviceException.class);
     }
 
@@ -121,7 +133,7 @@ class GuestDepartmentTest {
         device.bindMember(member);
         memberDeviceRepository.save(device);
 
-        assertThatThrownBy(() -> service.getDepartment(device.getAnonymousKey()))
+        assertThatThrownBy(() -> service.getDepartments(device.getAnonymousKey()))
                 .isInstanceOf(UnregisteredDeviceException.class);
     }
 }

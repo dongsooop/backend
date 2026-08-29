@@ -72,10 +72,10 @@ class GuestHomeControllerTest {
     }
 
     @Test
-    @DisplayName("익명 키에 학과가 설정돼 있으면 학과 홈을 반환한다")
+    @DisplayName("익명 키에 학과가 설정돼 있으면 (가장 먼저 구독한) 학과 홈을 반환한다")
     void uses_guest_department_when_present() throws Exception {
-        given(guestNoticePreferenceService.getDepartment("key-1"))
-                .willReturn(new GuestDepartmentResponse(DepartmentType.DEPT_2001));
+        given(guestNoticePreferenceService.getDepartments("key-1"))
+                .willReturn(new GuestDepartmentResponse(List.of(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001)));
         given(homeService.getGuestHome(DepartmentType.DEPT_2001)).willReturn(EMPTY_HOME);
 
         mockMvc.perform(get("/home").header("X-Anonymous-Key", "key-1"))
@@ -88,8 +88,8 @@ class GuestHomeControllerTest {
     @Test
     @DisplayName("익명 키는 있지만 학과가 없으면 기존 비로그인 홈을 반환한다")
     void falls_back_when_department_not_set() throws Exception {
-        given(guestNoticePreferenceService.getDepartment("key-2"))
-                .willReturn(new GuestDepartmentResponse(null));
+        given(guestNoticePreferenceService.getDepartments("key-2"))
+                .willReturn(new GuestDepartmentResponse(List.of()));
         given(homeService.getHome()).willReturn(EMPTY_HOME);
 
         mockMvc.perform(get("/home").header("X-Anonymous-Key", "key-2"))
@@ -101,7 +101,7 @@ class GuestHomeControllerTest {
     @Test
     @DisplayName("익명 키가 무효하면 404 대신 기본 비로그인 홈을 반환한다")
     void falls_back_when_anonymous_key_is_invalid() throws Exception {
-        given(guestNoticePreferenceService.getDepartment("stale-key"))
+        given(guestNoticePreferenceService.getDepartments("stale-key"))
                 .willThrow(new UnregisteredDeviceException());
         given(homeService.getHome()).willReturn(EMPTY_HOME);
 
