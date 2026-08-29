@@ -8,6 +8,4 @@ public interface HomeService {
     HomeDto getHome(Long memberId, DepartmentType departmentType);
 
     HomeDto getHome();
-
-    HomeDto getGuestHome(DepartmentType departmentType);
 }
