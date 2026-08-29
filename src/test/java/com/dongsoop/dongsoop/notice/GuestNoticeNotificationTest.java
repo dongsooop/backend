@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -81,36 +80,10 @@ class GuestNoticeNotificationTest {
         given(notificationSaveService.saveAll(anyList(), any(), any(), any(), any())).willReturn(List.of());
         given(memberDeviceRepository.searchGuestDevicesByDepartment(DepartmentType.DEPT_2001))
                 .willReturn(List.of(guest));
-        given(noticeKeywordService.filterDevicesByKeyword(List.of(guest), "장학금 안내"))
-                .willReturn(List.of(guest));
 
         noticeNotification.send(Set.of(notice));
 
         verify(notificationSendService).send(eq(List.of("guest-token")), any(NotificationSend.class));
-    }
-
-    @Test
-    @DisplayName("키워드 필터에 모두 걸리면 비회원 푸시를 보내지 않는다")
-    void skips_push_when_all_filtered_out() {
-        ReflectionTestUtils.setField(noticeNotification, "universityDomain", "https://example.test");
-        Notice notice = buildNotice();
-
-        MemberDevice guest = MemberDevice.builder()
-                .deviceToken("guest-token")
-                .memberDeviceType(MemberDeviceType.ANDROID)
-                .build();
-
-        given(memberRepository.searchAllByDepartmentAndDeviceNotEmpty(any())).willReturn(List.of());
-        given(noticeKeywordService.filterMembersByKeyword(anyList(), any())).willReturn(List.of());
-        given(notificationSaveService.saveAll(anyList(), any(), any(), any(), any())).willReturn(List.of());
-        given(memberDeviceRepository.searchGuestDevicesByDepartment(DepartmentType.DEPT_2001))
-                .willReturn(List.of(guest));
-        given(noticeKeywordService.filterDevicesByKeyword(List.of(guest), "장학금 안내"))
-                .willReturn(List.of());
-
-        noticeNotification.send(Set.of(notice));
-
-        verify(notificationSendService, never()).send(anyList(), any(NotificationSend.class));
     }
 
     @Test
@@ -130,8 +103,6 @@ class GuestNoticeNotificationTest {
         given(noticeKeywordService.filterMembersByKeyword(anyList(), any())).willReturn(List.of());
         given(notificationSaveService.saveAll(anyList(), any(), any(), any(), any())).willReturn(List.of());
         given(memberDeviceRepository.searchGuestDevicesByDepartment(DepartmentType.DEPT_2001))
-                .willReturn(guests);
-        given(noticeKeywordService.filterDevicesByKeyword(guests, "장학금 안내"))
                 .willReturn(guests);
 
         noticeNotification.send(Set.of(notice));

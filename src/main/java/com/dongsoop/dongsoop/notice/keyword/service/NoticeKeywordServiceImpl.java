@@ -3,7 +3,6 @@ package com.dongsoop.dongsoop.notice.keyword.service;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.service.MemberService;
-import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.notice.keyword.dto.NoticeKeywordRequest;
 import com.dongsoop.dongsoop.notice.keyword.dto.NoticeKeywordResponse;
 import com.dongsoop.dongsoop.notice.keyword.entity.NoticeKeyword;
@@ -81,27 +80,6 @@ public class NoticeKeywordServiceImpl implements NoticeKeywordService {
 
         return members.stream()
                 .filter(member -> shouldReceiveNotification(keywordsByMemberId.get(member.getId()), noticeTitle))
-                .toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<MemberDevice> filterDevicesByKeyword(List<MemberDevice> devices, String noticeTitle) {
-        if (devices.isEmpty()) {
-            return devices;
-        }
-
-        List<Long> deviceIds = devices.stream()
-                .map(MemberDevice::getId)
-                .toList();
-
-        List<NoticeKeyword> allKeywords = noticeKeywordRepository.findAllByDeviceIdIn(deviceIds);
-
-        Map<Long, List<NoticeKeyword>> keywordsByDeviceId = allKeywords.stream()
-                .collect(Collectors.groupingBy(kw -> kw.getDevice().getId()));
-
-        return devices.stream()
-                .filter(device -> shouldReceiveNotification(keywordsByDeviceId.get(device.getId()), noticeTitle))
                 .toList();
     }
 

@@ -114,13 +114,12 @@ public class NoticeNotificationImpl implements NoticeNotification {
             Department department = notice.getDepartment();
             List<MemberDevice> devices = memberDeviceRepository.searchGuestDevicesByDepartment(department.getId());
 
-            String title = notice.getNoticeDetails().getTitle();
-            List<MemberDevice> filtered = noticeKeywordService.filterDevicesByKeyword(devices, title);
-            if (filtered.isEmpty()) {
+            if (devices.isEmpty()) {
                 return;
             }
 
-            List<String> tokens = filtered.stream()
+            String title = notice.getNoticeDetails().getTitle();
+            List<String> tokens = devices.stream()
                     .map(MemberDevice::getDeviceToken)
                     .toList();
 

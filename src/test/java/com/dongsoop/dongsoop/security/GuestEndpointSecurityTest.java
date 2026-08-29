@@ -1,8 +1,6 @@
 package com.dongsoop.dongsoop.security;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -106,33 +104,6 @@ class GuestEndpointSecurityTest {
                 .andExpect(jsonPath("$.departmentTypes[0]").value("DEPT_2001"));
     }
 
-    @Test
-    @DisplayName("키워드 목록·추가·삭제가 인증 없이 통과한다")
-    void guest_keyword_endpoints_are_permitted_without_authentication() throws Exception {
-        String created = mockMvc.perform(post("/guest/notice/keywords")
-                        .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
-                        .header(ANONYMOUS_KEY_HEADER, anonymousKey)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"keyword\":\"장학\",\"type\":\"INCLUDE\"}"))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.keyword").value("장학"))
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        mockMvc.perform(get("/guest/notice/keywords")
-                        .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
-                        .header(ANONYMOUS_KEY_HEADER, anonymousKey))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].keyword").value("장학"));
-
-        Long keywordId = com.jayway.jsonpath.JsonPath.parse(created).read("$.id", Integer.class).longValue();
-        mockMvc.perform(delete("/guest/notice/keywords/{keywordId}", keywordId)
-                        .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
-                        .header(ANONYMOUS_KEY_HEADER, anonymousKey))
-                .andExpect(status().isNoContent());
-    }
-
     /**
      * 헤더명이 바뀌면 이 테스트만 실패한다. 401 이 아니라 404 여야 허용 경로는 살아 있고
      * 헤더 계약만 깨졌다는 뜻이 되므로, 두 실패 원인이 구분된다.
@@ -141,10 +112,6 @@ class GuestEndpointSecurityTest {
     @DisplayName("익명 키 헤더가 없으면 401이 아니라 404를 반환한다")
     void missing_anonymous_key_header_returns_not_found_not_unauthorized() throws Exception {
         mockMvc.perform(get("/guest/departments")
-                        .header(APP_CHECK_HEADER, APP_CHECK_TOKEN))
-                .andExpect(status().isNotFound());
-
-        mockMvc.perform(get("/guest/notice/keywords")
                         .header(APP_CHECK_HEADER, APP_CHECK_TOKEN))
                 .andExpect(status().isNotFound());
     }
