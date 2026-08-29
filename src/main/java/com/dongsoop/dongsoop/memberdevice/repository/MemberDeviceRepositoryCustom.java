@@ -18,5 +18,5 @@ public interface MemberDeviceRepositoryCustom {
 
     long deleteExpiredDevices(LocalDateTime cutoff);
 
-    List<MemberDevice> searchGuestDevicesByDepartment(DepartmentType departmentType);
+    List<MemberDevice> searchDevicesByDepartment(DepartmentType departmentType);
 }

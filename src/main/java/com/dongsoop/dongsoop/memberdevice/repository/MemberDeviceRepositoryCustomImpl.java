@@ -67,7 +67,7 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     }
 
     @Override
-    public List<MemberDevice> searchGuestDevicesByDepartment(DepartmentType departmentType) {
+    public List<MemberDevice> searchDevicesByDepartment(DepartmentType departmentType) {
         boolean isEnabledDefault = NotificationType.NOTICE.getDefaultActiveState();
 
         return queryFactory.selectFrom(memberDevice)
@@ -75,10 +75,9 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
                 .on(notificationSettingEq(NotificationType.NOTICE))
                 .leftJoin(deviceNoticePreference)
                 .on(deviceNoticePreference.id.device.id.eq(memberDevice.id))
-                .where(memberDevice.member.isNull() // 비회원
-                        .and(memberDevice.deviceToken.isNotNull())
+                .where(memberDevice.deviceToken.isNotNull()
                         .and(isNotWebDevice())
-                        .and(guestDepartmentEq(departmentType))
+                        .and(departmentPreferenceEq(departmentType))
                         .and(isEnableNotificationDevice(isEnabledDefault)))
                 .distinct()
                 .fetch();
@@ -129,9 +128,9 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     }
 
     /**
-     * 대학 공지(DEPT_1001)는 학과 설정 여부와 무관하게 전체 비회원이 대상이므로 조건을 걸지 않는다.
+     * 대학 공지(DEPT_1001)는 학과 구독 여부와 무관하게 전체 기기가 대상이므로 조건을 걸지 않는다.
      */
-    private BooleanExpression guestDepartmentEq(DepartmentType departmentType) {
+    private BooleanExpression departmentPreferenceEq(DepartmentType departmentType) {
         if (departmentType.isAllDepartment()) {
             return null;
         }
