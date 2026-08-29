@@ -124,4 +124,26 @@ class GuestEndpointSecurityTest {
                         .header(DEVICE_TOKEN_HEADER, "no-such-token"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    @DisplayName("departmentTypes가 빈 배열이면 400을 반환한다 (@NotEmpty)")
+    void empty_department_types_returns_bad_request() throws Exception {
+        mockMvc.perform(put("/guest/departments")
+                        .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
+                        .header(DEVICE_TOKEN_HEADER, deviceToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"departmentTypes\":[]}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 학과 문자열이 오면 500이 아니라 400을 반환한다")
+    void unknown_department_type_string_returns_bad_request_not_server_error() throws Exception {
+        mockMvc.perform(put("/guest/departments")
+                        .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
+                        .header(DEVICE_TOKEN_HEADER, deviceToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"departmentTypes\":[\"NOT_A_REAL_DEPARTMENT\"]}"))
+                .andExpect(status().isBadRequest());
+    }
 }

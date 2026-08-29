@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -37,6 +38,13 @@ public class GlobalExceptionHandler {
     // Validation 예외처리
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ProblemDetail> handleGlobalException(MethodArgumentNotValidException exception) {
+        return createExceptionResponse("요청 데이터의 포맷이 올바르지 않습니다.", exception, HttpStatus.BAD_REQUEST);
+    }
+
+    // 요청 본문 파싱 실패 (예: enum 필드에 존재하지 않는 값) — 클라이언트 잘못이므로 400
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ProblemDetail> handleHttpMessageNotReadableException(
+            HttpMessageNotReadableException exception) {
         return createExceptionResponse("요청 데이터의 포맷이 올바르지 않습니다.", exception, HttpStatus.BAD_REQUEST);
     }
 
