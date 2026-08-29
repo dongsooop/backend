@@ -74,7 +74,7 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
                 .leftJoin(notificationSetting)
                 .on(notificationSettingEq(NotificationType.NOTICE))
                 .leftJoin(deviceNoticePreference)
-                .on(deviceNoticePreference.memberDeviceId.eq(memberDevice.id))
+                .on(deviceNoticePreference.id.device.id.eq(memberDevice.id))
                 .where(memberDevice.member.isNull() // 비회원
                         .and(memberDevice.deviceToken.isNotNull())
                         .and(isNotWebDevice())
@@ -136,7 +136,7 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
             return null;
         }
 
-        return deviceNoticePreference.department.id.eq(departmentType);
+        return deviceNoticePreference.id.department.id.eq(departmentType);
     }
 
     @Override

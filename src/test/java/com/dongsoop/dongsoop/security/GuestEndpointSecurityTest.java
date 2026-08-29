@@ -92,18 +92,18 @@ class GuestEndpointSecurityTest {
     @Test
     @DisplayName("학과 설정과 조회가 인증 없이 통과한다")
     void guest_department_endpoints_are_permitted_without_authentication() throws Exception {
-        mockMvc.perform(put("/guest/department")
+        mockMvc.perform(put("/guest/departments")
                         .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
                         .header(ANONYMOUS_KEY_HEADER, anonymousKey)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"departmentType\":\"DEPT_2001\"}"))
+                        .content("{\"departmentTypes\":[\"DEPT_2001\"]}"))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/guest/department")
+        mockMvc.perform(get("/guest/departments")
                         .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
                         .header(ANONYMOUS_KEY_HEADER, anonymousKey))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.departmentType").value("DEPT_2001"));
+                .andExpect(jsonPath("$.departmentTypes[0]").value("DEPT_2001"));
     }
 
     @Test
@@ -140,7 +140,7 @@ class GuestEndpointSecurityTest {
     @Test
     @DisplayName("익명 키 헤더가 없으면 401이 아니라 404를 반환한다")
     void missing_anonymous_key_header_returns_not_found_not_unauthorized() throws Exception {
-        mockMvc.perform(get("/guest/department")
+        mockMvc.perform(get("/guest/departments")
                         .header(APP_CHECK_HEADER, APP_CHECK_TOKEN))
                 .andExpect(status().isNotFound());
 
@@ -152,7 +152,7 @@ class GuestEndpointSecurityTest {
     @Test
     @DisplayName("알 수 없는 익명 키는 404를 반환한다")
     void unknown_anonymous_key_returns_not_found() throws Exception {
-        mockMvc.perform(get("/guest/department")
+        mockMvc.perform(get("/guest/departments")
                         .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
                         .header(ANONYMOUS_KEY_HEADER, "no-such-key"))
                 .andExpect(status().isNotFound());

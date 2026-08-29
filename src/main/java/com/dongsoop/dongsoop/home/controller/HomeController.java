@@ -50,6 +50,9 @@ public class HomeController {
      * 익명 키가 없거나 학과가 설정되지 않았으면 null 을 반환해 기존 비로그인 홈으로 떨어뜨린다.
      * 홈 화면은 어떤 익명 키 상태에서도 떠야 하므로, 무효한 키(미등록/이미 회원에 연결된 기기)도
      * 실패가 아니라 기본 홈으로 떨어뜨린다.
+     *
+     * <p>알림은 구독한 모든 학과로 나가지만, 홈 피드는 학과 하나 기준으로 구성되는 기존 구조를
+     * 그대로 두고 가장 먼저 구독한 학과 하나만 반영한다. 홈 피드의 다학과 집계는 별도 작업으로 분리한다.
      */
     private DepartmentType resolveGuestDepartment(String anonymousKey) {
         if (!StringUtils.hasText(anonymousKey)) {
@@ -57,8 +60,11 @@ public class HomeController {
         }
 
         try {
-            return guestNoticePreferenceService.getDepartment(anonymousKey)
-                    .departmentType();
+            return guestNoticePreferenceService.getDepartments(anonymousKey)
+                    .departmentTypes()
+                    .stream()
+                    .findFirst()
+                    .orElse(null);
         } catch (UnregisteredDeviceException exception) {
             return null;
         }

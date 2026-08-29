@@ -14,25 +14,25 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/guest/department")
+@RequestMapping("/guest/departments")
 @RequiredArgsConstructor
 public class GuestNoticePreferenceController {
 
     private final GuestNoticePreferenceService guestNoticePreferenceService;
 
     @PutMapping
-    public ResponseEntity<Void> updateDepartment(
+    public ResponseEntity<Void> updateDepartments(
             @RequestHeader(value = "X-Anonymous-Key", required = false) String anonymousKey,
             @RequestBody @Valid GuestDepartmentRequest request) {
-        guestNoticePreferenceService.updateDepartment(anonymousKey, request.departmentType());
+        guestNoticePreferenceService.updateDepartments(anonymousKey, request.departmentTypes());
 
         return ResponseEntity.noContent()
                 .build();
     }
 
     @GetMapping
-    public ResponseEntity<GuestDepartmentResponse> getDepartment(
+    public ResponseEntity<GuestDepartmentResponse> getDepartments(
             @RequestHeader(value = "X-Anonymous-Key", required = false) String anonymousKey) {
-        return ResponseEntity.ok(guestNoticePreferenceService.getDepartment(anonymousKey));
+        return ResponseEntity.ok(guestNoticePreferenceService.getDepartments(anonymousKey));
     }
 }
