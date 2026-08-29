@@ -30,8 +30,8 @@ public class GuestNoticePreferenceServiceImpl implements GuestNoticePreferenceSe
      */
     @Override
     @Transactional
-    public void updateDepartments(String anonymousKey, Set<DepartmentType> departmentTypes) {
-        MemberDevice device = guestDeviceResolver.resolve(anonymousKey);
+    public void updateDepartments(String deviceToken, Set<DepartmentType> departmentTypes) {
+        MemberDevice device = guestDeviceResolver.resolve(deviceToken);
 
         List<DeviceNoticePreference> existing = preferenceRepository.findAllByIdDeviceId(device.getId());
         Set<DepartmentType> existingTypes = existing.stream()
@@ -56,8 +56,8 @@ public class GuestNoticePreferenceServiceImpl implements GuestNoticePreferenceSe
 
     @Override
     @Transactional(readOnly = true)
-    public GuestDepartmentResponse getDepartments(String anonymousKey) {
-        MemberDevice device = guestDeviceResolver.resolve(anonymousKey);
+    public GuestDepartmentResponse getDepartments(String deviceToken) {
+        MemberDevice device = guestDeviceResolver.resolve(deviceToken);
 
         List<DepartmentType> departmentTypes = preferenceRepository.findAllByIdDeviceId(device.getId()).stream()
                 .map(preference -> preference.getId().getDepartment().getId())

@@ -16,7 +16,6 @@ import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.service.FCMService;
 import com.dongsoop.dongsoop.search.repository.BoardSearchRepository;
 import com.dongsoop.dongsoop.search.repository.RestaurantSearchRepository;
-import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,46 +51,22 @@ class GuestDeviceRegisterTest {
     private RestaurantSearchRepository restaurantSearchRepository;
 
     @Test
-    @DisplayName("처음 등록하는 비회원 디바이스는 익명 키를 발급받는다")
-    void issues_key_for_brand_new_guest_device() {
-        String key = memberDeviceService.registerDevice("token-new", MemberDeviceType.ANDROID, null, null);
+    @DisplayName("처음 등록하는 비회원 디바이스는 새 행으로 저장된다")
+    void creates_new_row_for_brand_new_guest_device() {
+        memberDeviceService.registerDevice("token-new", MemberDeviceType.ANDROID, null);
 
-        assertThat(key).isNotBlank();
-        assertThat(memberDeviceRepository.findByAnonymousKey(key)).isPresent();
+        assertThat(memberDeviceRepository.findByDeviceToken("token-new")).isPresent();
     }
 
     @Test
-    @DisplayName("익명 키를 보내면 새 행을 만들지 않고 기존 행의 토큰만 갱신한다")
-    void updates_token_on_same_row_when_key_given() {
-        String key = memberDeviceService.registerDevice("token-old", MemberDeviceType.ANDROID, null, null);
+    @DisplayName("이미 등록된 토큰으로 다시 등록해도 새 행을 만들지 않는다")
+    void does_not_duplicate_row_for_already_registered_token() {
+        memberDeviceService.registerDevice("token-existing", MemberDeviceType.ANDROID, null);
         long countBefore = memberDeviceRepository.count();
 
-        String returned = memberDeviceService.registerDevice("token-rotated", MemberDeviceType.ANDROID, null, key);
+        memberDeviceService.registerDevice("token-existing", MemberDeviceType.ANDROID, null);
 
-        assertThat(returned).isEqualTo(key);
         assertThat(memberDeviceRepository.count()).isEqualTo(countBefore);
-        assertThat(memberDeviceRepository.findByAnonymousKey(key))
-                .get()
-                .extracting(MemberDevice::getDeviceToken)
-                .isEqualTo("token-rotated");
-    }
-
-    @Test
-    @DisplayName("익명 키를 모르는 기존 비회원이 같은 토큰으로 재등록하면 익명 키를 돌려받는다")
-    void returns_key_for_existing_guest_device_without_key() {
-        MemberDevice legacy = MemberDevice.builder()
-                .deviceToken("token-legacy")
-                .memberDeviceType(MemberDeviceType.ANDROID)
-                .build();
-        memberDeviceRepository.save(legacy);
-
-        String key = memberDeviceService.registerDevice("token-legacy", MemberDeviceType.ANDROID, null, null);
-
-        assertThat(key).isNotBlank();
-        assertThat(memberDeviceRepository.findByAnonymousKey(key))
-                .get()
-                .extracting(MemberDevice::getId)
-                .isEqualTo(legacy.getId());
     }
 
     @Test
@@ -114,49 +89,7 @@ class GuestDeviceRegisterTest {
         memberDeviceRepository.save(owned);
 
         assertThatThrownBy(() ->
-                memberDeviceService.registerDevice("token-owned", MemberDeviceType.ANDROID, null, null))
+                memberDeviceService.registerDevice("token-owned", MemberDeviceType.ANDROID, null))
                 .isInstanceOf(AlreadyRegisteredDeviceException.class);
-    }
-
-    @Test
-    @DisplayName("회원에 바인딩된 디바이스의 익명 키로는 토큰을 갱신할 수 없다")
-    void rejects_token_update_via_key_of_member_bound_device() {
-        departmentRepository.save(new Department(DepartmentType.DEPT_3001, "기계공학과", "https://example.test/notice"));
-        Department department = departmentRepository.getReferenceById(DepartmentType.DEPT_3001);
-        Member member = memberRepository.save(Member.builder()
-                .email("keyed-bound@dongyang.ac.kr")
-                .nickname("키드바운드")
-                .password("encoded")
-                .department(department)
-                .build());
-
-        MemberDevice device = MemberDevice.builder()
-                .deviceToken("token-keyed-bound")
-                .memberDeviceType(MemberDeviceType.ANDROID)
-                .build();
-        String key = device.issueAnonymousKeyIfAbsent();
-        device.bindMember(member);
-        memberDeviceRepository.save(device);
-
-        assertThatThrownBy(() ->
-                memberDeviceService.registerDevice("token-attacker", MemberDeviceType.ANDROID, null, key))
-                .isInstanceOf(AlreadyRegisteredDeviceException.class);
-
-        assertThat(memberDeviceRepository.findByAnonymousKey(key))
-                .get()
-                .extracting(MemberDevice::getDeviceToken)
-                .isEqualTo("token-keyed-bound");
-    }
-
-    @Test
-    @DisplayName("형식은 유효하지만 더 이상 존재하지 않는 익명 키로 등록하면 예외 대신 새 키를 발급받는다")
-    void issues_new_key_when_anonymous_key_is_unknown() {
-        String unknownKey = UUID.randomUUID().toString();
-
-        String issuedKey = memberDeviceService.registerDevice("token-unknown-key", MemberDeviceType.ANDROID, null,
-                unknownKey);
-
-        assertThat(issuedKey).isNotBlank();
-        assertThat(issuedKey).isNotEqualTo(unknownKey);
     }
 }

@@ -65,7 +65,6 @@ class ExpiredGuestDeviceCleanupTest {
                 .deviceToken(null)
                 .memberDeviceType(MemberDeviceType.ANDROID)
                 .build();
-        device.issueAnonymousKeyIfAbsent();
         memberDeviceRepository.save(device);
         device.updateLastAccess(LocalDateTime.now().minusDays(30));
 

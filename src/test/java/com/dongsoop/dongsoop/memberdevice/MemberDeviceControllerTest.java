@@ -1,10 +1,7 @@
 package com.dongsoop.dongsoop.memberdevice;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -61,7 +58,6 @@ class MemberDeviceControllerTest {
     private static final Long DEVICE_ID = 10L;
     private static final String TOKEN_A = "token-device-a";
     private static final String TOKEN_NEW = "token-device-new";
-    private static final String ANONYMOUS_KEY = "anonymous-key-abc";
 
     // ──────────── GET /device/list ────────────
 
@@ -118,15 +114,13 @@ class MemberDeviceControllerTest {
     @DisplayName("JWT에 deviceId가 없으면 새 디바이스를 등록하고 anonymous 토픽을 구독한다")
     void registers_new_device_and_subscribes_anonymous_when_no_existing_device_id() throws Exception {
         given(deviceUtil.getDeviceIdFromContext()).willReturn(null);
-        given(memberDeviceService.registerDevice(anyString(), any(), isNull(), isNull())).willReturn("issued-key");
 
         mockMvc.perform(post("/device")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"deviceToken\":\"" + TOKEN_NEW + "\",\"type\":\"ANDROID\"}"))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.anonymousKey").value("issued-key"));
+                .andExpect(status().isCreated());
 
-        verify(memberDeviceService).registerDevice(TOKEN_NEW, MemberDeviceType.ANDROID, null, null);
+        verify(memberDeviceService).registerDevice(TOKEN_NEW, MemberDeviceType.ANDROID, null);
         verify(fcmService).subscribeTopic(anyList(), anyString());
     }
 
@@ -140,43 +134,8 @@ class MemberDeviceControllerTest {
                         .content("{\"deviceToken\":\"" + TOKEN_NEW + "\",\"type\":\"ANDROID\"}"))
                 .andExpect(status().isCreated());
 
-        verify(memberDeviceService).registerDevice(TOKEN_NEW, MemberDeviceType.ANDROID, DEVICE_ID, null);
+        verify(memberDeviceService).registerDevice(TOKEN_NEW, MemberDeviceType.ANDROID, DEVICE_ID);
         verifyNoInteractions(fcmService);
-    }
-
-    @Test
-    @DisplayName("X-Anonymous-Key 헤더가 있으면 해당 키로 갱신하고 anonymous 구독을 생략한다")
-    void updates_guest_device_and_skips_subscribe_when_anonymous_key_header_present() throws Exception {
-        given(deviceUtil.getDeviceIdFromContext()).willReturn(null);
-        given(memberDeviceService.registerDevice(anyString(), any(), isNull(), eq(ANONYMOUS_KEY)))
-                .willReturn(ANONYMOUS_KEY);
-
-        mockMvc.perform(post("/device")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("X-Anonymous-Key", ANONYMOUS_KEY)
-                        .content("{\"deviceToken\":\"" + TOKEN_NEW + "\",\"type\":\"ANDROID\"}"))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.anonymousKey").value(ANONYMOUS_KEY));
-
-        verify(memberDeviceService).registerDevice(TOKEN_NEW, MemberDeviceType.ANDROID, null, ANONYMOUS_KEY);
-        verifyNoInteractions(fcmService);
-    }
-
-    @Test
-    @DisplayName("알 수 없는 키로 새 키가 발급되면 anonymous 토픽을 구독한다")
-    void subscribes_anonymous_topic_when_new_key_issued_for_unknown_key() throws Exception {
-        given(deviceUtil.getDeviceIdFromContext()).willReturn(null);
-        given(memberDeviceService.registerDevice(anyString(), any(), isNull(), eq(ANONYMOUS_KEY)))
-                .willReturn("reissued-key");
-
-        mockMvc.perform(post("/device")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("X-Anonymous-Key", ANONYMOUS_KEY)
-                        .content("{\"deviceToken\":\"" + TOKEN_NEW + "\",\"type\":\"ANDROID\"}"))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.anonymousKey").value("reissued-key"));
-
-        verify(fcmService).subscribeTopic(anyList(), anyString());
     }
 
     // ──────────── DELETE /device/{deviceId} ────────────

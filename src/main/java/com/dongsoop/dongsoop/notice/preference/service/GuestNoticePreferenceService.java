@@ -6,7 +6,7 @@ import java.util.Set;
 
 public interface GuestNoticePreferenceService {
 
-    void updateDepartments(String anonymousKey, Set<DepartmentType> departmentTypes);
+    void updateDepartments(String deviceToken, Set<DepartmentType> departmentTypes);
 
-    GuestDepartmentResponse getDepartments(String anonymousKey);
+    GuestDepartmentResponse getDepartments(String deviceToken);
 }

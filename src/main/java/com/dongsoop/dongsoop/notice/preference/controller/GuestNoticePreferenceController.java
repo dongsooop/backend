@@ -22,9 +22,9 @@ public class GuestNoticePreferenceController {
 
     @PutMapping
     public ResponseEntity<Void> updateDepartments(
-            @RequestHeader(value = "X-Anonymous-Key", required = false) String anonymousKey,
+            @RequestHeader(value = "X-Device-Token", required = false) String deviceToken,
             @RequestBody @Valid GuestDepartmentRequest request) {
-        guestNoticePreferenceService.updateDepartments(anonymousKey, request.departmentTypes());
+        guestNoticePreferenceService.updateDepartments(deviceToken, request.departmentTypes());
 
         return ResponseEntity.noContent()
                 .build();
@@ -32,7 +32,7 @@ public class GuestNoticePreferenceController {
 
     @GetMapping
     public ResponseEntity<GuestDepartmentResponse> getDepartments(
-            @RequestHeader(value = "X-Anonymous-Key", required = false) String anonymousKey) {
-        return ResponseEntity.ok(guestNoticePreferenceService.getDepartments(anonymousKey));
+            @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
+        return ResponseEntity.ok(guestNoticePreferenceService.getDepartments(deviceToken));
     }
 }
