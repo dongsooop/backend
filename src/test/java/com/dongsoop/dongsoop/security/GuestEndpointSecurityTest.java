@@ -126,13 +126,24 @@ class GuestEndpointSecurityTest {
     }
 
     @Test
-    @DisplayName("departmentTypes가 빈 배열이면 400을 반환한다 (@NotEmpty)")
-    void empty_department_types_returns_bad_request() throws Exception {
+    @DisplayName("departmentTypes가 빈 배열이면 전체 구독 해지로 처리되어 204를 반환한다")
+    void empty_department_types_unsubscribes_all() throws Exception {
         mockMvc.perform(put("/guest/departments")
                         .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
                         .header(DEVICE_TOKEN_HEADER, deviceToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"departmentTypes\":[]}"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("departmentTypes 필드 자체가 없으면(null) 400을 반환한다")
+    void missing_department_types_field_returns_bad_request() throws Exception {
+        mockMvc.perform(put("/guest/departments")
+                        .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
+                        .header(DEVICE_TOKEN_HEADER, deviceToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
                 .andExpect(status().isBadRequest());
     }
 

@@ -181,9 +181,8 @@ class GuestDepartmentTest {
     }
 
     @Test
-    @DisplayName("빈 집합으로 교체하면 전체 구독 해지가 된다 (서비스 직접 호출 경로에서만 가능 — " +
-            "GuestDepartmentRequest.departmentTypes 는 @NotEmpty 라 PUT API로는 도달 불가, GuestEndpointSecurityTest 참고)")
-    void unsubscribing_all_via_empty_set_is_allowed_at_service_level() {
+    @DisplayName("빈 집합으로 교체하면 전체 구독 해지가 된다 (PUT API로도 도달 가능, GuestEndpointSecurityTest 참고)")
+    void unsubscribing_all_via_empty_set_is_allowed() {
         MemberDevice device = saveGuestDevice("token-dept-unsub-all");
         service.updateDepartments(device.getDeviceToken(), Set.of(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001));
 
