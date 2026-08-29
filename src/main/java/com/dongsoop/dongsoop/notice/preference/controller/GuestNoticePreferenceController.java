@@ -1,9 +1,11 @@
 package com.dongsoop.dongsoop.notice.preference.controller;
 
+import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.notice.preference.dto.GuestDepartmentRequest;
 import com.dongsoop.dongsoop.notice.preference.dto.GuestDepartmentResponse;
 import com.dongsoop.dongsoop.notice.preference.service.GuestNoticePreferenceService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,6 +35,9 @@ public class GuestNoticePreferenceController {
     @GetMapping
     public ResponseEntity<GuestDepartmentResponse> getDepartments(
             @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
-        return ResponseEntity.ok(new GuestDepartmentResponse(guestNoticePreferenceService.getDepartmentTypes(deviceToken)));
+        List<DepartmentType> departmentTypes = guestNoticePreferenceService.getDepartmentTypes(deviceToken);
+        GuestDepartmentResponse response = new GuestDepartmentResponse(departmentTypes);
+
+        return ResponseEntity.ok(response);
     }
 }
