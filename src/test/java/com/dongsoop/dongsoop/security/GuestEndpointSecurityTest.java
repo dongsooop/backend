@@ -90,14 +90,14 @@ class GuestEndpointSecurityTest {
     @Test
     @DisplayName("학과 설정과 조회가 인증 없이 통과한다")
     void guest_department_endpoints_are_permitted_without_authentication() throws Exception {
-        mockMvc.perform(put("/guest/departments")
+        mockMvc.perform(put("/subscribe-department")
                         .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
                         .header(DEVICE_TOKEN_HEADER, deviceToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"departmentTypes\":[\"DEPT_2001\"]}"))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/guest/departments")
+        mockMvc.perform(get("/subscribe-department")
                         .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
                         .header(DEVICE_TOKEN_HEADER, deviceToken))
                 .andExpect(status().isOk())
@@ -111,7 +111,7 @@ class GuestEndpointSecurityTest {
     @Test
     @DisplayName("디바이스 토큰 헤더가 없으면 401이 아니라 404를 반환한다")
     void missing_device_token_header_returns_not_found_not_unauthorized() throws Exception {
-        mockMvc.perform(get("/guest/departments")
+        mockMvc.perform(get("/subscribe-department")
                         .header(APP_CHECK_HEADER, APP_CHECK_TOKEN))
                 .andExpect(status().isNotFound());
     }
@@ -119,7 +119,7 @@ class GuestEndpointSecurityTest {
     @Test
     @DisplayName("알 수 없는 디바이스 토큰은 404를 반환한다")
     void unknown_device_token_returns_not_found() throws Exception {
-        mockMvc.perform(get("/guest/departments")
+        mockMvc.perform(get("/subscribe-department")
                         .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
                         .header(DEVICE_TOKEN_HEADER, "no-such-token"))
                 .andExpect(status().isNotFound());
@@ -128,7 +128,7 @@ class GuestEndpointSecurityTest {
     @Test
     @DisplayName("departmentTypes가 빈 배열이면 전체 구독 해지로 처리되어 204를 반환한다")
     void empty_department_types_unsubscribes_all() throws Exception {
-        mockMvc.perform(put("/guest/departments")
+        mockMvc.perform(put("/subscribe-department")
                         .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
                         .header(DEVICE_TOKEN_HEADER, deviceToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -139,7 +139,7 @@ class GuestEndpointSecurityTest {
     @Test
     @DisplayName("departmentTypes 필드 자체가 없으면(null) 400을 반환한다")
     void missing_department_types_field_returns_bad_request() throws Exception {
-        mockMvc.perform(put("/guest/departments")
+        mockMvc.perform(put("/subscribe-department")
                         .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
                         .header(DEVICE_TOKEN_HEADER, deviceToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -150,7 +150,7 @@ class GuestEndpointSecurityTest {
     @Test
     @DisplayName("존재하지 않는 학과 문자열이 오면 500이 아니라 400을 반환한다")
     void unknown_department_type_string_returns_bad_request_not_server_error() throws Exception {
-        mockMvc.perform(put("/guest/departments")
+        mockMvc.perform(put("/subscribe-department")
                         .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
                         .header(DEVICE_TOKEN_HEADER, deviceToken)
                         .contentType(MediaType.APPLICATION_JSON)
