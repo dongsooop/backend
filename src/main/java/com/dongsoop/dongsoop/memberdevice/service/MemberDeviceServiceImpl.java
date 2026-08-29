@@ -15,6 +15,7 @@ import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -43,7 +44,16 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
             return;
         }
 
-        validateDuplicateDeviceToken(deviceToken);
+        // 비회원: deviceToken 자체가 식별자이므로, 같은 토큰의 행이 이미 있으면 그 기기를 그대로 사용한다.
+        Optional<MemberDevice> existing = memberDeviceRepository.findByDeviceToken(deviceToken);
+        if (existing.isPresent()) {
+            MemberDevice device = existing.get();
+            if (device.getMember() != null) {
+                throw new AlreadyRegisteredDeviceException();
+            }
+            return;
+        }
+
         MemberDevice memberDevice = MemberDevice.builder()
                 .deviceToken(deviceToken)
                 .memberDeviceType(deviceType)

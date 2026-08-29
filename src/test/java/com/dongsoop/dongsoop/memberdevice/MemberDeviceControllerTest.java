@@ -1,10 +1,7 @@
 package com.dongsoop.dongsoop.memberdevice;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -139,6 +136,20 @@ class MemberDeviceControllerTest {
 
         verify(memberDeviceService).registerDevice(TOKEN_NEW, MemberDeviceType.ANDROID, DEVICE_ID);
         verifyNoInteractions(fcmService);
+    }
+
+    @Test
+    @DisplayName("WEB 타입 디바이스도 신규 등록 시 anonymous 토픽을 구독한다")
+    void registers_new_web_device_and_subscribes_anonymous() throws Exception {
+        given(deviceUtil.getDeviceIdFromContext()).willReturn(null);
+
+        mockMvc.perform(post("/device")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"deviceToken\":\"" + TOKEN_NEW + "\",\"type\":\"WEB\"}"))
+                .andExpect(status().isCreated());
+
+        verify(memberDeviceService).registerDevice(TOKEN_NEW, MemberDeviceType.WEB, null);
+        verify(fcmService).subscribeTopic(anyList(), anyString());
     }
 
     // ──────────── DELETE /device/{deviceId} ────────────

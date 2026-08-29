@@ -42,10 +42,10 @@ public class MemberDeviceController {
      * 디바이스를 등록하거나 기존 디바이스의 토큰을 갱신한다.
      *
      * <p>JWT에 deviceId가 포함된 인증 요청인 경우 기존 디바이스의 토큰을 갱신하고,
-     * 미인증 요청이거나 deviceId가 없는 경우 새 디바이스를 등록한다.
-     * 새 디바이스 등록 시 anonymous 토픽을 구독한다.
+     * 미인증 요청이거나 deviceId가 없는 경우 deviceToken으로 비회원 기기를 식별해 등록/갱신한다.
+     * 미인증 요청 처리 시 anonymous 토픽을 구독한다.
      *
-     * @return 디바이스 ID (201 Created)
+     * @return 응답 본문 없음 (201 Created)
      */
     @PostMapping
     public ResponseEntity<Void> registerDevice(@RequestBody @Valid DeviceRegisterRequest request) {

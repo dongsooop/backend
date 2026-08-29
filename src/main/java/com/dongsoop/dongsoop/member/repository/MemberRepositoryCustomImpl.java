@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.member.repository;
 
-import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.member.dto.DeleteMember;
 import com.dongsoop.dongsoop.member.dto.LoginMemberDetails;
 import com.dongsoop.dongsoop.member.entity.Member;
@@ -71,27 +70,6 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
         }
 
         return QMember.member.id.eq(id);
-    }
-
-    @Override
-    public List<Member> searchAllByDeviceNotEmpty() {
-        return queryFactory.selectFrom(member)
-                .innerJoin(memberDevice)
-                .on(memberDevice.member.eq(member))
-                .where(member.isDeleted.isFalse()) // 삭제되지 않은 회원
-                .distinct()
-                .fetch();
-    }
-
-    @Override
-    public List<Member> searchAllByDepartmentAndDeviceNotEmpty(Department department) {
-        return queryFactory.selectFrom(member)
-                .innerJoin(memberDevice)
-                .on(memberDevice.member.eq(member))
-                .where(member.department.eq(department)
-                        .and(member.isDeleted.isFalse())) // 삭제되지 않은 회원
-                .distinct()
-                .fetch();
     }
 
     @Override
