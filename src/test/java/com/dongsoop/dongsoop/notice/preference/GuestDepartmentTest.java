@@ -90,7 +90,7 @@ class GuestDepartmentTest {
 
         service.updateDepartments(device.getDeviceToken(), Set.of(DepartmentType.DEPT_2001));
 
-        assertThat(service.getDepartments(device.getDeviceToken()).departmentTypes())
+        assertThat(service.getDepartments(device.getDeviceToken()))
                 .containsExactly(DepartmentType.DEPT_2001);
     }
 
@@ -101,7 +101,7 @@ class GuestDepartmentTest {
 
         service.updateDepartments(device.getDeviceToken(), Set.of(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001));
 
-        assertThat(service.getDepartments(device.getDeviceToken()).departmentTypes())
+        assertThat(service.getDepartments(device.getDeviceToken()))
                 .containsExactlyInAnyOrder(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001);
     }
 
@@ -113,7 +113,7 @@ class GuestDepartmentTest {
         service.updateDepartments(device.getDeviceToken(), Set.of(DepartmentType.DEPT_2001));
         service.updateDepartments(device.getDeviceToken(), Set.of(DepartmentType.DEPT_3001));
 
-        assertThat(service.getDepartments(device.getDeviceToken()).departmentTypes())
+        assertThat(service.getDepartments(device.getDeviceToken()))
                 .containsExactly(DepartmentType.DEPT_3001);
     }
 
@@ -122,7 +122,7 @@ class GuestDepartmentTest {
     void returns_empty_when_not_set() {
         MemberDevice device = saveGuestDevice("token-dept-3");
 
-        assertThat(service.getDepartments(device.getDeviceToken()).departmentTypes()).isEmpty();
+        assertThat(service.getDepartments(device.getDeviceToken())).isEmpty();
     }
 
     @Test
@@ -159,7 +159,7 @@ class GuestDepartmentTest {
         service.updateDepartments(device.getDeviceToken(), Set.of(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001));
         service.updateDepartments(device.getDeviceToken(), Set.of(DepartmentType.DEPT_4001, DepartmentType.DEPT_4002));
 
-        assertThat(service.getDepartments(device.getDeviceToken()).departmentTypes())
+        assertThat(service.getDepartments(device.getDeviceToken()))
                 .containsExactlyInAnyOrder(DepartmentType.DEPT_4001, DepartmentType.DEPT_4002);
     }
 
@@ -176,7 +176,7 @@ class GuestDepartmentTest {
 
         Mockito.verify(preferenceRepository, Mockito.never()).deleteAll(Mockito.anyList());
         Mockito.verify(preferenceRepository, Mockito.never()).saveAll(Mockito.anyList());
-        assertThat(service.getDepartments(device.getDeviceToken()).departmentTypes())
+        assertThat(service.getDepartments(device.getDeviceToken()))
                 .containsExactlyInAnyOrder(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001);
     }
 
@@ -188,7 +188,7 @@ class GuestDepartmentTest {
 
         service.updateDepartments(device.getDeviceToken(), Set.of());
 
-        assertThat(service.getDepartments(device.getDeviceToken()).departmentTypes()).isEmpty();
+        assertThat(service.getDepartments(device.getDeviceToken())).isEmpty();
     }
 
     @Test
@@ -200,7 +200,7 @@ class GuestDepartmentTest {
 
         service.updateDepartments(device.getDeviceToken(), allDepartments);
 
-        assertThat(service.getDepartments(device.getDeviceToken()).departmentTypes())
+        assertThat(service.getDepartments(device.getDeviceToken()))
                 .containsExactlyInAnyOrderElementsOf(allDepartments);
     }
 }

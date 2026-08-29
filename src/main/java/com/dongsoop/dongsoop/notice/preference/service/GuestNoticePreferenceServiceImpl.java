@@ -4,7 +4,6 @@ import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.service.DepartmentService;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.service.GuestDeviceResolver;
-import com.dongsoop.dongsoop.notice.preference.dto.GuestDepartmentResponse;
 import com.dongsoop.dongsoop.notice.preference.entity.DeviceNoticePreference;
 import com.dongsoop.dongsoop.notice.preference.repository.DeviceNoticePreferenceRepository;
 import java.util.List;
@@ -33,11 +32,13 @@ public class GuestNoticePreferenceServiceImpl implements GuestNoticePreferenceSe
     public void updateDepartments(String deviceToken, Set<DepartmentType> departmentTypes) {
         MemberDevice device = guestDeviceResolver.resolve(deviceToken);
 
-        List<DeviceNoticePreference> existing = preferenceRepository.findAllByIdDeviceId(device.getId());
+        // 이 디바이스가 현재 구독 중인 학과 목록을 불러온다
+        List<DeviceNoticePreference> existing = findPreferences(device);
         Set<DepartmentType> existingTypes = existing.stream()
                 .map(preference -> preference.getId().getDepartment().getId())
                 .collect(Collectors.toSet());
 
+        // 기존 구독 중 새 요청에 없는 학과 = 제거 대상
         List<DeviceNoticePreference> toRemove = existing.stream()
                 .filter(preference -> !departmentTypes.contains(preference.getId().getDepartment().getId()))
                 .toList();
@@ -45,6 +46,7 @@ public class GuestNoticePreferenceServiceImpl implements GuestNoticePreferenceSe
             preferenceRepository.deleteAll(toRemove);
         }
 
+        // 새 요청 중 기존에 없던 학과 = 추가 대상 (이미 구독 중인 학과는 건드리지 않는다)
         List<DeviceNoticePreference> toAdd = departmentTypes.stream()
                 .filter(departmentType -> !existingTypes.contains(departmentType))
                 .map(departmentType -> new DeviceNoticePreference(device, departmentService.getReferenceById(departmentType)))
@@ -56,13 +58,15 @@ public class GuestNoticePreferenceServiceImpl implements GuestNoticePreferenceSe
 
     @Override
     @Transactional(readOnly = true)
-    public GuestDepartmentResponse getDepartments(String deviceToken) {
+    public List<DepartmentType> getDepartments(String deviceToken) {
         MemberDevice device = guestDeviceResolver.resolve(deviceToken);
 
-        List<DepartmentType> departmentTypes = preferenceRepository.findAllByIdDeviceId(device.getId()).stream()
+        return findPreferences(device).stream()
                 .map(preference -> preference.getId().getDepartment().getId())
                 .toList();
+    }
 
-        return new GuestDepartmentResponse(departmentTypes);
+    private List<DeviceNoticePreference> findPreferences(MemberDevice device) {
+        return preferenceRepository.findAllByIdDeviceId(device.getId());
     }
 }
