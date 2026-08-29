@@ -33,6 +33,6 @@ public class GuestNoticePreferenceController {
     @GetMapping
     public ResponseEntity<GuestDepartmentResponse> getDepartments(
             @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
-        return ResponseEntity.ok(new GuestDepartmentResponse(guestNoticePreferenceService.getDepartments(deviceToken)));
+        return ResponseEntity.ok(new GuestDepartmentResponse(guestNoticePreferenceService.getDepartmentTypes(deviceToken)));
     }
 }

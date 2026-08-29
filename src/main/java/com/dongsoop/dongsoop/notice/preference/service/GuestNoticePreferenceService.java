@@ -8,5 +8,5 @@ public interface GuestNoticePreferenceService {
 
     void updateDepartments(String deviceToken, Set<DepartmentType> departmentTypes);
 
-    List<DepartmentType> getDepartments(String deviceToken);
+    List<DepartmentType> getDepartmentTypes(String deviceToken);
 }

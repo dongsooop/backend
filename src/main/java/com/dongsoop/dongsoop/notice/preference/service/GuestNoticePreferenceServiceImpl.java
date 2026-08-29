@@ -33,7 +33,7 @@ public class GuestNoticePreferenceServiceImpl implements GuestNoticePreferenceSe
         MemberDevice device = guestDeviceResolver.resolve(deviceToken);
 
         // 이 디바이스가 현재 구독 중인 학과 목록을 불러온다
-        List<DeviceNoticePreference> existing = findPreferences(device);
+        List<DeviceNoticePreference> existing = getDepartments(device);
         Set<DepartmentType> existingTypes = existing.stream()
                 .map(preference -> preference.getId().getDepartment().getId())
                 .collect(Collectors.toSet());
@@ -58,15 +58,15 @@ public class GuestNoticePreferenceServiceImpl implements GuestNoticePreferenceSe
 
     @Override
     @Transactional(readOnly = true)
-    public List<DepartmentType> getDepartments(String deviceToken) {
+    public List<DepartmentType> getDepartmentTypes(String deviceToken) {
         MemberDevice device = guestDeviceResolver.resolve(deviceToken);
 
-        return findPreferences(device).stream()
+        return getDepartments(device).stream()
                 .map(preference -> preference.getId().getDepartment().getId())
                 .toList();
     }
 
-    private List<DeviceNoticePreference> findPreferences(MemberDevice device) {
+    private List<DeviceNoticePreference> getDepartments(MemberDevice device) {
         return preferenceRepository.findAllByIdDeviceId(device.getId());
     }
 }
