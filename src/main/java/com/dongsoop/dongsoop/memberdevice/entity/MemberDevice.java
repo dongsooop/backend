@@ -42,6 +42,10 @@ public class MemberDevice extends BaseEntity {
     private String deviceToken;
 
     @Getter
+    @Column(unique = true)
+    private String fid;
+
+    @Getter
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MemberDeviceType memberDeviceType;
@@ -62,6 +66,10 @@ public class MemberDevice extends BaseEntity {
 
     public void updateDeviceToken(String deviceToken) {
         this.deviceToken = deviceToken;
+    }
+
+    public void updateFid(String fid) {
+        this.fid = fid;
     }
 
     public void updateLastAccess(LocalDateTime lastAccess) {

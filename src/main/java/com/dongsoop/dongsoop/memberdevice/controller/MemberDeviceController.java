@@ -50,7 +50,7 @@ public class MemberDeviceController {
     @PostMapping
     public ResponseEntity<Void> registerDevice(@RequestBody @Valid DeviceRegisterRequest request) {
         Long existingDeviceId = deviceUtil.getDeviceIdFromContext();
-        memberDeviceService.registerDevice(request.deviceToken(), request.type(), existingDeviceId);
+        memberDeviceService.registerDevice(request.deviceToken(), request.fid(), request.type(), existingDeviceId);
 
         if (existingDeviceId == null) {
             fcmService.subscribeTopic(List.of(request.deviceToken()), anonymousTopic);

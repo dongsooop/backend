@@ -120,8 +120,21 @@ class MemberDeviceControllerTest {
                         .content("{\"deviceToken\":\"" + TOKEN_NEW + "\",\"type\":\"ANDROID\"}"))
                 .andExpect(status().isCreated());
 
-        verify(memberDeviceService).registerDevice(TOKEN_NEW, MemberDeviceType.ANDROID, null);
+        verify(memberDeviceService).registerDevice(TOKEN_NEW, null, MemberDeviceType.ANDROID, null);
         verify(fcmService).subscribeTopic(anyList(), anyString());
+    }
+
+    @Test
+    @DisplayName("요청에 fid가 있으면 그대로 전달한다")
+    void passes_fid_through_when_present_in_request() throws Exception {
+        given(deviceUtil.getDeviceIdFromContext()).willReturn(null);
+
+        mockMvc.perform(post("/device")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"deviceToken\":\"" + TOKEN_NEW + "\",\"fid\":\"fid-new\",\"type\":\"ANDROID\"}"))
+                .andExpect(status().isCreated());
+
+        verify(memberDeviceService).registerDevice(TOKEN_NEW, "fid-new", MemberDeviceType.ANDROID, null);
     }
 
     @Test
@@ -134,7 +147,7 @@ class MemberDeviceControllerTest {
                         .content("{\"deviceToken\":\"" + TOKEN_NEW + "\",\"type\":\"ANDROID\"}"))
                 .andExpect(status().isCreated());
 
-        verify(memberDeviceService).registerDevice(TOKEN_NEW, MemberDeviceType.ANDROID, DEVICE_ID);
+        verify(memberDeviceService).registerDevice(TOKEN_NEW, null, MemberDeviceType.ANDROID, DEVICE_ID);
         verifyNoInteractions(fcmService);
     }
 
@@ -148,7 +161,7 @@ class MemberDeviceControllerTest {
                         .content("{\"deviceToken\":\"" + TOKEN_NEW + "\",\"type\":\"WEB\"}"))
                 .andExpect(status().isCreated());
 
-        verify(memberDeviceService).registerDevice(TOKEN_NEW, MemberDeviceType.WEB, null);
+        verify(memberDeviceService).registerDevice(TOKEN_NEW, null, MemberDeviceType.WEB, null);
         verify(fcmService).subscribeTopic(anyList(), anyString());
     }
 
