@@ -9,7 +9,10 @@ import com.dongsoop.dongsoop.notice.entity.QNoticeDetails;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -51,6 +54,25 @@ public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
                 .innerJoin(notice.id.noticeDetails, noticeDetails)
                 .innerJoin(notice.id.department, department)
                 .where(notice.id.department.id.eq(DepartmentType.DEPT_1001)) // 대학 공지만
+                .orderBy(orderLeastId())
+                .limit(3)
+                .fetch();
+    }
+
+    @Override
+    public List<HomeNotice> searchHomeNotices(Collection<DepartmentType> departmentTypes) {
+        Set<DepartmentType> targetDepartments = new HashSet<>(departmentTypes);
+        targetDepartments.add(DepartmentType.DEPT_1001);
+
+        return queryFactory.select(Projections.constructor(
+                        HomeNotice.class,
+                        noticeDetails.title,
+                        noticeDetails.link,
+                        department.id))
+                .from(notice)
+                .innerJoin(notice.id.noticeDetails, noticeDetails)
+                .innerJoin(notice.id.department, department)
+                .where(notice.id.department.id.in(targetDepartments)) // 구독한 학과들 및 대학 공지
                 .orderBy(orderLeastId())
                 .limit(3)
                 .fetch();
