@@ -24,9 +24,10 @@ public class SubscribeDepartmentController {
 
     @PutMapping
     public ResponseEntity<Void> updateDepartments(
+            @RequestHeader(value = "X-Device-Fid", required = false) String fid,
             @RequestHeader(value = "X-Device-Token", required = false) String deviceToken,
             @RequestBody @Valid SubscribeDepartmentRequest request) {
-        guestNoticePreferenceService.updateDepartments(deviceToken, request.departmentTypes());
+        guestNoticePreferenceService.updateDepartments(fid, deviceToken, request.departmentTypes());
 
         return ResponseEntity.noContent()
                 .build();
@@ -34,8 +35,9 @@ public class SubscribeDepartmentController {
 
     @GetMapping
     public ResponseEntity<SubscribeDepartmentResponse> getDepartments(
+            @RequestHeader(value = "X-Device-Fid", required = false) String fid,
             @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
-        List<DepartmentType> departmentTypes = guestNoticePreferenceService.getDepartmentTypes(deviceToken);
+        List<DepartmentType> departmentTypes = guestNoticePreferenceService.getDepartmentTypes(fid, deviceToken);
         SubscribeDepartmentResponse response = new SubscribeDepartmentResponse(departmentTypes);
 
         return ResponseEntity.ok(response);

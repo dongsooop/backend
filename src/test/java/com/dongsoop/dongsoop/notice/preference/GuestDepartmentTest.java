@@ -88,9 +88,9 @@ class GuestDepartmentTest {
     void sets_and_reads_department() {
         MemberDevice device = saveGuestDevice("token-dept-1");
 
-        service.updateDepartments(device.getDeviceToken(), Set.of(DepartmentType.DEPT_2001));
+        service.updateDepartments(null, device.getDeviceToken(), Set.of(DepartmentType.DEPT_2001));
 
-        assertThat(service.getDepartmentTypes(device.getDeviceToken()))
+        assertThat(service.getDepartmentTypes(null, device.getDeviceToken()))
                 .containsExactly(DepartmentType.DEPT_2001);
     }
 
@@ -99,9 +99,9 @@ class GuestDepartmentTest {
     void subscribes_to_multiple_departments() {
         MemberDevice device = saveGuestDevice("token-dept-multi");
 
-        service.updateDepartments(device.getDeviceToken(), Set.of(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001));
+        service.updateDepartments(null, device.getDeviceToken(), Set.of(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001));
 
-        assertThat(service.getDepartmentTypes(device.getDeviceToken()))
+        assertThat(service.getDepartmentTypes(null, device.getDeviceToken()))
                 .containsExactlyInAnyOrder(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001);
     }
 
@@ -110,10 +110,10 @@ class GuestDepartmentTest {
     void replaces_department_set() {
         MemberDevice device = saveGuestDevice("token-dept-2");
 
-        service.updateDepartments(device.getDeviceToken(), Set.of(DepartmentType.DEPT_2001));
-        service.updateDepartments(device.getDeviceToken(), Set.of(DepartmentType.DEPT_3001));
+        service.updateDepartments(null, device.getDeviceToken(), Set.of(DepartmentType.DEPT_2001));
+        service.updateDepartments(null, device.getDeviceToken(), Set.of(DepartmentType.DEPT_3001));
 
-        assertThat(service.getDepartmentTypes(device.getDeviceToken()))
+        assertThat(service.getDepartmentTypes(null, device.getDeviceToken()))
                 .containsExactly(DepartmentType.DEPT_3001);
     }
 
@@ -122,13 +122,13 @@ class GuestDepartmentTest {
     void returns_empty_when_not_set() {
         MemberDevice device = saveGuestDevice("token-dept-3");
 
-        assertThat(service.getDepartmentTypes(device.getDeviceToken())).isEmpty();
+        assertThat(service.getDepartmentTypes(null, device.getDeviceToken())).isEmpty();
     }
 
     @Test
     @DisplayName("존재하지 않는 디바이스 토큰은 거부한다")
     void rejects_unknown_token() {
-        assertThatThrownBy(() -> service.getDepartmentTypes("no-such-token"))
+        assertThatThrownBy(() -> service.getDepartmentTypes(null, "no-such-token"))
                 .isInstanceOf(UnregisteredDeviceException.class);
     }
 
@@ -147,7 +147,7 @@ class GuestDepartmentTest {
         device.bindMember(member);
         memberDeviceRepository.save(device);
 
-        assertThatThrownBy(() -> service.getDepartmentTypes(device.getDeviceToken()))
+        assertThatThrownBy(() -> service.getDepartmentTypes(null, device.getDeviceToken()))
                 .isInstanceOf(UnregisteredDeviceException.class);
     }
 
@@ -156,10 +156,10 @@ class GuestDepartmentTest {
     void replaces_with_completely_disjoint_multi_department_set() {
         MemberDevice device = saveGuestDevice("token-dept-disjoint");
 
-        service.updateDepartments(device.getDeviceToken(), Set.of(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001));
-        service.updateDepartments(device.getDeviceToken(), Set.of(DepartmentType.DEPT_4001, DepartmentType.DEPT_4002));
+        service.updateDepartments(null, device.getDeviceToken(), Set.of(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001));
+        service.updateDepartments(null, device.getDeviceToken(), Set.of(DepartmentType.DEPT_4001, DepartmentType.DEPT_4002));
 
-        assertThat(service.getDepartmentTypes(device.getDeviceToken()))
+        assertThat(service.getDepartmentTypes(null, device.getDeviceToken()))
                 .containsExactlyInAnyOrder(DepartmentType.DEPT_4001, DepartmentType.DEPT_4002);
     }
 
@@ -169,14 +169,14 @@ class GuestDepartmentTest {
         MemberDevice device = saveGuestDevice("token-dept-noop");
         Set<DepartmentType> sameSet = Set.of(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001);
 
-        service.updateDepartments(device.getDeviceToken(), sameSet);
+        service.updateDepartments(null, device.getDeviceToken(),sameSet);
         Mockito.clearInvocations(preferenceRepository);
 
-        service.updateDepartments(device.getDeviceToken(), sameSet);
+        service.updateDepartments(null, device.getDeviceToken(),sameSet);
 
         Mockito.verify(preferenceRepository, Mockito.never()).deleteAll(Mockito.anyList());
         Mockito.verify(preferenceRepository, Mockito.never()).saveAll(Mockito.anyList());
-        assertThat(service.getDepartmentTypes(device.getDeviceToken()))
+        assertThat(service.getDepartmentTypes(null, device.getDeviceToken()))
                 .containsExactlyInAnyOrder(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001);
     }
 
@@ -184,11 +184,11 @@ class GuestDepartmentTest {
     @DisplayName("빈 집합으로 교체하면 전체 구독 해지가 된다 (PUT API로도 도달 가능, GuestEndpointSecurityTest 참고)")
     void unsubscribing_all_via_empty_set_is_allowed() {
         MemberDevice device = saveGuestDevice("token-dept-unsub-all");
-        service.updateDepartments(device.getDeviceToken(), Set.of(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001));
+        service.updateDepartments(null, device.getDeviceToken(), Set.of(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001));
 
-        service.updateDepartments(device.getDeviceToken(), Set.of());
+        service.updateDepartments(null, device.getDeviceToken(), Set.of());
 
-        assertThat(service.getDepartmentTypes(device.getDeviceToken())).isEmpty();
+        assertThat(service.getDepartmentTypes(null, device.getDeviceToken())).isEmpty();
     }
 
     @Test
@@ -198,9 +198,9 @@ class GuestDepartmentTest {
         MemberDevice device = saveGuestDevice("token-dept-all");
         Set<DepartmentType> allDepartments = Arrays.stream(DepartmentType.values()).collect(Collectors.toSet());
 
-        service.updateDepartments(device.getDeviceToken(), allDepartments);
+        service.updateDepartments(null, device.getDeviceToken(),allDepartments);
 
-        assertThat(service.getDepartmentTypes(device.getDeviceToken()))
+        assertThat(service.getDepartmentTypes(null, device.getDeviceToken()))
                 .containsExactlyInAnyOrderElementsOf(allDepartments);
     }
 }

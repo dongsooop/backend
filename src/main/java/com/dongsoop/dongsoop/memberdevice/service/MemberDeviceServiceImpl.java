@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -35,30 +36,54 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
 
     @Override
     @Transactional
-    public void registerDevice(String deviceToken, MemberDeviceType deviceType, Long existingDeviceId) {
+    public void registerDevice(String deviceToken, String fid, MemberDeviceType deviceType, Long existingDeviceId) {
         if (existingDeviceId != null) {
             MemberDevice device = memberDeviceRepository.findById(existingDeviceId)
                     .orElseThrow(UnregisteredDeviceException::new);
             validateDuplicateDeviceToken(deviceToken);
             device.updateDeviceToken(deviceToken);
+            updateFidIfPresent(device, fid);
             return;
         }
 
-        // 비회원: deviceToken 자체가 식별자이므로, 같은 토큰의 행이 이미 있으면 그 기기를 그대로 사용한다.
+        // 비회원: fid가 있으면 그걸로 먼저 찾는다. deviceToken이 로테이션돼도 같은 기기로 인식되어
+        // device_notice_preference 구독이 끊기지 않는다.
+        if (StringUtils.hasText(fid)) {
+            Optional<MemberDevice> byFid = memberDeviceRepository.findByFid(fid);
+            if (byFid.isPresent()) {
+                MemberDevice device = byFid.get();
+                if (device.getMember() != null) {
+                    throw new AlreadyRegisteredDeviceException();
+                }
+                device.updateDeviceToken(deviceToken);
+                return;
+            }
+        }
+
+        // fid로 못 찾았으면 deviceToken으로 찾는다. fid 컬럼 도입 이전부터 있던 기존 기기일 수 있으므로,
+        // 여기서 새 행을 만들면 기존 device_notice_preference가 고아가 된다 — 반드시 기존 행에 fid를 채운다(백필).
         Optional<MemberDevice> existing = memberDeviceRepository.findByDeviceToken(deviceToken);
         if (existing.isPresent()) {
             MemberDevice device = existing.get();
             if (device.getMember() != null) {
                 throw new AlreadyRegisteredDeviceException();
             }
+            updateFidIfPresent(device, fid);
             return;
         }
 
         MemberDevice memberDevice = MemberDevice.builder()
                 .deviceToken(deviceToken)
+                .fid(fid)
                 .memberDeviceType(deviceType)
                 .build();
         memberDeviceRepository.save(memberDevice);
+    }
+
+    private void updateFidIfPresent(MemberDevice device, String fid) {
+        if (StringUtils.hasText(fid)) {
+            device.updateFid(fid);
+        }
     }
 
     @Override

@@ -9,6 +9,8 @@ public record DeviceRegisterRequest(
         @NotBlank
         String deviceToken,
 
+        String fid,
+
         @NotNull
         MemberDeviceType type
 ) {
