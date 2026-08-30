@@ -20,7 +20,7 @@ import org.springframework.util.StringUtils;
  */
 @Component
 @RequiredArgsConstructor
-public class GuestDeviceResolver {
+public class NoticePreferenceDeviceResolver {
 
     private final MemberDeviceRepository memberDeviceRepository;
 

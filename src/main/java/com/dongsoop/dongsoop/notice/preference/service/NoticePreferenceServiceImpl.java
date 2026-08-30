@@ -3,7 +3,7 @@ package com.dongsoop.dongsoop.notice.preference.service;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.service.DepartmentService;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
-import com.dongsoop.dongsoop.memberdevice.service.GuestDeviceResolver;
+import com.dongsoop.dongsoop.memberdevice.service.NoticePreferenceDeviceResolver;
 import com.dongsoop.dongsoop.notice.preference.entity.DeviceNoticePreference;
 import com.dongsoop.dongsoop.notice.preference.repository.DeviceNoticePreferenceRepository;
 import java.util.List;
@@ -15,9 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class GuestNoticePreferenceServiceImpl implements GuestNoticePreferenceService {
+public class NoticePreferenceServiceImpl implements NoticePreferenceService {
 
-    private final GuestDeviceResolver guestDeviceResolver;
+    private final NoticePreferenceDeviceResolver deviceResolver;
     private final DeviceNoticePreferenceRepository preferenceRepository;
     private final DepartmentService departmentService;
 
@@ -30,7 +30,7 @@ public class GuestNoticePreferenceServiceImpl implements GuestNoticePreferenceSe
     @Override
     @Transactional
     public void updateDepartments(String fid, String deviceToken, Set<DepartmentType> departmentTypes) {
-        MemberDevice device = guestDeviceResolver.resolve(fid, deviceToken);
+        MemberDevice device = deviceResolver.resolve(fid, deviceToken);
 
         // 이 디바이스가 현재 구독 중인 학과 목록을 불러온다
         List<DeviceNoticePreference> existing = getDepartments(device);
@@ -59,7 +59,7 @@ public class GuestNoticePreferenceServiceImpl implements GuestNoticePreferenceSe
     @Override
     @Transactional(readOnly = true)
     public List<DepartmentType> getDepartmentTypes(String fid, String deviceToken) {
-        MemberDevice device = guestDeviceResolver.resolve(fid, deviceToken);
+        MemberDevice device = deviceResolver.resolve(fid, deviceToken);
 
         return getDepartments(device).stream()
                 .map(preference -> preference.getId().getDepartment().getId())

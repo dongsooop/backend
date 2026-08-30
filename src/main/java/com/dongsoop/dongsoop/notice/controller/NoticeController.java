@@ -34,11 +34,11 @@ public class NoticeController {
     }
 
     @GetMapping("/guest")
-    public ResponseEntity<Page<NoticeListResponse>> getNoticeForGuest(
+    public ResponseEntity<Page<NoticeListResponse>> getSubscribedNotices(
             @RequestHeader(value = "X-Device-Fid", required = false) String fid,
             @RequestHeader(value = "X-Device-Token", required = false) String deviceToken,
             Pageable pageable) {
-        Page<NoticeListResponse> noticeList = noticeService.getNoticeForGuest(fid, deviceToken, pageable);
+        Page<NoticeListResponse> noticeList = noticeService.getSubscribedNotices(fid, deviceToken, pageable);
         return ResponseEntity.ok(noticeList);
     }
 

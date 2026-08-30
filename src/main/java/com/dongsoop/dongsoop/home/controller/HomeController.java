@@ -5,7 +5,7 @@ import com.dongsoop.dongsoop.home.dto.HomeDto;
 import com.dongsoop.dongsoop.home.service.HomeService;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
-import com.dongsoop.dongsoop.notice.preference.service.GuestNoticePreferenceService;
+import com.dongsoop.dongsoop.notice.preference.service.NoticePreferenceService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import java.util.List;
 import java.util.Set;
@@ -25,7 +25,7 @@ public class HomeController {
 
     private final HomeService homeService;
     private final MemberService memberService;
-    private final GuestNoticePreferenceService guestNoticePreferenceService;
+    private final NoticePreferenceService noticePreferenceService;
 
     @GetMapping("/{departmentType}")
     @Secured(RoleType.USER_ROLE)
@@ -40,7 +40,7 @@ public class HomeController {
     public ResponseEntity<HomeDto> getHomeDataForAnonymous(
             @RequestHeader(value = "X-Device-Fid", required = false) String fid,
             @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
-        HomeDto home = getHomeForGuest(fid, deviceToken);
+        HomeDto home = getHomeForDevice(fid, deviceToken);
 
         return ResponseEntity.ok(home);
     }
@@ -50,9 +50,9 @@ public class HomeController {
      * 홈 화면은 어떤 상태에서도 항상 떠야 한다. {@code getHome(Set)}이 빈 Set도 안전하게
      * 처리하므로(대학 공지 자동 포함) 별도의 무인자 폴백 메서드가 필요 없다.
      */
-    private HomeDto getHomeForGuest(String fid, String deviceToken) {
+    private HomeDto getHomeForDevice(String fid, String deviceToken) {
         try {
-            List<DepartmentType> departmentTypes = guestNoticePreferenceService.getDepartmentTypes(fid, deviceToken);
+            List<DepartmentType> departmentTypes = noticePreferenceService.getDepartmentTypes(fid, deviceToken);
             return homeService.getHome(Set.copyOf(departmentTypes));
         } catch (UnregisteredDeviceException e) {
             return homeService.getHome(Set.of());

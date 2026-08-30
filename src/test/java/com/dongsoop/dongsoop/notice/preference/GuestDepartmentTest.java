@@ -13,7 +13,7 @@ import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.notice.preference.repository.DeviceNoticePreferenceRepository;
-import com.dongsoop.dongsoop.notice.preference.service.GuestNoticePreferenceService;
+import com.dongsoop.dongsoop.notice.preference.service.NoticePreferenceService;
 import com.dongsoop.dongsoop.notification.service.FCMService;
 import com.dongsoop.dongsoop.search.repository.BoardSearchRepository;
 import com.dongsoop.dongsoop.search.repository.RestaurantSearchRepository;
@@ -37,7 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 class GuestDepartmentTest {
 
     @Autowired
-    private GuestNoticePreferenceService service;
+    private NoticePreferenceService service;
 
     @Autowired
     private MemberDeviceRepository memberDeviceRepository;
@@ -133,8 +133,8 @@ class GuestDepartmentTest {
     }
 
     @Test
-    @DisplayName("회원에 바인딩된 디바이스의 토큰은 거부한다")
-    void rejects_member_bound_device() {
+    @DisplayName("회원에 바인딩된 디바이스도 학과를 설정/조회할 수 있다 (구독은 회원/비회원 공통)")
+    void member_bound_device_sets_and_reads_department() {
         Department department = departmentRepository.getReferenceById(DepartmentType.DEPT_2001);
         Member member = memberRepository.save(Member.builder()
                 .email("bound@dongyang.ac.kr")
@@ -147,8 +147,10 @@ class GuestDepartmentTest {
         device.bindMember(member);
         memberDeviceRepository.save(device);
 
-        assertThatThrownBy(() -> service.getDepartmentTypes(null, device.getDeviceToken()))
-                .isInstanceOf(UnregisteredDeviceException.class);
+        service.updateDepartments(null, device.getDeviceToken(), Set.of(DepartmentType.DEPT_3001));
+
+        assertThat(service.getDepartmentTypes(null, device.getDeviceToken()))
+                .containsExactly(DepartmentType.DEPT_3001);
     }
 
     @Test
