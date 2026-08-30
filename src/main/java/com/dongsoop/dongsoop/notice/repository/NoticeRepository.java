@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.notice.dto.NoticeListResponse;
 import com.dongsoop.dongsoop.notice.dto.NoticeRecentIdByDepartment;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notice.entity.Notice.NoticeKey;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,4 +30,14 @@ public interface NoticeRepository extends JpaRepository<Notice, NoticeKey>, Noti
             + "FROM Notice n "
             + "WHERE n.id.department = :department")
     Page<NoticeListResponse> findAllByDepartment(Department department, Pageable pageable);
+
+    @Query("SELECT n.id.noticeDetails.id AS id,"
+            + "n.id.noticeDetails.link AS link,"
+            + "n.id.noticeDetails.createdAt AS createdAt,"
+            + "n.id.noticeDetails.title AS title,"
+            + "n.id.noticeDetails.writer AS writer "
+            + "FROM Notice n "
+            + "WHERE n.id.department IN :departments "
+            + "ORDER BY n.id.noticeDetails.id DESC")
+    Page<NoticeListResponse> findAllByDepartmentIn(Collection<Department> departments, Pageable pageable);
 }

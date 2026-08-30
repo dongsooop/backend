@@ -4,7 +4,7 @@ import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import java.util.List;
 import java.util.Set;
 
-public interface GuestNoticePreferenceService {
+public interface NoticePreferenceService {
 
     void updateDepartments(String fid, String deviceToken, Set<DepartmentType> departmentTypes);
 

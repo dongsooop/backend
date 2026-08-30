@@ -3,7 +3,7 @@ package com.dongsoop.dongsoop.notice.preference.controller;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.notice.preference.dto.SubscribeDepartmentRequest;
 import com.dongsoop.dongsoop.notice.preference.dto.SubscribeDepartmentResponse;
-import com.dongsoop.dongsoop.notice.preference.service.GuestNoticePreferenceService;
+import com.dongsoop.dongsoop.notice.preference.service.NoticePreferenceService;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -20,14 +20,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class SubscribeDepartmentController {
 
-    private final GuestNoticePreferenceService guestNoticePreferenceService;
+    private final NoticePreferenceService noticePreferenceService;
 
     @PutMapping
     public ResponseEntity<Void> updateDepartments(
             @RequestHeader(value = "X-Device-Fid", required = false) String fid,
             @RequestHeader(value = "X-Device-Token", required = false) String deviceToken,
             @RequestBody @Valid SubscribeDepartmentRequest request) {
-        guestNoticePreferenceService.updateDepartments(fid, deviceToken, request.departmentTypes());
+        noticePreferenceService.updateDepartments(fid, deviceToken, request.departmentTypes());
 
         return ResponseEntity.noContent()
                 .build();
@@ -37,7 +37,7 @@ public class SubscribeDepartmentController {
     public ResponseEntity<SubscribeDepartmentResponse> getDepartments(
             @RequestHeader(value = "X-Device-Fid", required = false) String fid,
             @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
-        List<DepartmentType> departmentTypes = guestNoticePreferenceService.getDepartmentTypes(fid, deviceToken);
+        List<DepartmentType> departmentTypes = noticePreferenceService.getDepartmentTypes(fid, deviceToken);
         SubscribeDepartmentResponse response = new SubscribeDepartmentResponse(departmentTypes);
 
         return ResponseEntity.ok(response);

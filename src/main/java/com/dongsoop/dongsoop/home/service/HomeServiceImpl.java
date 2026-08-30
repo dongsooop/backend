@@ -19,6 +19,7 @@ import java.time.Year;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -82,15 +83,26 @@ public class HomeServiceImpl implements HomeService {
         return new HomeDto(timetable, schedules, notices, popularRecruitments);
     }
 
+    /**
+     * 구독한 학과들 기준으로 개인화된 홈을 조합한다 (회원/비회원 공통).
+     *
+     * <p>공지는 {@code departmentTypes}가 비어 있어도 {@code noticeRepository.searchHomeNotices}가
+     * 내부적으로 DEPT_1001(대학 공지)을 항상 포함시키므로 별도 분기가 필요 없다.
+     *
+     * <p>추천 공고는 학과 하나만 받는 기존 구조라 구독 학과 중 첫 번째만 반영한다
+     * (다학과 미지원 — 필요하면 별도 확장). 구독이 0개면 학과 필터 없는 무인자 쿼리로 폴백한다.
+     */
     @Override
-    public HomeDto getHome() {
+    public HomeDto getHome(Set<DepartmentType> departmentTypes) {
         LocalDate today = LocalDate.now();
-        int month = today.getMonthValue();
 
         CompletableFuture<List<HomeSchedule>> fOfficialSchedules = call(
                 () -> officialScheduleRepository.searchHomeSchedule(today));
-        CompletableFuture<List<HomeNotice>> fNotices = call(noticeRepository::searchHomeNotices);
-        CompletableFuture<List<HomeRecruitment>> fRecruitments = call(recruitmentRepository::searchHomeRecruitment);
+        CompletableFuture<List<HomeNotice>> fNotices = call(() -> noticeRepository.searchHomeNotices(departmentTypes));
+        CompletableFuture<List<HomeRecruitment>> fRecruitments = departmentTypes.isEmpty()
+                ? call(recruitmentRepository::searchHomeRecruitment)
+                : call(() -> recruitmentRepository.searchHomeRecruitment(
+                        departmentTypes.iterator().next().name()));
 
         // 모든 Future 완료 대기
         CompletableFuture.allOf(
