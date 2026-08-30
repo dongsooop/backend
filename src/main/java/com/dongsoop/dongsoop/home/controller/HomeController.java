@@ -46,19 +46,16 @@ public class HomeController {
     }
 
     /**
-     * fid/deviceToken이 없거나, 미등록/회원 바인딩된 기기여도 에러 없이 기본(대학 공지만) 홈으로
-     * 떨어뜨린다 — 홈 화면은 어떤 게스트 상태에서도 항상 떠야 한다.
+     * fid/deviceToken이 없거나 미등록 기기여도 에러 없이 기본(대학 공지만) 홈으로 떨어뜨린다 —
+     * 홈 화면은 어떤 상태에서도 항상 떠야 한다. {@code getHome(Set)}이 빈 Set도 안전하게
+     * 처리하므로(대학 공지 자동 포함) 별도의 무인자 폴백 메서드가 필요 없다.
      */
     private HomeDto getHomeForGuest(String fid, String deviceToken) {
         try {
             List<DepartmentType> departmentTypes = guestNoticePreferenceService.getDepartmentTypes(fid, deviceToken);
-            if (departmentTypes.isEmpty()) {
-                return homeService.getHome();
-            }
-
             return homeService.getHome(Set.copyOf(departmentTypes));
         } catch (UnregisteredDeviceException e) {
-            return homeService.getHome();
+            return homeService.getHome(Set.of());
         }
     }
 }

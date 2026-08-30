@@ -9,6 +9,4 @@ public interface HomeService {
     HomeDto getHome(Long memberId, DepartmentType departmentType);
 
     HomeDto getHome(Set<DepartmentType> departmentTypes);
-
-    HomeDto getHome();
 }
