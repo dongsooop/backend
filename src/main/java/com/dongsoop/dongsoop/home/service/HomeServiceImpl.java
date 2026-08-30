@@ -19,6 +19,7 @@ import java.time.Year;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -80,6 +81,38 @@ public class HomeServiceImpl implements HomeService {
         List<HomeRecruitment> popularRecruitments = fRecruitments.join();
 
         return new HomeDto(timetable, schedules, notices, popularRecruitments);
+    }
+
+    /**
+     * 비회원이 구독한 학과들 기준으로 개인화된 홈을 조합한다.
+     *
+     * <p>추천 공고는 학과 하나만 받는 기존 구조를 그대로 두고, 구독 학과 중 첫 번째만 반영한다
+     * (공지와 달리 다학과 조회를 지원하지 않음 — 필요하면 별도 확장).
+     */
+    @Override
+    public HomeDto getHome(Set<DepartmentType> departmentTypes) {
+        LocalDate today = LocalDate.now();
+        DepartmentType recruitmentDepartment = departmentTypes.iterator().next();
+
+        CompletableFuture<List<HomeSchedule>> fOfficialSchedules = call(
+                () -> officialScheduleRepository.searchHomeSchedule(today));
+        CompletableFuture<List<HomeNotice>> fNotices = call(() -> noticeRepository.searchHomeNotices(departmentTypes));
+        CompletableFuture<List<HomeRecruitment>> fRecruitments = call(
+                () -> recruitmentRepository.searchHomeRecruitment(recruitmentDepartment.name()));
+
+        // 모든 Future 완료 대기
+        CompletableFuture.allOf(
+                fOfficialSchedules, fNotices, fRecruitments
+        ).join();
+
+        // 결과 조합
+        List<HomeSchedule> schedules = fOfficialSchedules.join().stream()
+                .sorted(Comparator.comparing(HomeSchedule::startAt).thenComparing(HomeSchedule::endAt))
+                .toList();
+        List<HomeNotice> notices = fNotices.join();
+        List<HomeRecruitment> popularRecruitments = fRecruitments.join();
+
+        return new HomeDto(Collections.emptyList(), schedules, notices, popularRecruitments);
     }
 
     @Override
