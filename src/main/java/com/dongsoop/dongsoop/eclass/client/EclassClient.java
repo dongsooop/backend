@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -29,17 +29,13 @@ import org.springframework.web.client.RestTemplate;
  * 상태 코드가 아니라 응답 본문의 exception 필드로 실패를 판별해야 한다.
  */
 @Component
-@RequiredArgsConstructor
 public class EclassClient {
 
     private static final String WS_PATH = "/webservice/rest/server.php";
     private static final String INVALID_TOKEN_CODE = "invalidtoken";
     private static final String SUBMITTED_STATUS = "submitted";
 
-    // 필드명이 곧 빈 이름이다 — Lombok 생성자에는 @Qualifier가 복사되지 않아
-    // 이름이 다르면 공용 restTemplate(읽기 4초)이 주입된다
     private final RestTemplate eclassRestTemplate;
-
     private final ObjectMapper objectMapper;
 
     @Value("${eclass.base-url}")
@@ -47,6 +43,14 @@ public class EclassClient {
 
     @Value("${eclass.user-agent}")
     private String userAgent;
+
+    // RestTemplate 빈이 둘이라 어느 것을 쓸지 명시한다. Lombok 생성자에는 @Qualifier가
+    // 복사되지 않아, 이름 일치에 기대면 필드명을 바꾸는 순간 공용 빈(읽기 4초)으로 조용히 바뀐다
+    public EclassClient(@Qualifier("eclassRestTemplate") RestTemplate eclassRestTemplate,
+                        ObjectMapper objectMapper) {
+        this.eclassRestTemplate = eclassRestTemplate;
+        this.objectMapper = objectMapper;
+    }
 
     public MoodleSiteInfoResponse getSiteInfo(String token) {
         JsonNode node = call(token, "core_webservice_get_site_info", Map.of());

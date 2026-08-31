@@ -392,4 +392,18 @@ class EclassSyncServiceTest {
         assertThat(outcome).isEqualTo(SyncOutcome.TOKEN_EXPIRED);
         assertThat(capturedSaved()).extracting(EclassAssignment::getAssignId).containsExactly(901L);
     }
+
+    @Test
+    @DisplayName("같은 회차에 제출로 확인된 과제는 마감 변경을 알리지 않는다")
+    void doesNotNotifyWhenSubmittedDuringSync() {
+        EclassAssignment existing = new EclassAssignment(link, 601L, 9601L, "자료구조", "과제 601",
+                NOW.plusDays(9), NOW.plusDays(9));
+        when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
+        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
+        when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(true);
+
+        syncService.syncLink(link);
+
+        verify(eclassNotification, never()).sendDueDateChanged(any(), any());
+    }
 }

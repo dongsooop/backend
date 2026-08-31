@@ -41,7 +41,7 @@ public class EclassNotificationImpl implements EclassNotification {
     private int courseNameMaxLength;
 
     @Override
-    public void sendReminder(EclassAssignment assignment, int daysBefore) {
+    public boolean sendReminder(EclassAssignment assignment, int daysBefore) {
         MemberDevice device = assignment.getLink()
                 .getDevice();
 
@@ -49,7 +49,7 @@ public class EclassNotificationImpl implements EclassNotification {
         String body = EclassReminderMessage.body(assignment.getTitle(), assignment.getDueAt());
         String value = EclassAssignmentLink.of(baseUrl, assignment.getCourseModuleId());
 
-        sendToDevice(device, title, body, value);
+        return sendToDevice(device, title, body, value);
     }
 
     @Override
@@ -89,10 +89,10 @@ public class EclassNotificationImpl implements EclassNotification {
     /**
      * 회원 기기면 알림함에 남기고, 비회원 기기면 푸시만 보낸다(공지 알림과 같은 규칙).
      */
-    private void sendToDevice(MemberDevice device, String title, String body, String value) {
+    private boolean sendToDevice(MemberDevice device, String title, String body, String value) {
         String deviceToken = device.getDeviceToken();
         if (deviceToken == null || deviceToken.isBlank() || !isEnabled(device)) {
-            return;
+            return false;
         }
 
         Long notificationId = NON_SAVE_NOTIFICATION_ID;
@@ -108,6 +108,8 @@ public class EclassNotificationImpl implements EclassNotification {
         NotificationSend notificationSend = new NotificationSend(notificationId, title, body,
                 NotificationType.ECLASS_ASSIGNMENT, value);
         notificationSendService.send(List.of(deviceToken), notificationSend);
+
+        return true;
     }
 
     private boolean isEnabled(MemberDevice device) {

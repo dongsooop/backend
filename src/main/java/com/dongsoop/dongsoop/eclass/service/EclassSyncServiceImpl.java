@@ -155,7 +155,10 @@ public class EclassSyncServiceImpl implements EclassSyncService {
         linkRepository.save(link);
 
         // 저장이 끝난 뒤에 알린다 — 발송이 실패해도 수집 결과는 남는다
-        dueDateAdvanced.forEach(assignment -> notifyDueDateAdvanced(link, assignment));
+        dueDateAdvanced.stream()
+                // 이번 회차의 제출 조회에서 제출로 바뀐 과제는 알릴 이유가 없다
+                .filter(assignment -> !assignment.isSubmitted())
+                .forEach(assignment -> notifyDueDateAdvanced(link, assignment));
 
         return SyncOutcome.SYNCED;
     }
@@ -282,8 +285,7 @@ public class EclassSyncServiceImpl implements EclassSyncService {
      */
     private boolean isDueDateAdvanced(LocalDateTime previousDueAt, EclassAssignment merged) {
         return previousDueAt != null
-                && merged.getDueAt().isBefore(previousDueAt)
-                && !merged.isSubmitted();
+                && merged.getDueAt().isBefore(previousDueAt);
     }
 
     private void notifyDueDateAdvanced(EclassLink link, EclassAssignment assignment) {

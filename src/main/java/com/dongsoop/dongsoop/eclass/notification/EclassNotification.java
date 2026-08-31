@@ -5,7 +5,10 @@ import com.dongsoop.dongsoop.eclass.entity.EclassLink;
 
 public interface EclassNotification {
 
-    void sendReminder(EclassAssignment assignment, int daysBefore);
+    /**
+     * @return 실제로 푸시를 보냈으면 {@code true}. 기기 토큰이 없거나 알림이 꺼져 있어 건너뛰면 {@code false}
+     */
+    boolean sendReminder(EclassAssignment assignment, int daysBefore);
 
     /**
      * 마감이 앞당겨졌을 때 알린다. 미뤄진 마감은 리마인드가 새 일정으로 다시 나가므로 따로 알리지 않는다.

@@ -45,6 +45,7 @@ class EclassReminderSchedulerTest {
 
     @BeforeEach
     void setUp() {
+        when(eclassNotification.sendReminder(any(), anyInt())).thenReturn(true);
         Clock clock = Clock.fixed(NOW.toInstant(ZoneOffset.ofHours(9)), ZoneId.of("Asia/Seoul"));
         scheduler = new EclassReminderScheduler(assignmentRepository, eclassNotification, clock);
         ReflectionTestUtils.setField(scheduler, "daysBefore", List.of(3, 1, 0));
@@ -134,5 +135,33 @@ class EclassReminderSchedulerTest {
 
         verify(assignmentRepository).searchReminderTargets(eq(NOW),
                 eq(NOW.toLocalDate().plusDays(3).atTime(java.time.LocalTime.MAX)));
+    }
+
+    @Test
+    @DisplayName("알림이 꺼져 건너뛴 과제는 보낸 것으로 기록하지 않는다")
+    void doesNotMarkSkippedReminder() {
+        EclassAssignment target = assignment(1L, NOW.plusDays(1).withHour(23).withMinute(55));
+        when(assignmentRepository.searchReminderTargets(any(), any())).thenReturn(List.of(target));
+        when(eclassNotification.sendReminder(target, 1)).thenReturn(false);
+
+        scheduler.remind();
+
+        assertThat(target.getLastRemindedDays()).isNull();
+        verify(assignmentRepository).saveAll(List.of());
+    }
+
+    @Test
+    @DisplayName("발송이 실패해도 나머지 과제는 계속 보낸다")
+    void continuesAfterSendFailure() {
+        EclassAssignment failing = assignment(1L, NOW.plusDays(1).withHour(23).withMinute(55));
+        EclassAssignment following = assignment(2L, NOW.plusDays(3).withHour(23).withMinute(55));
+        when(assignmentRepository.searchReminderTargets(any(), any())).thenReturn(List.of(failing, following));
+        when(eclassNotification.sendReminder(failing, 1)).thenThrow(new IllegalStateException("fcm down"));
+        when(eclassNotification.sendReminder(following, 3)).thenReturn(true);
+
+        scheduler.remind();
+
+        assertThat(failing.getLastRemindedDays()).isNull();
+        assertThat(following.getLastRemindedDays()).isEqualTo(3);
     }
 }

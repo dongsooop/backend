@@ -10,7 +10,11 @@ import org.springframework.data.repository.query.Param;
 
 public interface EclassLinkRepository extends JpaRepository<EclassLink, Long> {
 
-    Optional<EclassLink> findByDeviceId(Long deviceId);
+    /**
+     * 알림 발송이 트랜잭션 밖에서 기기를 읽으므로 지연 프록시를 남기지 않는다.
+     */
+    @Query("select l from EclassLink l join fetch l.device d left join fetch d.member where d.id = :deviceId")
+    Optional<EclassLink> findByDeviceId(@Param("deviceId") Long deviceId);
 
     /**
      * 스케줄러가 트랜잭션 밖에서 기기·회원 정보를 읽으므로 fetch join으로 미리 가져온다.
