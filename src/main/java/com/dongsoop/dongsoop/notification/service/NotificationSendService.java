@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.notification.service;
 
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
@@ -18,4 +19,7 @@ public interface NotificationSendService {
 
     // 여러 회원에게 복합 알림 전송
     void sendAll(List<MemberNotification> memberNotificationList, NotificationType notificationType);
+
+    // 지정한 디바이스에만 복합 알림 전송 (호출자가 이미 대상 디바이스를 추린 경우)
+    void sendAllToDevices(List<MemberNotification> memberNotificationList, List<MemberDevice> targetDevices);
 }
