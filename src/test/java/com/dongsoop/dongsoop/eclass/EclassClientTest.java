@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
 
@@ -38,7 +39,9 @@ class EclassClientTest {
     void setUp() {
         RestTemplate restTemplate = new RestTemplate();
         server = MockRestServiceServer.bindTo(restTemplate).build();
-        client = new EclassClient(restTemplate, new ObjectMapper(), BASE, "test-agent");
+        client = new EclassClient(restTemplate, new ObjectMapper());
+        ReflectionTestUtils.setField(client, "baseUrl", BASE);
+        ReflectionTestUtils.setField(client, "userAgent", "test-agent");
     }
 
     private String fixture(String name) throws IOException {
@@ -56,8 +59,8 @@ class EclassClientTest {
 
         MoodleSiteInfoResponse info = client.getSiteInfo("tok");
 
-        assertThat(info.userid()).isEqualTo(14077L);
-        assertThat(info.fullname()).isEqualTo("백승민");
+        assertThat(info.userid()).isEqualTo(10001L);
+        assertThat(info.fullname()).isEqualTo("테스트");
     }
 
     @Test

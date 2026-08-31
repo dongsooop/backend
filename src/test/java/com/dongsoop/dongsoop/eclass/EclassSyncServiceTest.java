@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -69,6 +70,7 @@ class EclassSyncServiceTest {
                 eclassNotification, clock);
         ReflectionTestUtils.setField(syncService, "windowPastDays", 1);
         ReflectionTestUtils.setField(syncService, "windowFutureDays", 30);
+        ReflectionTestUtils.setField(syncService, "submissionCheckDays", 3);
         ReflectionTestUtils.setField(syncService, "threadCount", 2);
         ReflectionTestUtils.setField(syncService, "requestDelayMs", 0L);
         ReflectionTestUtils.setField(syncService, "abortFailureRatio", 0.5);
@@ -153,6 +155,43 @@ class EclassSyncServiceTest {
         assertThat(capturedSaved()).singleElement()
                 .extracting(EclassAssignment::isRemoved)
                 .isEqualTo(true);
+    }
+
+    @Test
+    @DisplayName("마감이 리마인드 창 밖이면 제출 여부를 묻지 않는다")
+    void skipsSubmissionCheckOutsideReminderWindow() {
+        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(
+                moodleAssignment(601L, NOW.plusDays(2)),
+                moodleAssignment(602L, NOW.plusDays(10))));
+        when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(false);
+
+        syncService.syncLink(link);
+
+        verify(eclassClient).isSubmitted("moodle-token", 601L);
+        verify(eclassClient, never()).isSubmitted("moodle-token", 602L);
+    }
+
+    @Test
+    @DisplayName("실패가 임계치를 넘으면 남은 연동은 건드리지 않고 주기를 접는다")
+    void abortsWhenFailureRatioExceeded() {
+        List<EclassLink> links = new java.util.ArrayList<>();
+        for (int i = 0; i < 20; i++) {
+            MemberDevice device = MemberDevice.builder().id((long) i).deviceToken("fcm-" + i).build();
+            EclassLink each = new EclassLink(device, 1L, "백승민", "encrypted", NOW.minusDays(1));
+            ReflectionTestUtils.setField(each, "id", (long) i);
+            links.add(each);
+        }
+        ReflectionTestUtils.setField(syncService, "threadCount", 1);
+        when(linkRepository.findAllByStatus(EclassLinkStatus.ACTIVE)).thenReturn(links);
+        when(linkRepository.findAllByStatus(EclassLinkStatus.EXPIRED)).thenReturn(List.of());
+        when(assignmentRepository.findAllByLinkId(anyLong())).thenReturn(List.of());
+        when(eclassClient.getAssignments("moodle-token"))
+                .thenThrow(new EclassApiException("mod_assign", "server"));
+
+        syncService.syncAll();
+
+        // 20건 전부가 아니라 임계치에 닿은 시점에서 멈춘다
+        verify(eclassClient, atMost(10)).getAssignments("moodle-token");
     }
 
     @Test
@@ -284,6 +323,7 @@ class EclassSyncServiceTest {
         syncService.syncLink(link);
 
         verify(eclassNotification).sendDueDateChanged(existing);
+        assertThat(existing.getDueAt()).isEqualTo(NOW.plusDays(2));
     }
 
     @Test
@@ -337,5 +377,32 @@ class EclassSyncServiceTest {
         syncService.syncLink(link);
 
         verify(eclassNotification, never()).sendDueDateChanged(any());
+    }
+
+    @Test
+    @DisplayName("선제 재발급 뒤 실제로 만료되면 재발급 타이머를 다시 잰다")
+    void resetsRelinkTimerOnExpire() {
+        ReflectionTestUtils.setField(link, "relinkRequestedAt", NOW.minusHours(30));
+        when(eclassClient.getAssignments("moodle-token")).thenThrow(new EclassInvalidTokenException());
+
+        syncService.syncLink(link);
+
+        assertThat(link.getRelinkRequestedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    @DisplayName("Moodle 상한을 넘는 과목명·과제명은 잘라서 저장한다")
+    void shortensOverlongText() {
+        String longText = "가".repeat(300);
+        long epochSecond = NOW.plusDays(2).toInstant(ZoneOffset.ofHours(9)).getEpochSecond();
+        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(
+                new MoodleAssignment(801L, 9801L, longText, longText, epochSecond, 0L)));
+        when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(false);
+
+        syncService.syncLink(link);
+
+        EclassAssignment saved = capturedSaved().get(0);
+        assertThat(saved.getCourseName()).hasSize(255);
+        assertThat(saved.getTitle()).hasSize(255);
     }
 }

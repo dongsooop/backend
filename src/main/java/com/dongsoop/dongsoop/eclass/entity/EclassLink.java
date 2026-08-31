@@ -91,11 +91,19 @@ public class EclassLink extends BaseEntity {
         this.expiredNotifiedAt = null;
     }
 
+    /**
+     * 만료로 전이하면서 재발급 지시 시각을 다시 잰다.
+     *
+     * <p>선제 재발급으로 이미 {@code relinkRequestedAt}이 채워져 있을 수 있는데, 그 값을 그대로 두면
+     * 실제 만료보다 이른 시점부터 24시간을 세어 만료 안내가 일찍 나간다. 이미 만료된 상태에서 다시
+     * 호출된 경우에는 첫 지시 시각을 지키기 위해 건드리지 않는다.
+     */
     public void expire(LocalDateTime now) {
-        this.status = EclassLinkStatus.EXPIRED;
-        if (this.relinkRequestedAt == null) {
+        if (this.status != EclassLinkStatus.EXPIRED) {
             this.relinkRequestedAt = now;
         }
+
+        this.status = EclassLinkStatus.EXPIRED;
     }
 
     public void markRelinkRequested(LocalDateTime now) {

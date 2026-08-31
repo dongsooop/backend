@@ -203,14 +203,17 @@ eclass:
   user-agent: "Mozilla/5.0 (Compatible; DongsoopEclass/1.0)"
   connect-timeout-ms: 5000
   read-timeout-ms: 15000
-  # 32바이트 Base64. 로컬 기본값 — prod는 application-prod.yml에서 환경변수로 덮어쓴다
-  token-key: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+  # 32바이트 Base64. 테스트 전용 값이다
+  token-key: ZG9uZ3Nvb3AtbG9jYWwtZWNsYXNzLWtleS0zMmJ5dGU=
   sync:
-    cron: "0 30 6,12,18,23 * * *"
+    cron: "0 30 6,12,18 * * *"
     window-past-days: 1
     window-future-days: 30
-    thread-count: 4
-    request-delay-ms: 100
+    # 제출 여부는 리마인드가 나가는 기간만 확인한다 — 마감이 먼 과제까지 매번 물으면
+    # 이클래스 호출량이 3배로 뛴다
+    submission-check-days: 3
+    thread-count: 2
+    request-delay-ms: 300
     abort-failure-ratio: 0.5
     manual-cooldown-seconds: 60
     relink-timeout-hours: 24

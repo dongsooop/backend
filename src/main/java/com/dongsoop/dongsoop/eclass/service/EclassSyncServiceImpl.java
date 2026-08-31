@@ -23,6 +23,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +45,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class EclassSyncServiceImpl implements EclassSyncService {
 
+    private static final int MIN_ABORT_SAMPLE = 5;
+
     private final EclassLinkRepository linkRepository;
     private final EclassAssignmentRepository assignmentRepository;
     private final EclassClient eclassClient;
@@ -55,6 +59,9 @@ public class EclassSyncServiceImpl implements EclassSyncService {
 
     @Value("${eclass.sync.window-future-days}")
     private int windowFutureDays;
+
+    @Value("${eclass.sync.submission-check-days}")
+    private int submissionCheckDays;
 
     @Value("${eclass.sync.thread-count}")
     private int threadCount;
@@ -111,7 +118,7 @@ public class EclassSyncServiceImpl implements EclassSyncService {
                 dueDateAdvanced.add(assignment);
             }
 
-            if (!assignment.isSubmitted()) {
+            if (needsSubmissionCheck(assignment, now)) {
                 try {
                     updateSubmission(token, assignment, now);
                 } catch (EclassInvalidTokenException exception) {
@@ -155,32 +162,63 @@ public class EclassSyncServiceImpl implements EclassSyncService {
 
     private void syncConcurrently(List<EclassLink> links) {
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        // 이클래스가 막히거나 죽은 상태에서 남은 요청을 끝까지 쏘면 차단이 길어진다.
+        // 실패가 임계치를 넘으면 그 주기를 그대로 접고 다음 주기를 기다린다.
+        AtomicBoolean aborted = new AtomicBoolean(false);
+        AtomicInteger failed = new AtomicInteger();
+        AtomicInteger attempted = new AtomicInteger();
+
         try {
-            List<CompletableFuture<SyncOutcome>> futures = links.stream()
-                    .map(link -> CompletableFuture.supplyAsync(() -> syncQuietly(link), executor))
+            List<CompletableFuture<Void>> futures = links.stream()
+                    .map(link -> CompletableFuture.runAsync(
+                            () -> syncQuietly(link, links.size(), aborted, failed, attempted), executor))
                     .toList();
 
-            long failed = futures.stream()
-                    .map(CompletableFuture::join)
-                    .filter(SyncOutcome.FAILED::equals)
-                    .count();
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .join();
 
-            double failureRatio = (double) failed / links.size();
-            if (failureRatio >= abortFailureRatio) {
-                log.error("eclass sync failure ratio too high: {}/{}", failed, links.size());
+            if (aborted.get()) {
+                log.error("eclass sync aborted. failed: {}/{} attempted, total links: {}",
+                        failed.get(), attempted.get(), links.size());
             }
         } finally {
             shutdown(executor);
         }
     }
 
-    private SyncOutcome syncQuietly(EclassLink link) {
+    private void syncQuietly(EclassLink link, int totalLinks, AtomicBoolean aborted,
+                             AtomicInteger failed, AtomicInteger attempted) {
+        if (aborted.get()) {
+            return;
+        }
+
+        SyncOutcome outcome;
         try {
-            return syncLink(link);
+            outcome = syncLink(link);
         } catch (RuntimeException exception) {
             log.warn("eclass sync failed unexpectedly. linkId: {}", link.getId(), exception);
-            return SyncOutcome.FAILED;
+            outcome = SyncOutcome.FAILED;
         }
+
+        int attemptedCount = attempted.incrementAndGet();
+        if (outcome != SyncOutcome.FAILED) {
+            return;
+        }
+
+        int failedCount = failed.incrementAndGet();
+        if (shouldAbort(failedCount, attemptedCount, totalLinks)) {
+            aborted.set(true);
+        }
+    }
+
+    /**
+     * 표본이 너무 작을 때 한두 건의 실패로 주기를 접지 않도록, 최소 시도 수를 넘긴 뒤부터 비율을 본다.
+     */
+    private boolean shouldAbort(int failedCount, int attemptedCount, int totalLinks) {
+        int minimumSample = Math.min(MIN_ABORT_SAMPLE, totalLinks);
+
+        return attemptedCount >= minimumSample
+                && (double) failedCount / attemptedCount >= abortFailureRatio;
     }
 
     /**
@@ -235,6 +273,17 @@ public class EclassSyncServiceImpl implements EclassSyncService {
      * 반대로 앞당겨진 마감은 사용자가 알던 날짜보다 급해졌고, 이미 지나버린 경우에는 리마인드 대상에서
      * 아예 빠지기 때문에 여기서 알리지 않으면 사용자가 끝까지 모른 채 지나간다.
      */
+    /**
+     * 제출 여부는 리마인드가 나가는 기간에 든 과제만 확인한다.
+     *
+     * <p>마감이 3주 남은 과제의 제출 여부는 지금 알아도 쓸 데가 없는 반면, 과제 1건마다 이클래스 호출이
+     * 1회씩 늘어난다. 확인 범위를 좁히는 것이 학교 서버로 나가는 요청을 줄이는 가장 큰 수단이다.
+     */
+    private boolean needsSubmissionCheck(EclassAssignment assignment, LocalDateTime now) {
+        return !assignment.isSubmitted()
+                && !assignment.getDueAt().isAfter(now.plusDays(submissionCheckDays));
+    }
+
     private boolean isDueDateAdvanced(LocalDateTime previousDueAt, EclassAssignment merged) {
         return previousDueAt != null
                 && merged.getDueAt().isBefore(previousDueAt)

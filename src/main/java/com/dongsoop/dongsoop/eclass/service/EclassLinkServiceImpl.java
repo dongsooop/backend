@@ -38,22 +38,14 @@ public class EclassLinkServiceImpl implements EclassLinkService {
     @Value("${eclass.sync.manual-cooldown-seconds}")
     private long manualCooldownSeconds;
 
+    /**
+     * 토큰 검증과 첫 수집은 이클래스 호출이라 느리다. 연동 저장만 트랜잭션으로 끊어 커밋한 뒤
+     * 나머지를 트랜잭션 밖에서 수행해, 외부 응답을 기다리는 동안 DB 커넥션을 붙잡지 않는다.
+     */
     @Override
-    @Transactional
     public EclassLinkResponse link(String fid, String deviceToken, String moodleToken) {
-        MemberDevice device = deviceResolver.resolve(fid, deviceToken);
         MoodleSiteInfoResponse info = eclassClient.getSiteInfo(moodleToken);
-
-        String encrypted = encryptor.encrypt(moodleToken);
-        LocalDateTime now = LocalDateTime.now(clock);
-
-        EclassLink link = linkRepository.findByDeviceId(device.getId())
-                .map(existing -> {
-                    existing.relink(info.userid(), info.fullname(), encrypted, now);
-                    return existing;
-                })
-                .orElseGet(() -> linkRepository.save(
-                        new EclassLink(device, info.userid(), info.fullname(), encrypted, now)));
+        EclassLink link = saveLink(fid, deviceToken, moodleToken, info);
 
         // 첫 수집이 실패해도 연동 자체는 성공으로 둔다 — 다음 주기에 다시 시도한다
         try {
@@ -63,6 +55,25 @@ public class EclassLinkServiceImpl implements EclassLinkService {
         }
 
         return EclassLinkResponse.from(link);
+    }
+
+    /**
+     * 변경 감지에 기대지 않고 명시적으로 저장한다. 트랜잭션을 열어두면 뒤따르는 첫 수집이
+     * 끝날 때까지 DB 커넥션을 붙잡게 되고, 자기 호출이라 트랜잭션 애너테이션도 걸리지 않는다.
+     */
+    private EclassLink saveLink(String fid, String deviceToken, String moodleToken, MoodleSiteInfoResponse info) {
+        MemberDevice device = deviceResolver.resolve(fid, deviceToken);
+        String encrypted = encryptor.encrypt(moodleToken);
+        LocalDateTime now = LocalDateTime.now(clock);
+
+        EclassLink link = linkRepository.findByDeviceId(device.getId())
+                .map(existing -> {
+                    existing.relink(info.userid(), info.fullname(), encrypted, now);
+                    return existing;
+                })
+                .orElseGet(() -> new EclassLink(device, info.userid(), info.fullname(), encrypted, now));
+
+        return linkRepository.save(link);
     }
 
     @Override
@@ -83,8 +94,13 @@ public class EclassLinkServiceImpl implements EclassLinkService {
     }
 
     @Override
-    @Transactional
     public void syncNow(String fid, String deviceToken) {
+        EclassLink link = markManualSync(fid, deviceToken);
+
+        syncService.syncLink(link);
+    }
+
+    private EclassLink markManualSync(String fid, String deviceToken) {
         EclassLink link = findLink(fid, deviceToken)
                 .orElseThrow(EclassLinkNotFoundException::new);
 
@@ -94,7 +110,7 @@ public class EclassLinkServiceImpl implements EclassLinkService {
         }
 
         link.markManualSync(now);
-        syncService.syncLink(link);
+        return linkRepository.save(link);
     }
 
     /**

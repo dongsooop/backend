@@ -29,6 +29,9 @@ import org.hibernate.annotations.OnDeleteAction;
                 columnNames = {"eclass_link_id", "assign_id"}))
 public class EclassAssignment extends BaseEntity {
 
+    // Moodle의 과목명·과제명 컬럼 상한과 맞춘다. 이보다 긴 값이 오면 저장이 실패해 그 회원의 수집이 통째로 멈춘다
+    private static final int TEXT_LENGTH = 255;
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "eclass_assignment_sequence_generator")
     private Long id;
@@ -44,10 +47,10 @@ public class EclassAssignment extends BaseEntity {
     @Column(name = "course_module_id", nullable = false)
     private Long courseModuleId;
 
-    @Column(name = "course_name", length = 100, nullable = false)
+    @Column(name = "course_name", length = TEXT_LENGTH, nullable = false)
     private String courseName;
 
-    @Column(name = "title", length = 200, nullable = false)
+    @Column(name = "title", length = TEXT_LENGTH, nullable = false)
     private String title;
 
     @Column(name = "due_at", nullable = false)
@@ -73,8 +76,8 @@ public class EclassAssignment extends BaseEntity {
         this.link = link;
         this.assignId = assignId;
         this.courseModuleId = courseModuleId;
-        this.courseName = courseName;
-        this.title = title;
+        this.courseName = shorten(courseName);
+        this.title = shorten(title);
         this.dueAt = dueAt;
         this.cutoffAt = cutoffAt;
     }
@@ -88,11 +91,19 @@ public class EclassAssignment extends BaseEntity {
             this.lastRemindedDays = null;
         }
 
-        this.courseName = courseName;
-        this.title = title;
+        this.courseName = shorten(courseName);
+        this.title = shorten(title);
         this.dueAt = dueAt;
         this.cutoffAt = cutoffAt;
         this.removedAt = null;
+    }
+
+    private String shorten(String value) {
+        if (value == null || value.length() <= TEXT_LENGTH) {
+            return value;
+        }
+
+        return value.substring(0, TEXT_LENGTH);
     }
 
     public void markSubmitted(LocalDateTime now) {

@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -29,26 +30,23 @@ import org.springframework.web.client.RestTemplate;
  * 상태 코드가 아니라 응답 본문의 exception 필드로 실패를 판별해야 한다.
  */
 @Component
+@RequiredArgsConstructor
 public class EclassClient {
 
     private static final String WS_PATH = "/webservice/rest/server.php";
     private static final String INVALID_TOKEN_CODE = "invalidtoken";
     private static final String SUBMITTED_STATUS = "submitted";
 
+    @Qualifier("eclassRestTemplate")
     private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
-    private final String baseUrl;
-    private final String userAgent;
 
-    public EclassClient(@Qualifier("eclassRestTemplate") RestTemplate restTemplate,
-                        ObjectMapper objectMapper,
-                        @Value("${eclass.base-url}") String baseUrl,
-                        @Value("${eclass.user-agent}") String userAgent) {
-        this.restTemplate = restTemplate;
-        this.objectMapper = objectMapper;
-        this.baseUrl = baseUrl;
-        this.userAgent = userAgent;
-    }
+    private final ObjectMapper objectMapper;
+
+    @Value("${eclass.base-url}")
+    private String baseUrl;
+
+    @Value("${eclass.user-agent}")
+    private String userAgent;
 
     public MoodleSiteInfoResponse getSiteInfo(String token) {
         JsonNode node = call(token, "core_webservice_get_site_info", Map.of());
