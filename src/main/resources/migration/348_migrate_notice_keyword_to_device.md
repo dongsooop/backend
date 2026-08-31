@@ -1,6 +1,6 @@
 # 공지 키워드 알림 기기 단위 전환 — 배포 안내
 
-`344_migrate_notice_keyword_to_device.sql` 과 짝이 되는 문서다.
+`348_migrate_notice_keyword_to_device.sql` 과 짝이 되는 문서다.
 이 저장소는 Flyway/Liquibase 를 쓰지 않고 수동 DDL 을 문서로 남기는 관례를 따른다.
 
 ---
@@ -65,7 +65,7 @@ SELECT sequencename FROM pg_sequences WHERE sequencename LIKE '%notice_keyword%'
 4 단계의 `DROP COLUMN member_id` 는 되돌릴 수 없다. 실행 전에 `notice_keyword` 를 백업한다.
 
 ```sql
-CREATE TABLE notice_keyword_backup_344 AS SELECT * FROM notice_keyword;
+CREATE TABLE notice_keyword_backup_348 AS SELECT * FROM notice_keyword;
 ```
 
 ---
