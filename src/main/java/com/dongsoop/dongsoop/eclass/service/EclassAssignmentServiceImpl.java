@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.eclass.service;
 import com.dongsoop.dongsoop.eclass.dto.EclassAssignmentListResponse;
 import com.dongsoop.dongsoop.eclass.dto.EclassAssignmentResponse;
 import com.dongsoop.dongsoop.eclass.entity.EclassAssignment;
+import com.dongsoop.dongsoop.eclass.entity.EclassLink;
 import com.dongsoop.dongsoop.eclass.entity.EclassLinkStatus;
 import com.dongsoop.dongsoop.eclass.repository.EclassAssignmentRepository;
 import com.dongsoop.dongsoop.eclass.repository.EclassLinkRepository;
@@ -38,8 +39,16 @@ public class EclassAssignmentServiceImpl implements EclassAssignmentService {
     @Transactional(readOnly = true)
     public EclassAssignmentListResponse getUpcoming(String fid, String deviceToken) {
         Optional<Long> deviceId = resolveDeviceId(fid, deviceToken);
-        if (deviceId.isEmpty() || linkRepository.findByDeviceId(deviceId.get()).isEmpty()) {
+        if (deviceId.isEmpty()) {
             return EclassAssignmentListResponse.unlinked();
+        }
+
+        Optional<EclassLink> link = linkRepository.findByDeviceId(deviceId.get());
+        if (link.isEmpty()) {
+            return EclassAssignmentListResponse.unlinked();
+        }
+        if (!link.get().isActive()) {
+            return EclassAssignmentListResponse.expired();
         }
 
         LocalDateTime now = LocalDateTime.now(clock);
@@ -48,7 +57,7 @@ public class EclassAssignmentServiceImpl implements EclassAssignmentService {
                         .map(assignment -> EclassAssignmentResponse.from(assignment, now.toLocalDate(), baseUrl))
                         .toList();
 
-        return new EclassAssignmentListResponse(true, assignments);
+        return EclassAssignmentListResponse.of(assignments);
     }
 
     /**
@@ -60,11 +69,17 @@ public class EclassAssignmentServiceImpl implements EclassAssignmentService {
         LocalDateTime now = LocalDateTime.now(clock);
 
         Optional<Long> deviceId = resolveDeviceId(fid, deviceToken);
-        if (deviceId.isPresent() && linkRepository.findByDeviceId(deviceId.get()).isPresent()) {
+        Optional<EclassLink> deviceLink = deviceId.flatMap(linkRepository::findByDeviceId);
+        if (deviceLink.isPresent()) {
+            if (!deviceLink.get().isActive()) {
+                return HomeEclassSummary.expired();
+            }
+
             return summarize(assignmentRepository.countUpcomingByDevice(deviceId.get(), now),
                     assignmentRepository.searchUpcomingByDevice(deviceId.get(), now, NEAREST_LIMIT), now);
         }
 
+        // 요청 기기에 연동이 없으면 같은 회원의 다른 기기에서 연동한 과제를 보여준다
         if (linkRepository.findAllByMemberIdAndStatus(memberId, EclassLinkStatus.ACTIVE).isEmpty()) {
             return HomeEclassSummary.unlinked();
         }
@@ -77,8 +92,12 @@ public class EclassAssignmentServiceImpl implements EclassAssignmentService {
     @Transactional(readOnly = true)
     public HomeEclassSummary getHomeSummary(String fid, String deviceToken) {
         Optional<Long> deviceId = resolveDeviceId(fid, deviceToken);
-        if (deviceId.isEmpty() || linkRepository.findByDeviceId(deviceId.get()).isEmpty()) {
+        Optional<EclassLink> link = deviceId.flatMap(linkRepository::findByDeviceId);
+        if (link.isEmpty()) {
             return HomeEclassSummary.unlinked();
+        }
+        if (!link.get().isActive()) {
+            return HomeEclassSummary.expired();
         }
 
         LocalDateTime now = LocalDateTime.now(clock);

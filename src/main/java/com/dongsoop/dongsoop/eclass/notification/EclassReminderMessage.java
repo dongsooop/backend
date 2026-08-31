@@ -9,6 +9,7 @@ public final class EclassReminderMessage {
     private static final String TITLE_FORMAT = "[%s] 과제 %d일 전입니다";
     private static final String TITLE_TODAY_FORMAT = "[%s] 과제 오늘 마감입니다";
     private static final String BODY_FORMAT = "%s · 마감 %s";
+    private static final String TITLE_DUE_CHANGED_FORMAT = "[%s] 과제 마감이 앞당겨졌어요";
     private static final String ELLIPSIS = "…";
     private static final DateTimeFormatter DUE_FORMATTER =
             DateTimeFormatter.ofPattern("M월 d일 (E) HH:mm", Locale.KOREAN);
@@ -24,6 +25,10 @@ public final class EclassReminderMessage {
         }
 
         return String.format(TITLE_FORMAT, shortened, daysBefore);
+    }
+
+    public static String dueDateChangedTitle(String courseName, int courseNameMaxLength) {
+        return String.format(TITLE_DUE_CHANGED_FORMAT, shorten(courseName, courseNameMaxLength));
     }
 
     /**

@@ -101,8 +101,15 @@ public class EclassSyncServiceImpl implements EclassSyncService {
                         (first, second) -> first, LinkedHashMap::new));
 
         List<EclassAssignment> toSave = new ArrayList<>();
+        List<EclassAssignment> dueDateAdvanced = new ArrayList<>();
         for (MoodleAssignment fetchedAssignment : inWindow.values()) {
-            EclassAssignment assignment = merge(link, existing.get(fetchedAssignment.assignId()), fetchedAssignment);
+            EclassAssignment existingAssignment = existing.get(fetchedAssignment.assignId());
+            LocalDateTime previousDueAt = existingAssignment == null ? null : existingAssignment.getDueAt();
+            EclassAssignment assignment = merge(link, existingAssignment, fetchedAssignment);
+
+            if (isDueDateAdvanced(previousDueAt, assignment)) {
+                dueDateAdvanced.add(assignment);
+            }
 
             if (!assignment.isSubmitted()) {
                 try {
@@ -128,6 +135,9 @@ public class EclassSyncServiceImpl implements EclassSyncService {
         assignmentRepository.saveAll(toSave);
         link.markSynced(now);
         linkRepository.save(link);
+
+        // 저장이 끝난 뒤에 알린다 — 발송이 실패해도 수집 결과는 남는다
+        dueDateAdvanced.forEach(this::notifyDueDateAdvanced);
 
         return SyncOutcome.SYNCED;
     }
@@ -216,6 +226,27 @@ public class EclassSyncServiceImpl implements EclassSyncService {
 
         existing.update(fetched.courseName(), fetched.name(), dueAt, cutoffAt);
         return existing;
+    }
+
+    /**
+     * 마감이 앞당겨졌는지 판단한다.
+     *
+     * <p>미뤄진 마감은 리마인드 단계가 초기화돼 새 일정으로 다시 알림이 나가므로 따로 알릴 필요가 없다.
+     * 반대로 앞당겨진 마감은 사용자가 알던 날짜보다 급해졌고, 이미 지나버린 경우에는 리마인드 대상에서
+     * 아예 빠지기 때문에 여기서 알리지 않으면 사용자가 끝까지 모른 채 지나간다.
+     */
+    private boolean isDueDateAdvanced(LocalDateTime previousDueAt, EclassAssignment merged) {
+        return previousDueAt != null
+                && merged.getDueAt().isBefore(previousDueAt)
+                && !merged.isSubmitted();
+    }
+
+    private void notifyDueDateAdvanced(EclassAssignment assignment) {
+        try {
+            eclassNotification.sendDueDateChanged(assignment);
+        } catch (RuntimeException exception) {
+            log.warn("failed to send due date change notice. assignId: {}", assignment.getAssignId(), exception);
+        }
     }
 
     private void updateSubmission(String token, EclassAssignment assignment, LocalDateTime now) {

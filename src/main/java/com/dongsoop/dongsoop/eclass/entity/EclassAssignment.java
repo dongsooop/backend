@@ -87,6 +87,7 @@ public class EclassAssignment extends BaseEntity {
         if (!Objects.equals(this.dueAt, dueAt)) {
             this.lastRemindedDays = null;
         }
+
         this.courseName = courseName;
         this.title = title;
         this.dueAt = dueAt;

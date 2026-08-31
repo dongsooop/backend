@@ -271,4 +271,71 @@ class EclassSyncServiceTest {
 
         assertThat(capturedSaved().get(0).getDueAt()).isEqualTo(LocalDateTime.of(2026, 9, 3, 23, 55));
     }
+
+    @Test
+    @DisplayName("마감이 앞당겨지면 변경 알림을 보낸다")
+    void notifiesWhenDueDateAdvanced() {
+        EclassAssignment existing = new EclassAssignment(link, 601L, 9601L, "자료구조", "과제 601",
+                NOW.plusDays(9), NOW.plusDays(9));
+        when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
+        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
+        when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(false);
+
+        syncService.syncLink(link);
+
+        verify(eclassNotification).sendDueDateChanged(existing);
+    }
+
+    @Test
+    @DisplayName("마감이 미뤄지면 변경 알림을 보내지 않는다 — 리마인드가 새 일정으로 다시 나간다")
+    void doesNotNotifyWhenDueDatePostponed() {
+        EclassAssignment existing = new EclassAssignment(link, 601L, 9601L, "자료구조", "과제 601",
+                NOW.plusDays(2), NOW.plusDays(2));
+        when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
+        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(9))));
+        when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(false);
+
+        syncService.syncLink(link);
+
+        verify(eclassNotification, never()).sendDueDateChanged(any());
+    }
+
+    @Test
+    @DisplayName("마감이 그대로면 변경 알림을 보내지 않는다")
+    void doesNotNotifyWhenDueDateUnchanged() {
+        EclassAssignment existing = new EclassAssignment(link, 601L, 9601L, "자료구조", "과제 601",
+                NOW.plusDays(2), NOW.plusDays(2));
+        when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
+        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
+        when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(false);
+
+        syncService.syncLink(link);
+
+        verify(eclassNotification, never()).sendDueDateChanged(any());
+    }
+
+    @Test
+    @DisplayName("이미 제출한 과제는 마감이 앞당겨져도 알리지 않는다")
+    void doesNotNotifySubmittedAssignment() {
+        EclassAssignment existing = new EclassAssignment(link, 601L, 9601L, "자료구조", "과제 601",
+                NOW.plusDays(9), NOW.plusDays(9));
+        existing.markSubmitted(NOW.minusDays(1));
+        when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
+        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
+
+        syncService.syncLink(link);
+
+        verify(eclassNotification, never()).sendDueDateChanged(any());
+    }
+
+    @Test
+    @DisplayName("새로 들어온 과제는 변경 알림 대상이 아니다")
+    void doesNotNotifyNewAssignment() {
+        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
+        when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(false);
+
+        syncService.syncLink(link);
+
+        verify(eclassNotification, never()).sendDueDateChanged(any());
+    }
 }

@@ -53,6 +53,18 @@ public class EclassNotificationImpl implements EclassNotification {
     }
 
     @Override
+    public void sendDueDateChanged(EclassAssignment assignment) {
+        MemberDevice device = assignment.getLink()
+                .getDevice();
+
+        String title = EclassReminderMessage.dueDateChangedTitle(assignment.getCourseName(), courseNameMaxLength);
+        String body = EclassReminderMessage.body(assignment.getTitle(), assignment.getDueAt());
+        String value = EclassAssignmentLink.of(baseUrl, assignment.getCourseModuleId());
+
+        sendToDevice(device, title, body, value);
+    }
+
+    @Override
     public void sendRelinkSilent(EclassLink link) {
         String deviceToken = link.getDevice()
                 .getDeviceToken();

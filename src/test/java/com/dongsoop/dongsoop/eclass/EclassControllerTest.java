@@ -103,7 +103,7 @@ class EclassControllerTest {
                 LocalDateTime.of(2026, 9, 25, 23, 55), null, 3L, false,
                 "https://eclass.dongyang.ac.kr/mod/assign/view.php?id=9101");
         when(eclassAssignmentService.getUpcoming(any(), any()))
-                .thenReturn(new EclassAssignmentListResponse(true, List.of(assignment)));
+                .thenReturn(EclassAssignmentListResponse.of(List.of(assignment)));
 
         mockMvc.perform(get("/eclass/assignments").header(FID_HEADER, "fid-1"))
                 .andExpect(status().isOk())
@@ -128,5 +128,18 @@ class EclassControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(eclassLinkService).syncNow(eq("fid-1"), any());
+    }
+
+    @Test
+    @DisplayName("연동이 끊긴 기기는 과제 없음이 아니라 만료 상태를 받는다")
+    void getAssignmentsWhenExpired() throws Exception {
+        when(eclassAssignmentService.getUpcoming(any(), any()))
+                .thenReturn(EclassAssignmentListResponse.expired());
+
+        mockMvc.perform(get("/eclass/assignments").header(FID_HEADER, "fid-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.linked").value(true))
+                .andExpect(jsonPath("$.status").value("EXPIRED"))
+                .andExpect(jsonPath("$.assignments").isEmpty());
     }
 }
