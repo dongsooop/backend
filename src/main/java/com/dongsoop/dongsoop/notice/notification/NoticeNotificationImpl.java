@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.notice.notification;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.memberdevice.dto.DeviceSubscription;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.notice.entity.Notice;
@@ -14,10 +15,13 @@ import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.service.NotificationSaveService;
 import com.dongsoop.dongsoop.notification.service.NotificationSendService;
 import java.util.HashMap;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,18 +57,14 @@ public class NoticeNotificationImpl implements NoticeNotification {
             return;
         }
 
-        // device_notice_preference 구독 기기는 학과가 같으면 결과도 같다.
-        // 한 학과에서 신규 공지가 여러 건 나오는 게 보통이므로 학과당 한 번만 조회한다
-        Map<DepartmentType, List<MemberDevice>> devicesByDepartment = new HashMap<>();
-        for (Notice notice : noticeDetailSet) {
-            devicesByDepartment.computeIfAbsent(notice.getDepartment().getId(),
-                    memberDeviceRepository::searchDevicesByDepartment);
-        }
+        // 대상 기기와 키워드를 앞에서 한 번씩만 읽고, 공지별 분배는 메모리에서 한다.
+        // 학과마다 조회하면 같은 학과에서 공지가 여러 건 나올 때 같은 결과를 반복해서 읽는다
+        Set<DepartmentType> departmentTypes = noticeDetailSet.stream()
+                .map(notice -> notice.getDepartment().getId())
+                .collect(Collectors.toSet());
 
-        // 키워드 설정도 대상 기기 전체에 대해 한 번만 읽어 공지마다 재사용한다
-        List<MemberDevice> allDevices = devicesByDepartment.values().stream()
-                .flatMap(List::stream)
-                .toList();
+        List<MemberDevice> allDevices = memberDeviceRepository.searchDevicesByDepartments(departmentTypes);
+        Map<DepartmentType, List<MemberDevice>> devicesByDepartment = groupByDepartment(allDevices, departmentTypes);
         NoticeKeywordFilter keywordFilter = noticeKeywordService.loadFilter(allDevices);
 
         // 공지마다 대상 기기가 다르므로 저장-발송은 공지 단위로 묶는다.
@@ -84,6 +84,45 @@ public class NoticeNotificationImpl implements NoticeNotification {
             // 비회원 발송: 알림함을 남기지 않고 푸시만 보낸다
             sendToGuests(notice, allowedDevices);
         }
+    }
+
+    /**
+     * 조회한 기기를 학과별로 나눈다.
+     *
+     * <p>기기 조회와 구독 관계 조회를 각각 한 번으로 끝내고 분배는 여기서 처리한다.
+     * 대학 공지는 구독 여부와 무관하게 전체 기기가 대상이라 그대로 담는다.
+     *
+     * @param devices         대상 학과를 구독한 기기 전체
+     * @param departmentTypes 이번에 발송할 공지들의 학과
+     */
+    private Map<DepartmentType, List<MemberDevice>> groupByDepartment(List<MemberDevice> devices,
+                                                                      Set<DepartmentType> departmentTypes) {
+        Map<Long, Set<DepartmentType>> subscribedDepartments = loadSubscribedDepartments(devices);
+
+        Map<DepartmentType, List<MemberDevice>> devicesByDepartment = new HashMap<>();
+        for (DepartmentType departmentType : departmentTypes) {
+            if (departmentType.isAllDepartment()) {
+                devicesByDepartment.put(departmentType, devices);
+                continue;
+            }
+
+            devicesByDepartment.put(departmentType, devices.stream()
+                    .filter(device -> subscribedDepartments.getOrDefault(device.getId(), Set.of())
+                            .contains(departmentType))
+                    .toList());
+        }
+
+        return devicesByDepartment;
+    }
+
+    private Map<Long, Set<DepartmentType>> loadSubscribedDepartments(List<MemberDevice> devices) {
+        List<Long> deviceIds = devices.stream()
+                .map(MemberDevice::getId)
+                .toList();
+
+        return memberDeviceRepository.findSubscriptionsByDeviceIds(deviceIds).stream()
+                .collect(Collectors.groupingBy(DeviceSubscription::deviceId,
+                        Collectors.mapping(DeviceSubscription::departmentType, Collectors.toSet())));
     }
 
     /**

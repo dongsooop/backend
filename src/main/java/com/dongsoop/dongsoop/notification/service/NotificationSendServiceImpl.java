@@ -5,10 +5,8 @@ import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.dto.NotificationSend;
-import com.dongsoop.dongsoop.notification.dto.NotificationUnread;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.entity.NotificationDetails;
-import com.dongsoop.dongsoop.notification.repository.NotificationRepository;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationSendServiceImpl implements NotificationSendService {
 
     private final MemberDeviceService memberDeviceService;
-    private final NotificationRepository notificationRepository;
+    private final NotificationBadgeService notificationBadgeService;
     private final FCMService fcmService;
 
     /**
@@ -88,9 +86,7 @@ public class NotificationSendServiceImpl implements NotificationSendService {
         Map<NotificationDetails, List<Long>> memberByNotification = listToMap(memberNotificationList);
 
         // 발송 전체 대상의 회원별 읽지 않은 알림 개수
-        List<NotificationUnread> unreadCount = notificationRepository.findUnreadCountByMemberIds(memberIds);
-        Map<Long, Integer> unreadCountByMember = unreadCount.stream()
-                .collect(Collectors.toMap(NotificationUnread::getMemberId, NotificationUnread::getUnreadCount));
+        Map<Long, Integer> unreadCountByMember = notificationBadgeService.resolveByMemberIds(memberIds);
 
         memberByNotification.forEach((details, memberIdList) -> {
             NotificationSend notificationSend = getNotificationSendByDetails(details);
@@ -147,10 +143,10 @@ public class NotificationSendServiceImpl implements NotificationSendService {
         NotificationDetails details = memberNotification.getId()
                 .getDetails();
 
-        long unreadCount = notificationRepository.findUnreadCountByMemberId(memberId);
+        int unreadCount = notificationBadgeService.resolveByMemberId(memberId);
 
         NotificationSend notificationSend = getNotificationSendByDetails(details);
-        fcmService.sendNotification(deviceByMemberId, notificationSend, Math.toIntExact(unreadCount));
+        fcmService.sendNotification(deviceByMemberId, notificationSend, unreadCount);
     }
 
     private NotificationSend getNotificationSendByDetails(NotificationDetails details) {
