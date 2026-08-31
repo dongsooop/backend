@@ -4,7 +4,9 @@ import com.dongsoop.dongsoop.calendar.dto.HomeSchedule;
 import com.dongsoop.dongsoop.calendar.repository.MemberScheduleRepository;
 import com.dongsoop.dongsoop.calendar.repository.OfficialScheduleRepository;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
+import com.dongsoop.dongsoop.eclass.service.EclassAssignmentService;
 import com.dongsoop.dongsoop.home.dto.HomeDto;
+import com.dongsoop.dongsoop.home.dto.HomeEclassSummary;
 import com.dongsoop.dongsoop.home.exception.HomeAsyncException;
 import com.dongsoop.dongsoop.notice.dto.HomeNotice;
 import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
@@ -44,12 +46,13 @@ public class HomeServiceImpl implements HomeService {
     private final MemberScheduleRepository memberScheduleRepository;
     private final NoticeRepository noticeRepository;
     private final RecruitmentRepository recruitmentRepository;
+    private final EclassAssignmentService eclassAssignmentService;
 
     @Value("${home.async.timeout.seconds:3}")
     private int TIMEOUT_SECONDS;
 
     @Override
-    public HomeDto getHome(Long requesterId, DepartmentType departmentType) {
+    public HomeDto getHome(Long requesterId, DepartmentType departmentType, String fid, String deviceToken) {
         LocalDate today = LocalDate.now();
         Year year = Year.now();
         int month = today.getMonthValue();
@@ -65,10 +68,12 @@ public class HomeServiceImpl implements HomeService {
         CompletableFuture<List<HomeNotice>> fNotices = call(() -> noticeRepository.searchHomeNotices(departmentType));
         CompletableFuture<List<HomeRecruitment>> fRecruitments = call(
                 () -> recruitmentRepository.searchHomeRecruitment(departmentType.name()));
+        CompletableFuture<HomeEclassSummary> fEclass = call(
+                () -> eclassAssignmentService.getHomeSummary(requesterId, fid, deviceToken));
 
         // 모든 Future 완료 대기
         CompletableFuture.allOf(
-                fTimetable, fMemberSchedules, fOfficialSchedules, fNotices, fRecruitments
+                fTimetable, fMemberSchedules, fOfficialSchedules, fNotices, fRecruitments, fEclass
         ).join();
 
         // 결과 조합
@@ -79,8 +84,9 @@ public class HomeServiceImpl implements HomeService {
                 .toList();
         List<HomeNotice> notices = fNotices.join();
         List<HomeRecruitment> popularRecruitments = fRecruitments.join();
+        HomeEclassSummary eclassSummary = fEclass.join();
 
-        return new HomeDto(timetable, schedules, notices, popularRecruitments);
+        return new HomeDto(timetable, schedules, notices, popularRecruitments, eclassSummary);
     }
 
     /**
@@ -93,7 +99,7 @@ public class HomeServiceImpl implements HomeService {
      * (다학과 미지원 — 필요하면 별도 확장). 구독이 0개면 학과 필터 없는 무인자 쿼리로 폴백한다.
      */
     @Override
-    public HomeDto getHome(Set<DepartmentType> departmentTypes) {
+    public HomeDto getHome(Set<DepartmentType> departmentTypes, String fid, String deviceToken) {
         LocalDate today = LocalDate.now();
 
         CompletableFuture<List<HomeSchedule>> fOfficialSchedules = call(
@@ -103,10 +109,12 @@ public class HomeServiceImpl implements HomeService {
                 ? call(recruitmentRepository::searchHomeRecruitment)
                 : call(() -> recruitmentRepository.searchHomeRecruitment(
                         departmentTypes.iterator().next().name()));
+        CompletableFuture<HomeEclassSummary> fEclass = call(
+                () -> eclassAssignmentService.getHomeSummary(fid, deviceToken));
 
         // 모든 Future 완료 대기
         CompletableFuture.allOf(
-                fOfficialSchedules, fNotices, fRecruitments
+                fOfficialSchedules, fNotices, fRecruitments, fEclass
         ).join();
 
         // 결과 조합
@@ -115,8 +123,9 @@ public class HomeServiceImpl implements HomeService {
                 .toList();
         List<HomeNotice> notices = fNotices.join();
         List<HomeRecruitment> popularRecruitments = fRecruitments.join();
+        HomeEclassSummary eclassSummary = fEclass.join();
 
-        return new HomeDto(Collections.emptyList(), schedules, notices, popularRecruitments);
+        return new HomeDto(Collections.emptyList(), schedules, notices, popularRecruitments, eclassSummary);
     }
 
     private <T> CompletableFuture<T> call(Supplier<T> supplier) {

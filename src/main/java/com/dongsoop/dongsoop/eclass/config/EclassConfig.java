@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.eclass.config;
 
-import java.time.Clock;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,10 +22,5 @@ public class EclassConfig {
         factory.setConnectTimeout(connectTimeout);
         factory.setReadTimeout(readTimeout);
         return new RestTemplate(factory);
-    }
-
-    @Bean
-    public Clock clock() {
-        return Clock.systemDefaultZone();
     }
 }
