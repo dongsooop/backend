@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.notification.service;
 
-import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.dto.NotificationList;
 import com.dongsoop.dongsoop.notification.dto.NotificationOverview;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
@@ -17,12 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
-    private final FCMService fcmService;
-    private final MemberDeviceService memberDeviceService;
+    private final NotificationBadgeService notificationBadgeService;
 
     @Override
     public NotificationOverview getNotifications(Pageable pageable, Long memberId) {
-        long unreadCount = notificationRepository.findUnreadCountByMemberId(memberId);
+        long unreadCount = notificationBadgeService.resolveByMemberId(memberId);
         List<NotificationList> notificationLists = notificationRepository.getMemberNotifications(memberId, pageable);
 
         return new NotificationOverview(notificationLists, unreadCount);
@@ -47,10 +45,7 @@ public class NotificationServiceImpl implements NotificationService {
 
         memberNotification.read();
 
-        int unreadCountByMemberId = notificationRepository.findUnreadCountByMemberId(memberId);
-        List<String> devices = memberDeviceService.getDeviceByMemberId(memberId);
-
-        fcmService.updateNotificationBadge(devices, unreadCountByMemberId);
+        notificationBadgeService.pushBadge(memberId);
     }
 
     /**
@@ -63,8 +58,6 @@ public class NotificationServiceImpl implements NotificationService {
     public void readAll(Long memberId) {
         notificationRepository.updateAllAsRead(memberId);
 
-        List<String> devices = memberDeviceService.getDeviceByMemberId(memberId);
-        int unreadCountByMemberId = notificationRepository.findUnreadCountByMemberId(memberId);
-        fcmService.updateNotificationBadge(devices, unreadCountByMemberId);
+        notificationBadgeService.pushBadge(memberId);
     }
 }

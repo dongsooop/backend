@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.memberdevice.repository;
 
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.QMember;
+import com.dongsoop.dongsoop.memberdevice.dto.DeviceSubscription;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
@@ -19,6 +20,7 @@ import com.querydsl.jpa.impl.JPADeleteClause;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import io.micrometer.common.util.StringUtils;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -67,7 +69,7 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     }
 
     @Override
-    public List<MemberDevice> searchDevicesByDepartment(DepartmentType departmentType) {
+    public List<MemberDevice> searchDevicesByDepartments(Collection<DepartmentType> departmentTypes) {
         boolean isEnabledDefault = NotificationType.NOTICE.getDefaultActiveState();
 
         return queryFactory.selectFrom(memberDevice)
@@ -78,9 +80,23 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
                 .on(deviceNoticePreference.id.device.id.eq(memberDevice.id))
                 .where(memberDevice.deviceToken.isNotNull()
                         .and(isNotWebDevice())
-                        .and(departmentPreferenceEq(departmentType))
+                        .and(departmentPreferenceIn(departmentTypes))
                         .and(isEnableNotificationDevice(isEnabledDefault)))
                 .distinct()
+                .fetch();
+    }
+
+    @Override
+    public List<DeviceSubscription> findSubscriptionsByDeviceIds(Collection<Long> deviceIds) {
+        if (deviceIds.isEmpty()) {
+            return List.of();
+        }
+
+        return queryFactory.select(Projections.constructor(DeviceSubscription.class,
+                        deviceNoticePreference.id.device.id,
+                        deviceNoticePreference.id.department.id))
+                .from(deviceNoticePreference)
+                .where(deviceNoticePreference.id.device.id.in(deviceIds))
                 .fetch();
     }
 
@@ -131,12 +147,15 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     /**
      * 대학 공지(DEPT_1001)는 학과 구독 여부와 무관하게 전체 기기가 대상이므로 조건을 걸지 않는다.
      */
-    private BooleanExpression departmentPreferenceEq(DepartmentType departmentType) {
-        if (departmentType.isAllDepartment()) {
+    private BooleanExpression departmentPreferenceIn(Collection<DepartmentType> departmentTypes) {
+        boolean hasAllDepartment = departmentTypes.stream()
+                .anyMatch(DepartmentType::isAllDepartment);
+
+        if (hasAllDepartment) {
             return null;
         }
 
-        return deviceNoticePreference.id.department.id.eq(departmentType);
+        return deviceNoticePreference.id.department.id.in(departmentTypes);
     }
 
     @Override

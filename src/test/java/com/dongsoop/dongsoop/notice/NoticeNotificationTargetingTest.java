@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.notice;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -12,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.memberdevice.dto.DeviceSubscription;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
@@ -98,6 +100,20 @@ class NoticeNotificationTargetingTest {
         return device;
     }
 
+    /**
+     * 기기 조회는 대상 학과 전체를 한 번에 받고, 학과별 분배는 구독 쌍으로 이뤄진다.
+     * 대학 공지는 구독 쌍이 없어도 전체 기기가 대상이므로 subscriptions 를 비워 둔다.
+     */
+    private void givenDevices(List<MemberDevice> devices, DeviceSubscription... subscriptions) {
+        given(memberDeviceRepository.searchDevicesByDepartments(anyCollection())).willReturn(devices);
+        given(memberDeviceRepository.findSubscriptionsByDeviceIds(anyCollection()))
+                .willReturn(List.of(subscriptions));
+    }
+
+    private DeviceSubscription subscribe(MemberDevice device, DepartmentType departmentType) {
+        return new DeviceSubscription(device.getId(), departmentType);
+    }
+
     @Test
     @DisplayName("device_notice_preference를 구독한 회원 기기는 알림함 저장 및 발송 대상이 된다")
     void member_device_with_preference_receives_notice() {
@@ -106,8 +122,7 @@ class NoticeNotificationTargetingTest {
         Member member = buildMember(1L, DepartmentType.DEPT_2001);
         MemberDevice device = buildDevice("member-token", member);
 
-        given(memberDeviceRepository.searchDevicesByDepartment(DepartmentType.DEPT_2001))
-                .willReturn(List.of(device));
+        givenDevices(List.of(device), subscribe(device, DepartmentType.DEPT_2001));
         given(noticeKeywordService.loadFilter(anyList())).willReturn(new NoticeKeywordFilter(Map.of()));
         given(notificationSaveService.saveAll(anyList(), any(), any(), any(), any())).willReturn(List.of());
 
@@ -126,8 +141,7 @@ class NoticeNotificationTargetingTest {
 
         // Member.department == DEPT_2001 이지만 device_notice_preference 행이 없으므로
         // searchDevicesByDepartment 쿼리 결과에 포함되지 않는다 (레포지토리가 구독 여부로만 필터링)
-        given(memberDeviceRepository.searchDevicesByDepartment(DepartmentType.DEPT_2001))
-                .willReturn(List.of());
+        givenDevices(List.of());
         given(noticeKeywordService.loadFilter(anyList())).willReturn(new NoticeKeywordFilter(Map.of()));
         given(notificationSaveService.saveAll(anyList(), any(), any(), any(), any())).willReturn(List.of());
 
@@ -146,8 +160,7 @@ class NoticeNotificationTargetingTest {
 
         MemberDevice guest = buildDevice("guest-token", null);
 
-        given(memberDeviceRepository.searchDevicesByDepartment(DepartmentType.DEPT_2001))
-                .willReturn(List.of(guest));
+        givenDevices(List.of(guest), subscribe(guest, DepartmentType.DEPT_2001));
         given(noticeKeywordService.loadFilter(anyList())).willReturn(new NoticeKeywordFilter(Map.of()));
         given(notificationSaveService.saveAll(anyList(), any(), any(), any(), any())).willReturn(List.of());
 
@@ -165,8 +178,9 @@ class NoticeNotificationTargetingTest {
         MemberDevice memberDevice = buildDevice("member-token", member);
         MemberDevice guestDevice = buildDevice("guest-token", null);
 
-        given(memberDeviceRepository.searchDevicesByDepartment(DepartmentType.DEPT_2001))
-                .willReturn(List.of(memberDevice, guestDevice));
+        givenDevices(List.of(memberDevice, guestDevice),
+                subscribe(memberDevice, DepartmentType.DEPT_2001),
+                subscribe(guestDevice, DepartmentType.DEPT_2001));
         given(noticeKeywordService.loadFilter(anyList())).willReturn(new NoticeKeywordFilter(Map.of()));
         given(notificationSaveService.saveAll(anyList(), any(), any(), any(), any())).willReturn(List.of());
 
@@ -188,8 +202,7 @@ class NoticeNotificationTargetingTest {
         MemberDevice memberDevice = buildDevice("member-token", member);
         MemberDevice guestDevice = buildDevice("guest-token", null);
 
-        given(memberDeviceRepository.searchDevicesByDepartment(DepartmentType.DEPT_1001))
-                .willReturn(List.of(memberDevice, guestDevice));
+        givenDevices(List.of(memberDevice, guestDevice));
         given(noticeKeywordService.loadFilter(anyList())).willReturn(new NoticeKeywordFilter(Map.of()));
         given(notificationSaveService.saveAll(anyList(), any(), any(), any(), any())).willReturn(List.of());
 
@@ -210,8 +223,7 @@ class NoticeNotificationTargetingTest {
 
         // 레포지토리가 isNotWebDevice()/NOTICE 알림 설정 조건으로 이미 걸러내므로
         // searchDevicesByDepartment는 빈 목록을 반환한다
-        given(memberDeviceRepository.searchDevicesByDepartment(DepartmentType.DEPT_2001))
-                .willReturn(List.of());
+        givenDevices(List.of());
         given(noticeKeywordService.loadFilter(anyList())).willReturn(new NoticeKeywordFilter(Map.of()));
         given(notificationSaveService.saveAll(anyList(), any(), any(), any(), any())).willReturn(List.of());
 
@@ -235,10 +247,9 @@ class NoticeNotificationTargetingTest {
         MemberDevice csDevice = buildDevice("cs-token", member);
         MemberDevice aiDevice = buildDevice("ai-token", member);
 
-        given(memberDeviceRepository.searchDevicesByDepartment(DepartmentType.DEPT_2001))
-                .willReturn(List.of(csDevice));
-        given(memberDeviceRepository.searchDevicesByDepartment(DepartmentType.DEPT_2002))
-                .willReturn(List.of(aiDevice));
+        givenDevices(List.of(csDevice, aiDevice),
+                subscribe(csDevice, DepartmentType.DEPT_2001),
+                subscribe(aiDevice, DepartmentType.DEPT_2002));
         given(noticeKeywordService.loadFilter(anyList())).willReturn(new NoticeKeywordFilter(Map.of()));
         given(notificationSaveService.saveAll(anyList(), any(), any(), any(), any())).willReturn(List.of());
 
@@ -261,8 +272,9 @@ class NoticeNotificationTargetingTest {
                 .<MemberDevice>mapToObj(i -> buildDevice("guest-token-" + i, null))
                 .toList();
 
-        given(memberDeviceRepository.searchDevicesByDepartment(DepartmentType.DEPT_2001))
-                .willReturn(guests);
+        givenDevices(guests, guests.stream()
+                .map(guest -> subscribe(guest, DepartmentType.DEPT_2001))
+                .toArray(DeviceSubscription[]::new));
         given(noticeKeywordService.loadFilter(anyList())).willReturn(new NoticeKeywordFilter(Map.of()));
         given(notificationSaveService.saveAll(anyList(), any(), any(), any(), any())).willReturn(List.of());
 
