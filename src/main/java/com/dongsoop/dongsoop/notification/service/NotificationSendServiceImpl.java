@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.notification.service;
 
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.dto.NotificationSend;
@@ -38,13 +39,53 @@ public class NotificationSendServiceImpl implements NotificationSendService {
                 .distinct()
                 .toList();
 
-        // 저장된 알림 -> Map 변환 (key: 알림 상세, value: 알림 대상 회원 ID 리스트)
-        Map<NotificationDetails, List<Long>> memberByNotification = listToMap(
-                memberNotificationList);
-
         // 발송 전체 대상의 디바이스 토큰
         MemberDeviceFindCondition condition = new MemberDeviceFindCondition(memberIds, notificationType);
         Map<Long, List<String>> memberIdDevices = memberDeviceService.getDeviceByMember(condition);
+
+        dispatch(memberNotificationList, memberIds, memberIdDevices);
+    }
+
+    /**
+     * 전달받은 디바이스에만 복합 알림 전송
+     *
+     * <p>{@link #sendAll}과 달리 회원의 디바이스를 다시 조회하지 않는다. 호출자가 학과 구독이나
+     * 기기별 키워드 같은 디바이스 단위 조건으로 이미 대상을 추려둔 경우, 여기서 재조회하면
+     * 그 조건이 풀려 걸러낸 기기까지 발송된다.
+     *
+     * @param memberNotificationList 저장된 알림 리스트
+     * @param targetDevices          발송 대상 디바이스 (회원 소유가 아닌 기기는 무시한다)
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public void sendAllToDevices(List<MemberNotification> memberNotificationList, List<MemberDevice> targetDevices) {
+        // 알림을 보낼 대상 회원들
+        List<Long> memberIds = memberNotificationList.stream()
+                .map(notification -> notification.getId().getMember().getId())
+                .distinct()
+                .toList();
+
+        // 전달받은 디바이스를 회원별로 묶는다 (회원 소유가 아닌 기기는 알림함이 없으므로 제외)
+        Map<Long, List<String>> memberIdDevices = targetDevices.stream()
+                .filter(device -> device.getMember() != null)
+                .collect(Collectors.groupingBy(
+                        device -> device.getMember().getId(),
+                        Collectors.mapping(MemberDevice::getDeviceToken, Collectors.toList())));
+
+        dispatch(memberNotificationList, memberIds, memberIdDevices);
+    }
+
+    /**
+     * 회원별 디바이스 토큰이 정해진 뒤의 공통 발송 절차.
+     *
+     * @param memberNotificationList 저장된 알림 리스트
+     * @param memberIds              알림 대상 회원 ID
+     * @param memberIdDevices        회원 ID별 발송 대상 디바이스 토큰
+     */
+    private void dispatch(List<MemberNotification> memberNotificationList, List<Long> memberIds,
+                          Map<Long, List<String>> memberIdDevices) {
+        // 저장된 알림 -> Map 변환 (key: 알림 상세, value: 알림 대상 회원 ID 리스트)
+        Map<NotificationDetails, List<Long>> memberByNotification = listToMap(memberNotificationList);
 
         // 발송 전체 대상의 회원별 읽지 않은 알림 개수
         List<NotificationUnread> unreadCount = notificationRepository.findUnreadCountByMemberIds(memberIds);

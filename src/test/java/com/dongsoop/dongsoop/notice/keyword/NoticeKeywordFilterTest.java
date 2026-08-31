@@ -2,11 +2,9 @@ package com.dongsoop.dongsoop.notice.keyword;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.dongsoop.dongsoop.department.entity.Department;
-import com.dongsoop.dongsoop.department.entity.DepartmentType;
-import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
-import com.dongsoop.dongsoop.member.entity.Member;
-import com.dongsoop.dongsoop.member.repository.MemberRepository;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
+import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.notice.keyword.entity.NoticeKeyword;
 import com.dongsoop.dongsoop.notice.keyword.entity.NoticeKeywordType;
 import com.dongsoop.dongsoop.notice.keyword.repository.NoticeKeywordRepository;
@@ -33,10 +31,7 @@ public class NoticeKeywordFilterTest {
     private NoticeKeywordService noticeKeywordService;
 
     @Autowired
-    private MemberRepository memberRepository;
-
-    @Autowired
-    private DepartmentRepository departmentRepository;
+    private MemberDeviceRepository memberDeviceRepository;
 
     @Autowired
     private NoticeKeywordRepository noticeKeywordRepository;
@@ -50,96 +45,106 @@ public class NoticeKeywordFilterTest {
     @MockitoBean
     private RestaurantSearchRepository restaurantSearchRepository;
 
-    private Member memberNoKeyword;      // 키워드 없음 → 항상 수신
-    private Member memberIncludeOnly;    // INCLUDE "장학" → 장학 포함 공지만 수신
-    private Member memberExcludeOnly;    // EXCLUDE "휴강" → 휴강 포함 공지 제외
-    private Member memberBoth;           // INCLUDE "장학" + EXCLUDE "긴급"
+    private MemberDevice deviceNoKeyword;      // 키워드 없음 → 항상 수신
+    private MemberDevice deviceIncludeOnly;    // INCLUDE "장학" → 장학 포함 공지만 수신
+    private MemberDevice deviceExcludeOnly;    // EXCLUDE "휴강" → 휴강 포함 공지 제외
+    private MemberDevice deviceBoth;           // INCLUDE "장학" + EXCLUDE "긴급"
+
+    /**
+     * 키워드는 기기 단위이므로 회원 바인딩 없이도 성립한다. 여기서는 member 를 붙이지 않은
+     * 기기(= 비회원이거나 로그아웃한 기기)로 검증해, 회원 여부와 무관하게 필터가 도는 것까지 함께 확인한다.
+     */
+    private MemberDevice saveDevice(String suffix) {
+        return memberDeviceRepository.save(MemberDevice.builder()
+                .deviceToken("token-" + suffix)
+                .fid("fid-" + suffix)
+                .memberDeviceType(MemberDeviceType.ANDROID)
+                .build());
+    }
+
+    /** 테스트마다 대상 기기가 다르므로 그 목록으로 필터를 만들어 바로 적용한다. */
+    private List<MemberDevice> filter(List<MemberDevice> devices, String noticeTitle) {
+        return noticeKeywordService.loadFilter(devices).apply(devices, noticeTitle);
+    }
 
     @BeforeEach
     void setup() {
-        Department department = departmentRepository.save(
-                new Department(DepartmentType.DEPT_2001, "테스트학과", null));
+        deviceNoKeyword = saveDevice("no-keyword");
+        deviceIncludeOnly = saveDevice("include");
+        deviceExcludeOnly = saveDevice("exclude");
+        deviceBoth = saveDevice("both");
 
-        memberNoKeyword = memberRepository.save(
-                new Member(null, "no-keyword@dongyang.ac.kr", "키워드없음", "password", null, department));
-        memberIncludeOnly = memberRepository.save(
-                new Member(null, "include@dongyang.ac.kr", "포함키워드", "password", null, department));
-        memberExcludeOnly = memberRepository.save(
-                new Member(null, "exclude@dongyang.ac.kr", "제외키워드", "password", null, department));
-        memberBoth = memberRepository.save(
-                new Member(null, "both@dongyang.ac.kr", "혼합키워드", "password", null, department));
-
-        noticeKeywordRepository.save(new NoticeKeyword(memberIncludeOnly, "장학", NoticeKeywordType.INCLUDE));
-        noticeKeywordRepository.save(new NoticeKeyword(memberExcludeOnly, "휴강", NoticeKeywordType.EXCLUDE));
-        noticeKeywordRepository.save(new NoticeKeyword(memberBoth, "장학", NoticeKeywordType.INCLUDE));
-        noticeKeywordRepository.save(new NoticeKeyword(memberBoth, "긴급", NoticeKeywordType.EXCLUDE));
+        noticeKeywordRepository.save(new NoticeKeyword(deviceIncludeOnly, "장학", NoticeKeywordType.INCLUDE));
+        noticeKeywordRepository.save(new NoticeKeyword(deviceExcludeOnly, "휴강", NoticeKeywordType.EXCLUDE));
+        noticeKeywordRepository.save(new NoticeKeyword(deviceBoth, "장학", NoticeKeywordType.INCLUDE));
+        noticeKeywordRepository.save(new NoticeKeyword(deviceBoth, "긴급", NoticeKeywordType.EXCLUDE));
     }
 
     @Test
-    @DisplayName("키워드가 없는 회원은 모든 공지에 대해 알림을 받는다")
+    @DisplayName("키워드가 없는 기기는 모든 공지에 대해 알림을 받는다")
     void noKeyword_AlwaysReceives() {
-        List<Member> all = List.of(memberNoKeyword, memberIncludeOnly, memberExcludeOnly, memberBoth);
+        List<MemberDevice> all = List.of(deviceNoKeyword, deviceIncludeOnly, deviceExcludeOnly, deviceBoth);
 
-        List<Member> result = noticeKeywordService.filterMembersByKeyword(all, "수강신청 일정 안내");
+        List<MemberDevice> result = filter(all, "수강신청 일정 안내");
 
-        assertThat(result).contains(memberNoKeyword);
+        assertThat(result).contains(deviceNoKeyword);
     }
 
     @Test
-    @DisplayName("INCLUDE 키워드가 있는 회원은 제목에 키워드가 포함된 공지만 받는다")
+    @DisplayName("INCLUDE 키워드가 있는 기기는 제목에 키워드가 포함된 공지만 받는다")
     void includeKeyword_ReceivesOnlyMatching() {
-        List<Member> all = List.of(memberNoKeyword, memberIncludeOnly);
+        List<MemberDevice> all = List.of(deviceNoKeyword, deviceIncludeOnly);
 
-        List<Member> matchResult = noticeKeywordService.filterMembersByKeyword(all, "2025 장학생 모집 안내");
-        assertThat(matchResult).contains(memberIncludeOnly);
+        List<MemberDevice> matchResult = filter(all, "2025 장학생 모집 안내");
+        assertThat(matchResult).contains(deviceIncludeOnly);
 
-        List<Member> noMatchResult = noticeKeywordService.filterMembersByKeyword(all, "수강신청 일정 안내");
-        assertThat(noMatchResult).doesNotContain(memberIncludeOnly);
+        List<MemberDevice> noMatchResult = filter(all, "수강신청 일정 안내");
+        assertThat(noMatchResult).doesNotContain(deviceIncludeOnly);
     }
 
     @Test
-    @DisplayName("EXCLUDE 키워드가 있는 회원은 제목에 키워드가 포함된 공지를 받지 않는다")
+    @DisplayName("EXCLUDE 키워드가 있는 기기는 제목에 키워드가 포함된 공지를 받지 않는다")
     void excludeKeyword_FiltersOutMatching() {
-        List<Member> all = List.of(memberNoKeyword, memberExcludeOnly);
+        List<MemberDevice> all = List.of(deviceNoKeyword, deviceExcludeOnly);
 
-        List<Member> excludedResult = noticeKeywordService.filterMembersByKeyword(all, "3주차 강의 휴강 안내");
-        assertThat(excludedResult).doesNotContain(memberExcludeOnly);
+        List<MemberDevice> excludedResult = filter(all, "3주차 강의 휴강 안내");
+        assertThat(excludedResult).doesNotContain(deviceExcludeOnly);
 
-        List<Member> receivedResult = noticeKeywordService.filterMembersByKeyword(all, "장학생 선발 공고");
-        assertThat(receivedResult).contains(memberExcludeOnly);
+        List<MemberDevice> receivedResult = filter(all, "장학생 선발 공고");
+        assertThat(receivedResult).contains(deviceExcludeOnly);
     }
 
     @Test
     @DisplayName("INCLUDE와 EXCLUDE 모두 있는 경우 INCLUDE 매칭 AND EXCLUDE 미매칭일 때만 수신한다")
     void bothKeywords_ReceivesOnlyWhenIncludeMatchesAndExcludeDoesNot() {
-        List<Member> all = List.of(memberBoth);
+        List<MemberDevice> all = List.of(deviceBoth);
 
         // INCLUDE "장학" 매칭, EXCLUDE "긴급" 미매칭 → 수신
-        List<Member> shouldReceive = noticeKeywordService.filterMembersByKeyword(all, "2025 장학생 모집");
-        assertThat(shouldReceive).contains(memberBoth);
+        List<MemberDevice> shouldReceive = filter(all, "2025 장학생 모집");
+        assertThat(shouldReceive).contains(deviceBoth);
 
         // INCLUDE "장학" 매칭, EXCLUDE "긴급" 매칭 → 미수신
-        List<Member> excludedByBoth = noticeKeywordService.filterMembersByKeyword(all, "긴급 장학 공지");
-        assertThat(excludedByBoth).doesNotContain(memberBoth);
+        List<MemberDevice> excludedByBoth = filter(all, "긴급 장학 공지");
+        assertThat(excludedByBoth).doesNotContain(deviceBoth);
 
         // INCLUDE 미매칭 → 미수신
-        List<Member> noIncludeMatch = noticeKeywordService.filterMembersByKeyword(all, "수강신청 일정 안내");
-        assertThat(noIncludeMatch).doesNotContain(memberBoth);
+        List<MemberDevice> noIncludeMatch = filter(all, "수강신청 일정 안내");
+        assertThat(noIncludeMatch).doesNotContain(deviceBoth);
     }
 
     @Test
     @DisplayName("대소문자를 구분하지 않고 키워드를 매칭한다")
     void keywordMatching_IsCaseInsensitive() {
-        List<Member> all = List.of(memberIncludeOnly);
+        List<MemberDevice> all = List.of(deviceIncludeOnly);
 
-        List<Member> upperResult = noticeKeywordService.filterMembersByKeyword(all, "SCHOLARSHIP 장학 안내");
-        assertThat(upperResult).contains(memberIncludeOnly);
+        List<MemberDevice> upperResult = filter(all, "SCHOLARSHIP 장학 안내");
+        assertThat(upperResult).contains(deviceIncludeOnly);
     }
 
     @Test
-    @DisplayName("대상 회원이 없으면 빈 목록을 반환한다")
-    void emptyMembers_ReturnsEmptyList() {
-        List<Member> result = noticeKeywordService.filterMembersByKeyword(List.of(), "장학 공지");
+    @DisplayName("대상 기기가 없으면 빈 목록을 반환한다")
+    void emptyDevices_ReturnsEmptyList() {
+        List<MemberDevice> result = filter(List.of(), "장학 공지");
 
         assertThat(result).isEmpty();
     }

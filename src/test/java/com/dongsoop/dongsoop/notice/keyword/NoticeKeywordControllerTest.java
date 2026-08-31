@@ -69,7 +69,7 @@ class NoticeKeywordControllerTest {
     @Test
     @DisplayName("키워드 목록 조회 시 200과 목록을 반환한다")
     void getKeywords_ReturnsOkWithList() throws Exception {
-        given(noticeKeywordService.getKeywords()).willReturn(List.of(
+        given(noticeKeywordService.getKeywordsByMember()).willReturn(List.of(
                 new NoticeKeywordResponse(1L, "장학", NoticeKeywordType.INCLUDE),
                 new NoticeKeywordResponse(2L, "휴강", NoticeKeywordType.EXCLUDE)
         ));
@@ -87,7 +87,7 @@ class NoticeKeywordControllerTest {
     @Test
     @DisplayName("키워드가 없으면 빈 목록을 반환한다")
     void getKeywords_ReturnsEmptyList() throws Exception {
-        given(noticeKeywordService.getKeywords()).willReturn(List.of());
+        given(noticeKeywordService.getKeywordsByMember()).willReturn(List.of());
 
         mockMvc.perform(get("/notice/keywords"))
                 .andExpect(status().isOk())
@@ -100,7 +100,7 @@ class NoticeKeywordControllerTest {
         NoticeKeywordRequest request = new NoticeKeywordRequest("장학", NoticeKeywordType.INCLUDE);
         NoticeKeywordResponse response = new NoticeKeywordResponse(1L, "장학", NoticeKeywordType.INCLUDE);
 
-        given(noticeKeywordService.addKeyword(request)).willReturn(response);
+        given(noticeKeywordService.addKeywordByMember(request)).willReturn(response);
 
         mockMvc.perform(post("/notice/keywords")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -149,7 +149,7 @@ class NoticeKeywordControllerTest {
     void addKeyword_WithDuplicateKeyword_ReturnsConflict() throws Exception {
         NoticeKeywordRequest request = new NoticeKeywordRequest("장학", NoticeKeywordType.INCLUDE);
 
-        given(noticeKeywordService.addKeyword(request))
+        given(noticeKeywordService.addKeywordByMember(request))
                 .willThrow(new DuplicateNoticeKeywordException("장학"));
 
         mockMvc.perform(post("/notice/keywords")
@@ -161,7 +161,7 @@ class NoticeKeywordControllerTest {
     @Test
     @DisplayName("키워드 삭제 성공 시 204를 반환한다")
     void deleteKeyword_WhenExists_ReturnsNoContent() throws Exception {
-        willDoNothing().given(noticeKeywordService).deleteKeyword(1L);
+        willDoNothing().given(noticeKeywordService).deleteKeywordByMember(1L);
 
         mockMvc.perform(delete("/notice/keywords/1"))
                 .andExpect(status().isNoContent());
@@ -171,7 +171,7 @@ class NoticeKeywordControllerTest {
     @DisplayName("존재하지 않는 키워드 삭제 시 404를 반환한다")
     void deleteKeyword_WhenNotFound_ReturnsNotFound() throws Exception {
         willThrow(new NoticeKeywordNotFoundException(999L))
-                .given(noticeKeywordService).deleteKeyword(999L);
+                .given(noticeKeywordService).deleteKeywordByMember(999L);
 
         mockMvc.perform(delete("/notice/keywords/999"))
                 .andExpect(status().isNotFound());

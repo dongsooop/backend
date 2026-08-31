@@ -30,6 +30,7 @@ authentication:
       /error,
       /ws/**,
       /notice/**,
+      /v2/notice/**,
       /timetable/**,
       /token/reissue,
       /search/**,

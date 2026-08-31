@@ -1,17 +1,19 @@
 package com.dongsoop.dongsoop.notice.notification;
 
 import com.dongsoop.dongsoop.department.entity.Department;
+import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.notice.entity.Notice;
+import com.dongsoop.dongsoop.notice.keyword.service.NoticeKeywordFilter;
 import com.dongsoop.dongsoop.notice.keyword.service.NoticeKeywordService;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.service.NotificationSaveService;
 import com.dongsoop.dongsoop.notification.service.NotificationSendService;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -51,32 +53,37 @@ public class NoticeNotificationImpl implements NoticeNotification {
             return;
         }
 
-        // 공지별로 device_notice_preference 구독 기기를 한 번만 조회해 회원/비회원 발송에 공유한다
-        Map<Notice, List<MemberDevice>> devicesByNotice = new LinkedHashMap<>();
+        // device_notice_preference 구독 기기는 학과가 같으면 결과도 같다.
+        // 한 학과에서 신규 공지가 여러 건 나오는 게 보통이므로 학과당 한 번만 조회한다
+        Map<DepartmentType, List<MemberDevice>> devicesByDepartment = new HashMap<>();
         for (Notice notice : noticeDetailSet) {
-            devicesByNotice.put(notice, memberDeviceRepository.searchDevicesByDepartment(notice.getDepartment().getId()));
+            devicesByDepartment.computeIfAbsent(notice.getDepartment().getId(),
+                    memberDeviceRepository::searchDevicesByDepartment);
         }
 
-        // 공지 알림 저장 후 알림 리스트 반환
-        List<MemberNotification> memberNotificationList = saveMemberNotification(devicesByNotice);
-
-        // 공지별 메시지 변환 후 전송
-        notificationSendService.sendAll(memberNotificationList, NotificationType.NOTICE);
-
-        // 비회원 발송: 알림함을 남기지 않고 푸시만 보낸다
-        devicesByNotice.forEach(this::sendToGuests);
-    }
-
-    /**
-     * 공지사항 알림을 DB에 저장
-     *
-     * @param devicesByNotice 공지별 구독 기기(회원+비회원) 목록
-     */
-    private List<MemberNotification> saveMemberNotification(Map<Notice, List<MemberDevice>> devicesByNotice) {
-        return devicesByNotice.entrySet().stream()
-                .map(entry -> save(entry.getKey(), entry.getValue()))
+        // 키워드 설정도 대상 기기 전체에 대해 한 번만 읽어 공지마다 재사용한다
+        List<MemberDevice> allDevices = devicesByDepartment.values().stream()
                 .flatMap(List::stream)
                 .toList();
+        NoticeKeywordFilter keywordFilter = noticeKeywordService.loadFilter(allDevices);
+
+        // 공지마다 대상 기기가 다르므로 저장-발송은 공지 단위로 묶는다.
+        // 여러 공지의 기기를 합쳐서 회원 단위로 발송하면 A 공지 알림이 B 공지만 구독한 기기로 가고,
+        // 같은 기기가 여러 공지를 통과했을 때 토큰이 중복되어 푸시가 여러 번 간다
+        for (Notice notice : noticeDetailSet) {
+            // 기기별 키워드로 걸러 회원/비회원 발송이 같은 기준을 쓰게 한다
+            List<MemberDevice> subscribedDevices = devicesByDepartment.get(notice.getDepartment().getId());
+            List<MemberDevice> allowedDevices = keywordFilter.apply(subscribedDevices,
+                    notice.getNoticeDetails().getTitle());
+
+            // 공지 알림 저장 후, 키워드를 통과한 기기에만 전송한다.
+            // 회원의 전체 기기를 다시 조회하는 sendAll 을 쓰면 걸러낸 기기까지 발송된다
+            List<MemberNotification> memberNotificationList = save(notice, allowedDevices);
+            notificationSendService.sendAllToDevices(memberNotificationList, allowedDevices);
+
+            // 비회원 발송: 알림함을 남기지 않고 푸시만 보낸다
+            sendToGuests(notice, allowedDevices);
+        }
     }
 
     /**
@@ -84,9 +91,10 @@ public class NoticeNotificationImpl implements NoticeNotification {
      *
      * <p>device_notice_preference로 해당 학과를 구독한 기기 중 회원 소유 기기만 대상으로 한다.
      * 한 회원이 여러 기기로 구독했더라도 알림함/배지는 회원 단위로 한 번만 생성된다.
+     * 따라서 한 기기라도 키워드를 통과했으면 그 회원의 알림함에는 남는다.
      *
      * @param notice            공지사항
-     * @param subscribedDevices 해당 학과를 구독한 전체 기기 (회원+비회원)
+     * @param subscribedDevices 키워드 조건을 통과한 구독 기기 (회원+비회원)
      * @return 공지 알림 리스트
      */
     private List<MemberNotification> save(Notice notice, List<MemberDevice> subscribedDevices) {
@@ -103,9 +111,8 @@ public class NoticeNotificationImpl implements NoticeNotification {
                 .distinct()
                 .toList();
 
-        List<Member> filteredList = noticeKeywordService.filterMembersByKeyword(targetList, body);
         String noticeLink = universityDomain + notice.getNoticeDetails().getLink();
-        return notificationSaveService.saveAll(filteredList, title, body, NotificationType.NOTICE, noticeLink);
+        return notificationSaveService.saveAll(targetList, title, body, NotificationType.NOTICE, noticeLink);
     }
 
     private String generateTitle(String departmentName) {
@@ -119,7 +126,7 @@ public class NoticeNotificationImpl implements NoticeNotification {
      * 회원 발송이 이미 끝난 뒤 호출되므로, 여기서 발생한 예외가 회원 발송에 영향을 주지 않도록 삼킨다.
      *
      * @param notice            공지사항
-     * @param subscribedDevices 해당 학과를 구독한 전체 기기 (회원+비회원)
+     * @param subscribedDevices 키워드 조건을 통과한 구독 기기 (회원+비회원)
      */
     private void sendToGuests(Notice notice, List<MemberDevice> subscribedDevices) {
         try {
