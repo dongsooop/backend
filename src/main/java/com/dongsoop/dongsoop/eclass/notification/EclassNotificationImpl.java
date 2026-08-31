@@ -53,9 +53,10 @@ public class EclassNotificationImpl implements EclassNotification {
     }
 
     @Override
-    public void sendDueDateChanged(EclassAssignment assignment) {
-        MemberDevice device = assignment.getLink()
-                .getDevice();
+    public void sendDueDateChanged(EclassLink link, EclassAssignment assignment) {
+        // 수집은 트랜잭션 밖에서 돌기 때문에 assignment.getLink()는 초기화되지 않은 프록시다.
+        // 호출자가 이미 들고 있는 링크를 그대로 받는다
+        MemberDevice device = link.getDevice();
 
         String title = EclassReminderMessage.dueDateChangedTitle(assignment.getCourseName(), courseNameMaxLength);
         String body = EclassReminderMessage.body(assignment.getTitle(), assignment.getDueAt());

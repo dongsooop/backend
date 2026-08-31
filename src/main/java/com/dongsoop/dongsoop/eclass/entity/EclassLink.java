@@ -63,8 +63,6 @@ public class EclassLink extends BaseEntity {
     @Column(name = "last_synced_at")
     private LocalDateTime lastSyncedAt;
 
-    @Column(name = "token_valid_until")
-    private LocalDateTime tokenValidUntil;
 
     @Column(name = "relink_requested_at")
     private LocalDateTime relinkRequestedAt;
@@ -106,10 +104,6 @@ public class EclassLink extends BaseEntity {
         this.status = EclassLinkStatus.EXPIRED;
     }
 
-    public void markRelinkRequested(LocalDateTime now) {
-        this.relinkRequestedAt = now;
-    }
-
     public void markSynced(LocalDateTime now) {
         this.lastSyncedAt = now;
     }
@@ -140,10 +134,4 @@ public class EclassLink extends BaseEntity {
         return this.lastManualSyncAt != null && this.lastManualSyncAt.plus(cooldown).isAfter(now);
     }
 
-    public boolean needsPreemptiveRelink(LocalDateTime now, int noticeDays) {
-        return this.status == EclassLinkStatus.ACTIVE
-                && this.tokenValidUntil != null
-                && this.relinkRequestedAt == null
-                && this.tokenValidUntil.minusDays(noticeDays).isBefore(now);
-    }
 }

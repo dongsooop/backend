@@ -17,6 +17,7 @@ import com.dongsoop.dongsoop.eclass.service.EclassAssignmentServiceImpl;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
+import com.dongsoop.dongsoop.eclass.service.EclassDeviceAccessor;
 import com.dongsoop.dongsoop.memberdevice.service.NoticePreferenceDeviceResolver;
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -59,7 +60,8 @@ class EclassAssignmentAccessTest {
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(NOW.toInstant(ZoneOffset.ofHours(9)), ZoneId.of("Asia/Seoul"));
-        assignmentService = new EclassAssignmentServiceImpl(deviceResolver, memberService, linkRepository,
+        EclassDeviceAccessor deviceAccessor = new EclassDeviceAccessor(deviceResolver, memberService);
+        assignmentService = new EclassAssignmentServiceImpl(deviceAccessor, linkRepository,
                 assignmentRepository, clock);
         ReflectionTestUtils.setField(assignmentService, "baseUrl", "https://eclass.test");
     }
@@ -137,6 +139,17 @@ class EclassAssignmentAccessTest {
 
         assignmentService.getHomeSummary(OTHER_ID, "fid-1", null);
 
+        verify(assignmentRepository, never()).countUpcomingByDevice(anyLong(), any());
+    }
+
+    @Test
+    @DisplayName("비회원 홈 요약도 남의 기기 식별자로는 과제를 내주지 않는다")
+    void anonymousHomeSummaryIgnoresMemberDevice() {
+        Member owner = Member.builder().id(OWNER_ID).build();
+        givenLinkedDevice(deviceOf(owner));
+        when(memberService.getMemberIdByAuthentication()).thenThrow(new NotAuthenticationException());
+
+        assertThat(assignmentService.getHomeSummary("fid-1", null).linked()).isFalse();
         verify(assignmentRepository, never()).countUpcomingByDevice(anyLong(), any());
     }
 }

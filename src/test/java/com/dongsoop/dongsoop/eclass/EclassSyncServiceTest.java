@@ -75,7 +75,6 @@ class EclassSyncServiceTest {
         ReflectionTestUtils.setField(syncService, "requestDelayMs", 0L);
         ReflectionTestUtils.setField(syncService, "abortFailureRatio", 0.5);
         ReflectionTestUtils.setField(syncService, "relinkTimeoutHours", 24L);
-        ReflectionTestUtils.setField(syncService, "tokenExpiryNoticeDays", 3);
 
         MemberDevice device = MemberDevice.builder()
                 .id(1L)
@@ -261,31 +260,7 @@ class EclassSyncServiceTest {
         verify(eclassNotification, never()).sendExpiredNotice(any());
     }
 
-    @Test
-    @DisplayName("토큰 만료가 임박하면 미리 재발급을 지시한다")
-    void requestsPreemptiveRelink() {
-        ReflectionTestUtils.setField(link, "tokenValidUntil", NOW.plusDays(2));
-        when(linkRepository.findAllByStatus(EclassLinkStatus.ACTIVE)).thenReturn(List.of(link));
-        when(linkRepository.findAllByStatus(EclassLinkStatus.EXPIRED)).thenReturn(List.of());
-        when(eclassClient.getAssignments(anyString())).thenReturn(List.of());
 
-        syncService.syncAll();
-
-        verify(eclassNotification).sendRelinkSilent(link);
-        assertThat(link.getRelinkRequestedAt()).isEqualTo(NOW);
-    }
-
-    @Test
-    @DisplayName("만료 시각 정보가 없으면 선제 재발급을 보내지 않는다")
-    void skipsPreemptiveRelinkWithoutExpiry() {
-        when(linkRepository.findAllByStatus(EclassLinkStatus.ACTIVE)).thenReturn(List.of(link));
-        when(linkRepository.findAllByStatus(EclassLinkStatus.EXPIRED)).thenReturn(List.of());
-        when(eclassClient.getAssignments(anyString())).thenReturn(List.of());
-
-        syncService.syncAll();
-
-        verify(eclassNotification, never()).sendRelinkSilent(any());
-    }
 
     @Test
     @DisplayName("연동 성공 시 마지막 수집 시각을 남긴다")
@@ -322,7 +297,7 @@ class EclassSyncServiceTest {
 
         syncService.syncLink(link);
 
-        verify(eclassNotification).sendDueDateChanged(existing);
+        verify(eclassNotification).sendDueDateChanged(link, existing);
         assertThat(existing.getDueAt()).isEqualTo(NOW.plusDays(2));
     }
 
@@ -337,7 +312,7 @@ class EclassSyncServiceTest {
 
         syncService.syncLink(link);
 
-        verify(eclassNotification, never()).sendDueDateChanged(any());
+        verify(eclassNotification, never()).sendDueDateChanged(any(), any());
     }
 
     @Test
@@ -351,7 +326,7 @@ class EclassSyncServiceTest {
 
         syncService.syncLink(link);
 
-        verify(eclassNotification, never()).sendDueDateChanged(any());
+        verify(eclassNotification, never()).sendDueDateChanged(any(), any());
     }
 
     @Test
@@ -365,7 +340,7 @@ class EclassSyncServiceTest {
 
         syncService.syncLink(link);
 
-        verify(eclassNotification, never()).sendDueDateChanged(any());
+        verify(eclassNotification, never()).sendDueDateChanged(any(), any());
     }
 
     @Test
@@ -376,7 +351,7 @@ class EclassSyncServiceTest {
 
         syncService.syncLink(link);
 
-        verify(eclassNotification, never()).sendDueDateChanged(any());
+        verify(eclassNotification, never()).sendDueDateChanged(any(), any());
     }
 
     @Test
@@ -404,5 +379,17 @@ class EclassSyncServiceTest {
         EclassAssignment saved = capturedSaved().get(0);
         assertThat(saved.getCourseName()).hasSize(255);
         assertThat(saved.getTitle()).hasSize(255);
+    }
+
+    @Test
+    @DisplayName("제출 조회 중 토큰이 만료돼도 그때까지 모은 과제는 저장한다")
+    void savesPartialResultWhenTokenExpiresMidway() {
+        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(901L, NOW.plusDays(2))));
+        when(eclassClient.isSubmitted(anyString(), anyLong())).thenThrow(new EclassInvalidTokenException());
+
+        SyncOutcome outcome = syncService.syncLink(link);
+
+        assertThat(outcome).isEqualTo(SyncOutcome.TOKEN_EXPIRED);
+        assertThat(capturedSaved()).extracting(EclassAssignment::getAssignId).containsExactly(901L);
     }
 }

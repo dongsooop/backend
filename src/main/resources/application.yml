@@ -32,7 +32,6 @@ eclass:
     abort-failure-ratio: 0.5
     manual-cooldown-seconds: 60
     relink-timeout-hours: 24
-    token-expiry-notice-days: 3
   reminder:
     cron: "0 0 8 * * *"
     days-before: 3,1,0

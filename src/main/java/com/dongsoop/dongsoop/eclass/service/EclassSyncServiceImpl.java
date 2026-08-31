@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 /**
@@ -75,8 +76,6 @@ public class EclassSyncServiceImpl implements EclassSyncService {
     @Value("${eclass.sync.relink-timeout-hours}")
     private long relinkTimeoutHours;
 
-    @Value("${eclass.sync.token-expiry-notice-days}")
-    private int tokenExpiryNoticeDays;
 
     @Override
     public SyncOutcome syncLink(EclassLink link) {
@@ -122,6 +121,9 @@ public class EclassSyncServiceImpl implements EclassSyncService {
                 try {
                     updateSubmission(token, assignment, now);
                 } catch (EclassInvalidTokenException exception) {
+                    // 여기까지 모은 변경은 버리지 않는다 — 재연동 전까지 되찾을 방법이 없다
+                    toSave.add(assignment);
+                    assignmentRepository.saveAll(toSave);
                     expireLink(link, now);
                     return SyncOutcome.TOKEN_EXPIRED;
                 }
@@ -139,12 +141,21 @@ public class EclassSyncServiceImpl implements EclassSyncService {
                     toSave.add(assignment);
                 });
 
-        assignmentRepository.saveAll(toSave);
+        // 연동 직후 첫 수집과 정기 수집이 겹치면 같은 과제를 양쪽에서 새로 만들어
+        // (eclass_link_id, assign_id) 유니크 제약에 걸린다. 먼저 끝난 쪽이 이미 저장했으므로
+        // 이번 회차만 실패로 접고 다음 주기에 맞춘다
+        try {
+            assignmentRepository.saveAll(toSave);
+        } catch (DataIntegrityViolationException exception) {
+            log.warn("eclass sync collided with a concurrent run. linkId: {}", link.getId());
+            return SyncOutcome.FAILED;
+        }
+
         link.markSynced(now);
         linkRepository.save(link);
 
         // 저장이 끝난 뒤에 알린다 — 발송이 실패해도 수집 결과는 남는다
-        dueDateAdvanced.forEach(this::notifyDueDateAdvanced);
+        dueDateAdvanced.forEach(assignment -> notifyDueDateAdvanced(link, assignment));
 
         return SyncOutcome.SYNCED;
     }
@@ -157,7 +168,6 @@ public class EclassSyncServiceImpl implements EclassSyncService {
         }
 
         promoteOverdueRelinks();
-        requestPreemptiveRelinks();
     }
 
     private void syncConcurrently(List<EclassLink> links) {
@@ -238,20 +248,6 @@ public class EclassSyncServiceImpl implements EclassSyncService {
                 });
     }
 
-    /**
-     * 토큰 만료가 예고된 연동은 만료 전에 미리 재발급을 지시해 수집 공백을 없앤다.
-     */
-    private void requestPreemptiveRelinks() {
-        LocalDateTime now = LocalDateTime.now(clock);
-
-        linkRepository.findAllByStatus(EclassLinkStatus.ACTIVE).stream()
-                .filter(link -> link.needsPreemptiveRelink(now, tokenExpiryNoticeDays))
-                .forEach(link -> {
-                    eclassNotification.sendRelinkSilent(link);
-                    link.markRelinkRequested(now);
-                    linkRepository.save(link);
-                });
-    }
 
     private EclassAssignment merge(EclassLink link, EclassAssignment existing, MoodleAssignment fetched) {
         LocalDateTime dueAt = toLocalDateTime(fetched.dueDate());
@@ -267,13 +263,6 @@ public class EclassSyncServiceImpl implements EclassSyncService {
     }
 
     /**
-     * 마감이 앞당겨졌는지 판단한다.
-     *
-     * <p>미뤄진 마감은 리마인드 단계가 초기화돼 새 일정으로 다시 알림이 나가므로 따로 알릴 필요가 없다.
-     * 반대로 앞당겨진 마감은 사용자가 알던 날짜보다 급해졌고, 이미 지나버린 경우에는 리마인드 대상에서
-     * 아예 빠지기 때문에 여기서 알리지 않으면 사용자가 끝까지 모른 채 지나간다.
-     */
-    /**
      * 제출 여부는 리마인드가 나가는 기간에 든 과제만 확인한다.
      *
      * <p>마감이 3주 남은 과제의 제출 여부는 지금 알아도 쓸 데가 없는 반면, 과제 1건마다 이클래스 호출이
@@ -284,15 +273,22 @@ public class EclassSyncServiceImpl implements EclassSyncService {
                 && !assignment.getDueAt().isAfter(now.plusDays(submissionCheckDays));
     }
 
+    /**
+     * 마감이 앞당겨졌는지 판단한다.
+     *
+     * <p>미뤄진 마감은 리마인드 단계가 초기화돼 새 일정으로 다시 알림이 나가므로 따로 알릴 필요가 없다.
+     * 반대로 앞당겨진 마감은 사용자가 알던 날짜보다 급해졌고, 이미 지나버린 경우에는 리마인드 대상에서
+     * 아예 빠지기 때문에 여기서 알리지 않으면 사용자가 끝까지 모른 채 지나간다.
+     */
     private boolean isDueDateAdvanced(LocalDateTime previousDueAt, EclassAssignment merged) {
         return previousDueAt != null
                 && merged.getDueAt().isBefore(previousDueAt)
                 && !merged.isSubmitted();
     }
 
-    private void notifyDueDateAdvanced(EclassAssignment assignment) {
+    private void notifyDueDateAdvanced(EclassLink link, EclassAssignment assignment) {
         try {
-            eclassNotification.sendDueDateChanged(assignment);
+            eclassNotification.sendDueDateChanged(link, assignment);
         } catch (RuntimeException exception) {
             log.warn("failed to send due date change notice. assignId: {}", assignment.getAssignId(), exception);
         }

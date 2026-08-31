@@ -51,12 +51,31 @@ public class EclassReminderScheduler {
                 continue;
             }
 
-            eclassNotification.sendReminder(assignment, remainingDays);
+            if (!send(assignment, remainingDays)) {
+                continue;
+            }
+
             assignment.markReminded(remainingDays);
             sent++;
         }
 
         assignmentRepository.saveAll(targets);
         log.info("eclass reminder ended. targets: {}, sent: {}", targets.size(), sent);
+    }
+
+    /**
+     * 발송 실패 한 건이 그날 리마인드 전체를 되돌리지 않게 삼킨다.
+     *
+     * <p>여기서 예외가 올라가면 트랜잭션이 말리면서 이미 보낸 과제의 발송 기록까지 사라져,
+     * 다음 날 같은 알림이 다시 나간다.
+     */
+    private boolean send(EclassAssignment assignment, int remainingDays) {
+        try {
+            eclassNotification.sendReminder(assignment, remainingDays);
+            return true;
+        } catch (RuntimeException exception) {
+            log.warn("failed to send eclass reminder. assignId: {}", assignment.getAssignId(), exception);
+            return false;
+        }
     }
 }

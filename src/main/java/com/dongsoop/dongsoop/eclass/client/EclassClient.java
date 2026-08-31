@@ -12,7 +12,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -37,8 +36,9 @@ public class EclassClient {
     private static final String INVALID_TOKEN_CODE = "invalidtoken";
     private static final String SUBMITTED_STATUS = "submitted";
 
-    @Qualifier("eclassRestTemplate")
-    private final RestTemplate restTemplate;
+    // 필드명이 곧 빈 이름이다 — Lombok 생성자에는 @Qualifier가 복사되지 않아
+    // 이름이 다르면 공용 restTemplate(읽기 4초)이 주입된다
+    private final RestTemplate eclassRestTemplate;
 
     private final ObjectMapper objectMapper;
 
@@ -85,7 +85,7 @@ public class EclassClient {
 
         String body;
         try {
-            body = restTemplate.postForObject(baseUrl + WS_PATH, new HttpEntity<>(form, headers), String.class);
+            body = eclassRestTemplate.postForObject(baseUrl + WS_PATH, new HttpEntity<>(form, headers), String.class);
         } catch (RestClientException exception) {
             throw new EclassApiException(function, exception);
         }

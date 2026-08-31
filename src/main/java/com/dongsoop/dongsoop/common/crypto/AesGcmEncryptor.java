@@ -53,6 +53,9 @@ public class AesGcmEncryptor {
     public String decrypt(String encoded) {
         try {
             byte[] in = Base64.getDecoder().decode(encoded);
+            if (in.length <= IV_LENGTH) {
+                throw new IllegalStateException("decrypt failed: ciphertext too short");
+            }
 
             Cipher cipher = Cipher.getInstance(TRANSFORMATION);
             cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(TAG_LENGTH_BITS, in, 0, IV_LENGTH));
