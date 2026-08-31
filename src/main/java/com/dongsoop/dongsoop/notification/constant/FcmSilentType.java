@@ -9,5 +9,8 @@ package com.dongsoop.dongsoop.notification.constant;
 public enum FcmSilentType {
 
     /** 특정 기기를 강제 로그아웃 처리하도록 앱에 지시한다. */
-    FORCE_LOGOUT
+    FORCE_LOGOUT,
+
+    /** 이클래스 토큰이 무효해졌으니 재발급 후 다시 연동하도록 앱에 지시한다. */
+    ECLASS_RELINK
 }
