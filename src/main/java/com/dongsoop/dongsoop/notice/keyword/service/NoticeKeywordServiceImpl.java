@@ -14,6 +14,7 @@ import com.dongsoop.dongsoop.notice.keyword.repository.NoticeKeywordRepository;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -105,14 +106,24 @@ public class NoticeKeywordServiceImpl implements NoticeKeywordService {
     }
 
     private NoticeKeywordResponse addKeywordTo(List<MemberDevice> devices, NoticeKeywordRequest request) {
-        boolean duplicated = devices.stream()
-                .anyMatch(device -> noticeKeywordRepository.existsByDeviceIdAndKeywordAndType(
-                        device.getId(), request.keyword(), request.type()));
-        if (duplicated) {
+        List<Long> deviceIds = toDeviceIds(devices);
+
+        // 요청한 (keyword, type) 을 이미 가진 기기
+        Set<Long> registeredDeviceIds = noticeKeywordRepository.findAllByDeviceIdIn(deviceIds).stream()
+                .filter(keyword -> keyword.getKeyword().equals(request.keyword())
+                        && keyword.getType() == request.type())
+                .map(keyword -> keyword.getDevice().getId())
+                .collect(Collectors.toSet());
+
+        // 대상 기기 전체에 이미 있을 때만 중복이다.
+        // 일부 기기에만 있는 상태(키워드를 등록한 뒤에 기기를 새로 등록한 경우)는
+        // 중복으로 막지 않고 빠진 기기를 채워 회원의 기기 전체가 같은 설정을 갖게 한다
+        if (registeredDeviceIds.size() == deviceIds.size()) {
             throw new DuplicateNoticeKeywordException(request.keyword());
         }
 
         List<NoticeKeyword> keywords = devices.stream()
+                .filter(device -> !registeredDeviceIds.contains(device.getId()))
                 .map(device -> new NoticeKeyword(device, request.keyword(), request.type()))
                 .toList();
         noticeKeywordRepository.saveAll(keywords);

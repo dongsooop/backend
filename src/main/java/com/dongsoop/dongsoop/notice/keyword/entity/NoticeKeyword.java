@@ -7,7 +7,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -30,11 +29,8 @@ public class NoticeKeyword extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "notice_keyword_sequence_generator")
     private Long id;
 
-    // 기기 정리 스케줄러는 member_device 를 벌크 삭제하므로, DB 레벨에서 함께 지워지지 않으면 FK 위반으로 정리가 통째로 롤백된다
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_device_id", nullable = false, foreignKey = @ForeignKey(
-            name = "fk_notice_keyword_member_device",
-            foreignKeyDefinition = "FOREIGN KEY (member_device_id) REFERENCES member_device (id) ON DELETE CASCADE"))
+    @JoinColumn(name = "member_device_id", nullable = false)
     private MemberDevice device;
 
     @Column(name = "keyword", length = 20, nullable = false)
