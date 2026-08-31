@@ -16,6 +16,7 @@ public class NotificationSetting {
     @Getter
     private NotificationSettingId id;
 
+    @Getter
     @Column(nullable = false)
     private Boolean enabled;
 
