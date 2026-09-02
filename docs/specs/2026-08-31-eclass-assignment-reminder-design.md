@@ -66,7 +66,7 @@
 | `member_device_id` | FK member_device, unique | 기기 (1:1) |
 | `moodle_user_id` | BIGINT | 이클래스 사용자 ID (site_info.userid) |
 | `moodle_fullname` | VARCHAR(50) | 연동 확인 화면 표시용 |
-| `token_encrypted` | VARCHAR(512) | AES-256-GCM 암호문(IV 포함, Base64) |
+| `token_encrypted` | VARCHAR(512) | AES-256-GCM 암호문(IV 포함, hex). 128자 남짓이라 여유가 있다 |
 | `status` | ENUM ACTIVE / EXPIRED | 만료 시 수집·발송 중단 |
 | `linked_at` | TIMESTAMP | 연동 시각 |
 | `last_synced_at` | TIMESTAMP nullable | 마지막 수집 성공 시각 |
@@ -151,7 +151,7 @@
   **자동 재발급(확정)**: 토큰 만료 시각은 발급 때 정해지고 서버가 늘릴 방법이 없으므로, "연장"은 곧 `login/token.php` 재호출이고 그 호출에는 비밀번호가 필요하다. 서버는 비밀번호를 갖지 않는다는 원칙을 지키기 위해 **앱이 기기 보안 저장소(iOS Keychain / Android Keystore)에 이클래스 아이디·비밀번호를 보관**하고, 서버가 보내는 사일런트 푸시 `ECLASS_RELINK`를 받으면 백그라운드에서 토큰을 재발급해 `POST /eclass/link`로 넘긴다. 사용자에게는 아무것도 보이지 않는다. 비밀번호가 바뀌어 재발급이 실패하면 앱은 보관한 비밀번호를 지우고, 서버는 24시간 뒤 보이는 알림으로 재입력을 안내한다.
   **선제 재발급은 넣지 않았다.** 만료 시각을 알 수 있는 API가 없어(`/user/managetoken.php`는 로그인 세션이 필요한 화면이다) 채울 값이 없고, 값이 없는 채로 코드만 두면 한 번도 돌지 않는 죽은 경로가 된다. 유효기간을 실측해 확인한 뒤 그때 넣는다. 그때까지는 만료를 감지한 뒤 재발급하는 아래 경로만으로 동작한다.
   **사일런트 푸시 전달 보장**: iOS는 백그라운드 푸시를 배터리·사용 패턴에 따라 지연하거나 버릴 수 있다. 그래서 앱은 푸시와 무관하게 **앱을 열 때마다 `GET /eclass/link`를 조회해 `status=EXPIRED`이면 스스로 재발급**한다. 사일런트 푸시는 빠른 경로일 뿐 유일한 경로가 아니다.
-- 저장: AES-256-GCM, 키는 환경변수 `ECLASS_TOKEN_KEY`(32바이트 Base64). 현재 레포에 암호화 유틸이 없으므로 `common/crypto/AesGcmEncryptor` 신설. 키 로테이션은 1차 범위 밖(필요 시 재연동 안내로 대체).
+- 저장: AES-256-GCM. **암호화를 직접 구현하지 않고** `spring-boot-starter-security`가 이미 끌고 오는 `spring-security-crypto`의 `Encryptors.delux(password, salt)`를 `TextEncryptor` 빈으로 등록해 쓴다(`EclassConfig`). password는 환경변수 `ECLASS_TOKEN_KEY`, salt는 비밀이 아니므로 설정 파일에 hex로 둔다. **salt를 바꾸면 저장된 토큰을 복호화할 수 없다** — 바꿔야 한다면 전원 재연동이 필요하다. 키 로테이션도 같은 이유로 1차 범위 밖이다(필요 시 재연동 안내로 대체).
 - 로그에 토큰·응답 전문을 남기지 않는다. 이클래스 호출 실패 로그는 함수명·errorcode만.
 - 응답 DTO에 토큰을 절대 포함하지 않는다.
 - 사용자는 이클래스 "보안키 관리"에서 언제든 토큰을 폐기할 수 있고, 그 경우 다음 수집에서 EXPIRED로 전환된다.
@@ -180,7 +180,7 @@
 | `reminder.cron` | `0 0 8 * * *` |
 | `reminder.days-before` | `[0, 1, 3]` |
 | `reminder.course-name-max-length` | 20 |
-| `token-key` | prod는 환경변수 `ECLASS_TOKEN_KEY`, 로컬·테스트는 프로필 파일의 고정값. 공유 `application.yml`에는 두지 않는다 |
+| `token-key` / `token-salt` | prod의 key는 환경변수 `ECLASS_TOKEN_KEY`, salt는 설정 파일. 로컬·테스트는 프로필 파일의 고정값. 공유 `application.yml`에는 두지 않는다 |
 
 ### 5.8 엣지 케이스
 
@@ -204,10 +204,10 @@
 ### 5.9 변경 파일 (예상)
 
 - `eclass/` 신규 패키지: `controller/EclassController`, `service/EclassLinkService`, `service/EclassSyncService`, `client/EclassClient` + 응답 DTO, `entity/EclassLink`, `entity/EclassAssignment`, `repository/*`, `scheduler/EclassSyncScheduler`, `scheduler/EclassReminderScheduler`, `notification/EclassNotification`, `exception/*`, `config/EclassProperties`
-- `common/crypto/AesGcmEncryptor` 신규
 - `notification/constant/NotificationType` — `ECLASS_ASSIGNMENT(true)` 추가
 - `notification/constant/FcmSilentType` — `ECLASS_RELINK` 추가 (기존 `FORCE_LOGOUT`과 같은 data-only 메시지, `FCMServiceImpl.sendSilentMessage` 재사용)
-- `application.yml`, `application-prod.yml` — `eclass.*`, 환경변수 키
+- `eclass/config/EclassConfig` — `eclassRestTemplate`, `eclassTokenEncryptor` 빈
+- `application.yml`, `application-local.yml`, `application-prod.yml` — `eclass.*`, 환경변수 키
 - 스키마는 `ddl-auto: update`로 생성. 백필 없음 → 마이그레이션 SQL 불필요
 
 ### 5.10 테스트 계획
@@ -220,7 +220,7 @@
 - 토큰 만료·재발급: invalidtoken → EXPIRED + 사일런트 푸시 1회 + `relink_requested_at` 기록, 24시간 내 재연동 시 보이는 알림 없음, 24시간 경과 시 보이는 알림 1회(두 번째 주기엔 없음), 재연동 시 ACTIVE 복귀 + 즉시 수집, 제출 조회 중 만료돼도 그때까지 모은 과제는 저장
 - 접근 권한: 남의 기기 식별자로 과제 조회·홈 요약·연동 조회·해제·재연동이 모두 막히고, 비회원 기기는 로그인 없이 자기 것을 다룰 수 있음
 - API: 미연동 시 빈 목록, 재연동 시 토큰 교체, 해제 시 과제 삭제, 수동 동기화 쿨다운, 같은 moodle_user_id 중복 연동 거절
-- 암호화: 왕복 일치, 키 없으면 기동 실패(설정 누락을 배포 시점에 잡기)
+- 암호화: 왕복 일치, 같은 원문이 매번 다른 암호문, 컬럼 길이 안에 들어감, 다른 키·잘린 암호문은 복호화 실패
 - 홈 요약: 미연동 기기는 `linked=false`, 연동됐지만 과제가 없으면 `linked=true`·`upcomingCount=0`
 
 ## 6. 진행 단계

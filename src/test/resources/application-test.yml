@@ -203,8 +203,9 @@ eclass:
   user-agent: "Mozilla/5.0 (Compatible; DongsoopEclass/1.0)"
   connect-timeout-ms: 5000
   read-timeout-ms: 15000
-  # 32바이트 Base64. 테스트 전용 값이다
-  token-key: ZG9uZ3Nvb3AtbG9jYWwtZWNsYXNzLWtleS0zMmJ5dGU=
+  # 로컬·테스트 전용 값이며 프로덕션에서는 절대 사용하지 않는다
+  token-key: dongsoop-local-eclass-token-key
+  token-salt: 5250c5f6fa27b366
   sync:
     cron: "0 30 6,12,18 * * *"
     window-past-days: 1

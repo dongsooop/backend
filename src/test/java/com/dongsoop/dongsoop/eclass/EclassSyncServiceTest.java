@@ -11,7 +11,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.dongsoop.dongsoop.common.crypto.AesGcmEncryptor;
 import com.dongsoop.dongsoop.eclass.client.EclassClient;
 import com.dongsoop.dongsoop.eclass.client.dto.MoodleAssignment;
 import com.dongsoop.dongsoop.eclass.entity.EclassAssignment;
@@ -40,6 +39,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.security.crypto.encrypt.TextEncryptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -56,7 +56,7 @@ class EclassSyncServiceTest {
     @Mock
     private EclassClient eclassClient;
     @Mock
-    private AesGcmEncryptor encryptor;
+    private TextEncryptor eclassTokenEncryptor;
     @Mock
     private EclassNotification eclassNotification;
 
@@ -66,7 +66,7 @@ class EclassSyncServiceTest {
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(NOW.toInstant(ZoneOffset.ofHours(9)), ZONE);
-        syncService = new EclassSyncServiceImpl(linkRepository, assignmentRepository, eclassClient, encryptor,
+        syncService = new EclassSyncServiceImpl(linkRepository, assignmentRepository, eclassClient, eclassTokenEncryptor,
                 eclassNotification, clock);
         ReflectionTestUtils.setField(syncService, "windowPastDays", 1);
         ReflectionTestUtils.setField(syncService, "windowFutureDays", 30);
@@ -83,7 +83,7 @@ class EclassSyncServiceTest {
         link = new EclassLink(device, 14077L, "백승민", "encrypted", NOW.minusDays(1));
         ReflectionTestUtils.setField(link, "id", 10L);
 
-        when(encryptor.decrypt("encrypted")).thenReturn("moodle-token");
+        when(eclassTokenEncryptor.decrypt("encrypted")).thenReturn("moodle-token");
         when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of());
     }
 

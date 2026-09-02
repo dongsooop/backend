@@ -205,5 +205,6 @@ appcheck:
   ignore-path: /ws/**,/web-app-check
 
 eclass:
-  # 32바이트 Base64. 로컬 전용 값이며 프로덕션에서는 절대 사용하지 않는다
-  token-key: ZG9uZ3Nvb3AtbG9jYWwtZWNsYXNzLWtleS0zMmJ5dGU=
+  # 로컬·테스트 전용 값이며 프로덕션에서는 절대 사용하지 않는다
+  token-key: dongsoop-local-eclass-token-key
+  token-salt: 5250c5f6fa27b366

@@ -8,7 +8,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.dongsoop.dongsoop.common.crypto.AesGcmEncryptor;
 import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.eclass.client.EclassClient;
 import com.dongsoop.dongsoop.eclass.entity.EclassLink;
@@ -35,6 +34,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.security.crypto.encrypt.TextEncryptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /**
@@ -60,7 +60,7 @@ class EclassLinkAccessTest {
     @Mock
     private EclassClient eclassClient;
     @Mock
-    private AesGcmEncryptor encryptor;
+    private TextEncryptor eclassTokenEncryptor;
     @Mock
     private EclassSyncService syncService;
 
@@ -72,7 +72,7 @@ class EclassLinkAccessTest {
         Clock clock = Clock.fixed(NOW.toInstant(ZoneOffset.ofHours(9)), ZoneId.of("Asia/Seoul"));
         EclassDeviceAccessor deviceAccessor = new EclassDeviceAccessor(deviceResolver, memberService);
         linkService = new EclassLinkServiceImpl(deviceAccessor, linkRepository, assignmentRepository,
-                eclassClient, encryptor, syncService, clock);
+                eclassClient, eclassTokenEncryptor, syncService, clock);
         ReflectionTestUtils.setField(linkService, "manualCooldownSeconds", 60L);
 
         Member owner = Member.builder().id(OWNER_ID).build();

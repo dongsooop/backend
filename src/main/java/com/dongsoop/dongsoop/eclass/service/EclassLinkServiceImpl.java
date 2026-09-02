@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.eclass.service;
 
-import com.dongsoop.dongsoop.common.crypto.AesGcmEncryptor;
 import com.dongsoop.dongsoop.eclass.client.EclassClient;
 import com.dongsoop.dongsoop.eclass.client.dto.MoodleSiteInfoResponse;
 import com.dongsoop.dongsoop.eclass.dto.EclassLinkResponse;
@@ -18,6 +17,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.encrypt.TextEncryptor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,7 +30,7 @@ public class EclassLinkServiceImpl implements EclassLinkService {
     private final EclassLinkRepository linkRepository;
     private final EclassAssignmentRepository assignmentRepository;
     private final EclassClient eclassClient;
-    private final AesGcmEncryptor encryptor;
+    private final TextEncryptor eclassTokenEncryptor;
     private final EclassSyncService syncService;
     private final Clock clock;
 
@@ -65,7 +65,7 @@ public class EclassLinkServiceImpl implements EclassLinkService {
      * 끝날 때까지 DB 커넥션을 붙잡게 되고, 자기 호출이라 트랜잭션 애너테이션도 걸리지 않는다.
      */
     private EclassLink saveLink(MemberDevice device, String moodleToken, MoodleSiteInfoResponse info) {
-        String encrypted = encryptor.encrypt(moodleToken);
+        String encrypted = eclassTokenEncryptor.encrypt(moodleToken);
         LocalDateTime now = LocalDateTime.now(clock);
 
         EclassLink link = linkRepository.findByDeviceId(device.getId())

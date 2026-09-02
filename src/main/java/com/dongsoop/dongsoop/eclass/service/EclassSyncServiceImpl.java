@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.eclass.service;
 
-import com.dongsoop.dongsoop.common.crypto.AesGcmEncryptor;
 import com.dongsoop.dongsoop.eclass.client.EclassClient;
 import com.dongsoop.dongsoop.eclass.client.dto.MoodleAssignment;
 import com.dongsoop.dongsoop.eclass.entity.EclassAssignment;
@@ -30,6 +29,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.encrypt.TextEncryptor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -51,7 +51,7 @@ public class EclassSyncServiceImpl implements EclassSyncService {
     private final EclassLinkRepository linkRepository;
     private final EclassAssignmentRepository assignmentRepository;
     private final EclassClient eclassClient;
-    private final AesGcmEncryptor encryptor;
+    private final TextEncryptor eclassTokenEncryptor;
     private final EclassNotification eclassNotification;
     private final Clock clock;
 
@@ -80,7 +80,7 @@ public class EclassSyncServiceImpl implements EclassSyncService {
     @Override
     public SyncOutcome syncLink(EclassLink link) {
         LocalDateTime now = LocalDateTime.now(clock);
-        String token = encryptor.decrypt(link.getTokenEncrypted());
+        String token = eclassTokenEncryptor.decrypt(link.getTokenEncrypted());
 
         List<MoodleAssignment> fetched;
         try {
