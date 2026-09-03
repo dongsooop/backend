@@ -83,6 +83,19 @@ public class EclassClient {
         form.add("moodlewsrestformat", "json");
         args.forEach(form::add);
 
+        JsonNode node = parse(post(form, function), function);
+        if (node.has("exception")) {
+            String errorCode = node.path("errorcode").asText();
+            if (INVALID_TOKEN_CODE.equals(errorCode)) {
+                throw new EclassInvalidTokenException();
+            }
+            throw new EclassApiException(function, errorCode);
+        }
+
+        return node;
+    }
+
+    private String post(MultiValueMap<String, String> form, String function) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.set(HttpHeaders.USER_AGENT, userAgent);
@@ -98,22 +111,15 @@ public class EclassClient {
             throw new EclassApiException(function, "empty response");
         }
 
-        JsonNode node;
+        return body;
+    }
+
+    private JsonNode parse(String body, String function) {
         try {
-            node = objectMapper.readTree(body);
+            return objectMapper.readTree(body);
         } catch (JsonProcessingException exception) {
             throw new EclassApiException(function, exception);
         }
-
-        if (node.has("exception")) {
-            String errorCode = node.path("errorcode").asText();
-            if (INVALID_TOKEN_CODE.equals(errorCode)) {
-                throw new EclassInvalidTokenException();
-            }
-            throw new EclassApiException(function, errorCode);
-        }
-
-        return node;
     }
 
     private <T> T convert(JsonNode node, Class<T> type) {

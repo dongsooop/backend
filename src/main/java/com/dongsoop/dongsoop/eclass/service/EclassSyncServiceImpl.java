@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -93,53 +94,35 @@ public class EclassSyncServiceImpl implements EclassSyncService {
             return SyncOutcome.FAILED;
         }
 
-        LocalDateTime windowStart = now.minusDays(windowPastDays);
-        LocalDateTime windowEnd = now.plusDays(windowFutureDays);
-
-        Map<Long, MoodleAssignment> inWindow = fetched.stream()
-                .filter(assignment -> assignment.dueDate() > 0)
-                .filter(assignment -> isInWindow(toLocalDateTime(assignment.dueDate()), windowStart, windowEnd))
-                .collect(Collectors.toMap(MoodleAssignment::assignId, Function.identity(),
-                        (first, second) -> first, LinkedHashMap::new));
-
+        Map<Long, MoodleAssignment> inWindow = selectInWindow(fetched, now);
         Map<Long, EclassAssignment> existing = assignmentRepository.findAllByLinkId(link.getId()).stream()
                 .collect(Collectors.toMap(EclassAssignment::getAssignId, Function.identity(),
                         (first, second) -> first, LinkedHashMap::new));
 
         List<EclassAssignment> toSave = new ArrayList<>();
         List<EclassAssignment> dueDateAdvanced = new ArrayList<>();
-        for (MoodleAssignment fetchedAssignment : inWindow.values()) {
-            EclassAssignment existingAssignment = existing.get(fetchedAssignment.assignId());
-            LocalDateTime previousDueAt = existingAssignment == null ? null : existingAssignment.getDueAt();
-            EclassAssignment assignment = merge(link, existingAssignment, fetchedAssignment);
+        try {
+            for (MoodleAssignment fetchedAssignment : inWindow.values()) {
+                EclassAssignment existingAssignment = existing.get(fetchedAssignment.assignId());
+                LocalDateTime previousDueAt = existingAssignment == null ? null : existingAssignment.getDueAt();
+                EclassAssignment assignment = merge(link, existingAssignment, fetchedAssignment);
+                toSave.add(assignment);
 
-            if (isDueDateAdvanced(previousDueAt, assignment)) {
-                dueDateAdvanced.add(assignment);
-            }
-
-            if (needsSubmissionCheck(assignment, now)) {
-                try {
+                if (isDueDateAdvanced(previousDueAt, assignment)) {
+                    dueDateAdvanced.add(assignment);
+                }
+                if (needsSubmissionCheck(assignment, now)) {
                     updateSubmission(token, assignment);
-                } catch (EclassInvalidTokenException exception) {
-                    // 여기까지 모은 변경은 버리지 않는다 — 재연동 전까지 되찾을 방법이 없다
-                    toSave.add(assignment);
-                    assignmentRepository.saveAll(toSave);
-                    expireLink(link, now);
-                    return SyncOutcome.TOKEN_EXPIRED;
                 }
             }
-
-            toSave.add(assignment);
+        } catch (EclassInvalidTokenException exception) {
+            // 여기까지 모은 변경은 버리지 않는다 — 재연동 전까지 되찾을 방법이 없다
+            assignmentRepository.saveAll(toSave);
+            expireLink(link, now);
+            return SyncOutcome.TOKEN_EXPIRED;
         }
 
-        existing.values().stream()
-                .filter(assignment -> !inWindow.containsKey(assignment.getAssignId()))
-                .filter(assignment -> !assignment.isRemoved())
-                .filter(assignment -> isInWindow(assignment.getDueAt(), windowStart, windowEnd))
-                .forEach(assignment -> {
-                    assignment.markRemoved(now);
-                    toSave.add(assignment);
-                });
+        toSave.addAll(markRemoved(existing.values(), inWindow, now));
 
         // 연동 직후 첫 수집과 정기 수집이 겹치면 같은 과제를 양쪽에서 새로 만들어
         // (eclass_link_id, assign_id) 유니크 제약에 걸린다. 먼저 끝난 쪽이 이미 저장했으므로
@@ -250,6 +233,32 @@ public class EclassSyncServiceImpl implements EclassSyncService {
                 });
     }
 
+    /**
+     * 마감이 없는 과제(duedate=0)와 수집 창 밖의 과제는 걸러낸다.
+     */
+    private Map<Long, MoodleAssignment> selectInWindow(List<MoodleAssignment> fetched, LocalDateTime now) {
+        return fetched.stream()
+                .filter(assignment -> assignment.dueDate() > 0)
+                .filter(assignment -> isInWindow(toLocalDateTime(assignment.dueDate()), now))
+                .collect(Collectors.toMap(MoodleAssignment::assignId, Function.identity(),
+                        (first, second) -> first, LinkedHashMap::new));
+    }
+
+    /**
+     * 창 안에 있는데 이번 응답에서 사라진 과제는 교수가 지운 것으로 보고 삭제 표시한다.
+     */
+    private List<EclassAssignment> markRemoved(Collection<EclassAssignment> existing,
+                                               Map<Long, MoodleAssignment> inWindow, LocalDateTime now) {
+        List<EclassAssignment> removed = existing.stream()
+                .filter(assignment -> !inWindow.containsKey(assignment.getAssignId()))
+                .filter(assignment -> !assignment.isRemoved())
+                .filter(assignment -> isInWindow(assignment.getDueAt(), now))
+                .toList();
+        removed.forEach(assignment -> assignment.markRemoved(now));
+
+        return removed;
+    }
+
     private EclassAssignment merge(EclassLink link, EclassAssignment existing, MoodleAssignment fetched) {
         LocalDateTime dueAt = toLocalDateTime(fetched.dueDate());
         LocalDateTime cutoffAt = fetched.cutoffDate() > 0 ? toLocalDateTime(fetched.cutoffDate()) : null;
@@ -316,8 +325,8 @@ public class EclassSyncServiceImpl implements EclassSyncService {
         }
     }
 
-    private boolean isInWindow(LocalDateTime target, LocalDateTime start, LocalDateTime end) {
-        return !target.isBefore(start) && !target.isAfter(end);
+    private boolean isInWindow(LocalDateTime target, LocalDateTime now) {
+        return !target.isBefore(now.minusDays(windowPastDays)) && !target.isAfter(now.plusDays(windowFutureDays));
     }
 
     private LocalDateTime toLocalDateTime(long epochSecond) {

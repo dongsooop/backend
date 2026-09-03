@@ -84,7 +84,19 @@ class EclassSyncServiceTest {
         ReflectionTestUtils.setField(link, "id", 10L);
 
         when(eclassTokenEncryptor.decrypt("encrypted")).thenReturn("moodle-token");
-        when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of());
+        givenExisting();
+    }
+
+    private void givenFetched(MoodleAssignment... assignments) {
+        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(assignments));
+    }
+
+    private void givenExisting(EclassAssignment... assignments) {
+        when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(assignments));
+    }
+
+    private void givenSubmissionStatus(boolean submitted) {
+        when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(submitted);
     }
 
     private MoodleAssignment moodleAssignment(long assignId, LocalDateTime dueAt) {
@@ -107,12 +119,12 @@ class EclassSyncServiceTest {
     @DisplayName("수집 창 밖의 과제와 마감 없는 과제는 저장하지 않는다")
     void filtersOutOfWindow() {
         MoodleAssignment noDueDate = new MoodleAssignment(500L, 9500L, "자바", "마감 없는 과제", 0L, 0L);
-        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(
+        givenFetched(
                 noDueDate,
                 moodleAssignment(501L, NOW.minusDays(5)),
                 moodleAssignment(502L, NOW.plusDays(40)),
-                moodleAssignment(503L, NOW.plusDays(3))));
-        when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(false);
+                moodleAssignment(503L, NOW.plusDays(3)));
+        givenSubmissionStatus(false);
 
         SyncOutcome outcome = syncService.syncLink(link);
 
@@ -123,7 +135,7 @@ class EclassSyncServiceTest {
     @Test
     @DisplayName("제출한 과제는 submitted로 저장된다")
     void marksSubmitted() {
-        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
+        givenFetched(moodleAssignment(601L, NOW.plusDays(2)));
         when(eclassClient.isSubmitted("moodle-token", 601L)).thenReturn(true);
 
         syncService.syncLink(link);
@@ -136,8 +148,8 @@ class EclassSyncServiceTest {
     void skipsSubmissionCheckForSubmitted() {
         EclassAssignment submitted = existing(NOW.plusDays(2));
         submitted.markSubmitted();
-        when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(submitted));
-        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
+        givenExisting(submitted);
+        givenFetched(moodleAssignment(601L, NOW.plusDays(2)));
 
         syncService.syncLink(link);
 
@@ -148,8 +160,8 @@ class EclassSyncServiceTest {
     @DisplayName("응답에서 사라진 과제는 삭제로 표시한다")
     void marksRemoved() {
         EclassAssignment existing = existing(NOW.plusDays(2));
-        when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
-        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of());
+        givenExisting(existing);
+        givenFetched();
 
         syncService.syncLink(link);
 
@@ -161,10 +173,10 @@ class EclassSyncServiceTest {
     @Test
     @DisplayName("마감이 리마인드 창 밖이면 제출 여부를 묻지 않는다")
     void skipsSubmissionCheckOutsideReminderWindow() {
-        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(
+        givenFetched(
                 moodleAssignment(601L, NOW.plusDays(2)),
-                moodleAssignment(602L, NOW.plusDays(10))));
-        when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(false);
+                moodleAssignment(602L, NOW.plusDays(10)));
+        givenSubmissionStatus(false);
 
         syncService.syncLink(link);
 
@@ -200,9 +212,9 @@ class EclassSyncServiceTest {
     void resetsReminderStageOnDueDateChange() {
         EclassAssignment existing = existing(NOW.plusDays(2));
         existing.markReminded(1);
-        when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
-        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(9))));
-        when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(false);
+        givenExisting(existing);
+        givenFetched(moodleAssignment(601L, NOW.plusDays(9)));
+        givenSubmissionStatus(false);
 
         syncService.syncLink(link);
 
@@ -264,7 +276,7 @@ class EclassSyncServiceTest {
     @Test
     @DisplayName("연동 성공 시 마지막 수집 시각을 남긴다")
     void marksSyncedAt() {
-        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of());
+        givenFetched();
 
         syncService.syncLink(link);
 
@@ -276,8 +288,8 @@ class EclassSyncServiceTest {
     @DisplayName("Instant 변환은 서울 기준 시각을 쓴다")
     void convertsEpochInSeoul() {
         long epochSecond = Instant.parse("2026-09-03T14:55:00Z").getEpochSecond();
-        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(
-                new MoodleAssignment(701L, 9701L, "자료구조", "과제", epochSecond, 0L)));
+        givenFetched(
+                new MoodleAssignment(701L, 9701L, "자료구조", "과제", epochSecond, 0L));
         when(eclassClient.isSubmitted(anyString(), eq(701L))).thenReturn(false);
 
         syncService.syncLink(link);
@@ -289,9 +301,9 @@ class EclassSyncServiceTest {
     @DisplayName("마감이 앞당겨지면 변경 알림을 보낸다")
     void notifiesWhenDueDateAdvanced() {
         EclassAssignment existing = existing(NOW.plusDays(9));
-        when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
-        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
-        when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(false);
+        givenExisting(existing);
+        givenFetched(moodleAssignment(601L, NOW.plusDays(2)));
+        givenSubmissionStatus(false);
 
         syncService.syncLink(link);
 
@@ -303,9 +315,9 @@ class EclassSyncServiceTest {
     @DisplayName("마감이 미뤄지면 변경 알림을 보내지 않는다 — 리마인드가 새 일정으로 다시 나간다")
     void doesNotNotifyWhenDueDatePostponed() {
         EclassAssignment existing = existing(NOW.plusDays(2));
-        when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
-        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(9))));
-        when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(false);
+        givenExisting(existing);
+        givenFetched(moodleAssignment(601L, NOW.plusDays(9)));
+        givenSubmissionStatus(false);
 
         syncService.syncLink(link);
 
@@ -316,9 +328,9 @@ class EclassSyncServiceTest {
     @DisplayName("마감이 그대로면 변경 알림을 보내지 않는다")
     void doesNotNotifyWhenDueDateUnchanged() {
         EclassAssignment existing = existing(NOW.plusDays(2));
-        when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
-        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
-        when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(false);
+        givenExisting(existing);
+        givenFetched(moodleAssignment(601L, NOW.plusDays(2)));
+        givenSubmissionStatus(false);
 
         syncService.syncLink(link);
 
@@ -330,8 +342,8 @@ class EclassSyncServiceTest {
     void doesNotNotifySubmittedAssignment() {
         EclassAssignment existing = existing(NOW.plusDays(9));
         existing.markSubmitted();
-        when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
-        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
+        givenExisting(existing);
+        givenFetched(moodleAssignment(601L, NOW.plusDays(2)));
 
         syncService.syncLink(link);
 
@@ -341,8 +353,8 @@ class EclassSyncServiceTest {
     @Test
     @DisplayName("새로 들어온 과제는 변경 알림 대상이 아니다")
     void doesNotNotifyNewAssignment() {
-        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
-        when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(false);
+        givenFetched(moodleAssignment(601L, NOW.plusDays(2)));
+        givenSubmissionStatus(false);
 
         syncService.syncLink(link);
 
@@ -365,9 +377,9 @@ class EclassSyncServiceTest {
     void shortensOverlongText() {
         String longText = "가".repeat(300);
         long epochSecond = NOW.plusDays(2).toInstant(ZoneOffset.ofHours(9)).getEpochSecond();
-        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(
-                new MoodleAssignment(801L, 9801L, longText, longText, epochSecond, 0L)));
-        when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(false);
+        givenFetched(
+                new MoodleAssignment(801L, 9801L, longText, longText, epochSecond, 0L));
+        givenSubmissionStatus(false);
 
         syncService.syncLink(link);
 
@@ -379,7 +391,7 @@ class EclassSyncServiceTest {
     @Test
     @DisplayName("제출 조회 중 토큰이 만료돼도 그때까지 모은 과제는 저장한다")
     void savesPartialResultWhenTokenExpiresMidway() {
-        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(901L, NOW.plusDays(2))));
+        givenFetched(moodleAssignment(901L, NOW.plusDays(2)));
         when(eclassClient.isSubmitted(anyString(), anyLong())).thenThrow(new EclassInvalidTokenException());
 
         SyncOutcome outcome = syncService.syncLink(link);
@@ -392,9 +404,9 @@ class EclassSyncServiceTest {
     @DisplayName("같은 회차에 제출로 확인된 과제는 마감 변경을 알리지 않는다")
     void doesNotNotifyWhenSubmittedDuringSync() {
         EclassAssignment existing = existing(NOW.plusDays(9));
-        when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
-        when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
-        when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(true);
+        givenExisting(existing);
+        givenFetched(moodleAssignment(601L, NOW.plusDays(2)));
+        givenSubmissionStatus(true);
 
         syncService.syncLink(link);
 
