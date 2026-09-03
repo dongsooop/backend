@@ -13,6 +13,7 @@ import com.dongsoop.dongsoop.eclass.util.EclassClient;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.encrypt.TextEncryptor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -126,16 +128,16 @@ public class EclassSyncServiceImpl implements EclassSyncService {
 
         // 연동 직후 첫 수집과 정기 수집이 겹치면 같은 과제를 양쪽에서 새로 만들어
         // (eclass_link_id, assign_id) 유니크 제약에 걸린다. 먼저 끝난 쪽이 이미 저장했으므로
-        // 이번 회차만 실패로 접고 다음 주기에 맞춘다
+        // 이번 회차만 실패로 접고 다음 주기에 맞춘다. 수집 도중 연동이 해제되면 이미 지워진 행을
+        // 갱신하려다 낙관적 잠금 예외가 나는데, 되살릴 것이 없으므로 같은 방식으로 접는다
         try {
             assignmentRepository.saveAll(toSave);
-        } catch (DataIntegrityViolationException exception) {
-            log.warn("eclass sync collided with a concurrent run. linkId: {}", link.getId());
+            link.markSynced(now);
+            linkRepository.save(link);
+        } catch (DataIntegrityViolationException | OptimisticLockingFailureException exception) {
+            log.warn("eclass sync collided with a concurrent run or an unlink. linkId: {}", link.getId());
             return SyncOutcome.FAILED;
         }
-
-        link.markSynced(now);
-        linkRepository.save(link);
 
         // 저장이 끝난 뒤에 알린다 — 발송이 실패해도 수집 결과는 남는다
         dueDateAdvanced.stream()
@@ -325,8 +327,12 @@ public class EclassSyncServiceImpl implements EclassSyncService {
         }
     }
 
+    // 창은 날짜 단위다 — 30일째 되는 날 밤 마감 과제가 오전 수집에서 빠지지 않아야 한다
     private boolean isInWindow(LocalDateTime target, LocalDateTime now) {
-        return !target.isBefore(now.minusDays(windowPastDays)) && !target.isAfter(now.plusDays(windowFutureDays));
+        LocalDate date = target.toLocalDate();
+        LocalDate today = now.toLocalDate();
+
+        return !date.isBefore(today.minusDays(windowPastDays)) && !date.isAfter(today.plusDays(windowFutureDays));
     }
 
     private LocalDateTime toLocalDateTime(long epochSecond) {

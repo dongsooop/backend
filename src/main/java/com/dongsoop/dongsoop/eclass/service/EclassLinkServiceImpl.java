@@ -11,7 +11,6 @@ import com.dongsoop.dongsoop.eclass.util.EclassClient;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -104,18 +103,12 @@ public class EclassLinkServiceImpl implements EclassLinkService {
             return;
         }
 
-        markManualSync(link);
-        syncService.syncLink(link);
-    }
-
-    private void markManualSync(EclassLink link) {
         LocalDateTime now = LocalDateTime.now(clock);
-        if (link.isManualSyncOnCooldown(now, Duration.ofSeconds(manualCooldownSeconds))) {
+        if (linkRepository.claimManualSync(link.getId(), now, now.minusSeconds(manualCooldownSeconds)) == 0) {
             throw new EclassSyncCooldownException();
         }
 
-        link.markManualSync(now);
-        linkRepository.save(link);
+        syncService.syncLink(link);
     }
 
     /**

@@ -4,12 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
 import com.dongsoop.dongsoop.eclass.entity.EclassLink;
+import com.dongsoop.dongsoop.eclass.exception.EclassSyncCooldownException;
 import com.dongsoop.dongsoop.eclass.repository.EclassAssignmentRepository;
 import com.dongsoop.dongsoop.eclass.repository.EclassLinkRepository;
 import com.dongsoop.dongsoop.eclass.service.EclassDeviceAccessor;
@@ -139,6 +141,28 @@ class EclassLinkAccessTest {
         when(memberService.getMemberIdByAuthentication()).thenThrow(new NotAuthenticationException());
 
         assertThat(linkService.getStatus("fid-2", null).linked()).isTrue();
+    }
+
+    @Test
+    @DisplayName("쿨다운 갱신에 성공한 요청만 수집한다")
+    void manualSyncRunsOnlyWhenClaimed() {
+        when(memberService.getMemberIdByAuthentication()).thenReturn(OWNER_ID);
+        when(linkRepository.claimManualSync(any(), eq(NOW), eq(NOW.minusSeconds(60)))).thenReturn(1);
+
+        linkService.syncNow("fid-1", null);
+
+        verify(syncService).syncLink(any());
+    }
+
+    @Test
+    @DisplayName("쿨다운 갱신이 0건이면 429로 끝내고 학교 서버를 부르지 않는다")
+    void manualSyncRejectedOnCooldown() {
+        when(memberService.getMemberIdByAuthentication()).thenReturn(OWNER_ID);
+        when(linkRepository.claimManualSync(any(), any(), any())).thenReturn(0);
+
+        assertThatThrownBy(() -> linkService.syncNow("fid-1", null))
+                .isInstanceOf(EclassSyncCooldownException.class);
+        verify(syncService, never()).syncLink(any());
     }
 
     @Test

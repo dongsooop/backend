@@ -39,6 +39,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.crypto.encrypt.TextEncryptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -130,6 +131,26 @@ class EclassSyncServiceTest {
 
         assertThat(outcome).isEqualTo(SyncOutcome.SYNCED);
         assertThat(capturedSaved()).extracting(EclassAssignment::getAssignId).containsExactly(503L);
+    }
+
+    @Test
+    @DisplayName("수집 창은 날짜 단위다 — 30일째 밤 마감 과제도 오전 수집에 들어온다")
+    void windowIsDateBased() {
+        givenFetched(moodleAssignment(504L, NOW.plusDays(30).withHour(23).withMinute(55)));
+        givenSubmissionStatus(false);
+
+        syncService.syncLink(link);
+
+        assertThat(capturedSaved()).extracting(EclassAssignment::getAssignId).containsExactly(504L);
+    }
+
+    @Test
+    @DisplayName("수집 도중 연동이 해제되면 이번 회차를 실패로 접는다")
+    void failsQuietlyWhenUnlinkedDuringSync() {
+        givenFetched(moodleAssignment(601L, NOW.plusDays(9)));
+        when(linkRepository.save(link)).thenThrow(new ObjectOptimisticLockingFailureException(EclassLink.class, 10L));
+
+        assertThat(syncService.syncLink(link)).isEqualTo(SyncOutcome.FAILED);
     }
 
     @Test

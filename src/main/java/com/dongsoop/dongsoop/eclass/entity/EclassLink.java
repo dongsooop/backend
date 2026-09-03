@@ -102,10 +102,6 @@ public class EclassLink extends BaseEntity {
         this.expiredNotifiedAt = now;
     }
 
-    public void markManualSync(LocalDateTime now) {
-        this.lastManualSyncAt = now;
-    }
-
     public boolean isActive() {
         return this.status == EclassLinkStatus.ACTIVE;
     }
@@ -118,9 +114,5 @@ public class EclassLink extends BaseEntity {
                 && this.relinkRequestedAt != null
                 && this.expiredNotifiedAt == null
                 && this.relinkRequestedAt.plus(timeout).isBefore(now);
-    }
-
-    public boolean isManualSyncOnCooldown(LocalDateTime now, Duration cooldown) {
-        return this.lastManualSyncAt != null && this.lastManualSyncAt.plus(cooldown).isAfter(now);
     }
 }
