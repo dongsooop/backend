@@ -197,3 +197,8 @@ text:
 
 admin:
   id: 0 # 로컬 관리자 계정 ID
+
+eclass:
+  # 로컬·테스트 전용 값이며 프로덕션에서는 절대 사용하지 않는다
+  token-key: dongsoop-local-eclass-token-key
+  token-salt: 5250c5f6fa27b366
