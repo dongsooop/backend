@@ -1,7 +1,9 @@
 package com.dongsoop.dongsoop.eclass;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.dongsoop.dongsoop.eclass.entity.EclassAssignment;
@@ -46,7 +48,7 @@ class EclassNotificationTest {
                 .id(1L)
                 .deviceToken("fcm-token")
                 .build();
-        link = new EclassLink(device, 14077L, "백승민", "encrypted", DUE_AT.minusDays(10));
+        link = new EclassLink(device, "백승민", "encrypted");
     }
 
     private NotificationSend sentMessage() {
@@ -89,5 +91,14 @@ class EclassNotificationTest {
         eclassNotification.sendDueDateChanged(link, new EclassAssignment(link, 1L, 9101L, "자료구조", "과제", DUE_AT, DUE_AT));
 
         assertThat(sentMessage().title()).isEqualTo("[자료구조] 과제 마감이 앞당겨졌어요");
+    }
+
+    @Test
+    @DisplayName("만료 안내는 과제 알림 설정을 보지 않고 보낸다")
+    void expiredNoticeIgnoresSetting() {
+        eclassNotification.sendExpiredNotice(link);
+
+        verify(notificationSettingRepository, never()).findByIdDeviceIdAndIdNotificationType(any(), any());
+        assertThat(sentMessage().title()).isEqualTo("이클래스 연동이 만료되었습니다");
     }
 }

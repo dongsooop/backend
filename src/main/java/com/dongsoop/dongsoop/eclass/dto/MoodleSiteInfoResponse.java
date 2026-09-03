@@ -6,7 +6,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public record MoodleSiteInfoResponse(
 
         long userid,
-        String fullname,
-        String release
+        String fullname
 ) {
 }

@@ -44,9 +44,6 @@ public class EclassLink extends BaseEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private MemberDevice device;
 
-    @Column(name = "moodle_user_id", nullable = false)
-    private Long moodleUserId;
-
     @Column(name = "moodle_fullname", length = 50)
     private String moodleFullname;
 
@@ -56,9 +53,6 @@ public class EclassLink extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private EclassLinkStatus status;
-
-    @Column(name = "linked_at", nullable = false)
-    private LocalDateTime linkedAt;
 
     @Column(name = "last_synced_at")
     private LocalDateTime lastSyncedAt;
@@ -72,18 +66,15 @@ public class EclassLink extends BaseEntity {
     @Column(name = "last_manual_sync_at")
     private LocalDateTime lastManualSyncAt;
 
-    public EclassLink(MemberDevice device, Long moodleUserId, String moodleFullname, String tokenEncrypted,
-                      LocalDateTime now) {
+    public EclassLink(MemberDevice device, String moodleFullname, String tokenEncrypted) {
         this.device = device;
-        relink(moodleUserId, moodleFullname, tokenEncrypted, now);
+        relink(moodleFullname, tokenEncrypted);
     }
 
-    public void relink(Long moodleUserId, String moodleFullname, String tokenEncrypted, LocalDateTime now) {
-        this.moodleUserId = moodleUserId;
+    public void relink(String moodleFullname, String tokenEncrypted) {
         this.moodleFullname = moodleFullname;
         this.tokenEncrypted = tokenEncrypted;
         this.status = EclassLinkStatus.ACTIVE;
-        this.linkedAt = now;
         this.relinkRequestedAt = null;
         this.expiredNotifiedAt = null;
     }

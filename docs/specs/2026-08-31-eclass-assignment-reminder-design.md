@@ -64,11 +64,9 @@
 | 컬럼 | 타입 | 의미 |
 |---|---|---|
 | `member_device_id` | FK member_device, unique | 기기 (1:1) |
-| `moodle_user_id` | BIGINT | 이클래스 사용자 ID (site_info.userid) |
 | `moodle_fullname` | VARCHAR(50) | 연동 확인 화면 표시용 |
 | `token_encrypted` | VARCHAR(512) | AES-256-GCM 암호문(IV 포함, hex). 128자 남짓이라 여유가 있다 |
 | `status` | ENUM ACTIVE / EXPIRED | 만료 시 수집·발송 중단 |
-| `linked_at` | TIMESTAMP | 연동 시각 |
 | `last_synced_at` | TIMESTAMP nullable | 마지막 수집 성공 시각 |
 | `expired_notified_at` | TIMESTAMP nullable | 만료 안내 발송 시각 (중복 발송 방지) |
 | `relink_requested_at` | TIMESTAMP nullable | 사일런트 재발급 지시를 보낸 시각. 24시간 지나도 재연동이 없으면 보이는 알림으로 승격 |
@@ -88,7 +86,6 @@
 | `due_at` | TIMESTAMP | duedate. 0이면 저장하지 않음(마감 없는 과제는 리마인드 대상이 아님) |
 | `cutoff_at` | TIMESTAMP nullable | 제출 차단 시각. 앱 표시용 |
 | `submitted` | BOOLEAN | 제출 상태 API 결과. `submitted`면 true |
-| `submission_checked_at` | TIMESTAMP nullable | |
 | `removed_at` | TIMESTAMP nullable | 응답에서 사라진 과제(교수가 삭제). 목록·알림에서 제외 |
 | `last_reminded_days` | INT nullable | 마지막으로 보낸 리마인드의 "n일 전" 값(3 → 1 → 0). 같은 단계를 두 번 보내지 않기 위한 멱등 키 |
 | `created_at`, `updated_at` | | |
@@ -103,7 +100,7 @@
 | `GET` | `/eclass/link` | 전체 | `{ linked, status, moodleFullname, lastSyncedAt }`. 미연동이면 `linked=false` |
 | `DELETE` | `/eclass/link` | 전체 | 연동·과제 데이터 삭제 |
 | `GET` | `/eclass/assignments` | 전체 | 미제출·마감 전 과제 목록. 마감 오름차순. 항목: 과목, 제목, 마감, D-day, 제출 여부, 이클래스 링크. 미연동이면 400이 아니라 빈 목록 + `linked=false` (기존 비회원 공지 목록과 같은 관례) |
-| `POST` | `/eclass/sync` | 전체 | 앱의 당겨서 새로고침용 즉시 수집. 회원당 1분 1회로 제한 |
+| `POST` | `/eclass/sync` | 전체 | 앱의 당겨서 새로고침용 즉시 수집. 기기당 1분 1회로 제한. 연동이 만료 상태면 학교 서버를 부르지 않고 바로 204 — 앱은 `GET /eclass/link`로 만료를 안다 |
 
 모든 엔드포인트는 `authentication.path.all`에 `/eclass/**`로 등록해 비회원도 호출할 수 있다(기기 헤더로 식별).
 
@@ -111,7 +108,7 @@
 
 **홈 화면 과제 탭**: `GET /home`, `GET /home/{departmentType}` 응답에 `eclass_assignment` 요약(`linked`, `upcomingCount`, 가장 임박한 과제의 과목·제목·마감·D-day)이 포함된다. 홈에는 목록을 펼치지 않고 탭(타일)만 그리며, 탭하면 `/eclass/assignments` 화면으로 들어간다. 회원 홈은 요청 기기에 연동이 없으면 그 회원이 가진 다른 기기의 연동까지 본다.
 
-### 5.3 수집 스케줄러 (`EclassSyncScheduler`)
+### 5.3 수집 스케줄러 (`EclassSyncService.syncAll`)
 
 - 주기: **하루 3회** (06:30, 12:30, 18:30 KST, 설정값). 아침 8시 발송 전 06:30 수집이 반드시 돌아 최신 제출 상태로 발송된다.
 - **학교 서버로 나가는 요청을 줄이는 것이 이 설계의 제약이다.** 모든 호출이 동숲 서버 IP 하나에서 나가므로, 순간 요청 속도가 높으면 스크래핑으로 보여 차단당할 수 있고 그러면 연동한 전 사용자의 기능이 한 번에 멈춘다. 그래서 (1) 제출 여부는 리마인드가 나가는 기간(`submission-check-days`, 기본 3일)에 든 과제만 확인하고, (2) 스레드 2개·요청 간격 300ms로 속도를 낮추며, (3) 실패 비율이 임계치를 넘으면 남은 연동을 건드리지 않고 그 주기를 접는다. 배포 전에 학교 IT에 알리고 IP 허용을 받아두는 것이 전제다.
@@ -123,8 +120,8 @@
   4. `last_synced_at` 갱신.
 - 호출량: 연동 1건당 `1 + (제출 확인 대상 과제 수)`. 제출 확인을 마감 3일 이내로 좁혀 학기 중 평균 1건 남짓이므로, 연동 1,000건이면 1회 수집에 약 2,000 호출이다. 요청 간 딜레이(기본 300ms)와 스레드 2개로 순간 속도를 초당 2회 수준으로 눌러 둔다. 더 줄여야 하면 주기·스레드·딜레이를 yml에서 조정한다.
 - 실패 처리:
-  - `invalidtoken` → `status=EXPIRED`, 회원의 모든 기기에 사일런트 푸시 `ECLASS_RELINK` 발송, `relink_requested_at` 기록, 이후 수집 대상에서 제외. 앱이 재발급해 `POST /eclass/link`를 호출하면 `status=ACTIVE`로 복귀하고 즉시 수집한다.
-  - 만료 승격 점검(수집 스케줄러 끝에 수행): `status=EXPIRED AND relink_requested_at < 지금 − 24h AND expired_notified_at IS NULL`인 회원에게 보이는 알림 "이클래스 연동이 만료되었습니다. 설정에서 다시 연동해 주세요"를 1회 발송하고 `expired_notified_at` 기록.
+  - `invalidtoken` → `status=EXPIRED`, 그 연동의 기기에 사일런트 푸시 `ECLASS_RELINK` 발송(연동이 기기 단위이므로 기기마다 따로 만료·재발급된다), `relink_requested_at` 기록, 이후 수집 대상에서 제외. 앱이 재발급해 `POST /eclass/link`를 호출하면 `status=ACTIVE`로 복귀하고 즉시 수집한다.
+  - 만료 승격 점검(수집 스케줄러 끝에 수행): `status=EXPIRED AND relink_requested_at < 지금 − 24h AND expired_notified_at IS NULL`인 회원에게 보이는 알림 "이클래스 연동이 만료되었습니다. 설정에서 다시 연동해 주세요"를 1회 발송하고 `expired_notified_at` 기록. 이 알림은 과제 알림 설정(`ECLASS_ASSIGNMENT`)을 꺼둔 사용자에게도 보낸다 — 재연동 유도는 과제 알림과 성격이 다르다.
   - 네트워크·타임아웃·기타 예외 → 해당 회원만 건너뛰고 로그. 다음 주기 재시도. 연동 상태는 바꾸지 않는다.
   - 실패 비율이 임계치(설정, 기본 50%)를 넘으면 **남은 연동을 건드리지 않고 그 주기를 즉시 접는다.** 표본이 작을 때 한두 건으로 접지 않도록 최소 5건을 시도한 뒤부터 비율을 본다.
 - 트랜잭션: 외부 호출은 트랜잭션 밖. 회원별 upsert만 짧게.
@@ -192,7 +189,7 @@
 |---|---|
 | 마감 없는 과제(duedate=0) | 저장·알림 대상 아님 |
 | 자정 마감 과제 | 마감 전날 08:00이 마지막 알림. "오늘 마감"으로 오인해 지난 과제를 알리지 않음 |
-| 제출 후 교수가 재제출 요구(status가 `reopened`) | `submitted=false`로 되돌려 다시 알림. 단 이미 true인 과제는 재조회하지 않으므로 다음 재연동/수동 동기화 전까지는 놓칠 수 있음 — 1차에서 감수, 로그로 빈도 확인 후 재조회 정책 조정 |
+| 제출 후 교수가 재제출 요구(status가 `reopened`) | 1차에서는 감지하지 못한다. 이미 `submitted=true`인 과제는 정기·수동 동기화와 재연동 어느 경로로도 다시 조회하지 않으며, 연동 해제 후 다시 연동해야 과제 행이 지워져 초기화된다. 로그로 빈도를 확인한 뒤 재조회 정책을 정한다 |
 | 교수가 마감 연장 | 다음 수집에서 `due_at` 갱신 + 리마인드 단계 초기화 → 새 마감 기준으로 D-3부터 다시 알림. 별도 변경 알림은 보내지 않는다 |
 | 교수가 마감을 앞당김 | `due_at` 갱신 + **"[과목명] 과제 마감이 앞당겨졌어요" 알림 1회**. 앞당겨진 마감이 이미 지났으면 리마인드 대상에서 빠지므로, 이 알림이 없으면 사용자가 끝까지 모른다 |
 | 연동이 끊긴(EXPIRED) 상태의 화면 | 목록·홈 요약이 `linked=true, status=EXPIRED, 빈 목록`을 준다. "과제 없음"으로 보여주면 마감이 없다고 잘못 안심시키므로 앱은 재연동을 안내해야 한다 |
@@ -207,7 +204,7 @@
 
 ### 5.9 변경 파일 (예상)
 
-- `eclass/` 신규 패키지: `controller/EclassController`, `service/EclassLinkService`, `service/EclassSyncService`, `client/EclassClient` + 응답 DTO, `entity/EclassLink`, `entity/EclassAssignment`, `repository/*`, `scheduler/EclassSyncScheduler`, `scheduler/EclassReminderScheduler`, `notification/EclassNotification`, `exception/*`, `config/EclassProperties`
+- `eclass/` 신규 패키지: `controller/EclassController`, `service/EclassLinkService`, `service/EclassSyncService`(수집 스케줄 포함), `service/EclassAssignmentService`, `service/EclassDeviceAccessor`, `util/EclassClient`, `dto/*`(요청·응답과 Moodle 응답), `entity/EclassLink`, `entity/EclassAssignment`, `repository/*`, `scheduler/EclassReminderScheduler`, `notification/EclassNotification`, `exception/*`, `config/EclassConfig`
 - `notification/constant/NotificationType` — `ECLASS_ASSIGNMENT(true)` 추가
 - `notification/constant/FcmSilentType` — `ECLASS_RELINK` 추가 (기존 `FORCE_LOGOUT`과 같은 data-only 메시지, `FCMServiceImpl.sendSilentMessage` 재사용)
 - `eclass/config/EclassConfig` — `eclassRestTemplate`, `eclassTokenEncryptor` 빈
@@ -223,7 +220,7 @@
 - 리마인드: D-0/1/3 선택, `due_at <= now` 제외, 자정 마감 케이스, 과제 1건당 알림 1건, 제목 형식(`[과목명] 과제 n일 전입니다` / `오늘 마감입니다`, 과목명 20자 절단), 링크가 코스모듈 id로 생성됨, 같은 단계 재발송 없음(`last_reminded_days`), 마감 연장 시 단계 리셋, 알림 끈 기기 제외
 - 토큰 만료·재발급: invalidtoken → EXPIRED + 사일런트 푸시 1회 + `relink_requested_at` 기록, 24시간 내 재연동 시 보이는 알림 없음, 24시간 경과 시 보이는 알림 1회(두 번째 주기엔 없음), 재연동 시 ACTIVE 복귀 + 즉시 수집, 제출 조회 중 만료돼도 그때까지 모은 과제는 저장
 - 접근 권한: 남의 기기 식별자로 과제 조회·홈 요약·연동 조회·해제·재연동이 모두 막히고, 비회원 기기는 로그인 없이 자기 것을 다룰 수 있음
-- API: 미연동 시 빈 목록, 재연동 시 토큰 교체, 해제 시 과제 삭제, 수동 동기화 쿨다운, 같은 moodle_user_id 중복 연동 거절
+- API: 미연동 시 빈 목록, 재연동 시 토큰 교체, 해제 시 과제 삭제, 수동 동기화 쿨다운
 - 암호화: 왕복 일치, 같은 원문이 매번 다른 암호문, 컬럼 길이 안에 들어감, 다른 키·잘린 암호문은 복호화 실패
 - 홈 요약: 미연동 기기는 `linked=false`, 연동됐지만 과제가 없으면 `linked=true`·`upcomingCount=0`
 

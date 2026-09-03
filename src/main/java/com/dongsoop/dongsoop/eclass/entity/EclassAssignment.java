@@ -62,9 +62,6 @@ public class EclassAssignment extends BaseEntity {
     @Column(name = "submitted", nullable = false)
     private boolean submitted = false;
 
-    @Column(name = "submission_checked_at")
-    private LocalDateTime submissionCheckedAt;
-
     @Column(name = "removed_at")
     private LocalDateTime removedAt;
 
@@ -106,13 +103,8 @@ public class EclassAssignment extends BaseEntity {
         return value.substring(0, TEXT_LENGTH);
     }
 
-    public void markSubmitted(LocalDateTime now) {
+    public void markSubmitted() {
         this.submitted = true;
-        this.submissionCheckedAt = now;
-    }
-
-    public void markChecked(LocalDateTime now) {
-        this.submissionCheckedAt = now;
     }
 
     public void markRemoved(LocalDateTime now) {

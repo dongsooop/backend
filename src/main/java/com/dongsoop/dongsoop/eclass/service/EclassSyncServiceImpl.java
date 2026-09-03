@@ -119,7 +119,7 @@ public class EclassSyncServiceImpl implements EclassSyncService {
 
             if (needsSubmissionCheck(assignment, now)) {
                 try {
-                    updateSubmission(token, assignment, now);
+                    updateSubmission(token, assignment);
                 } catch (EclassInvalidTokenException exception) {
                     // 여기까지 모은 변경은 버리지 않는다 — 재연동 전까지 되찾을 방법이 없다
                     toSave.add(assignment);
@@ -294,12 +294,10 @@ public class EclassSyncServiceImpl implements EclassSyncService {
         }
     }
 
-    private void updateSubmission(String token, EclassAssignment assignment, LocalDateTime now) {
+    private void updateSubmission(String token, EclassAssignment assignment) {
         try {
             if (eclassClient.isSubmitted(token, assignment.getAssignId())) {
-                assignment.markSubmitted(now);
-            } else {
-                assignment.markChecked(now);
+                assignment.markSubmitted();
             }
         } catch (EclassApiException exception) {
             log.warn("submission status check failed. assignId: {}", assignment.getAssignId());

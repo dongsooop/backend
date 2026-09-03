@@ -80,7 +80,7 @@ class EclassSyncServiceTest {
                 .id(1L)
                 .deviceToken("fcm-token")
                 .build();
-        link = new EclassLink(device, 14077L, "백승민", "encrypted", NOW.minusDays(1));
+        link = new EclassLink(device, "백승민", "encrypted");
         ReflectionTestUtils.setField(link, "id", 10L);
 
         when(eclassTokenEncryptor.decrypt("encrypted")).thenReturn("moodle-token");
@@ -135,7 +135,7 @@ class EclassSyncServiceTest {
     @DisplayName("이미 제출한 과제는 제출 상태를 다시 묻지 않는다")
     void skipsSubmissionCheckForSubmitted() {
         EclassAssignment submitted = existing(NOW.plusDays(2));
-        submitted.markSubmitted(NOW.minusDays(1));
+        submitted.markSubmitted();
         when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(submitted));
         when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
 
@@ -178,7 +178,7 @@ class EclassSyncServiceTest {
         List<EclassLink> links = new java.util.ArrayList<>();
         for (int i = 0; i < 20; i++) {
             MemberDevice device = MemberDevice.builder().id((long) i).deviceToken("fcm-" + i).build();
-            EclassLink each = new EclassLink(device, 1L, "백승민", "encrypted", NOW.minusDays(1));
+            EclassLink each = new EclassLink(device, "백승민", "encrypted");
             ReflectionTestUtils.setField(each, "id", (long) i);
             links.add(each);
         }
@@ -329,7 +329,7 @@ class EclassSyncServiceTest {
     @DisplayName("이미 제출한 과제는 마감이 앞당겨져도 알리지 않는다")
     void doesNotNotifySubmittedAssignment() {
         EclassAssignment existing = existing(NOW.plusDays(9));
-        existing.markSubmitted(NOW.minusDays(1));
+        existing.markSubmitted();
         when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
         when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
 

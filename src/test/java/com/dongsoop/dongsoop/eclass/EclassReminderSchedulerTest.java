@@ -54,7 +54,7 @@ class EclassReminderSchedulerTest {
                 .id(1L)
                 .deviceToken("fcm-token")
                 .build();
-        link = new EclassLink(device, 14077L, "백승민", "encrypted", NOW.minusDays(10));
+        link = new EclassLink(device, "백승민", "encrypted");
     }
 
     private EclassAssignment assignment(long assignId, LocalDateTime dueAt) {

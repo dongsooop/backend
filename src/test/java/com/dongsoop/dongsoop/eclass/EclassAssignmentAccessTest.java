@@ -76,7 +76,7 @@ class EclassAssignmentAccessTest {
 
     private void givenLinkedDevice(MemberDevice device) {
         when(deviceResolver.resolve(any(), any())).thenReturn(device);
-        EclassLink link = new EclassLink(device, 1L, "테스트", "encrypted", NOW.minusDays(1));
+        EclassLink link = new EclassLink(device, "테스트", "encrypted");
         when(linkRepository.findByDeviceId(device.getId())).thenReturn(Optional.of(link));
     }
 

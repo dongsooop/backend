@@ -79,9 +79,12 @@ public class EclassNotificationImpl implements EclassNotification {
         }
     }
 
+    /**
+     * 재연동 유도는 과제 알림 설정과 무관하게 보낸다 — 알림을 꺼둔 사용자도 연동이 끊긴 것은 알아야 한다.
+     */
     @Override
     public void sendExpiredNotice(EclassLink link) {
-        sendToDevice(link.getDevice(), EXPIRED_TITLE, EXPIRED_BODY, "");
+        push(link.getDevice(), EXPIRED_TITLE, EXPIRED_BODY, "");
     }
 
     /**
@@ -106,8 +109,12 @@ public class EclassNotificationImpl implements EclassNotification {
      * 회원 기기면 알림함에 남기고, 비회원 기기면 푸시만 보낸다(공지 알림과 같은 규칙).
      */
     private boolean sendToDevice(MemberDevice device, String title, String body, String value) {
+        return isEnabled(device) && push(device, title, body, value);
+    }
+
+    private boolean push(MemberDevice device, String title, String body, String value) {
         String deviceToken = device.getDeviceToken();
-        if (deviceToken == null || deviceToken.isBlank() || !isEnabled(device)) {
+        if (deviceToken == null || deviceToken.isBlank()) {
             return false;
         }
 

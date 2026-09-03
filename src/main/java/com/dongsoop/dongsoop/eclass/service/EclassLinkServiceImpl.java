@@ -66,14 +66,13 @@ public class EclassLinkServiceImpl implements EclassLinkService {
      */
     private EclassLink saveLink(MemberDevice device, String moodleToken, MoodleSiteInfoResponse info) {
         String encrypted = eclassTokenEncryptor.encrypt(moodleToken);
-        LocalDateTime now = LocalDateTime.now(clock);
 
         EclassLink link = linkRepository.findByDeviceId(device.getId())
                 .map(existing -> {
-                    existing.relink(info.userid(), info.fullname(), encrypted, now);
+                    existing.relink(info.fullname(), encrypted);
                     return existing;
                 })
-                .orElseGet(() -> new EclassLink(device, info.userid(), info.fullname(), encrypted, now));
+                .orElseGet(() -> new EclassLink(device, info.fullname(), encrypted));
 
         return linkRepository.save(link);
     }
@@ -97,22 +96,26 @@ public class EclassLinkServiceImpl implements EclassLinkService {
 
     @Override
     public void syncNow(String fid, String deviceToken) {
-        EclassLink link = markManualSync(fid, deviceToken);
-
-        syncService.syncLink(link);
-    }
-
-    private EclassLink markManualSync(String fid, String deviceToken) {
         EclassLink link = findLink(fid, deviceToken)
                 .orElseThrow(EclassLinkNotFoundException::new);
 
+        // 만료된 연동은 토큰이 무효라 학교 서버를 부를 이유가 없다 — 앱은 GET /eclass/link로 상태를 본다
+        if (!link.isActive()) {
+            return;
+        }
+
+        markManualSync(link);
+        syncService.syncLink(link);
+    }
+
+    private void markManualSync(EclassLink link) {
         LocalDateTime now = LocalDateTime.now(clock);
         if (link.isManualSyncOnCooldown(now, Duration.ofSeconds(manualCooldownSeconds))) {
             throw new EclassSyncCooldownException();
         }
 
         link.markManualSync(now);
-        return linkRepository.save(link);
+        linkRepository.save(link);
     }
 
     /**

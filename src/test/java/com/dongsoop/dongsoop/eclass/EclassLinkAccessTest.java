@@ -83,7 +83,7 @@ class EclassLinkAccessTest {
                 .build();
         when(deviceResolver.resolve(any(), any())).thenReturn(memberDevice);
 
-        EclassLink link = new EclassLink(memberDevice, 1L, "테스트", "encrypted", NOW.minusDays(1));
+        EclassLink link = new EclassLink(memberDevice, "테스트", "encrypted");
         when(linkRepository.findByDeviceId(10L)).thenReturn(Optional.of(link));
     }
 
@@ -135,9 +135,22 @@ class EclassLinkAccessTest {
                 .build();
         when(deviceResolver.resolve(any(), any())).thenReturn(guestDevice);
         when(linkRepository.findByDeviceId(20L))
-                .thenReturn(Optional.of(new EclassLink(guestDevice, 1L, "테스트", "encrypted", NOW)));
+                .thenReturn(Optional.of(new EclassLink(guestDevice, "테스트", "encrypted")));
         when(memberService.getMemberIdByAuthentication()).thenThrow(new NotAuthenticationException());
 
         assertThat(linkService.getStatus("fid-2", null).linked()).isTrue();
+    }
+
+    @Test
+    @DisplayName("만료된 연동은 수동 동기화해도 학교 서버를 부르지 않는다")
+    void manualSyncSkipsExpiredLink() {
+        when(memberService.getMemberIdByAuthentication()).thenReturn(OWNER_ID);
+        EclassLink expired = new EclassLink(memberDevice, "테스트", "encrypted");
+        expired.expire(NOW);
+        when(linkRepository.findByDeviceId(10L)).thenReturn(Optional.of(expired));
+
+        linkService.syncNow("fid-1", null);
+
+        verify(syncService, never()).syncLink(any());
     }
 }
