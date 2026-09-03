@@ -22,7 +22,5 @@ public interface EclassLinkRepository extends JpaRepository<EclassLink, Long> {
     @Query("select l from EclassLink l join fetch l.device d left join fetch d.member where l.status = :status")
     List<EclassLink> findAllByStatus(@Param("status") EclassLinkStatus status);
 
-    @Query("select l from EclassLink l join fetch l.device d where d.member.id = :memberId and l.status = :status")
-    List<EclassLink> findAllByMemberIdAndStatus(@Param("memberId") Long memberId,
-                                                @Param("status") EclassLinkStatus status);
+    boolean existsByDeviceMemberIdAndStatus(Long memberId, EclassLinkStatus status);
 }

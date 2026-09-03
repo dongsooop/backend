@@ -1,50 +1,93 @@
 package com.dongsoop.dongsoop.eclass;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 
-import com.dongsoop.dongsoop.eclass.dto.EclassAssignmentLink;
-import com.dongsoop.dongsoop.eclass.notification.EclassReminderMessage;
+import com.dongsoop.dongsoop.eclass.entity.EclassAssignment;
+import com.dongsoop.dongsoop.eclass.entity.EclassLink;
+import com.dongsoop.dongsoop.eclass.notification.EclassNotificationImpl;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
+import com.dongsoop.dongsoop.notification.dto.NotificationSend;
+import com.dongsoop.dongsoop.notification.service.NotificationSendService;
+import com.dongsoop.dongsoop.notification.setting.repository.NotificationSettingRepository;
 import java.time.LocalDateTime;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
-class EclassReminderMessageTest {
+@ExtendWith(MockitoExtension.class)
+class EclassNotificationTest {
 
-    @Test
-    @DisplayName("마감이 남았으면 남은 일수를 제목에 넣는다")
-    void titleWithRemainingDays() {
-        assertThat(EclassReminderMessage.title("자료구조", 3, 20)).isEqualTo("[자료구조] 과제 3일 전입니다");
-        assertThat(EclassReminderMessage.title("자료구조", 1, 20)).isEqualTo("[자료구조] 과제 1일 전입니다");
+    private static final LocalDateTime DUE_AT = LocalDateTime.of(2026, 9, 25, 23, 55);
+
+    @Mock
+    private NotificationSendService notificationSendService;
+    @Mock
+    private NotificationSettingRepository notificationSettingRepository;
+
+    @InjectMocks
+    private EclassNotificationImpl eclassNotification;
+
+    private EclassLink link;
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(eclassNotification, "baseUrl", "https://eclass.dongyang.ac.kr");
+        ReflectionTestUtils.setField(eclassNotification, "courseNameMaxLength", 20);
+        MemberDevice device = MemberDevice.builder()
+                .id(1L)
+                .deviceToken("fcm-token")
+                .build();
+        link = new EclassLink(device, 14077L, "백승민", "encrypted", DUE_AT.minusDays(10));
+    }
+
+    private NotificationSend sentMessage() {
+        ArgumentCaptor<NotificationSend> captor = ArgumentCaptor.forClass(NotificationSend.class);
+        verify(notificationSendService).send(eq(List.of("fcm-token")), captor.capture());
+        return captor.getValue();
     }
 
     @Test
-    @DisplayName("당일이면 오늘 마감이라고 알린다")
-    void titleForToday() {
-        assertThat(EclassReminderMessage.title("자료구조", 0, 20)).isEqualTo("[자료구조] 과제 오늘 마감입니다");
+    @DisplayName("리마인드 제목은 과목명과 남은 날짜로, 본문은 과제명과 마감 시각으로, 링크는 코스모듈 번호로 만든다")
+    void reminderMessage() {
+        eclassNotification.sendReminder(new EclassAssignment(link, 1L, 9101L, "자료구조", "3주차_과제", DUE_AT, DUE_AT), 3);
+
+        NotificationSend sent = sentMessage();
+        assertThat(sent.title()).isEqualTo("[자료구조] 과제 3일 전입니다");
+        assertThat(sent.body()).isEqualTo("3주차_과제 · 마감 9월 25일 (금) 23:55");
+        assertThat(sent.value()).isEqualTo("https://eclass.dongyang.ac.kr/mod/assign/view.php?id=9101");
     }
 
     @Test
-    @DisplayName("과목명이 길면 잘라서 넣는다")
-    void titleWithLongCourseName() {
-        String courseName = "가나다라마바사아자차카타파하가나다라마바";
+    @DisplayName("당일은 '오늘 마감'으로 쓴다")
+    void todayTitle() {
+        eclassNotification.sendReminder(new EclassAssignment(link, 1L, 9101L, "자료구조", "과제", DUE_AT, DUE_AT), 0);
 
-        assertThat(EclassReminderMessage.title(courseName, 3, 20))
-                .isEqualTo("[" + courseName + "] 과제 3일 전입니다");
-        assertThat(EclassReminderMessage.title(courseName + "사", 3, 20))
-                .isEqualTo("[" + courseName + "…] 과제 3일 전입니다");
+        assertThat(sentMessage().title()).isEqualTo("[자료구조] 과제 오늘 마감입니다");
     }
 
     @Test
-    @DisplayName("본문은 과제명과 마감 시각을 그대로 보여준다")
-    void body() {
-        assertThat(EclassReminderMessage.body("3주차_과제", LocalDateTime.of(2026, 9, 25, 23, 55)))
-                .isEqualTo("3주차_과제 · 마감 9월 25일 (금) 23:55");
+    @DisplayName("과목명이 길면 자르고 말줄임표를 붙인다")
+    void shortensLongCourseName() {
+        String courseName = "가나다라마바사아자차카타파하가나다라마바사";
+        eclassNotification.sendReminder(new EclassAssignment(link, 1L, 9101L, courseName, "과제", DUE_AT, DUE_AT), 3);
+
+        assertThat(sentMessage().title()).isEqualTo("[가나다라마바사아자차카타파하가나다라마바…] 과제 3일 전입니다");
     }
 
     @Test
-    @DisplayName("링크는 코스모듈 번호로 만든다")
-    void link() {
-        assertThat(EclassAssignmentLink.of("https://eclass.dongyang.ac.kr", 9101L))
-                .isEqualTo("https://eclass.dongyang.ac.kr/mod/assign/view.php?id=9101");
+    @DisplayName("마감이 앞당겨지면 그 사실을 제목에 쓴다")
+    void dueDateChangedTitle() {
+        eclassNotification.sendDueDateChanged(link, new EclassAssignment(link, 1L, 9101L, "자료구조", "과제", DUE_AT, DUE_AT));
+
+        assertThat(sentMessage().title()).isEqualTo("[자료구조] 과제 마감이 앞당겨졌어요");
     }
 }

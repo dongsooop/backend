@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.eclass.notification;
 
-import com.dongsoop.dongsoop.eclass.dto.EclassAssignmentLink;
+import com.dongsoop.dongsoop.eclass.dto.EclassAssignmentResponse;
 import com.dongsoop.dongsoop.eclass.entity.EclassAssignment;
 import com.dongsoop.dongsoop.eclass.entity.EclassLink;
 import com.dongsoop.dongsoop.member.entity.Member;
@@ -14,7 +14,9 @@ import com.dongsoop.dongsoop.notification.service.NotificationSaveService;
 import com.dongsoop.dongsoop.notification.service.NotificationSendService;
 import com.dongsoop.dongsoop.notification.setting.entity.NotificationSetting;
 import com.dongsoop.dongsoop.notification.setting.repository.NotificationSettingRepository;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,6 +30,8 @@ public class EclassNotificationImpl implements EclassNotification {
     private static final Long NON_SAVE_NOTIFICATION_ID = -1L;
     private static final String EXPIRED_TITLE = "이클래스 연동이 만료되었습니다";
     private static final String EXPIRED_BODY = "설정에서 다시 연동해 주세요";
+    private static final DateTimeFormatter DUE_FORMATTER =
+            DateTimeFormatter.ofPattern("M월 d일 (E) HH:mm", Locale.KOREAN);
 
     private final NotificationSaveService notificationSaveService;
     private final NotificationSendService notificationSendService;
@@ -42,27 +46,21 @@ public class EclassNotificationImpl implements EclassNotification {
 
     @Override
     public boolean sendReminder(EclassAssignment assignment, int daysBefore) {
-        MemberDevice device = assignment.getLink()
-                .getDevice();
+        String courseName = shorten(assignment.getCourseName());
+        String title = daysBefore == 0
+                ? String.format("[%s] 과제 오늘 마감입니다", courseName)
+                : String.format("[%s] 과제 %d일 전입니다", courseName, daysBefore);
 
-        String title = EclassReminderMessage.title(assignment.getCourseName(), daysBefore, courseNameMaxLength);
-        String body = EclassReminderMessage.body(assignment.getTitle(), assignment.getDueAt());
-        String value = EclassAssignmentLink.of(baseUrl, assignment.getCourseModuleId());
-
-        return sendToDevice(device, title, body, value);
+        return sendAssignment(assignment.getLink().getDevice(), title, assignment);
     }
 
     @Override
     public void sendDueDateChanged(EclassLink link, EclassAssignment assignment) {
         // 수집은 트랜잭션 밖에서 돌기 때문에 assignment.getLink()는 초기화되지 않은 프록시다.
         // 호출자가 이미 들고 있는 링크를 그대로 받는다
-        MemberDevice device = link.getDevice();
+        String title = String.format("[%s] 과제 마감이 앞당겨졌어요", shorten(assignment.getCourseName()));
 
-        String title = EclassReminderMessage.dueDateChangedTitle(assignment.getCourseName(), courseNameMaxLength);
-        String body = EclassReminderMessage.body(assignment.getTitle(), assignment.getDueAt());
-        String value = EclassAssignmentLink.of(baseUrl, assignment.getCourseModuleId());
-
-        sendToDevice(device, title, body, value);
+        sendAssignment(link.getDevice(), title, assignment);
     }
 
     @Override
@@ -84,6 +82,24 @@ public class EclassNotificationImpl implements EclassNotification {
     @Override
     public void sendExpiredNotice(EclassLink link) {
         sendToDevice(link.getDevice(), EXPIRED_TITLE, EXPIRED_BODY, "");
+    }
+
+    /**
+     * 마감 시각은 이클래스 화면과 같은 값을 그대로 보여준다 — "전날 밤까지"처럼 바꿔 쓰면 혼란을 준다.
+     */
+    private boolean sendAssignment(MemberDevice device, String title, EclassAssignment assignment) {
+        String body = String.format("%s · 마감 %s", assignment.getTitle(), DUE_FORMATTER.format(assignment.getDueAt()));
+        String link = EclassAssignmentResponse.link(baseUrl, assignment.getCourseModuleId());
+
+        return sendToDevice(device, title, body, link);
+    }
+
+    private String shorten(String courseName) {
+        if (courseName.length() <= courseNameMaxLength) {
+            return courseName;
+        }
+
+        return courseName.substring(0, courseNameMaxLength) + "…";
     }
 
     /**

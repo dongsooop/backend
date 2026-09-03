@@ -135,7 +135,6 @@ class EclassAssignmentAccessTest {
     void homeSummaryIgnoresForeignDevice() {
         Member owner = Member.builder().id(OWNER_ID).build();
         givenLinkedDevice(deviceOf(owner));
-        when(linkRepository.findAllByMemberIdAndStatus(any(), any())).thenReturn(List.of());
 
         assignmentService.getHomeSummary(OTHER_ID, "fid-1", null);
 

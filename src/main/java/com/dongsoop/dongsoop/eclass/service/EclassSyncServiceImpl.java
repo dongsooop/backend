@@ -1,7 +1,6 @@
 package com.dongsoop.dongsoop.eclass.service;
 
-import com.dongsoop.dongsoop.eclass.client.EclassClient;
-import com.dongsoop.dongsoop.eclass.client.dto.MoodleAssignment;
+import com.dongsoop.dongsoop.eclass.dto.MoodleAssignment;
 import com.dongsoop.dongsoop.eclass.entity.EclassAssignment;
 import com.dongsoop.dongsoop.eclass.entity.EclassLink;
 import com.dongsoop.dongsoop.eclass.entity.EclassLinkStatus;
@@ -10,6 +9,7 @@ import com.dongsoop.dongsoop.eclass.exception.EclassInvalidTokenException;
 import com.dongsoop.dongsoop.eclass.notification.EclassNotification;
 import com.dongsoop.dongsoop.eclass.repository.EclassAssignmentRepository;
 import com.dongsoop.dongsoop.eclass.repository.EclassLinkRepository;
+import com.dongsoop.dongsoop.eclass.util.EclassClient;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -31,6 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.encrypt.TextEncryptor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 /**
@@ -75,7 +76,6 @@ public class EclassSyncServiceImpl implements EclassSyncService {
 
     @Value("${eclass.sync.relink-timeout-hours}")
     private long relinkTimeoutHours;
-
 
     @Override
     public SyncOutcome syncLink(EclassLink link) {
@@ -164,13 +164,12 @@ public class EclassSyncServiceImpl implements EclassSyncService {
     }
 
     @Override
+    @Scheduled(cron = "${eclass.sync.cron}", zone = "Asia/Seoul")
     public void syncAll() {
-        List<EclassLink> links = linkRepository.findAllByStatus(EclassLinkStatus.ACTIVE);
-        if (!links.isEmpty()) {
-            syncConcurrently(links);
-        }
-
+        log.info("eclass sync scheduler started");
+        syncConcurrently(linkRepository.findAllByStatus(EclassLinkStatus.ACTIVE));
         promoteOverdueRelinks();
+        log.info("eclass sync scheduler ended");
     }
 
     private void syncConcurrently(List<EclassLink> links) {
@@ -250,7 +249,6 @@ public class EclassSyncServiceImpl implements EclassSyncService {
                     linkRepository.save(link);
                 });
     }
-
 
     private EclassAssignment merge(EclassLink link, EclassAssignment existing, MoodleAssignment fetched) {
         LocalDateTime dueAt = toLocalDateTime(fetched.dueDate());

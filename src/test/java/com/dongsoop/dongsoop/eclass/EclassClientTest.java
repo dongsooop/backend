@@ -7,11 +7,11 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-import com.dongsoop.dongsoop.eclass.client.EclassClient;
-import com.dongsoop.dongsoop.eclass.client.dto.MoodleAssignment;
-import com.dongsoop.dongsoop.eclass.client.dto.MoodleSiteInfoResponse;
+import com.dongsoop.dongsoop.eclass.dto.MoodleAssignment;
+import com.dongsoop.dongsoop.eclass.dto.MoodleSiteInfoResponse;
 import com.dongsoop.dongsoop.eclass.exception.EclassApiException;
 import com.dongsoop.dongsoop.eclass.exception.EclassInvalidTokenException;
+import com.dongsoop.dongsoop.eclass.util.EclassClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

@@ -1,13 +1,13 @@
 package com.dongsoop.dongsoop.eclass.service;
 
-import com.dongsoop.dongsoop.eclass.client.EclassClient;
-import com.dongsoop.dongsoop.eclass.client.dto.MoodleSiteInfoResponse;
 import com.dongsoop.dongsoop.eclass.dto.EclassLinkResponse;
+import com.dongsoop.dongsoop.eclass.dto.MoodleSiteInfoResponse;
 import com.dongsoop.dongsoop.eclass.entity.EclassLink;
 import com.dongsoop.dongsoop.eclass.exception.EclassLinkNotFoundException;
 import com.dongsoop.dongsoop.eclass.exception.EclassSyncCooldownException;
 import com.dongsoop.dongsoop.eclass.repository.EclassAssignmentRepository;
 import com.dongsoop.dongsoop.eclass.repository.EclassLinkRepository;
+import com.dongsoop.dongsoop.eclass.util.EclassClient;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import java.time.Clock;

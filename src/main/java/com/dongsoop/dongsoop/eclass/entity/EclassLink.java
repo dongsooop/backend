@@ -63,7 +63,6 @@ public class EclassLink extends BaseEntity {
     @Column(name = "last_synced_at")
     private LocalDateTime lastSyncedAt;
 
-
     @Column(name = "relink_requested_at")
     private LocalDateTime relinkRequestedAt;
 
@@ -133,5 +132,4 @@ public class EclassLink extends BaseEntity {
     public boolean isManualSyncOnCooldown(LocalDateTime now, Duration cooldown) {
         return this.lastManualSyncAt != null && this.lastManualSyncAt.plus(cooldown).isAfter(now);
     }
-
 }

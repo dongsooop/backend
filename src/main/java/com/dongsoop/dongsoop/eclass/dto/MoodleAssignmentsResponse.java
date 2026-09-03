@@ -1,4 +1,4 @@
-package com.dongsoop.dongsoop.eclass.client.dto;
+package com.dongsoop.dongsoop.eclass.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;

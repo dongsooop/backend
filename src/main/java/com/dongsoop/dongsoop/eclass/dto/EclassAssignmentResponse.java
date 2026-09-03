@@ -30,6 +30,13 @@ public record EclassAssignmentResponse(
                 assignment.getCutoffAt(),
                 dDay,
                 assignment.isSubmitted(),
-                EclassAssignmentLink.of(baseUrl, assignment.getCourseModuleId()));
+                link(baseUrl, assignment.getCourseModuleId()));
+    }
+
+    /**
+     * 과제 상세 페이지 주소. 게시판 경로와 무관하게 코스모듈 번호만으로 열린다.
+     */
+    public static String link(String baseUrl, Long courseModuleId) {
+        return baseUrl + "/mod/assign/view.php?id=" + courseModuleId;
     }
 }

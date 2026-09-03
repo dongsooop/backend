@@ -9,13 +9,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.common.exception.authentication.NotAuthenticationException;
-import com.dongsoop.dongsoop.eclass.client.EclassClient;
 import com.dongsoop.dongsoop.eclass.entity.EclassLink;
 import com.dongsoop.dongsoop.eclass.repository.EclassAssignmentRepository;
 import com.dongsoop.dongsoop.eclass.repository.EclassLinkRepository;
 import com.dongsoop.dongsoop.eclass.service.EclassDeviceAccessor;
 import com.dongsoop.dongsoop.eclass.service.EclassLinkServiceImpl;
 import com.dongsoop.dongsoop.eclass.service.EclassSyncService;
+import com.dongsoop.dongsoop.eclass.util.EclassClient;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;

@@ -38,11 +38,7 @@ public class EclassAssignmentServiceImpl implements EclassAssignmentService {
     public EclassAssignmentListResponse getUpcoming(String fid, String deviceToken) {
         Optional<Long> deviceId = deviceAccessor.resolveAccessible(fid, deviceToken)
                 .map(MemberDevice::getId);
-        if (deviceId.isEmpty()) {
-            return EclassAssignmentListResponse.unlinked();
-        }
-
-        Optional<EclassLink> link = linkRepository.findByDeviceId(deviceId.get());
+        Optional<EclassLink> link = deviceId.flatMap(linkRepository::findByDeviceId);
         if (link.isEmpty()) {
             return EclassAssignmentListResponse.unlinked();
         }
@@ -69,18 +65,13 @@ public class EclassAssignmentServiceImpl implements EclassAssignmentService {
 
         Optional<Long> deviceId = deviceAccessor.resolveOwnedBy(memberId, fid, deviceToken)
                 .map(MemberDevice::getId);
-        Optional<EclassLink> deviceLink = deviceId.flatMap(linkRepository::findByDeviceId);
-        if (deviceLink.isPresent()) {
-            if (!deviceLink.get().isActive()) {
-                return HomeEclassSummary.expired();
-            }
-
-            return summarize(assignmentRepository.countUpcomingByDevice(deviceId.get(), now),
-                    assignmentRepository.searchUpcomingByDevice(deviceId.get(), now, NEAREST_LIMIT), now);
+        Optional<HomeEclassSummary> byDevice = summarizeDevice(deviceId, now);
+        if (byDevice.isPresent()) {
+            return byDevice.get();
         }
 
         // 요청 기기에 연동이 없으면 같은 회원의 다른 기기에서 연동한 과제를 보여준다
-        if (linkRepository.findAllByMemberIdAndStatus(memberId, EclassLinkStatus.ACTIVE).isEmpty()) {
+        if (!linkRepository.existsByDeviceMemberIdAndStatus(memberId, EclassLinkStatus.ACTIVE)) {
             return HomeEclassSummary.unlinked();
         }
 
@@ -93,18 +84,20 @@ public class EclassAssignmentServiceImpl implements EclassAssignmentService {
     public HomeEclassSummary getHomeSummary(String fid, String deviceToken) {
         Optional<Long> deviceId = deviceAccessor.resolveAccessible(fid, deviceToken)
                 .map(MemberDevice::getId);
-        Optional<EclassLink> link = deviceId.flatMap(linkRepository::findByDeviceId);
-        if (link.isEmpty()) {
-            return HomeEclassSummary.unlinked();
-        }
-        if (!link.get().isActive()) {
-            return HomeEclassSummary.expired();
-        }
 
-        LocalDateTime now = LocalDateTime.now(clock);
+        return summarizeDevice(deviceId, LocalDateTime.now(clock))
+                .orElseGet(HomeEclassSummary::unlinked);
+    }
 
-        return summarize(assignmentRepository.countUpcomingByDevice(deviceId.get(), now),
-                assignmentRepository.searchUpcomingByDevice(deviceId.get(), now, NEAREST_LIMIT), now);
+    /**
+     * 기기에 연동이 없으면 비어 있다.
+     */
+    private Optional<HomeEclassSummary> summarizeDevice(Optional<Long> deviceId, LocalDateTime now) {
+        return deviceId.flatMap(id -> linkRepository.findByDeviceId(id)
+                .map(link -> link.isActive()
+                        ? summarize(assignmentRepository.countUpcomingByDevice(id, now),
+                        assignmentRepository.searchUpcomingByDevice(id, now, NEAREST_LIMIT), now)
+                        : HomeEclassSummary.expired()));
     }
 
     private HomeEclassSummary summarize(long count, List<EclassAssignment> nearest, LocalDateTime now) {
@@ -112,9 +105,4 @@ public class EclassAssignmentServiceImpl implements EclassAssignmentService {
 
         return HomeEclassSummary.of(count, first, now.toLocalDate());
     }
-
-
-
-
-
 }

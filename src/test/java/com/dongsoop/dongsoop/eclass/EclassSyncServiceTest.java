@@ -11,8 +11,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.dongsoop.dongsoop.eclass.client.EclassClient;
-import com.dongsoop.dongsoop.eclass.client.dto.MoodleAssignment;
+import com.dongsoop.dongsoop.eclass.dto.MoodleAssignment;
 import com.dongsoop.dongsoop.eclass.entity.EclassAssignment;
 import com.dongsoop.dongsoop.eclass.entity.EclassLink;
 import com.dongsoop.dongsoop.eclass.entity.EclassLinkStatus;
@@ -23,6 +22,7 @@ import com.dongsoop.dongsoop.eclass.repository.EclassAssignmentRepository;
 import com.dongsoop.dongsoop.eclass.repository.EclassLinkRepository;
 import com.dongsoop.dongsoop.eclass.service.EclassSyncService.SyncOutcome;
 import com.dongsoop.dongsoop.eclass.service.EclassSyncServiceImpl;
+import com.dongsoop.dongsoop.eclass.util.EclassClient;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import java.time.Clock;
 import java.time.Instant;
@@ -92,6 +92,10 @@ class EclassSyncServiceTest {
         return new MoodleAssignment(assignId, 9000L + assignId, "자료구조", "과제 " + assignId, epochSecond, epochSecond);
     }
 
+    private EclassAssignment existing(LocalDateTime dueAt) {
+        return new EclassAssignment(link, 601L, 9601L, "자료구조", "과제 601", dueAt, dueAt);
+    }
+
     @SuppressWarnings("unchecked")
     private List<EclassAssignment> capturedSaved() {
         ArgumentCaptor<List<EclassAssignment>> captor = ArgumentCaptor.forClass(List.class);
@@ -130,8 +134,7 @@ class EclassSyncServiceTest {
     @Test
     @DisplayName("이미 제출한 과제는 제출 상태를 다시 묻지 않는다")
     void skipsSubmissionCheckForSubmitted() {
-        EclassAssignment submitted = new EclassAssignment(link, 601L, 9601L, "자료구조", "과제 601",
-                NOW.plusDays(2), NOW.plusDays(2));
+        EclassAssignment submitted = existing(NOW.plusDays(2));
         submitted.markSubmitted(NOW.minusDays(1));
         when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(submitted));
         when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
@@ -144,8 +147,7 @@ class EclassSyncServiceTest {
     @Test
     @DisplayName("응답에서 사라진 과제는 삭제로 표시한다")
     void marksRemoved() {
-        EclassAssignment existing = new EclassAssignment(link, 601L, 9601L, "자료구조", "과제 601",
-                NOW.plusDays(2), NOW.plusDays(2));
+        EclassAssignment existing = existing(NOW.plusDays(2));
         when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
         when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of());
 
@@ -196,8 +198,7 @@ class EclassSyncServiceTest {
     @Test
     @DisplayName("마감이 바뀌면 리마인드 단계를 초기화한다")
     void resetsReminderStageOnDueDateChange() {
-        EclassAssignment existing = new EclassAssignment(link, 601L, 9601L, "자료구조", "과제 601",
-                NOW.plusDays(2), NOW.plusDays(2));
+        EclassAssignment existing = existing(NOW.plusDays(2));
         existing.markReminded(1);
         when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
         when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(9))));
@@ -260,8 +261,6 @@ class EclassSyncServiceTest {
         verify(eclassNotification, never()).sendExpiredNotice(any());
     }
 
-
-
     @Test
     @DisplayName("연동 성공 시 마지막 수집 시각을 남긴다")
     void marksSyncedAt() {
@@ -289,8 +288,7 @@ class EclassSyncServiceTest {
     @Test
     @DisplayName("마감이 앞당겨지면 변경 알림을 보낸다")
     void notifiesWhenDueDateAdvanced() {
-        EclassAssignment existing = new EclassAssignment(link, 601L, 9601L, "자료구조", "과제 601",
-                NOW.plusDays(9), NOW.plusDays(9));
+        EclassAssignment existing = existing(NOW.plusDays(9));
         when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
         when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
         when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(false);
@@ -304,8 +302,7 @@ class EclassSyncServiceTest {
     @Test
     @DisplayName("마감이 미뤄지면 변경 알림을 보내지 않는다 — 리마인드가 새 일정으로 다시 나간다")
     void doesNotNotifyWhenDueDatePostponed() {
-        EclassAssignment existing = new EclassAssignment(link, 601L, 9601L, "자료구조", "과제 601",
-                NOW.plusDays(2), NOW.plusDays(2));
+        EclassAssignment existing = existing(NOW.plusDays(2));
         when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
         when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(9))));
         when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(false);
@@ -318,8 +315,7 @@ class EclassSyncServiceTest {
     @Test
     @DisplayName("마감이 그대로면 변경 알림을 보내지 않는다")
     void doesNotNotifyWhenDueDateUnchanged() {
-        EclassAssignment existing = new EclassAssignment(link, 601L, 9601L, "자료구조", "과제 601",
-                NOW.plusDays(2), NOW.plusDays(2));
+        EclassAssignment existing = existing(NOW.plusDays(2));
         when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
         when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
         when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(false);
@@ -332,8 +328,7 @@ class EclassSyncServiceTest {
     @Test
     @DisplayName("이미 제출한 과제는 마감이 앞당겨져도 알리지 않는다")
     void doesNotNotifySubmittedAssignment() {
-        EclassAssignment existing = new EclassAssignment(link, 601L, 9601L, "자료구조", "과제 601",
-                NOW.plusDays(9), NOW.plusDays(9));
+        EclassAssignment existing = existing(NOW.plusDays(9));
         existing.markSubmitted(NOW.minusDays(1));
         when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
         when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
@@ -396,8 +391,7 @@ class EclassSyncServiceTest {
     @Test
     @DisplayName("같은 회차에 제출로 확인된 과제는 마감 변경을 알리지 않는다")
     void doesNotNotifyWhenSubmittedDuringSync() {
-        EclassAssignment existing = new EclassAssignment(link, 601L, 9601L, "자료구조", "과제 601",
-                NOW.plusDays(9), NOW.plusDays(9));
+        EclassAssignment existing = existing(NOW.plusDays(9));
         when(assignmentRepository.findAllByLinkId(10L)).thenReturn(List.of(existing));
         when(eclassClient.getAssignments("moodle-token")).thenReturn(List.of(moodleAssignment(601L, NOW.plusDays(2))));
         when(eclassClient.isSubmitted(anyString(), anyLong())).thenReturn(true);

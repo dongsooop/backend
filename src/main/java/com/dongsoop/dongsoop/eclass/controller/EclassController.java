@@ -24,17 +24,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class EclassController {
 
-    private static final String FID_HEADER = "X-Device-Fid";
-    private static final String DEVICE_TOKEN_HEADER = "X-Device-Token";
-
     private final EclassLinkService eclassLinkService;
     private final EclassAssignmentService eclassAssignmentService;
 
     @PostMapping("/link")
     public ResponseEntity<EclassLinkResponse> link(
-            @RequestHeader(value = FID_HEADER, required = false) String fid,
-            @RequestHeader(value = DEVICE_TOKEN_HEADER, required = false) String deviceToken,
-            @Valid @RequestBody EclassLinkRequest request) {
+            @RequestHeader(value = "X-Device-Fid", required = false) String fid,
+            @RequestHeader(value = "X-Device-Token", required = false) String deviceToken,
+            @RequestBody @Valid EclassLinkRequest request) {
         EclassLinkResponse response = eclassLinkService.link(fid, deviceToken, request.token());
 
         return ResponseEntity.ok(response);
@@ -42,15 +39,15 @@ public class EclassController {
 
     @GetMapping("/link")
     public ResponseEntity<EclassLinkResponse> getLink(
-            @RequestHeader(value = FID_HEADER, required = false) String fid,
-            @RequestHeader(value = DEVICE_TOKEN_HEADER, required = false) String deviceToken) {
+            @RequestHeader(value = "X-Device-Fid", required = false) String fid,
+            @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
         return ResponseEntity.ok(eclassLinkService.getStatus(fid, deviceToken));
     }
 
     @DeleteMapping("/link")
     public ResponseEntity<Void> unlink(
-            @RequestHeader(value = FID_HEADER, required = false) String fid,
-            @RequestHeader(value = DEVICE_TOKEN_HEADER, required = false) String deviceToken) {
+            @RequestHeader(value = "X-Device-Fid", required = false) String fid,
+            @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
         eclassLinkService.unlink(fid, deviceToken);
 
         return ResponseEntity.noContent()
@@ -59,15 +56,15 @@ public class EclassController {
 
     @GetMapping("/assignments")
     public ResponseEntity<EclassAssignmentListResponse> getAssignments(
-            @RequestHeader(value = FID_HEADER, required = false) String fid,
-            @RequestHeader(value = DEVICE_TOKEN_HEADER, required = false) String deviceToken) {
+            @RequestHeader(value = "X-Device-Fid", required = false) String fid,
+            @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
         return ResponseEntity.ok(eclassAssignmentService.getUpcoming(fid, deviceToken));
     }
 
     @PostMapping("/sync")
     public ResponseEntity<Void> sync(
-            @RequestHeader(value = FID_HEADER, required = false) String fid,
-            @RequestHeader(value = DEVICE_TOKEN_HEADER, required = false) String deviceToken) {
+            @RequestHeader(value = "X-Device-Fid", required = false) String fid,
+            @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
         eclassLinkService.syncNow(fid, deviceToken);
 
         return ResponseEntity.noContent()

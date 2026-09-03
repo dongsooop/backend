@@ -1,9 +1,9 @@
-package com.dongsoop.dongsoop.eclass.client;
+package com.dongsoop.dongsoop.eclass.util;
 
-import com.dongsoop.dongsoop.eclass.client.dto.MoodleAssignment;
-import com.dongsoop.dongsoop.eclass.client.dto.MoodleAssignmentsResponse;
-import com.dongsoop.dongsoop.eclass.client.dto.MoodleSiteInfoResponse;
-import com.dongsoop.dongsoop.eclass.client.dto.MoodleSubmissionStatusResponse;
+import com.dongsoop.dongsoop.eclass.dto.MoodleAssignment;
+import com.dongsoop.dongsoop.eclass.dto.MoodleAssignmentsResponse;
+import com.dongsoop.dongsoop.eclass.dto.MoodleSiteInfoResponse;
+import com.dongsoop.dongsoop.eclass.dto.MoodleSubmissionStatusResponse;
 import com.dongsoop.dongsoop.eclass.exception.EclassApiException;
 import com.dongsoop.dongsoop.eclass.exception.EclassInvalidTokenException;
 import com.fasterxml.jackson.core.JsonProcessingException;

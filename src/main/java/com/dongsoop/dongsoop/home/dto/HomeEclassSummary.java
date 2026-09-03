@@ -32,13 +32,9 @@ public record HomeEclassSummary(
         return new HomeEclassSummary(true, EclassLinkStatus.EXPIRED, 0L, null, null, null, null);
     }
 
-    public static HomeEclassSummary empty() {
-        return new HomeEclassSummary(true, EclassLinkStatus.ACTIVE, 0L, null, null, null, null);
-    }
-
     public static HomeEclassSummary of(long upcomingCount, EclassAssignment nearest, LocalDate today) {
         if (nearest == null) {
-            return empty();
+            return new HomeEclassSummary(true, EclassLinkStatus.ACTIVE, 0L, null, null, null, null);
         }
 
         long dDay = ChronoUnit.DAYS.between(today, nearest.getDueAt().toLocalDate());
