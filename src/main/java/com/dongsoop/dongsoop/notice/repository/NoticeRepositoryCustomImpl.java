@@ -31,8 +31,10 @@ public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
     public List<HomeNotice> searchHomeNotices(DepartmentType departmentType) {
         return queryFactory.select(Projections.constructor(
                         HomeNotice.class,
+                        noticeDetails.id,
                         noticeDetails.title,
                         noticeDetails.link,
+                        noticeDetails.createdAt,
                         department.id))
                 .from(notice)
                 .innerJoin(notice.id.noticeDetails, noticeDetails)
@@ -47,8 +49,10 @@ public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
     public List<HomeNotice> searchHomeNotices() {
         return queryFactory.select(Projections.constructor(
                         HomeNotice.class,
+                        noticeDetails.id,
                         noticeDetails.title,
                         noticeDetails.link,
+                        noticeDetails.createdAt,
                         department.id))
                 .from(notice)
                 .innerJoin(notice.id.noticeDetails, noticeDetails)
@@ -66,8 +70,10 @@ public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
 
         return queryFactory.select(Projections.constructor(
                         HomeNotice.class,
+                        noticeDetails.id,
                         noticeDetails.title,
                         noticeDetails.link,
+                        noticeDetails.createdAt,
                         department.id))
                 .from(notice)
                 .innerJoin(notice.id.noticeDetails, noticeDetails)
