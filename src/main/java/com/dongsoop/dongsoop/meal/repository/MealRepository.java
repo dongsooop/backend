@@ -23,7 +23,7 @@ public interface MealRepository extends JpaRepository<Meal, Long> {
     @Query("DELETE FROM Meal m WHERE m.mealDate BETWEEN :startDate AND :endDate")
     int deleteByMealDateBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
-    boolean existsByMealDateBetween(LocalDate startDate, LocalDate endDate);
+    boolean existsByMealDateBetweenAndMenuItemsNot(LocalDate startDate, LocalDate endDate, String menuItems);
 
     @Query("SELECT MAX(m.mealDate) FROM Meal m")
     @QueryHints(@QueryHint(name = "org.hibernate.readOnly", value = "true"))
