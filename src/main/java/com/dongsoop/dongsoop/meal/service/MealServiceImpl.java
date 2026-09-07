@@ -14,6 +14,7 @@ import com.dongsoop.dongsoop.meal.util.UrlEncodingUtil;
 import java.io.IOException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -38,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MealServiceImpl implements MealService {
 
     private static final String DEFAULT_EMPTY_MENU = "식단 정보 없음";
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final MealRepository mealRepository;
     private final MealParser mealParser;
@@ -73,6 +75,28 @@ public class MealServiceImpl implements MealService {
         executeTask("자동 식단 크롤링", this::performCrawling);
     }
 
+    // 토요일 크롤링이 실패했으면 일요일에 한 번 더 시도
+    @Scheduled(cron = "0 0 9 * * SUN", zone = "Asia/Seoul")
+    @Transactional
+    public void retryNextWeekMeal() {
+        crawlIfMealMissing(LocalDate.now(KST).with(DayOfWeek.MONDAY).plusWeeks(1));
+    }
+
+    // 월요일에 이번 주 식단이 비어 있으면 채워질 때까지 1시간마다 재시도
+    @Scheduled(cron = "0 30 * * * MON", zone = "Asia/Seoul")
+    @Transactional
+    public void retryMissingWeeklyMeal() {
+        crawlIfMealMissing(LocalDate.now(KST).with(DayOfWeek.MONDAY));
+    }
+
+    private void crawlIfMealMissing(LocalDate monday) {
+        if (mealRepository.existsByMealDateBetweenAndMenuItemsNot(monday, monday.plusDays(4), DEFAULT_EMPTY_MENU)) {
+            return;
+        }
+
+        executeTask("식단 재크롤링", this::performCrawling);
+    }
+
     @Scheduled(cron = "0 0 2 * * SUN", zone = "Asia/Seoul")
     @Transactional
     public void cleanupOldMealData() {
@@ -88,7 +112,8 @@ public class MealServiceImpl implements MealService {
     }
 
     private void performCrawling() {
-        LocalDate monday = LocalDate.now().with(DayOfWeek.MONDAY);
+        LocalDate today = LocalDate.now(KST);
+        LocalDate monday = today.with(DayOfWeek.MONDAY);
 
         List<Meal> currentWeekMeals = crawlCurrentWeek(monday);
         List<Meal> nextWeekMeals = crawlNextWeek(monday);
@@ -99,8 +124,8 @@ public class MealServiceImpl implements MealService {
 
         boolean isFirstCrawling = mealRepository.count() == 0;
         LocalDate lastDate = mealRepository.findMaxMealDate()
-                .orElse(LocalDate.now().minusWeeks(1));
-        LocalDate currentWeekStart = LocalDate.now().with(DayOfWeek.MONDAY);
+                .orElse(today.minusWeeks(1));
+        LocalDate currentWeekStart = today.with(DayOfWeek.MONDAY);
 
         List<Meal> newMeals = selectNewMeals(isFirstCrawling, allMeals, lastDate, currentWeekStart);
 
@@ -217,7 +242,7 @@ public class MealServiceImpl implements MealService {
     }
 
     private void deleteExistingData(List<Meal> meals) {
-        LocalDate now = LocalDate.now();
+        LocalDate now = LocalDate.now(KST);
         LocalDate currentWeekStart = now.with(DayOfWeek.MONDAY);
         LocalDate currentWeekEnd = now.with(DayOfWeek.FRIDAY);
         LocalDate nextWeekStart = currentWeekStart.plusWeeks(1);
