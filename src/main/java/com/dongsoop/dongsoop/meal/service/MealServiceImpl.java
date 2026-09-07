@@ -88,7 +88,7 @@ public class MealServiceImpl implements MealService {
     }
 
     private void crawlIfMealMissing(LocalDate monday) {
-        if (mealRepository.existsByMealDateBetween(monday, monday.plusDays(4))) {
+        if (mealRepository.existsByMealDateBetweenAndMenuItemsNot(monday, monday.plusDays(4), DEFAULT_EMPTY_MENU)) {
             return;
         }
 
