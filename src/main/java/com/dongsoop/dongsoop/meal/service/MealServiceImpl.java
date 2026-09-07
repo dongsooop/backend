@@ -73,6 +73,28 @@ public class MealServiceImpl implements MealService {
         executeTask("자동 식단 크롤링", this::performCrawling);
     }
 
+    // 토요일 크롤링이 실패했으면 일요일에 한 번 더 시도
+    @Scheduled(cron = "0 0 9 * * SUN", zone = "Asia/Seoul")
+    @Transactional
+    public void retryNextWeekMeal() {
+        crawlIfMealMissing(LocalDate.now().with(DayOfWeek.MONDAY).plusWeeks(1));
+    }
+
+    // 월요일에 이번 주 식단이 비어 있으면 채워질 때까지 1시간마다 재시도
+    @Scheduled(cron = "0 30 * * * MON", zone = "Asia/Seoul")
+    @Transactional
+    public void retryMissingWeeklyMeal() {
+        crawlIfMealMissing(LocalDate.now().with(DayOfWeek.MONDAY));
+    }
+
+    private void crawlIfMealMissing(LocalDate monday) {
+        if (mealRepository.existsByMealDateBetween(monday, monday.plusDays(4))) {
+            return;
+        }
+
+        executeTask("식단 재크롤링", this::performCrawling);
+    }
+
     @Scheduled(cron = "0 0 2 * * SUN", zone = "Asia/Seoul")
     @Transactional
     public void cleanupOldMealData() {
