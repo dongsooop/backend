@@ -57,10 +57,15 @@ public class NoticeReminderScheduler {
         reminderIds.forEach(this::claimAndSchedule);
     }
 
-    public void scheduleIfUpcoming(NoticeReminder reminder) {
+    public void scheduleIfUpcoming(Long reminderId) {
+        NoticeReminder reminder = noticeReminderRepository.findById(reminderId).orElse(null);
+        if (reminder == null || reminder.getStatus() != NoticeReminderStatus.PENDING) {
+            return;
+        }
+
         LocalDateTime now = LocalDateTime.now();
         if (!reminder.getRemindAt().isAfter(now.plus(LOOK_AHEAD))) {
-            claimAndSchedule(reminder.getId());
+            claimAndSchedule(reminderId);
         }
     }
 
