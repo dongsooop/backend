@@ -5,12 +5,14 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
 import com.dongsoop.dongsoop.notice.reminder.dto.NoticeReminderResponse;
 import com.dongsoop.dongsoop.notice.reminder.entity.NoticeReminder;
+import com.dongsoop.dongsoop.notice.reminder.exception.InvalidNoticeReminderTimeException;
 import com.dongsoop.dongsoop.notice.reminder.exception.NoticeDetailsNotFoundException;
 import com.dongsoop.dongsoop.notice.reminder.exception.NoticeReminderNotFoundException;
 import com.dongsoop.dongsoop.notice.reminder.repository.NoticeReminderRepository;
 import com.dongsoop.dongsoop.notice.reminder.scheduler.NoticeReminderScheduler;
 import com.dongsoop.dongsoop.notice.repository.NoticeDetailsRepository;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @RequiredArgsConstructor
 public class NoticeReminderService {
 
+    private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
+
     private final NoticeReminderRepository noticeReminderRepository;
     private final NoticeDetailsRepository noticeDetailsRepository;
     private final MemberService memberService;
@@ -28,6 +32,8 @@ public class NoticeReminderService {
 
     @Transactional
     public NoticeReminderResponse upsert(Long noticeId, LocalDateTime remindAt) {
+        validateRemindAt(remindAt);
+
         Member member = memberService.getMemberReferenceByContext();
         NoticeDetails noticeDetails = noticeDetailsRepository.findById(noticeId)
                 .orElseThrow(() -> new NoticeDetailsNotFoundException(noticeId));
@@ -66,6 +72,12 @@ public class NoticeReminderService {
                 .orElseThrow(NoticeReminderNotFoundException::new);
 
         noticeReminderRepository.delete(reminder);
+    }
+
+    private void validateRemindAt(LocalDateTime remindAt) {
+        if (!remindAt.isAfter(LocalDateTime.now(SEOUL_ZONE))) {
+            throw new InvalidNoticeReminderTimeException();
+        }
     }
 
     private void scheduleAfterCommit(Long reminderId) {
