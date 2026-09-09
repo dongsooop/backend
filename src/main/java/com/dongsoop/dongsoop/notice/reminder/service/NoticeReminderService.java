@@ -1,7 +1,7 @@
 package com.dongsoop.dongsoop.notice.reminder.service;
 
-import com.dongsoop.dongsoop.member.entity.Member;
-import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
+import com.dongsoop.dongsoop.memberdevice.service.NoticePreferenceDeviceResolver;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
 import com.dongsoop.dongsoop.notice.reminder.dto.NoticeReminderResponse;
 import com.dongsoop.dongsoop.notice.reminder.entity.NoticeReminder;
@@ -27,24 +27,24 @@ public class NoticeReminderService {
 
     private final NoticeReminderRepository noticeReminderRepository;
     private final NoticeDetailsRepository noticeDetailsRepository;
-    private final MemberService memberService;
+    private final NoticePreferenceDeviceResolver deviceResolver;
     private final NoticeReminderScheduler noticeReminderScheduler;
 
     @Transactional
-    public NoticeReminderResponse upsert(Long noticeId, LocalDateTime remindAt) {
+    public NoticeReminderResponse upsert(Long noticeId, String fid, String deviceToken, LocalDateTime remindAt) {
         validateRemindAt(remindAt);
 
-        Member member = memberService.getMemberReferenceByContext();
+        MemberDevice device = deviceResolver.resolve(fid, deviceToken);
         NoticeDetails noticeDetails = noticeDetailsRepository.findById(noticeId)
                 .orElseThrow(() -> new NoticeDetailsNotFoundException(noticeId));
 
         NoticeReminder reminder = noticeReminderRepository
-                .findByMemberIdAndNoticeDetailsId(member.getId(), noticeId)
+                .findByDeviceIdAndNoticeDetailsId(device.getId(), noticeId)
                 .map(existing -> {
                     existing.reschedule(remindAt);
                     return existing;
                 })
-                .orElseGet(() -> new NoticeReminder(member, noticeDetails, remindAt));
+                .orElseGet(() -> new NoticeReminder(device, noticeDetails, remindAt));
 
         NoticeReminder saved = noticeReminderRepository.save(reminder);
         scheduleAfterCommit(saved.getId());
@@ -53,22 +53,22 @@ public class NoticeReminderService {
     }
 
     @Transactional(readOnly = true)
-    public NoticeReminderResponse get(Long noticeId) {
-        Long memberId = memberService.getMemberIdByAuthentication();
+    public NoticeReminderResponse get(Long noticeId, String fid, String deviceToken) {
+        MemberDevice device = deviceResolver.resolve(fid, deviceToken);
 
         NoticeReminder reminder = noticeReminderRepository
-                .findByMemberIdAndNoticeDetailsId(memberId, noticeId)
+                .findByDeviceIdAndNoticeDetailsId(device.getId(), noticeId)
                 .orElseThrow(NoticeReminderNotFoundException::new);
 
         return new NoticeReminderResponse(noticeId, reminder.getRemindAt());
     }
 
     @Transactional
-    public void delete(Long noticeId) {
-        Long memberId = memberService.getMemberIdByAuthentication();
+    public void delete(Long noticeId, String fid, String deviceToken) {
+        MemberDevice device = deviceResolver.resolve(fid, deviceToken);
 
         NoticeReminder reminder = noticeReminderRepository
-                .findByMemberIdAndNoticeDetailsId(memberId, noticeId)
+                .findByDeviceIdAndNoticeDetailsId(device.getId(), noticeId)
                 .orElseThrow(NoticeReminderNotFoundException::new);
 
         noticeReminderRepository.delete(reminder);
