@@ -26,6 +26,18 @@ public interface NoticeReminderRepository extends JpaRepository<NoticeReminder, 
             from NoticeReminder r
             where r.status = :status
               and r.remindAt <= :until
+            order by r.remindAt
+            """)
+    List<Long> findUpcomingIds(
+            @Param("status") NoticeReminderStatus status,
+            @Param("until") LocalDateTime until
+    );
+
+    @Query("""
+            select r.id
+            from NoticeReminder r
+            where r.status = :status
+              and r.remindAt <= :until
               and (r.claimedUntil is null or r.claimedUntil < :now)
             order by r.remindAt
             """)
