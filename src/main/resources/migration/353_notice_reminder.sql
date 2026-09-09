@@ -3,19 +3,19 @@
 
 CREATE TABLE IF NOT EXISTS notice_reminder (
     id BIGSERIAL PRIMARY KEY,
-    member_id BIGINT NOT NULL,
+    device_id BIGINT NOT NULL,
     notice_details_id BIGINT NOT NULL,
     remind_at TIMESTAMP NOT NULL,
     status VARCHAR(20) NOT NULL,
     claimed_until TIMESTAMP NULL,
     sent_at TIMESTAMP NULL,
     retry_count INTEGER NOT NULL DEFAULT 0,
-    CONSTRAINT fk_notice_reminder_member
-        FOREIGN KEY (member_id) REFERENCES member(id) ON DELETE CASCADE,
+    CONSTRAINT fk_notice_reminder_device
+        FOREIGN KEY (device_id) REFERENCES member_device(id) ON DELETE CASCADE,
     CONSTRAINT fk_notice_reminder_notice_details
         FOREIGN KEY (notice_details_id) REFERENCES notice_details(id) ON DELETE CASCADE,
-    CONSTRAINT uk_notice_reminder_member_notice
-        UNIQUE (member_id, notice_details_id)
+    CONSTRAINT uk_notice_reminder_device_notice
+        UNIQUE (device_id, notice_details_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_notice_reminder_status_remind_at
