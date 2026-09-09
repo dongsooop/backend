@@ -30,7 +30,7 @@ public class NoticeReminderExecutionService {
 
     @Transactional
     public void execute(Long reminderId, LocalDateTime expectedRemindAt) {
-        NoticeReminder reminder = noticeReminderRepository.findById(reminderId).orElse(null);
+        NoticeReminder reminder = noticeReminderRepository.findByIdForUpdate(reminderId).orElse(null);
         if (reminder == null || reminder.getStatus() != NoticeReminderStatus.PENDING) {
             return;
         }
