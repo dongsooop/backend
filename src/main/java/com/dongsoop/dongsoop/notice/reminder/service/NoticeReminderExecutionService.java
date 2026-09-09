@@ -8,6 +8,7 @@ import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.service.NotificationSaveService;
 import com.dongsoop.dongsoop.notification.service.NotificationSendService;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class NoticeReminderExecutionService {
 
     private static final String TITLE = "공지 리마인더";
+    private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
 
     private final NoticeReminderRepository noticeReminderRepository;
     private final NotificationSaveService notificationSaveService;
@@ -37,7 +39,7 @@ public class NoticeReminderExecutionService {
             return;
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(SEOUL_ZONE);
         if (reminder.getRemindAt().isAfter(now)) {
             return;
         }
