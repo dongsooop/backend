@@ -87,7 +87,7 @@ public class NoticeReminderScheduler {
                 ? reminder.getRemindAt().plus(LEASE_GRACE)
                 : now.plus(LEASE_GRACE);
 
-        int claimed = noticeReminderRepository.claim(
+        long claimed = noticeReminderRepository.claim(
                 reminderId,
                 NoticeReminderStatus.PENDING,
                 now,
