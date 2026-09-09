@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.notice.reminder.entity;
 
-import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -26,7 +26,7 @@ import lombok.NoArgsConstructor;
         name = "notice_reminder",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_notice_reminder_member_notice",
-                columnNames = {"member_id", "notice_details_id"}
+                columnNames = {"device_id", "notice_details_id"}
         )
 )
 public class NoticeReminder {
@@ -36,8 +36,8 @@ public class NoticeReminder {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "member_id", nullable = false)
-    private Member member;
+    @JoinColumn(name = "device_id", nullable = false)
+    private MemberDevice device;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "notice_details_id", nullable = false)
@@ -59,8 +59,8 @@ public class NoticeReminder {
     @Column(name = "retry_count", nullable = false)
     private int retryCount;
 
-    public NoticeReminder(Member member, NoticeDetails noticeDetails, LocalDateTime remindAt) {
-        this.member = member;
+    public NoticeReminder(MemberDevice device, NoticeDetails noticeDetails, LocalDateTime remindAt) {
+        this.device = device;
         this.noticeDetails = noticeDetails;
         this.remindAt = remindAt;
         this.status = NoticeReminderStatus.PENDING;
