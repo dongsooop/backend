@@ -41,7 +41,13 @@ public class NoticeReminderScheduler {
 
     @EventListener(ApplicationReadyEvent.class)
     public void scheduleOnStartup() {
-        scheduleUpcoming();
+        LocalDateTime now = LocalDateTime.now(SEOUL_ZONE);
+        LocalDateTime until = now.plus(LOOK_AHEAD);
+
+        noticeReminderRepository.findUpcomingIds(
+                NoticeReminderStatus.PENDING,
+                until
+        ).forEach(this::scheduleRecovered);
     }
 
     @Scheduled(fixedRate = 60 * 60 * 1000L)
@@ -91,14 +97,8 @@ public class NoticeReminderScheduler {
             return;
         }
 
-        LocalDateTime expectedRemindAt = reminder.getRemindAt();
-        LocalDateTime executeAt = expectedRemindAt.isBefore(now) ? now : expectedRemindAt;
-
         try {
-            taskScheduler.schedule(
-                    () -> execute(reminderId, expectedRemindAt),
-                    executeAt.atZone(SEOUL_ZONE).toInstant()
-            );
+            scheduleTask(reminder, now);
         } catch (RuntimeException exception) {
             noticeReminderRepository.releaseAfterFailure(
                     reminderId,
@@ -108,6 +108,26 @@ public class NoticeReminderScheduler {
             );
             throw exception;
         }
+    }
+
+    private void scheduleRecovered(Long reminderId) {
+        NoticeReminder reminder = noticeReminderRepository.findById(reminderId).orElse(null);
+        if (reminder == null || reminder.getStatus() != NoticeReminderStatus.PENDING) {
+            return;
+        }
+
+        scheduleTask(reminder, LocalDateTime.now(SEOUL_ZONE));
+    }
+
+    private void scheduleTask(NoticeReminder reminder, LocalDateTime now) {
+        Long reminderId = reminder.getId();
+        LocalDateTime expectedRemindAt = reminder.getRemindAt();
+        LocalDateTime executeAt = expectedRemindAt.isBefore(now) ? now : expectedRemindAt;
+
+        taskScheduler.schedule(
+                () -> execute(reminderId, expectedRemindAt),
+                executeAt.atZone(SEOUL_ZONE).toInstant()
+        );
     }
 
     private void execute(Long reminderId, LocalDateTime expectedRemindAt) {
