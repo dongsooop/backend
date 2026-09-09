@@ -7,5 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface NoticeReminderRepository
         extends JpaRepository<NoticeReminder, Long>, NoticeReminderRepositoryCustom {
 
-    Optional<NoticeReminder> findByMemberIdAndNoticeDetailsId(Long memberId, Long noticeDetailsId);
+    Optional<NoticeReminder> findByDeviceIdAndNoticeDetailsId(Long memberId, Long noticeDetailsId);
 }
