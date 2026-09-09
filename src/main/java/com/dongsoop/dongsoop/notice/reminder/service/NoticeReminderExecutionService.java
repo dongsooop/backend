@@ -4,11 +4,11 @@ import com.dongsoop.dongsoop.notice.reminder.entity.NoticeReminder;
 import com.dongsoop.dongsoop.notice.reminder.entity.NoticeReminderStatus;
 import com.dongsoop.dongsoop.notice.reminder.repository.NoticeReminderRepository;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
-import com.dongsoop.dongsoop.notification.entity.MemberNotification;
-import com.dongsoop.dongsoop.notification.service.NotificationSaveService;
+import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.dongsoop.dongsoop.notification.service.NotificationSendService;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -18,11 +18,11 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class NoticeReminderExecutionService {
 
+    private static final Long NON_SAVE_NOTIFICATION_ID = -1L;
     private static final String TITLE = "공지 리마인더";
     private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
 
     private final NoticeReminderRepository noticeReminderRepository;
-    private final NotificationSaveService notificationSaveService;
     private final NotificationSendService notificationSendService;
 
     @Value("${university.domain}")
@@ -44,16 +44,16 @@ public class NoticeReminderExecutionService {
             return;
         }
 
-        String noticeLink = universityDomain + reminder.getNoticeDetails().getLink();
-        MemberNotification notification = notificationSaveService.save(
-                reminder.getMember(),
+        String deviceToken = reminder.getDevice().getDeviceToken();
+        NotificationSend notification = new NotificationSend(
+                NON_SAVE_NOTIFICATION_ID,
                 TITLE,
                 reminder.getNoticeDetails().getTitle(),
                 NotificationType.NOTICE,
-                noticeLink
+                universityDomain + reminder.getNoticeDetails().getLink()
         );
 
-        notificationSendService.send(notification);
+        notificationSendService.send(List.of(deviceToken), notification);
         reminder.markSent(now);
     }
 }
