@@ -81,6 +81,11 @@ public class NoticeReminder {
         this.claimedUntil = null;
     }
 
+    public void releaseClaimAfterFailure() {
+        this.claimedUntil = null;
+        this.retryCount++;
+    }
+
     public void markFailed() {
         this.status = NoticeReminderStatus.FAILED;
         this.claimedUntil = null;
