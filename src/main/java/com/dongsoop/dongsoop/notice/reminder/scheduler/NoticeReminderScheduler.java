@@ -23,6 +23,7 @@ public class NoticeReminderScheduler {
     private static final Duration LOOK_AHEAD = Duration.ofMinutes(65);
     private static final Duration LEASE_GRACE = Duration.ofMinutes(10);
     private static final int MAX_RETRY_COUNT = 3;
+    private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
 
     private final NoticeReminderRepository noticeReminderRepository;
     private final NoticeReminderExecutionService executionService;
@@ -45,7 +46,7 @@ public class NoticeReminderScheduler {
 
     @Scheduled(fixedRate = 60 * 60 * 1000L)
     public void scheduleUpcoming() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(SEOUL_ZONE);
         LocalDateTime until = now.plus(LOOK_AHEAD);
 
         List<Long> reminderIds = noticeReminderRepository.findSchedulableIds(
@@ -63,7 +64,7 @@ public class NoticeReminderScheduler {
             return;
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(SEOUL_ZONE);
         if (!reminder.getRemindAt().isAfter(now.plus(LOOK_AHEAD))) {
             claimAndSchedule(reminderId);
         }
@@ -75,7 +76,7 @@ public class NoticeReminderScheduler {
             return;
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(SEOUL_ZONE);
         LocalDateTime claimedUntil = reminder.getRemindAt().isAfter(now)
                 ? reminder.getRemindAt().plus(LEASE_GRACE)
                 : now.plus(LEASE_GRACE);
@@ -96,7 +97,7 @@ public class NoticeReminderScheduler {
         try {
             taskScheduler.schedule(
                     () -> execute(reminderId, expectedRemindAt),
-                    executeAt.atZone(ZoneId.systemDefault()).toInstant()
+                    executeAt.atZone(SEOUL_ZONE).toInstant()
             );
         } catch (RuntimeException exception) {
             noticeReminderRepository.releaseAfterFailure(
