@@ -1,7 +1,8 @@
 package com.dongsoop.dongsoop.notice.reminder.service;
 
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
-import com.dongsoop.dongsoop.memberdevice.service.NoticePreferenceDeviceResolver;
+import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
+import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
 import com.dongsoop.dongsoop.notice.reminder.dto.NoticeReminderResponse;
 import com.dongsoop.dongsoop.notice.reminder.entity.NoticeReminder;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -27,14 +29,14 @@ public class NoticeReminderService {
 
     private final NoticeReminderRepository noticeReminderRepository;
     private final NoticeDetailsRepository noticeDetailsRepository;
-    private final NoticePreferenceDeviceResolver deviceResolver;
+    private final MemberDeviceRepository memberDeviceRepository;
     private final NoticeReminderScheduler noticeReminderScheduler;
 
     @Transactional
     public NoticeReminderResponse upsert(Long noticeId, String fid, String deviceToken, LocalDateTime remindAt) {
         validateRemindAt(remindAt);
 
-        MemberDevice device = deviceResolver.resolve(fid, deviceToken);
+        MemberDevice device = resolveDevice(fid, deviceToken);
         NoticeDetails noticeDetails = noticeDetailsRepository.findById(noticeId)
                 .orElseThrow(() -> new NoticeDetailsNotFoundException(noticeId));
 
@@ -54,7 +56,7 @@ public class NoticeReminderService {
 
     @Transactional(readOnly = true)
     public NoticeReminderResponse get(Long noticeId, String fid, String deviceToken) {
-        MemberDevice device = deviceResolver.resolve(fid, deviceToken);
+        MemberDevice device = resolveDevice(fid, deviceToken);
 
         NoticeReminder reminder = noticeReminderRepository
                 .findByDeviceIdAndNoticeDetailsId(device.getId(), noticeId)
@@ -65,13 +67,28 @@ public class NoticeReminderService {
 
     @Transactional
     public void delete(Long noticeId, String fid, String deviceToken) {
-        MemberDevice device = deviceResolver.resolve(fid, deviceToken);
+        MemberDevice device = resolveDevice(fid, deviceToken);
 
         NoticeReminder reminder = noticeReminderRepository
                 .findByDeviceIdAndNoticeDetailsId(device.getId(), noticeId)
                 .orElseThrow(NoticeReminderNotFoundException::new);
 
         noticeReminderRepository.delete(reminder);
+    }
+
+    private MemberDevice resolveDevice(String fid, String deviceToken) {
+        if (!StringUtils.hasText(fid) || !StringUtils.hasText(deviceToken)) {
+            throw new UnregisteredDeviceException();
+        }
+
+        MemberDevice device = memberDeviceRepository.findByFid(fid)
+                .orElseThrow(UnregisteredDeviceException::new);
+
+        if (!deviceToken.equals(device.getDeviceToken())) {
+            throw new UnregisteredDeviceException();
+        }
+
+        return device;
     }
 
     private void validateRemindAt(LocalDateTime remindAt) {
