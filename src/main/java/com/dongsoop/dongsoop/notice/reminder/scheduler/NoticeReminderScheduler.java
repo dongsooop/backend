@@ -87,11 +87,6 @@ public class NoticeReminderScheduler {
     }
 
     private void claimAndSchedule(Long reminderId) {
-        NoticeReminder reminder = noticeReminderRepository.findById(reminderId).orElse(null);
-        if (reminder == null || reminder.getStatus() != NoticeReminderStatus.PENDING) {
-            return;
-        }
-
         LocalDateTime now = LocalDateTime.now(SEOUL_ZONE);
         LocalDateTime claimedRemindAt = noticeReminderRepository.claimForScheduling(
                 reminderId,
@@ -130,12 +125,20 @@ public class NoticeReminderScheduler {
     }
 
     private void scheduleTask(Long reminderId, LocalDateTime expectedRemindAt, LocalDateTime now) {
-        LocalDateTime executeAt = expectedRemindAt.isBefore(now) ? now : expectedRemindAt;
+        LocalDateTime executeAt = resolveExecuteAt(expectedRemindAt, now);
 
         taskScheduler.schedule(
                 () -> execute(reminderId, expectedRemindAt),
                 executeAt.atZone(SEOUL_ZONE).toInstant()
         );
+    }
+
+    private LocalDateTime resolveExecuteAt(LocalDateTime expectedRemindAt, LocalDateTime now) {
+        if (expectedRemindAt.isBefore(now)) {
+            return now;
+        }
+
+        return expectedRemindAt;
     }
 
     private void execute(Long reminderId, LocalDateTime expectedRemindAt) {
