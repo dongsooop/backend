@@ -11,6 +11,8 @@ public interface NoticeReminderRepositoryCustom {
 
     Optional<NoticeReminder> findByIdForUpdate(Long id);
 
+    void lockDevice(Long deviceId);
+
     Optional<NoticeReminder> findByDeviceIdAndNoticeDetailsIdForUpdate(Long deviceId, Long noticeDetailsId);
 
     List<Long> findUpcomingIds(NoticeReminderStatus status, LocalDateTime until);
