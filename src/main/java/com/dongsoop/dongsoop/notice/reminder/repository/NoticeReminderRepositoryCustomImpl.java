@@ -109,12 +109,20 @@ public class NoticeReminderRepositoryCustomImpl implements NoticeReminderReposit
         }
 
         LocalDateTime remindAt = reminder.getRemindAt();
-        LocalDateTime leaseUntil = remindAt.isAfter(now)
-                ? remindAt.plus(leaseGrace)
-                : now.plus(leaseGrace);
-
-        reminder.claimUntil(leaseUntil);
+        reminder.claimUntil(resolveLeaseUntil(remindAt, now, leaseGrace));
         return Optional.of(remindAt);
+    }
+
+    private LocalDateTime resolveLeaseUntil(
+            LocalDateTime remindAt,
+            LocalDateTime now,
+            Duration leaseGrace
+    ) {
+        if (remindAt.isAfter(now)) {
+            return remindAt.plus(leaseGrace);
+        }
+
+        return now.plus(leaseGrace);
     }
 
     @Override
