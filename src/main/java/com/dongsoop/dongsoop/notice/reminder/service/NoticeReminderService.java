@@ -39,7 +39,7 @@ public class NoticeReminderService {
                 .orElseThrow(() -> new NoticeDetailsNotFoundException(noticeId));
 
         NoticeReminder reminder = noticeReminderRepository
-                .findByDeviceIdAndNoticeDetailsId(device.getId(), noticeId)
+                .findByDeviceIdAndNoticeDetailsIdForUpdate(device.getId(), noticeId)
                 .map(existing -> {
                     existing.reschedule(remindAt);
                     return existing;
