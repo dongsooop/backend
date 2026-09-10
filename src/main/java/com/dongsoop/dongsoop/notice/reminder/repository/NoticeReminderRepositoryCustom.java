@@ -24,6 +24,12 @@ public interface NoticeReminderRepositoryCustom {
             Duration leaseGrace
     );
 
+    long recoverStaleProcessing(
+            NoticeReminderStatus processing,
+            NoticeReminderStatus pending,
+            LocalDateTime now
+    );
+
     long releaseAfterFailure(
             Long id,
             int maxRetryCount,
