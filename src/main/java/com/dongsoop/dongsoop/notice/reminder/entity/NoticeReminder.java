@@ -25,7 +25,7 @@ import lombok.NoArgsConstructor;
 @Table(
         name = "notice_reminder",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_notice_reminder_member_notice",
+                name = "uk_notice_reminder_device_notice",
                 columnNames = {"device_id", "notice_details_id"}
         )
 )
@@ -65,6 +65,10 @@ public class NoticeReminder {
         this.remindAt = remindAt;
         this.status = NoticeReminderStatus.PENDING;
         this.retryCount = 0;
+    }
+
+    public void claimUntil(LocalDateTime claimedUntil) {
+        this.claimedUntil = claimedUntil;
     }
 
     public void reschedule(LocalDateTime remindAt) {
