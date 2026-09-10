@@ -93,9 +93,13 @@ public class NoticeReminder {
     public void markDeliveryFailed(int maxRetryCount) {
         this.claimedUntil = null;
         this.retryCount++;
-        this.status = this.retryCount >= maxRetryCount
-                ? NoticeReminderStatus.FAILED
-                : NoticeReminderStatus.PENDING;
+
+        if (this.retryCount >= maxRetryCount) {
+            this.status = NoticeReminderStatus.FAILED;
+            return;
+        }
+
+        this.status = NoticeReminderStatus.PENDING;
     }
 
     public void recoverProcessing() {
