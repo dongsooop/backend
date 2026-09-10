@@ -107,6 +107,25 @@ public class NoticeReminderRepositoryCustomImpl implements NoticeReminderReposit
 
     @Override
     @Transactional
+    public long recoverStaleProcessing(
+            NoticeReminderStatus processing,
+            NoticeReminderStatus pending,
+            LocalDateTime now
+    ) {
+        return queryFactory
+                .update(noticeReminder)
+                .set(noticeReminder.status, pending)
+                .setNull(noticeReminder.claimedUntil)
+                .where(
+                        noticeReminder.status.eq(processing),
+                        noticeReminder.claimedUntil.isNotNull(),
+                        noticeReminder.claimedUntil.lt(now)
+                )
+                .execute();
+    }
+
+    @Override
+    @Transactional
     public long releaseAfterFailure(
             Long id,
             int maxRetryCount,
