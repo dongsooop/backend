@@ -205,3 +205,8 @@ admin:
 
 appcheck:
   ignore-path: ${APPCHECK_IGNORE_PATH}
+
+eclass:
+  token-key: ${ECLASS_TOKEN_KEY}
+  # salt는 비밀이 아니다 — 키 유도에만 쓰이며, 바꾸면 저장된 토큰을 복호화할 수 없다
+  token-salt: 5250c5f6fa27b366

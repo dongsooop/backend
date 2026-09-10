@@ -29,9 +29,11 @@ public class HomeController {
 
     @GetMapping("/{departmentType}")
     @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<HomeDto> getHomeData(@PathVariable("departmentType") DepartmentType departmentType) {
+    public ResponseEntity<HomeDto> getHomeData(@PathVariable("departmentType") DepartmentType departmentType,
+                                               @RequestHeader(value = "X-Device-Fid", required = false) String fid,
+                                               @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
         Long requesterId = memberService.getMemberIdByAuthentication();
-        HomeDto home = homeService.getHome(requesterId, departmentType);
+        HomeDto home = homeService.getHome(requesterId, departmentType, fid, deviceToken);
 
         return ResponseEntity.ok(home);
     }
@@ -53,9 +55,9 @@ public class HomeController {
     private HomeDto getHomeForDevice(String fid, String deviceToken) {
         try {
             List<DepartmentType> departmentTypes = noticePreferenceService.getDepartmentTypes(fid, deviceToken);
-            return homeService.getHome(Set.copyOf(departmentTypes));
+            return homeService.getHome(Set.copyOf(departmentTypes), fid, deviceToken);
         } catch (UnregisteredDeviceException e) {
-            return homeService.getHome(Set.of());
+            return homeService.getHome(Set.of(), fid, deviceToken);
         }
     }
 }

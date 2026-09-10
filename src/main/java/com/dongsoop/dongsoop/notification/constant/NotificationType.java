@@ -15,7 +15,8 @@ public enum NotificationType {
     MARKETING(false),
     FEEDBACK(true),
     BLINDDATE(true),
-    NEW_DEVICE_LOGIN(true);
+    NEW_DEVICE_LOGIN(true),
+    ECLASS_ASSIGNMENT(true);
 
     private final boolean defaultActiveState;
 
