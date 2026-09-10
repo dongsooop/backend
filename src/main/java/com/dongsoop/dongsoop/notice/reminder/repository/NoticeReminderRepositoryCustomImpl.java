@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.notice.reminder.repository;
 
+import com.dongsoop.dongsoop.memberdevice.entity.QMemberDevice;
 import com.dongsoop.dongsoop.notice.reminder.entity.NoticeReminder;
 import com.dongsoop.dongsoop.notice.reminder.entity.NoticeReminderStatus;
 import com.dongsoop.dongsoop.notice.reminder.entity.QNoticeReminder;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class NoticeReminderRepositoryCustomImpl implements NoticeReminderRepositoryCustom {
 
     private static final QNoticeReminder noticeReminder = QNoticeReminder.noticeReminder;
+    private static final QMemberDevice memberDevice = QMemberDevice.memberDevice;
 
     private final JPAQueryFactory queryFactory;
 
@@ -30,6 +32,16 @@ public class NoticeReminderRepositoryCustomImpl implements NoticeReminderReposit
                 .fetchOne();
 
         return Optional.ofNullable(result);
+    }
+
+    @Override
+    public void lockDevice(Long deviceId) {
+        queryFactory
+                .select(memberDevice.id)
+                .from(memberDevice)
+                .where(memberDevice.id.eq(deviceId))
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+                .fetchOne();
     }
 
     @Override
