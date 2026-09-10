@@ -83,22 +83,18 @@ public class NoticeReminderScheduler {
         }
 
         LocalDateTime now = LocalDateTime.now(SEOUL_ZONE);
-        LocalDateTime claimedUntil = reminder.getRemindAt().isAfter(now)
-                ? reminder.getRemindAt().plus(LEASE_GRACE)
-                : now.plus(LEASE_GRACE);
-
-        long claimed = noticeReminderRepository.claim(
+        LocalDateTime claimedRemindAt = noticeReminderRepository.claimForScheduling(
                 reminderId,
                 NoticeReminderStatus.PENDING,
                 now,
-                claimedUntil
-        );
-        if (claimed == 0) {
+                LEASE_GRACE
+        ).orElse(null);
+        if (claimedRemindAt == null) {
             return;
         }
 
         try {
-            scheduleTask(reminder, now);
+            scheduleTask(reminderId, claimedRemindAt, now);
         } catch (RuntimeException exception) {
             noticeReminderRepository.releaseAfterFailure(
                     reminderId,
@@ -116,12 +112,14 @@ public class NoticeReminderScheduler {
             return;
         }
 
-        scheduleTask(reminder, LocalDateTime.now(SEOUL_ZONE));
+        scheduleTask(
+                reminder.getId(),
+                reminder.getRemindAt(),
+                LocalDateTime.now(SEOUL_ZONE)
+        );
     }
 
-    private void scheduleTask(NoticeReminder reminder, LocalDateTime now) {
-        Long reminderId = reminder.getId();
-        LocalDateTime expectedRemindAt = reminder.getRemindAt();
+    private void scheduleTask(Long reminderId, LocalDateTime expectedRemindAt, LocalDateTime now) {
         LocalDateTime executeAt = expectedRemindAt.isBefore(now) ? now : expectedRemindAt;
 
         taskScheduler.schedule(
