@@ -42,6 +42,7 @@ public class NoticeReminderScheduler {
     @EventListener(ApplicationReadyEvent.class)
     public void scheduleOnStartup() {
         LocalDateTime now = LocalDateTime.now(SEOUL_ZONE);
+        recoverStaleProcessing(now);
         LocalDateTime until = now.plus(LOOK_AHEAD);
 
         noticeReminderRepository.findUpcomingIds(
@@ -53,6 +54,7 @@ public class NoticeReminderScheduler {
     @Scheduled(fixedRate = 60 * 60 * 1000L)
     public void scheduleUpcoming() {
         LocalDateTime now = LocalDateTime.now(SEOUL_ZONE);
+        recoverStaleProcessing(now);
         LocalDateTime until = now.plus(LOOK_AHEAD);
 
         List<Long> reminderIds = noticeReminderRepository.findSchedulableIds(
@@ -74,6 +76,14 @@ public class NoticeReminderScheduler {
         if (!reminder.getRemindAt().isAfter(now.plus(LOOK_AHEAD))) {
             claimAndSchedule(reminderId);
         }
+    }
+
+    private void recoverStaleProcessing(LocalDateTime now) {
+        noticeReminderRepository.recoverStaleProcessing(
+                NoticeReminderStatus.PROCESSING,
+                NoticeReminderStatus.PENDING,
+                now
+        );
     }
 
     private void claimAndSchedule(Long reminderId) {
