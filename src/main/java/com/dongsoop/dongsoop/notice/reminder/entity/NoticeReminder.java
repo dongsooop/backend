@@ -79,9 +79,27 @@ public class NoticeReminder {
         this.retryCount = 0;
     }
 
+    public void markProcessing(LocalDateTime processingUntil) {
+        this.status = NoticeReminderStatus.PROCESSING;
+        this.claimedUntil = processingUntil;
+    }
+
     public void markSent(LocalDateTime sentAt) {
         this.status = NoticeReminderStatus.SENT;
         this.sentAt = sentAt;
+        this.claimedUntil = null;
+    }
+
+    public void markDeliveryFailed(int maxRetryCount) {
+        this.claimedUntil = null;
+        this.retryCount++;
+        this.status = this.retryCount >= maxRetryCount
+                ? NoticeReminderStatus.FAILED
+                : NoticeReminderStatus.PENDING;
+    }
+
+    public void recoverProcessing() {
+        this.status = NoticeReminderStatus.PENDING;
         this.claimedUntil = null;
     }
 
