@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.notice.reminder.entity.NoticeReminderStatus;
 import com.dongsoop.dongsoop.notice.reminder.entity.QNoticeReminder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.LockModeType;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +26,20 @@ public class NoticeReminderRepositoryCustomImpl implements NoticeReminderReposit
         NoticeReminder result = queryFactory
                 .selectFrom(noticeReminder)
                 .where(noticeReminder.id.eq(id))
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+                .fetchOne();
+
+        return Optional.ofNullable(result);
+    }
+
+    @Override
+    public Optional<NoticeReminder> findByDeviceIdAndNoticeDetailsIdForUpdate(Long deviceId, Long noticeDetailsId) {
+        NoticeReminder result = queryFactory
+                .selectFrom(noticeReminder)
+                .where(
+                        noticeReminder.device.id.eq(deviceId),
+                        noticeReminder.noticeDetails.id.eq(noticeDetailsId)
+                )
                 .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                 .fetchOne();
 
@@ -65,22 +80,29 @@ public class NoticeReminderRepositoryCustomImpl implements NoticeReminderReposit
 
     @Override
     @Transactional
-    public long claim(
+    public Optional<LocalDateTime> claimForScheduling(
             Long id,
             NoticeReminderStatus status,
             LocalDateTime now,
-            LocalDateTime claimedUntil
+            Duration leaseGrace
     ) {
-        return queryFactory
-                .update(noticeReminder)
-                .set(noticeReminder.claimedUntil, claimedUntil)
-                .where(
-                        noticeReminder.id.eq(id),
-                        noticeReminder.status.eq(status),
-                        noticeReminder.claimedUntil.isNull()
-                                .or(noticeReminder.claimedUntil.lt(now))
-                )
-                .execute();
+        NoticeReminder reminder = findByIdForUpdate(id).orElse(null);
+        if (reminder == null || reminder.getStatus() != status) {
+            return Optional.empty();
+        }
+
+        LocalDateTime claimedUntil = reminder.getClaimedUntil();
+        if (claimedUntil != null && !claimedUntil.isBefore(now)) {
+            return Optional.empty();
+        }
+
+        LocalDateTime remindAt = reminder.getRemindAt();
+        LocalDateTime leaseUntil = remindAt.isAfter(now)
+                ? remindAt.plus(leaseGrace)
+                : now.plus(leaseGrace);
+
+        reminder.claimUntil(leaseUntil);
+        return Optional.of(remindAt);
     }
 
     @Override
