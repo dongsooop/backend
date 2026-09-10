@@ -142,12 +142,6 @@ public class NoticeReminderScheduler {
         try {
             executionService.execute(reminderId, expectedRemindAt);
         } catch (Exception exception) {
-            noticeReminderRepository.releaseAfterFailure(
-                    reminderId,
-                    MAX_RETRY_COUNT,
-                    NoticeReminderStatus.PENDING,
-                    NoticeReminderStatus.FAILED
-            );
             log.error("Failed to execute notice reminder. reminderId={}", reminderId, exception);
         }
     }
