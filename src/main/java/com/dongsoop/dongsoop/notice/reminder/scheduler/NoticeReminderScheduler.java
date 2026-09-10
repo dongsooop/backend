@@ -1,0 +1,151 @@
+package com.dongsoop.dongsoop.notice.reminder.scheduler;
+
+import com.dongsoop.dongsoop.notice.reminder.entity.NoticeReminder;
+import com.dongsoop.dongsoop.notice.reminder.entity.NoticeReminderStatus;
+import com.dongsoop.dongsoop.notice.reminder.repository.NoticeReminderRepository;
+import com.dongsoop.dongsoop.notice.reminder.service.NoticeReminderExecutionService;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+public class NoticeReminderScheduler {
+
+    private static final Duration LOOK_AHEAD = Duration.ofMinutes(65);
+    private static final Duration LEASE_GRACE = Duration.ofMinutes(10);
+    private static final int MAX_RETRY_COUNT = 3;
+    private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
+
+    private final NoticeReminderRepository noticeReminderRepository;
+    private final NoticeReminderExecutionService executionService;
+    private final TaskScheduler taskScheduler;
+
+    public NoticeReminderScheduler(
+            NoticeReminderRepository noticeReminderRepository,
+            NoticeReminderExecutionService executionService,
+            @Qualifier("noticeReminderTaskScheduler") TaskScheduler taskScheduler
+    ) {
+        this.noticeReminderRepository = noticeReminderRepository;
+        this.executionService = executionService;
+        this.taskScheduler = taskScheduler;
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void scheduleOnStartup() {
+        LocalDateTime now = LocalDateTime.now(SEOUL_ZONE);
+        recoverStaleProcessing(now);
+        LocalDateTime until = now.plus(LOOK_AHEAD);
+
+        noticeReminderRepository.findUpcomingIds(
+                NoticeReminderStatus.PENDING,
+                until
+        ).forEach(this::scheduleRecovered);
+    }
+
+    @Scheduled(fixedRate = 60 * 60 * 1000L)
+    public void scheduleUpcoming() {
+        LocalDateTime now = LocalDateTime.now(SEOUL_ZONE);
+        recoverStaleProcessing(now);
+        LocalDateTime until = now.plus(LOOK_AHEAD);
+
+        List<Long> reminderIds = noticeReminderRepository.findSchedulableIds(
+                NoticeReminderStatus.PENDING,
+                now,
+                until
+        );
+
+        reminderIds.forEach(this::claimAndSchedule);
+    }
+
+    public void scheduleIfUpcoming(Long reminderId) {
+        NoticeReminder reminder = noticeReminderRepository.findById(reminderId).orElse(null);
+        if (reminder == null || reminder.getStatus() != NoticeReminderStatus.PENDING) {
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now(SEOUL_ZONE);
+        if (!reminder.getRemindAt().isAfter(now.plus(LOOK_AHEAD))) {
+            claimAndSchedule(reminderId);
+        }
+    }
+
+    private void recoverStaleProcessing(LocalDateTime now) {
+        noticeReminderRepository.recoverStaleProcessing(
+                NoticeReminderStatus.PROCESSING,
+                NoticeReminderStatus.PENDING,
+                now
+        );
+    }
+
+    private void claimAndSchedule(Long reminderId) {
+        LocalDateTime now = LocalDateTime.now(SEOUL_ZONE);
+        LocalDateTime claimedRemindAt = noticeReminderRepository.claimForScheduling(
+                reminderId,
+                NoticeReminderStatus.PENDING,
+                now,
+                LEASE_GRACE
+        ).orElse(null);
+        if (claimedRemindAt == null) {
+            return;
+        }
+
+        try {
+            scheduleTask(reminderId, claimedRemindAt, now);
+        } catch (RuntimeException exception) {
+            noticeReminderRepository.releaseAfterFailure(
+                    reminderId,
+                    MAX_RETRY_COUNT,
+                    NoticeReminderStatus.PENDING,
+                    NoticeReminderStatus.FAILED
+            );
+            throw exception;
+        }
+    }
+
+    private void scheduleRecovered(Long reminderId) {
+        NoticeReminder reminder = noticeReminderRepository.findById(reminderId).orElse(null);
+        if (reminder == null || reminder.getStatus() != NoticeReminderStatus.PENDING) {
+            return;
+        }
+
+        scheduleTask(
+                reminder.getId(),
+                reminder.getRemindAt(),
+                LocalDateTime.now(SEOUL_ZONE)
+        );
+    }
+
+    private void scheduleTask(Long reminderId, LocalDateTime expectedRemindAt, LocalDateTime now) {
+        LocalDateTime executeAt = resolveExecuteAt(expectedRemindAt, now);
+
+        taskScheduler.schedule(
+                () -> execute(reminderId, expectedRemindAt),
+                executeAt.atZone(SEOUL_ZONE).toInstant()
+        );
+    }
+
+    private LocalDateTime resolveExecuteAt(LocalDateTime expectedRemindAt, LocalDateTime now) {
+        if (expectedRemindAt.isBefore(now)) {
+            return now;
+        }
+
+        return expectedRemindAt;
+    }
+
+    private void execute(Long reminderId, LocalDateTime expectedRemindAt) {
+        try {
+            executionService.execute(reminderId, expectedRemindAt);
+        } catch (Exception exception) {
+            log.error("Failed to execute notice reminder. reminderId={}", reminderId, exception);
+        }
+    }
+}
