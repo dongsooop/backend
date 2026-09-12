@@ -65,6 +65,38 @@ jobs:
             -Dsonar.token="$SONAR_TOKEN" \
             -Dsonar.projectKey=dongsooop-backend-baseline
 
+      - name: Wait for Sonar processing
+        env:
+          SONAR_TOKEN: ${{ steps.sonar-token.outputs.token }}
+        run: |
+          CE_TASK_URL=$(grep '^ceTaskUrl=' build/sonar/report-task.txt | cut -d= -f2-)
+          if [ -z "$CE_TASK_URL" ]; then
+            echo "ceTaskUrl not found"
+            cat build/sonar/report-task.txt
+            exit 1
+          fi
+
+          for i in {1..60}; do
+            RESPONSE=$(curl -fsS -u "$SONAR_TOKEN:" "$CE_TASK_URL")
+            STATUS=$(echo "$RESPONSE" | jq -r '.task.status')
+            echo "Compute Engine status: $STATUS"
+
+            case "$STATUS" in
+              SUCCESS)
+                exit 0
+                ;;
+              FAILED|CANCELED)
+                echo "$RESPONSE" | jq .
+                exit 1
+                ;;
+            esac
+
+            sleep 2
+          done
+
+          echo "Timed out waiting for Sonar processing"
+          exit 1
+
       - name: Print baseline metrics
         env:
           SONAR_TOKEN: ${{ steps.sonar-token.outputs.token }}
