@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'jacoco'
     id 'org.springframework.boot' version '3.4.3'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'org.sonarqube' version '7.5.0.8588'
@@ -12,6 +13,10 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
     }
+}
+
+jacoco {
+    toolVersion = '0.8.15'
 }
 
 configurations {
@@ -83,6 +88,16 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy tasks.named('jacocoTestReport')
+}
+
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test')
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
 }
 
 tasks.named('jar') {
@@ -92,6 +107,7 @@ tasks.named('jar') {
 sonar {
     properties {
         property 'sonar.exclusions', 'build/generated/**'
+        property 'sonar.coverage.jacoco.xmlReportPaths', 'build/reports/jacoco/test/jacocoTestReport.xml'
     }
 }
 
