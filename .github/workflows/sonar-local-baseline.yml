@@ -118,3 +118,8 @@ jobs:
             'http://localhost:9000/api/issues/search?componentKeys=dongsooop-backend-baseline&facets=types&ps=1' \
             | jq -r '.facets[] | select(.property == "types") | .values[] | "\(.val)=\(.count)"' \
             | sort
+
+          echo '===== BUG DETAILS ====='
+          curl -fsS -u "$SONAR_TOKEN:" \
+            'http://localhost:9000/api/issues/search?componentKeys=dongsooop-backend-baseline&types=BUG&ps=100' \
+            | jq -r '.issues[] | [(.severity // ""), (.rule // ""), (.component // "" | split(":")[-1]), ((.line // 0) | tostring), (.message // "")] | @tsv'
