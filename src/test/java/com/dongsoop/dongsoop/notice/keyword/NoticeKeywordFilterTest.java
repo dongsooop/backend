@@ -99,7 +99,7 @@ public class NoticeKeywordFilterTest {
         assertThat(matchResult).contains(deviceIncludeOnly);
 
         List<MemberDevice> noMatchResult = filter(all, "수강신청 일정 안내");
-        assertThat(noMatchResult).doesNotContain(deviceIncludeOnly);
+        assertThat(noMatchResult).containsExactly(deviceNoKeyword);
     }
 
     @Test
@@ -108,7 +108,7 @@ public class NoticeKeywordFilterTest {
         List<MemberDevice> all = List.of(deviceNoKeyword, deviceExcludeOnly);
 
         List<MemberDevice> excludedResult = filter(all, "3주차 강의 휴강 안내");
-        assertThat(excludedResult).doesNotContain(deviceExcludeOnly);
+        assertThat(excludedResult).containsExactly(deviceNoKeyword);
 
         List<MemberDevice> receivedResult = filter(all, "장학생 선발 공고");
         assertThat(receivedResult).contains(deviceExcludeOnly);
@@ -125,11 +125,11 @@ public class NoticeKeywordFilterTest {
 
         // INCLUDE "장학" 매칭, EXCLUDE "긴급" 매칭 → 미수신
         List<MemberDevice> excludedByBoth = filter(all, "긴급 장학 공지");
-        assertThat(excludedByBoth).doesNotContain(deviceBoth);
+        assertThat(excludedByBoth).isEmpty();
 
         // INCLUDE 미매칭 → 미수신
         List<MemberDevice> noIncludeMatch = filter(all, "수강신청 일정 안내");
-        assertThat(noIncludeMatch).doesNotContain(deviceBoth);
+        assertThat(noIncludeMatch).isEmpty();
     }
 
     @Test
