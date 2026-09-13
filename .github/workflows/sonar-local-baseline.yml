@@ -121,6 +121,19 @@ jobs:
             | sort
 
           echo '===== BUG DETAILS ====='
-          curl -fsS -u "$SONAR_TOKEN:" \
-            'http://localhost:9000/api/issues/search?componentKeys=dongsooop-backend-baseline&types=BUG&ps=100' \
-            | jq -r '.issues[] | [(.severity // ""), (.rule // ""), (.component // "" | split(":")[-1]), ((.line // 0) | tostring), (.message // "")] | @tsv'
+          PAGE=1
+          PAGE_SIZE=100
+          while true; do
+            RESPONSE=$(curl -fsS -u "$SONAR_TOKEN:" \
+              "http://localhost:9000/api/issues/search?componentKeys=dongsooop-backend-baseline&types=BUG&ps=$PAGE_SIZE&p=$PAGE")
+
+            echo "$RESPONSE" \
+              | jq -r '.issues[] | [(.severity // ""), (.rule // ""), (.component // "" | split(":")[-1]), ((.line // 0) | tostring), (.message // "")] | @tsv'
+
+            TOTAL=$(echo "$RESPONSE" | jq -r '.paging.total // 0')
+            if [ $((PAGE * PAGE_SIZE)) -ge "$TOTAL" ]; then
+              break
+            fi
+
+            PAGE=$((PAGE + 1))
+          done
