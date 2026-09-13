@@ -120,6 +120,11 @@ jobs:
             | jq -r '.facets[] | select(.property == "types") | .values[] | "\(.val)=\(.count)"' \
             | sort
 
+          echo '===== CRITICAL ISSUE DETAILS ====='
+          curl -fsS -u "$SONAR_TOKEN:" \
+            'http://localhost:9000/api/issues/search?componentKeys=dongsooop-backend-baseline&severities=CRITICAL&ps=100' \
+            | jq -r '.issues[] | [(.type // ""), (.rule // ""), (.component // "" | split(":")[-1]), ((.line // 0) | tostring), (.message // "")] | @tsv'
+
           echo '===== BUG DETAILS ====='
           PAGE=1
           PAGE_SIZE=100
