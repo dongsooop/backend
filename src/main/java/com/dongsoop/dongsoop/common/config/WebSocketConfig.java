@@ -32,8 +32,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/ws/chat", "/ws/blinddate")
                 .setAllowedOriginPatterns("*")
                 .withSockJS()
-                .setDisconnectDelay(30 * 1000)
-                .setHeartbeatTime(15 * 1000)
+                .setDisconnectDelay(30 * 1000L)
+                .setHeartbeatTime(15 * 1000L)
                 .setWebSocketEnabled(true)
                 .setStreamBytesLimit(512 * 1024)
                 .setHttpMessageCacheSize(1000);
