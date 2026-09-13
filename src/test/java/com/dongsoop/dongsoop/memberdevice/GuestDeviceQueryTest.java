@@ -119,7 +119,7 @@ class GuestDeviceQueryTest {
 
         List<MemberDevice> result = memberDeviceRepository.searchDevicesByDepartments(List.of(DepartmentType.DEPT_2001));
 
-        assertThat(result).extracting(MemberDevice::getId).doesNotContain(device.getId());
+        assertThat(result).isEmpty();
     }
 
     @Test
@@ -140,7 +140,7 @@ class GuestDeviceQueryTest {
 
         List<MemberDevice> result = memberDeviceRepository.searchDevicesByDepartments(List.of(DepartmentType.DEPT_2001));
 
-        assertThat(result).extracting(MemberDevice::getId).doesNotContain(webDevice.getId());
+        assertThat(result).isEmpty();
     }
 
     @Test
