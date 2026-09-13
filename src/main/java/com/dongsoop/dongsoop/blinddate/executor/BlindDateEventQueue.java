@@ -58,6 +58,9 @@ public class BlindDateEventQueue {
     public void awaitIdle() {
         try {
             executor.submit(() -> null).get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("[BlindDate] Interrupted while awaiting queue idle", e);
         } catch (Exception e) {
             throw new IllegalStateException("[BlindDate] Failed to await queue idle", e);
         }

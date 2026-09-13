@@ -64,7 +64,6 @@ public class FirebaseAppCheckImpl implements FirebaseAppCheck {
             RSAPublicKey publicKey = (RSAPublicKey) KeyFactory.getInstance("RSA")
                     .generatePublic(publicKeySpec);
 
-            cache.getOrDefault(kid, null);
             Claims claims = Jwts.parser()
                     .verifyWith(publicKey)
                     .build()

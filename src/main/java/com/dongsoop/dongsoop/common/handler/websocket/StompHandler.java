@@ -6,6 +6,7 @@ import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import com.dongsoop.dongsoop.jwt.dto.AuthenticationInformationByToken;
 import io.jsonwebtoken.Claims;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -33,14 +34,14 @@ public class StompHandler implements ChannelInterceptor {
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
+        if (accessor == null) {
+            return message;
+        }
         processCommand(accessor, accessor.getCommand());
         return message;
     }
 
     private void processCommand(StompHeaderAccessor accessor, StompCommand command) {
-        if (accessor == null) {
-            return;
-        }
         if (StompCommand.CONNECT == command) {
             authenticateConnection(accessor);
         }
@@ -55,8 +56,9 @@ public class StompHandler implements ChannelInterceptor {
         setAuthentication(accessor, token);
 
         Long userId = getUserIdFromToken(token);
-        if (accessor.getSessionAttributes() != null) {
-            accessor.getSessionAttributes().put("memberId", userId);
+        Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
+        if (sessionAttributes != null) {
+            sessionAttributes.put("memberId", userId);
         }
 
         String sessionId = accessor.getSessionId();

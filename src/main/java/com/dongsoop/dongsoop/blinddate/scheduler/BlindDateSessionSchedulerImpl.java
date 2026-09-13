@@ -23,8 +23,8 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
     private static final long SUBSCRIPTION_DELAY = 1000;
     private static final long START_MESSAGE_DELAY = 2000;
     private static final long MESSAGE_WAITING_TIME = 4000;
-    private static final long CHATTING_TIME = 3 * 60 * 1000; // 3분
-    private static final long CHOICE_TIME = 10 * 1000;
+    private static final long CHATTING_TIME = 3 * 60 * 1000L; // 3분
+    private static final long CHOICE_TIME = 10 * 1000L;
 
     private final BlindDateParticipantStorage participantStorage;
     private final BlindDateSessionStorage sessionStorage;

@@ -60,7 +60,7 @@ public class MealParser {
 
     private DateRange getCurrentWeekDateRange() {
         LocalDate today = LocalDate.now();
-        LocalDate monday = today.minusDays(today.getDayOfWeek().getValue() - 1);
+        LocalDate monday = today.minusDays(today.getDayOfWeek().getValue() - 1L);
         return new DateRange(monday, monday.plusDays(4));
     }
 

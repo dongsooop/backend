@@ -13,13 +13,13 @@ import org.springframework.stereotype.Service;
 public class MailVerifyNumberGeneratorImpl implements MailVerifyNumberGenerator {
 
     private static final String CHAR_POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     @Override
     public String generateVerificationCode(int length) {
-        SecureRandom secureRandom = new SecureRandom();
         StringBuilder codeBuilder = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
-            int index = secureRandom.nextInt(CHAR_POOL.length());
+            int index = SECURE_RANDOM.nextInt(CHAR_POOL.length());
             codeBuilder.append(CHAR_POOL.charAt(index));
         }
         return codeBuilder.toString();
