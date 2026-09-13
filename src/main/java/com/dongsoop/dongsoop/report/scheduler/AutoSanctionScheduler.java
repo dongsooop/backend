@@ -60,6 +60,9 @@ public class AutoSanctionScheduler {
         try {
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get(60, TimeUnit.SECONDS);
             log.info("Auto sanction scheduler completed");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Auto sanction scheduler interrupted", e);
         } catch (TimeoutException e) {
             log.warn("Auto sanction processing timeout (exceeded 60 seconds)");
         } catch (Exception e) {
