@@ -1,0 +1,139 @@
+name: Sonar Local Baseline
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Start SonarQube Community Build
+        run: |
+          docker run -d --name sonarqube -p 9000:9000 sonarqube:26.8.0.126808-community
+
+          for i in {1..90}; do
+            STATUS=$(curl -fsS http://localhost:9000/api/system/status 2>/dev/null | jq -r '.status // empty' || true)
+            if [ "$STATUS" = "UP" ]; then
+              echo "SonarQube is ready"
+              exit 0
+            fi
+            sleep 5
+          done
+
+          docker logs sonarqube
+          exit 1
+
+      - name: Build and test
+        run: |
+          chmod +x ./gradlew
+          ./gradlew test classes
+
+      - name: Generate Sonar token
+        id: sonar-token
+        run: |
+          TOKEN=$(curl -fsS -u admin:admin -X POST \
+            'http://localhost:9000/api/user_tokens/generate?name=github-actions-baseline' \
+            | jq -r '.token')
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+          echo "::add-mask::$TOKEN"
+
+      - name: Run Sonar analysis
+        env:
+          SONAR_TOKEN: ${{ steps.sonar-token.outputs.token }}
+        run: |
+          ./gradlew sonar \
+            -Dsonar.host.url=http://localhost:9000 \
+            -Dsonar.token="$SONAR_TOKEN" \
+            -Dsonar.projectKey=dongsooop-backend-baseline
+
+      - name: Wait for Sonar processing
+        env:
+          SONAR_TOKEN: ${{ steps.sonar-token.outputs.token }}
+        run: |
+          CE_TASK_URL=$(grep '^ceTaskUrl=' build/sonar/report-task.txt | cut -d= -f2-)
+          if [ -z "$CE_TASK_URL" ]; then
+            echo "ceTaskUrl not found"
+            cat build/sonar/report-task.txt
+            exit 1
+          fi
+
+          for i in {1..60}; do
+            RESPONSE=$(curl -fsS -u "$SONAR_TOKEN:" "$CE_TASK_URL")
+            STATUS=$(echo "$RESPONSE" | jq -r '.task.status')
+            echo "Compute Engine status: $STATUS"
+
+            case "$STATUS" in
+              SUCCESS)
+                exit 0
+                ;;
+              FAILED|CANCELED)
+                echo "$RESPONSE" | jq .
+                exit 1
+                ;;
+            esac
+
+            sleep 2
+          done
+
+          echo "Timed out waiting for Sonar processing"
+          exit 1
+
+      - name: Print baseline metrics
+        env:
+          SONAR_TOKEN: ${{ steps.sonar-token.outputs.token }}
+        run: |
+          echo '===== SONAR BASELINE METRICS ====='
+          curl -fsS -u "$SONAR_TOKEN:" \
+            'http://localhost:9000/api/measures/component?component=dongsooop-backend-baseline&metricKeys=bugs,vulnerabilities,code_smells,security_hotspots,duplicated_lines_density,ncloc,cognitive_complexity,complexity,reliability_rating,security_rating,sqale_rating,coverage' \
+            | jq -r '.component.measures[] | "\(.metric)=\(.value // "n/a")"' \
+            | sort
+
+          echo '===== ISSUE SEVERITY COUNTS ====='
+          curl -fsS -u "$SONAR_TOKEN:" \
+            'http://localhost:9000/api/issues/search?componentKeys=dongsooop-backend-baseline&facets=severities&ps=1' \
+            | jq -r '.facets[] | select(.property == "severities") | .values[] | "\(.val)=\(.count)"' \
+            | sort
+
+          echo '===== ISSUE TYPE COUNTS ====='
+          curl -fsS -u "$SONAR_TOKEN:" \
+            'http://localhost:9000/api/issues/search?componentKeys=dongsooop-backend-baseline&facets=types&ps=1' \
+            | jq -r '.facets[] | select(.property == "types") | .values[] | "\(.val)=\(.count)"' \
+            | sort
+
+          echo '===== BUG DETAILS ====='
+          PAGE=1
+          PAGE_SIZE=100
+          while true; do
+            RESPONSE=$(curl -fsS -u "$SONAR_TOKEN:" \
+              "http://localhost:9000/api/issues/search?componentKeys=dongsooop-backend-baseline&types=BUG&ps=$PAGE_SIZE&p=$PAGE")
+
+            echo "$RESPONSE" \
+              | jq -r '.issues[] | [(.severity // ""), (.rule // ""), (.component // "" | split(":")[-1]), ((.line // 0) | tostring), (.message // "")] | @tsv'
+
+            TOTAL=$(echo "$RESPONSE" | jq -r '.paging.total // 0')
+            if [ $((PAGE * PAGE_SIZE)) -ge "$TOTAL" ]; then
+              break
+            fi
+
+            PAGE=$((PAGE + 1))
+          done
