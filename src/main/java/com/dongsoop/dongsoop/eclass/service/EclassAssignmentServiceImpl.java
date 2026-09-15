@@ -23,7 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class EclassAssignmentServiceImpl implements EclassAssignmentService {
 
     private static final int LIST_LIMIT = 100;
-    private static final int NEAREST_LIMIT = 1;
+    // 홈 카드는 임박한 과제 몇 건만 그린다
+    private static final int HOME_LIMIT = 3;
 
     private final EclassDeviceAccessor deviceAccessor;
     private final EclassLinkRepository linkRepository;
@@ -76,7 +77,7 @@ public class EclassAssignmentServiceImpl implements EclassAssignmentService {
         }
 
         return summarize(assignmentRepository.countUpcomingByMember(memberId, now),
-                assignmentRepository.searchUpcomingByMember(memberId, now, NEAREST_LIMIT), now);
+                assignmentRepository.searchUpcomingByMember(memberId, now, HOME_LIMIT), now);
     }
 
     @Override
@@ -96,13 +97,11 @@ public class EclassAssignmentServiceImpl implements EclassAssignmentService {
         return deviceId.flatMap(id -> linkRepository.findByDeviceId(id)
                 .map(link -> link.isActive()
                         ? summarize(assignmentRepository.countUpcomingByDevice(id, now),
-                        assignmentRepository.searchUpcomingByDevice(id, now, NEAREST_LIMIT), now)
+                        assignmentRepository.searchUpcomingByDevice(id, now, HOME_LIMIT), now)
                         : HomeEclassSummary.expired()));
     }
 
-    private HomeEclassSummary summarize(long count, List<EclassAssignment> nearest, LocalDateTime now) {
-        EclassAssignment first = nearest.isEmpty() ? null : nearest.get(0);
-
-        return HomeEclassSummary.of(count, first, now.toLocalDate());
+    private HomeEclassSummary summarize(long count, List<EclassAssignment> upcoming, LocalDateTime now) {
+        return HomeEclassSummary.of(count, upcoming, now.toLocalDate());
     }
 }
