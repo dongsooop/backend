@@ -15,6 +15,28 @@ rest:
   connectTimeout: 4000
   readTimeout: 4000
 
+eclass:
+  base-url: https://eclass.dongyang.ac.kr
+  user-agent: "Mozilla/5.0 (Compatible; DongsoopEclass/1.0)"
+  connect-timeout-ms: 5000
+  read-timeout-ms: 15000
+  sync:
+    cron: "0 30 6,12,18 * * *"
+    window-past-days: 1
+    window-future-days: 30
+    # 제출 여부는 리마인드가 나가는 기간만 확인한다 — 마감이 먼 과제까지 매번 물으면
+    # 이클래스 호출량이 3배로 뛴다
+    submission-check-days: 3
+    thread-count: 2
+    request-delay-ms: 300
+    abort-failure-ratio: 0.5
+    manual-cooldown-seconds: 60
+    relink-timeout-hours: 24
+  reminder:
+    cron: "0 0 8 * * *"
+    days-before: 3,1,0
+    course-name-max-length: 20
+
 authentication:
   path:
     all:
@@ -47,7 +69,8 @@ authentication:
       /oauth2/google,
       /oauth2/apple,
       /oauth2/apple/callback,
-      /web-app-check
+      /web-app-check,
+      /eclass/**
     user:
       /test/user,
       /notice/keywords,

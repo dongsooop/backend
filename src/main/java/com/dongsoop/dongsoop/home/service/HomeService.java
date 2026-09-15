@@ -6,7 +6,7 @@ import java.util.Set;
 
 public interface HomeService {
 
-    HomeDto getHome(Long memberId, DepartmentType departmentType);
+    HomeDto getHome(Long memberId, DepartmentType departmentType, String fid, String deviceToken);
 
-    HomeDto getHome(Set<DepartmentType> departmentTypes);
+    HomeDto getHome(Set<DepartmentType> departmentTypes, String fid, String deviceToken);
 }
