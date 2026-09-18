@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.department.entity.Department;
@@ -44,6 +45,19 @@ class NoticeDeletionSyncServiceTest {
     @BeforeEach
     void setUp() {
         deletionSyncService = new NoticeDeletionSyncService(noticeCrawl, noticeRepository);
+    }
+
+    @Test
+    @DisplayName("DB에서 최근 공지 12페이지인 120건을 조회한다")
+    void fetchRecentTwelvePagesFromDatabase() {
+        when(noticeRepository.findRecentNoticesIncludingDeleted(DEPARTMENT, 120))
+                .thenReturn(List.of());
+
+        SyncResult result = deletionSyncService.sync(DEPARTMENT);
+
+        assertThat(result.deletedCount()).isZero();
+        assertThat(result.restoredCount()).isZero();
+        verify(noticeRepository).findRecentNoticesIncludingDeleted(DEPARTMENT, 120);
     }
 
     @Test

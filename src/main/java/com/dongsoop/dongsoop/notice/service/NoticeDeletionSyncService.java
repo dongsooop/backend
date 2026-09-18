@@ -20,9 +20,8 @@ public class NoticeDeletionSyncService {
 
     private static final int CRAWL_PAGE_COUNT = 10;
     private static final int NOTICE_COUNT_PER_PAGE = 10;
-    private static final int DB_FETCH_BUFFER_PERCENT = 20;
-    private static final int DB_FETCH_LIMIT =
-            CRAWL_PAGE_COUNT * NOTICE_COUNT_PER_PAGE * (100 + DB_FETCH_BUFFER_PERCENT) / 100;
+    private static final int DB_FETCH_PAGE_COUNT = 12;
+    private static final int DB_FETCH_LIMIT = DB_FETCH_PAGE_COUNT * NOTICE_COUNT_PER_PAGE;
     private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
 
     private final NoticeCrawl noticeCrawl;
