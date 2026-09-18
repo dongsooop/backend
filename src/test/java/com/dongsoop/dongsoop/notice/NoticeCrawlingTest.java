@@ -13,6 +13,7 @@ import com.dongsoop.dongsoop.notice.entity.Notice.NoticeKey;
 import com.dongsoop.dongsoop.notice.notification.NoticeNotification;
 import com.dongsoop.dongsoop.notice.repository.NoticeDetailsRepository;
 import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
+import com.dongsoop.dongsoop.notice.service.NoticeCollectionService;
 import com.dongsoop.dongsoop.notice.service.NoticeSchedulerImpl;
 import com.dongsoop.dongsoop.notice.service.NoticeService;
 import com.dongsoop.dongsoop.notice.util.NoticeCrawl;
@@ -34,6 +35,7 @@ import org.springframework.util.ReflectionUtils;
         NoticeCrawl.class,
         NoticeLinkParser.class,
         NoticeParser.class,
+        NoticeCollectionService.class,
         NoticeSchedulerImpl.class
 })
 class NoticeCrawlingTest {
