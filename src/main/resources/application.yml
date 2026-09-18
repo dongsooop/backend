@@ -154,3 +154,9 @@ recaptcha:
   verify-url: https://www.google.com/recaptcha/api/siteverify
   score-threshold: 0.5
 
+monitoring:
+  usage:
+    enabled: false           # 요청 기록을 ES에 쌓을지. ES 없는 로컬·테스트는 끈다
+    retention-months: 3      # 이 달수보다 오래된 api-usage-* 월 인덱스는 매일 새벽 삭제
+  discord:
+    webhook-url: ""          # 비어 있으면 주간 리포트를 보내지 않는다
