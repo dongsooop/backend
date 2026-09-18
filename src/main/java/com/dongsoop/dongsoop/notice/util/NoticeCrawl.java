@@ -42,8 +42,9 @@ public class NoticeCrawl {
      * @return 크롤링된 공지 정보
      */
     public CrawledNotice crawlNewNotices(Department department, Long recentlyNoticeId) {
-        // 최신 공지 번호보다 높은 번호의 공지 상세 목록 가져오기
-        Set<NoticeDetails> newNoticeDetailsSet = parseNewNotice(department, recentlyNoticeId);
+        Set<NoticeDetails> newNoticeDetailsSet = crawlNoticePage(department, 1).stream()
+                .filter(noticeDetails -> noticeDetails.getId() > recentlyNoticeId)
+                .collect(Collectors.toSet());
         List<Notice> newNoticeList = newNoticeDetailsSet.stream()
                 .map(noticeDetails -> new Notice(department, noticeDetails))
                 .toList();
@@ -54,17 +55,11 @@ public class NoticeCrawl {
         return new CrawledNotice(newNoticeDetailsSet, newNoticeList);
     }
 
-    /**
-     * 학과 공지사항을 파싱하여 최신 공지 목록을 반환
-     *
-     * @param department       파싱하려는 학과
-     * @param recentlyNoticeId DB에 저장된 최신 공지 ID
-     * @return 공지 세부 정보가 담긴 목록 반환
-     * @throws NoticeParsingException 공지 파싱 중 예외 발생 시
-     */
-    private Set<NoticeDetails> parseNewNotice(Department department, Long recentlyNoticeId) {
+    public List<NoticeDetails> crawlNoticePage(Department department, int page) {
         try {
-            URL url = new URL(this.universityUrl, department.getNoticeUrl());
+            String noticeUrl = department.getNoticeUrl();
+            String separator = noticeUrl.contains("?") ? "&" : "?";
+            URL url = new URL(this.universityUrl, noticeUrl + separator + "page=" + page);
 
             Document document = Jsoup.connect(url.toExternalForm())
                     .timeout(timeout) // 연결 타임 아웃 설정
@@ -74,17 +69,12 @@ public class NoticeCrawl {
 
             Elements rows = document.select("tbody tr");
 
-            List<NoticeDetails> noticeDetailsList = rows.stream()
+            return rows.stream()
                     .map(noticeParser::parse)
-                    .toList();
-
-            // 공지 반환
-            return noticeDetailsList.stream()
                     .filter(Objects::nonNull)
-                    .filter(noticeDetails -> noticeDetails.getId() > recentlyNoticeId)
-                    .collect(Collectors.toSet());
+                    .toList();
         } catch (Exception e) {
-            throw new NoticeParsingException(department, recentlyNoticeId, e);
+            throw new NoticeParsingException(department, page, e);
         }
     }
 }
