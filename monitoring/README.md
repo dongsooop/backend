@@ -57,7 +57,11 @@ env 파일은 백엔드의 `config/.env.prod` 옆에 둔다. 재시작·업데�
 
 ```
 location /grafana/ {
-    proxy_pass http://grafana:3000;
+    # 컨테이너 이름을 변수로 두면 grafana 가 아직 없어도 nginx -t 가 통과한다.
+    # deploy.sh 가 배포마다 nginx 를 reload 하므로, 이름을 직접 쓰면 grafana 가 꺼진 순간 배포가 실패한다.
+    resolver 127.0.0.11 valid=10s;
+    set $grafana_upstream http://grafana:3000;
+    proxy_pass $grafana_upstream;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -68,7 +72,9 @@ location /grafana/ {
 }
 ```
 
-`proxy_pass` 끝에 슬래시를 붙이지 않는다. Grafana가 `/grafana/` 접두어를 그대로 받도록 설정(`GF_SERVER_SERVE_FROM_SUB_PATH=true`)돼 있다. nginx 컨테이너가 grafana와 같은 네트워크에 있어야 이름으로 붙는다.
+`proxy_pass` 주소 끝에 슬래시를 붙이지 않는다. Grafana가 `/grafana/` 접두어를 그대로 받도록 설정(`GF_SERVER_SERVE_FROM_SUB_PATH=true`)돼 있다. nginx 컨테이너가 grafana와 같은 네트워크에 있어야 이름으로 붙는다.
+
+**순서 주의**: Grafana 컨테이너를 먼저 띄운 뒤 이 블록을 넣고 reload 한다. 2026-09-18 배포 때 블록을 먼저 넣어 두는 바람에 `deploy.sh` 의 nginx reload 가 "host not found in upstream grafana" 로 실패한 적이 있다. 위처럼 변수 방식이면 그 경우에도 검사는 통과하고 `/grafana/` 만 502 가 된다.
 
 ```
 docker exec nginx nginx -t && docker exec nginx nginx -s reload
@@ -86,9 +92,11 @@ docker exec nginx nginx -t && docker exec nginx nginx -s reload
 |---|---|---|---|
 | 5xx 급증 | Lucene `status:>=500`, Metric Count, 버킷 없음 | Threshold: IS ABOVE 20 | 매 1분, pending 5분 |
 | 응답 지연 | Metric Percentiles(durationMs, 95), 버킷 없음 | IS ABOVE 3000 | 매 1분, pending 5분 |
-| 기록 끊김 | Metric Count, 버킷 없음 | IS BELOW 1 | 매 5분, pending 10분. No data 도 Alerting 으로 |
+| 기록 끊김 | Metric Count, 버킷 없음 | IS BELOW 1 | 매 1분, pending 1시간, 시간 범위 now-1h. No data 도 Alerting 으로 |
 
-규칙의 시간 범위(Options → Time range)는 "now-5m to now"로 둔다. 임계치는 첫 주 데이터를 보고 조정한다.
+앞 두 규칙의 시간 범위(Options → Time range)는 "now-5m to now"로 둔다. 기록 끊김은 트래픽이 적은 시간대에 오탐이 나서 1시간 기준이다. 임계치는 첫 주 데이터를 보고 조정한다.
+
+2026-09-18 서버에는 이 세 규칙이 Grafana 설정 API(`/api/v1/provisioning/alert-rules`)로 이미 등록돼 있다(폴더 "동숲 알림", 그룹 dongsoop). 디스코드에 `[FIRING:1] DatasourceError` 가 오면 규칙이 아니라 데이터소스 설정 문제다.
 
 ## 5. 운영
 

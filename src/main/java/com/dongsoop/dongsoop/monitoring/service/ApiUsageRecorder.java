@@ -55,7 +55,10 @@ public class ApiUsageRecorder {
             client.indices().putIndexTemplate(t -> t
                     .name(INDEX_TEMPLATE_NAME)
                     .indexPatterns(INDEX_PREFIX + "*")
-                    .template(tt -> tt.mappings(m -> m
+                    // 단일 노드 ES라 복제본을 두면 인덱스가 계속 yellow 로 남는다
+                    .template(tt -> tt
+                            .settings(st -> st.numberOfReplicas("0"))
+                            .mappings(m -> m
                             .properties("@timestamp", p -> p.date(d -> d))
                             .properties("method", p -> p.keyword(k -> k))
                             .properties("uri", p -> p.keyword(k -> k))

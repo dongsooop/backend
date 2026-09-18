@@ -76,6 +76,31 @@ class ApiUsageInterceptorTest {
     }
 
     @Test
+    @DisplayName("자동 호출 경로는 기능 system 으로, 제외 회원은 actor admin 으로 기록된다")
+    void classifiesSystemUriAndAdmin() {
+        ApiUsageInterceptor configured = new ApiUsageInterceptor(recorder,
+                List.of("/token/**", "/device", "/reports/sanction-status"), java.util.Set.of(502L));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        MockHttpServletRequest reissue = new MockHttpServletRequest("POST", "/token/reissue");
+        reissue.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/token/reissue");
+        assertThat(configured.toEvent(reissue, response).feature()).isEqualTo("system");
+
+        MockHttpServletRequest sanction = new MockHttpServletRequest("GET", "/reports/sanction-status");
+        sanction.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/reports/sanction-status");
+        assertThat(configured.toEvent(sanction, response).feature()).isEqualTo("system");
+
+        MockHttpServletRequest report = new MockHttpServletRequest("POST", "/reports");
+        report.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/reports");
+        UsernamePasswordAuthenticationToken admin = new UsernamePasswordAuthenticationToken(502L, null, List.of());
+        SecurityContextHolder.getContext().setAuthentication(admin);
+        ApiUsageEvent event = configured.toEvent(report, response);
+        assertThat(event.feature()).isEqualTo("reports");
+        assertThat(event.actor()).isEqualTo("admin");
+        assertThat(event.memberId()).isEqualTo(502L);
+    }
+
+    @Test
     @DisplayName("기록 중 예외가 나도 요청 처리로 번지지 않는다")
     void swallowsRecorderFailure() {
         when(recorder.offer(any())).thenThrow(new IllegalStateException("boom"));

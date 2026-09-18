@@ -13,8 +13,11 @@ import com.dongsoop.dongsoop.monitoring.client.DiscordWebhookClient;
 import com.dongsoop.dongsoop.monitoring.dto.UsageReport;
 import com.dongsoop.dongsoop.monitoring.dto.UsageReport.FeatureUsage;
 import com.dongsoop.dongsoop.monitoring.dto.UsageWindow;
+import com.dongsoop.dongsoop.monitoring.dto.UsageWindow.EndpointCount;
 import com.dongsoop.dongsoop.monitoring.dto.UsageWindow.EndpointLatency;
 import com.dongsoop.dongsoop.monitoring.dto.UsageWindow.FeatureCount;
+import com.dongsoop.dongsoop.monitoring.dto.UsageWindow.HourCount;
+import java.time.LocalDateTime;
 import com.dongsoop.dongsoop.monitoring.scheduler.UsageReportScheduler;
 import com.dongsoop.dongsoop.monitoring.service.UsageReportService;
 import com.dongsoop.dongsoop.monitoring.service.UsageReportServiceImpl;
@@ -32,8 +35,12 @@ class UsageReportTest {
     private static final LocalDate TO = LocalDate.of(2026, 9, 17);
 
     private static UsageWindow window(long calls, long users, Map<String, FeatureCount> features) {
-        return new UsageWindow(calls, users, features,
-                List.of(new EndpointLatency("GET /project-board/{boardId}", 1840.0)), 37, "POST /chat/rooms");
+        return new UsageWindow(calls, users, users * 3 / 4, 420.0, features,
+                Map.of(FROM, 312L, FROM.plusDays(1), 280L),
+                List.of(new EndpointCount("GET /home", 8_120)),
+                List.of(new EndpointLatency("GET /project-board/{boardId}", 1840.0)),
+                37, List.of(new EndpointCount("POST /chat/rooms", 31)),
+                new HourCount(2, 21, 2_140));
     }
 
     @Test
@@ -45,7 +52,8 @@ class UsageReportTest {
                 "eclass", new FeatureCount(612, 40)));
         UsageWindow previous = window(43_000, 1_060, Map.of(
                 "home", new FeatureCount(11_000, 770),
-                "project-board", new FeatureCount(13_000, 745)));
+                "project-board", new FeatureCount(13_000, 745),
+                "marketplace-contact", new FeatureCount(50, 4)));
 
         UsageReport report = UsageReportServiceImpl.compare(FROM, TO, current, previous);
 
@@ -55,7 +63,10 @@ class UsageReportTest {
                 .containsExactly("project-board", "home", "eclass");
         assertThat(report.features().get(0).usersDeltaPercent()).isEqualTo(9);
         assertThat(report.features().get(2).usersDeltaPercent()).isNull();
-        assertThat(report.slowest().uri()).isEqualTo("GET /project-board/{boardId}");
+        assertThat(report.newFeatures()).containsExactly("eclass");
+        assertThat(report.droppedFeatures()).containsExactly("marketplace-contact");
+        assertThat(report.slowest().get(0).uri()).isEqualTo("GET /project-board/{boardId}");
+        assertThat(report.memberUsers()).isEqualTo(826);
     }
 
     @Test
@@ -70,24 +81,40 @@ class UsageReportTest {
     @Test
     @DisplayName("디스코드 메시지에 기간·순위·증감 표시·눈에 띄는 것이 들어간다")
     void formatsMessage() {
-        UsageReport report = new UsageReport(FROM, TO, 1_102, 4, 48_213, 12,
+        UsageReport report = new UsageReport(FROM, TO, 1_102, 4, 812, 48_213, 12, 420.0,
+                Map.of(FROM, 312L),
                 List.of(new FeatureUsage("project-board", 812, 14_820, 9),
                         new FeatureUsage("blinddate", 120, 1_377, 65),
-                        new FeatureUsage("eclass", 40, 612, null)),
-                new EndpointLatency("GET /project-board/{boardId}", 1840.0), 37, "POST /chat/rooms");
+                        new FeatureUsage("eclass", 40, 612, null),
+                        new FeatureUsage("system", 1_050, 9_000, 200),
+                        new FeatureUsage("meal", 0, 4, 0)),
+                List.of("eclass"), List.of("marketplace-contact"),
+                List.of(new EndpointCount("GET /home", 8_120)),
+                List.of(new EndpointLatency("GET /project-board/{boardId}", 1840.0)),
+                37, List.of(new EndpointCount("POST /chat/rooms", 31)),
+                new HourCount(2, 21, 2_140));
 
-        String message = UsageReportMessage.format(report);
+        String message = UsageReportMessage.format(report, LocalDateTime.of(2026, 9, 18, 9, 0));
 
         assertThat(message)
-                .contains("9/11 ~ 9/17")
-                .contains("사용자 1,102명 ▲4%")
-                .contains("API 호출 48,213회 ▲12%")
-                .contains("1. 프로젝트 모집 812명 ▲9% (14,820회)")
+                .contains("기간 9/11(금) ~ 9/17(목) · 생성 9/18 09:00")
+                .contains("사용자 1,102명 ▲4% · 회원 812 · 비회원 290")
+                .contains("API 호출 48,213회 ▲12% · 사용자당 43.8회")
+                .contains("5xx 37건 (0.08%) · 응답시간 p95 0.42s")
+                .contains("가장 바쁜 시간: 화 21시 (2,140회)")
+                .contains("금   312 ▇▇▇▇▇▇▇▇▇▇▇▇")
+                .contains("812명 ▲9%")
+                .contains("프로젝트 모집")
                 .contains("(신규)")
-                .contains("소개팅 사용자 ▲65%")
+                .doesNotContain("학식")
+                .doesNotContain("자동 호출")
+                .contains("8,120회  GET /home")
+                .contains("1.84s  GET /project-board/{boardId}")
+                .contains("31건  POST /chat/rooms")
+                .contains("소개팅 사용자 ▲65% (120명)")
                 .doesNotContain("프로젝트 모집 사용자 ▲9%")
-                .contains("p95 1.8s")
-                .contains("5xx 37건, 최다: POST /chat/rooms");
+                .contains("새로 쓰이기 시작: 이클래스")
+                .contains("지난주엔 썼는데 이번 주 0명: 장터 문의");
     }
 
     @Test
@@ -98,6 +125,7 @@ class UsageReportTest {
         String message = UsageReportMessage.format(report);
 
         assertThat(message).contains("(기록 없음)").contains("특이사항 없음").contains("사용자 0명 ―");
+        assertThat(report.newFeatures()).isEmpty();
     }
 
     @Test

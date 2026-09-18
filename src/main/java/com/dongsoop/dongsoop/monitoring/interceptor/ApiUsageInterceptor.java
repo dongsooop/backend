@@ -6,26 +6,44 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.Set;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.HandlerMapping;
 
 @Slf4j
-@RequiredArgsConstructor
 public class ApiUsageInterceptor implements HandlerInterceptor {
 
     static final String START_NANOS_ATTRIBUTE = ApiUsageInterceptor.class.getName() + ".start";
     static final String UNKNOWN_URI = "UNKNOWN";
     static final String ANONYMOUS_ACTOR = "anon";
+    /** 관리자 계정처럼 사용자 수에서 빼야 하는 호출 */
+    public static final String ADMIN_ACTOR = "admin";
+    /** 앱 시작 시 자동으로 나가는 호출(토큰 갱신, 기기 등록, 제재 확인 등). 기능 순위에서 뺀다 */
+    public static final String SYSTEM_FEATURE = "system";
     private static final String DEVICE_FID_HEADER = "X-Device-Fid";
     private static final ZoneId ZONE = ZoneId.of("Asia/Seoul");
+    private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
 
     private final ApiUsageRecorder recorder;
+    private final List<String> systemUriPatterns;
+    private final Set<Long> excludedMemberIds;
+
+    public ApiUsageInterceptor(ApiUsageRecorder recorder) {
+        this(recorder, List.of(), Set.of());
+    }
+
+    public ApiUsageInterceptor(ApiUsageRecorder recorder, List<String> systemUriPatterns, Set<Long> excludedMemberIds) {
+        this.recorder = recorder;
+        this.systemUriPatterns = systemUriPatterns;
+        this.excludedMemberIds = excludedMemberIds;
+    }
 
     @Override
     public boolean preHandle(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
@@ -49,17 +67,24 @@ public class ApiUsageInterceptor implements HandlerInterceptor {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Long memberId = auth != null && auth.getPrincipal() instanceof Long id ? id : null;
         Long deviceId = auth != null && auth.getDetails() instanceof Long id ? id : null;
+        String actor = memberId != null && excludedMemberIds.contains(memberId)
+                ? ADMIN_ACTOR
+                : actorOf(memberId, deviceId, request.getHeader(DEVICE_FID_HEADER));
         return new ApiUsageEvent(
                 ZonedDateTime.now(ZONE),
                 request.getMethod(),
                 uri,
-                featureOf(uri),
+                isSystemUri(uri) ? SYSTEM_FEATURE : featureOf(uri),
                 response.getStatus(),
                 elapsedMillis(request),
                 memberId,
                 deviceId,
-                actorOf(memberId, deviceId, request.getHeader(DEVICE_FID_HEADER))
+                actor
         );
+    }
+
+    boolean isSystemUri(String uri) {
+        return systemUriPatterns.stream().anyMatch(pattern -> PATH_MATCHER.match(pattern, uri));
     }
 
     public static String resolveUri(HttpServletRequest request) {

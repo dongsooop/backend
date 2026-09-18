@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.monitoring.dto.UsageReport;
 import com.dongsoop.dongsoop.monitoring.dto.UsageReport.FeatureUsage;
 import com.dongsoop.dongsoop.monitoring.dto.UsageWindow;
 import com.dongsoop.dongsoop.monitoring.dto.UsageWindow.FeatureCount;
+import com.dongsoop.dongsoop.monitoring.interceptor.ApiUsageInterceptor;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.Period;
@@ -44,14 +45,37 @@ public class UsageReportServiceImpl implements UsageReportService {
                         .thenComparing(Comparator.comparingLong(FeatureUsage::calls).reversed()))
                 .toList();
 
+        // 전주엔 사용자가 없었는데 이번 주 생긴 기능 / 전주엔 있었는데 이번 주 0명이 된 기능.
+        // 전주 기록이 아예 없으면(첫 주) 전부 신규라 의미가 없어 비운다
+        List<String> newFeatures = previous.users() == 0 ? List.of() : features.stream()
+                .filter(f -> f.users() > 0 && f.usersDeltaPercent() == null)
+                .map(FeatureUsage::feature)
+                .filter(name -> !ApiUsageInterceptor.SYSTEM_FEATURE.equals(name))
+                .toList();
+        List<String> droppedFeatures = previous.features().entrySet().stream()
+                .filter(e -> e.getValue().users() > 0)
+                .map(java.util.Map.Entry::getKey)
+                .filter(name -> !ApiUsageInterceptor.SYSTEM_FEATURE.equals(name))
+                .filter(name -> {
+                    FeatureCount now = current.features().get(name);
+                    return now == null || now.users() == 0;
+                })
+                .sorted()
+                .toList();
+
         return new UsageReport(
                 from, to,
                 current.users(), deltaPercent(current.users(), previous.users()),
+                current.memberUsers(),
                 current.calls(), deltaPercent(current.calls(), previous.calls()),
-                features,
-                current.slowest().isEmpty() ? null : current.slowest().get(0),
+                current.p95Ms(),
+                current.dailyUsers(),
+                features, newFeatures, droppedFeatures,
+                current.topByCalls(),
+                current.slowest(),
                 current.serverErrors(),
-                current.topErrorUri()
+                current.errorsByUri(),
+                current.peakHour()
         );
     }
 
