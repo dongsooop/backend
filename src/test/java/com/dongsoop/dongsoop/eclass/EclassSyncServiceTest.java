@@ -72,8 +72,10 @@ class EclassSyncServiceTest {
         ReflectionTestUtils.setField(syncService, "windowPastDays", 1);
         ReflectionTestUtils.setField(syncService, "windowFutureDays", 30);
         ReflectionTestUtils.setField(syncService, "submissionCheckDays", 3);
+        ReflectionTestUtils.setField(syncService, "submissionRecheckHours", 24L);
         ReflectionTestUtils.setField(syncService, "threadCount", 2);
         ReflectionTestUtils.setField(syncService, "requestDelayMs", 0L);
+        ReflectionTestUtils.setField(syncService, "manualRequestDelayMs", 0L);
         ReflectionTestUtils.setField(syncService, "abortFailureRatio", 0.5);
         ReflectionTestUtils.setField(syncService, "relinkTimeoutHours", 24L);
 
@@ -106,7 +108,11 @@ class EclassSyncServiceTest {
     }
 
     private EclassAssignment existing(LocalDateTime dueAt) {
-        return new EclassAssignment(link, 601L, 9601L, "자료구조", "과제 601", dueAt, dueAt);
+        return existing(601L, dueAt);
+    }
+
+    private EclassAssignment existing(long assignId, LocalDateTime dueAt) {
+        return new EclassAssignment(link, assignId, 9000L + assignId, "자료구조", "과제 " + assignId, dueAt, dueAt);
     }
 
     @SuppressWarnings("unchecked")
@@ -165,16 +171,45 @@ class EclassSyncServiceTest {
     }
 
     @Test
-    @DisplayName("이미 제출한 과제는 제출 상태를 다시 묻지 않는다")
-    void skipsSubmissionCheckForSubmitted() {
+    @DisplayName("최근에 확인한 제출 과제는 다시 묻지 않는다")
+    void skipsSubmissionCheckForRecentlyCheckedSubmitted() {
         EclassAssignment submitted = existing(NOW.plusDays(2));
-        submitted.markSubmitted();
+        submitted.updateSubmission(true, NOW.minusHours(1));
         givenExisting(submitted);
         givenFetched(moodleAssignment(601L, NOW.plusDays(2)));
 
         syncService.syncLink(link);
 
         verify(eclassClient, never()).isSubmitted(anyString(), anyLong());
+    }
+
+    @Test
+    @DisplayName("재제출이 열려 미제출로 돌아오면 submitted 도 false 로 되돌린다")
+    void revertsSubmittedWhenReopened() {
+        EclassAssignment submitted = existing(NOW.plusDays(2));
+        submitted.updateSubmission(true, NOW.minusHours(30));
+        givenExisting(submitted);
+        givenFetched(moodleAssignment(601L, NOW.plusDays(2)));
+        givenSubmissionStatus(false);
+
+        syncService.syncLink(link);
+
+        assertThat(capturedSaved().get(0).isSubmitted()).isFalse();
+    }
+
+    @Test
+    @DisplayName("수동 새로고침은 최근에 확인한 과제도 전부 다시 묻는다")
+    void manualSyncChecksEverything() {
+        EclassAssignment recentlyChecked = existing(602L, NOW.plusDays(10));
+        recentlyChecked.updateSubmission(false, NOW.minusHours(1));
+        givenExisting(recentlyChecked);
+        givenFetched(moodleAssignment(602L, NOW.plusDays(10)));
+        givenSubmissionStatus(true);
+
+        syncService.syncLink(link, true);
+
+        verify(eclassClient).isSubmitted("moodle-token", 602L);
+        assertThat(capturedSaved().get(0).isSubmitted()).isTrue();
     }
 
     @Test
@@ -192,17 +227,26 @@ class EclassSyncServiceTest {
     }
 
     @Test
-    @DisplayName("마감이 리마인드 창 밖이면 제출 여부를 묻지 않는다")
-    void skipsSubmissionCheckOutsideReminderWindow() {
+    @DisplayName("리마인드 창 밖 과제는 하루 한 번만 묻는다 — 처음이거나 24시간이 지났을 때")
+    void checksOutsideReminderWindowOncePerDay() {
+        EclassAssignment checkedRecently = existing(602L, NOW.plusDays(10));
+        checkedRecently.updateSubmission(false, NOW.minusHours(2));
+        EclassAssignment checkedYesterday = existing(603L, NOW.plusDays(12));
+        checkedYesterday.updateSubmission(false, NOW.minusHours(30));
+        givenExisting(checkedRecently, checkedYesterday);
         givenFetched(
                 moodleAssignment(601L, NOW.plusDays(2)),
-                moodleAssignment(602L, NOW.plusDays(10)));
+                moodleAssignment(602L, NOW.plusDays(10)),
+                moodleAssignment(603L, NOW.plusDays(12)),
+                moodleAssignment(604L, NOW.plusDays(20)));
         givenSubmissionStatus(false);
 
         syncService.syncLink(link);
 
         verify(eclassClient).isSubmitted("moodle-token", 601L);
         verify(eclassClient, never()).isSubmitted("moodle-token", 602L);
+        verify(eclassClient).isSubmitted("moodle-token", 603L);
+        verify(eclassClient).isSubmitted("moodle-token", 604L);
     }
 
     @Test
@@ -362,7 +406,7 @@ class EclassSyncServiceTest {
     @DisplayName("이미 제출한 과제는 마감이 앞당겨져도 알리지 않는다")
     void doesNotNotifySubmittedAssignment() {
         EclassAssignment existing = existing(NOW.plusDays(9));
-        existing.markSubmitted();
+        existing.updateSubmission(true, NOW.minusHours(1));
         givenExisting(existing);
         givenFetched(moodleAssignment(601L, NOW.plusDays(2)));
 

@@ -85,7 +85,8 @@
 | `title` | VARCHAR(255) | 위와 같다 |
 | `due_at` | TIMESTAMP | duedate. 0이면 저장하지 않음(마감 없는 과제는 리마인드 대상이 아님) |
 | `cutoff_at` | TIMESTAMP nullable | 제출 차단 시각. 앱 표시용 |
-| `submitted` | BOOLEAN | 제출 상태 API 결과. `submitted`면 true |
+| `submitted` | BOOLEAN | 제출 상태 API 결과. `submitted`면 true, 아니면 false(양방향) |
+| `submission_checked_at` | TIMESTAMP nullable | 마지막으로 제출 여부를 물은 시각. 리마인드 창 밖 과제의 하루 1회 재확인 기준 |
 | `removed_at` | TIMESTAMP nullable | 응답에서 사라진 과제(교수가 삭제). 목록·알림에서 제외 |
 | `last_reminded_days` | INT nullable | 마지막으로 보낸 리마인드의 "n일 전" 값(3 → 1 → 0). 같은 단계를 두 번 보내지 않기 위한 멱등 키 |
 | `created_at`, `updated_at` | | |
@@ -99,14 +100,14 @@
 | `POST` | `/eclass/link` | 전체 | body `{ token }`. 토큰 검증 → 저장 → 즉시 수집. 이미 연동돼 있으면 토큰 교체(재연동) |
 | `GET` | `/eclass/link` | 전체 | `{ linked, status, moodleFullname, lastSyncedAt }`. 미연동이면 `linked=false` |
 | `DELETE` | `/eclass/link` | 전체 | 연동·과제 데이터 삭제 |
-| `GET` | `/eclass/assignments` | 전체 | 미제출·마감 전 과제 목록. 마감 오름차순. 항목: 과목, 제목, 마감, D-day, 제출 여부, 이클래스 링크. 미연동이면 400이 아니라 빈 목록 + `linked=false` (기존 비회원 공지 목록과 같은 관례) |
+| `GET` | `/eclass/assignments` | 전체 | 마감 전 과제 목록(제출한 과제 포함, `submitted`로 구분). 미제출 먼저, 그 안에서 마감 오름차순. (2026-09-18 변경: 이전엔 미제출만 담아 `submitted`가 항상 false였다) 항목: 과목, 제목, 마감, D-day, 제출 여부, 이클래스 링크. 미연동이면 400이 아니라 빈 목록 + `linked=false` (기존 비회원 공지 목록과 같은 관례) |
 | `POST` | `/eclass/sync` | 전체 | 앱의 당겨서 새로고침용 즉시 수집. 기기당 1분 1회로 제한. 연동이 만료 상태면 학교 서버를 부르지 않고 바로 204 — 앱은 `GET /eclass/link`로 만료를 안다 |
 
 모든 엔드포인트는 `authentication.path.all`에 `/eclass/**`로 등록해 비회원도 호출할 수 있다(기기 헤더로 식별).
 
 **접근 권한**: 기기 식별자는 인증 수단이 아니므로, 남의 식별자를 헤더에 넣어 그 사람의 데이터에 접근하는 것을 막아야 한다. 규칙은 두 줄이다 — 비회원 기기(회원 미바인딩)는 식별자를 가진 사람이 곧 주인이라 그대로 허용하고, **회원에게 묶인 기기는 로그인한 회원이 그 주인일 때만 허용한다.** 이 판단은 `EclassDeviceAccessor` 한 곳에 두고 `/eclass/**` 전체와 홈 요약이 함께 쓴다 — 과제 조회만 막고 연동 조회·해제·재연동을 열어두면 남의 연동을 지우거나 토큰을 덮어쓸 수 있다. 홈의 회원 경로는 소유가 확인되지 않으면 기기 경로를 버리고 회원 기준 조회로 넘어가고, 비회원 홈 경로도 같은 검사를 거친다. 토큰 검증 실패(`invalidtoken`)는 400 커스텀 예외로 앱에 "토큰이 유효하지 않음"을 명확히 준다.
 
-**홈 화면 과제 탭**: `GET /home`, `GET /home/{departmentType}` 응답에 `eclass_assignment` 요약(`linked`, `status`, `upcomingCount`, 임박한 과제 최대 3건의 `upcoming` 목록[과목·제목·마감·D-day·제출 여부], 그리고 하위 호환용 `nearest*` 단건)이 포함된다. `upcoming`과 `upcomingCount`는 같은 기준(미제출·미삭제·마감 전)이며, 미연동·만료 상태에서는 빈 배열이다. 홈에는 목록을 펼치지 않고 탭(타일)만 그리며, 탭하면 `/eclass/assignments` 화면으로 들어간다. 회원 홈은 요청 기기에 연동이 없으면 그 회원이 가진 다른 기기의 연동까지 본다.
+**홈 화면 과제 탭**: `GET /home`, `GET /home/{departmentType}` 응답에 `eclass_assignment` 요약(`linked`, `status`, `upcomingCount`, 임박한 과제 최대 3건의 `upcoming` 목록[과목·제목·마감·D-day·제출 여부], 그리고 하위 호환용 `nearest*` 단건)이 포함된다. `upcomingCount`는 미제출·미삭제·마감 전 과제 수("남은 과제")이고, `upcoming` 목록은 제출한 과제도 담되 미제출이 앞에 온다(2026-09-18 변경), 미연동·만료 상태에서는 빈 배열이다. 홈에는 목록을 펼치지 않고 탭(타일)만 그리며, 탭하면 `/eclass/assignments` 화면으로 들어간다. 회원 홈은 요청 기기에 연동이 없으면 그 회원이 가진 다른 기기의 연동까지 본다.
 
 ### 5.3 수집 스케줄러 (`EclassSyncService.syncAll`)
 
@@ -115,10 +116,10 @@
 - 대상: `eclass_link.status = ACTIVE` 전체. 연동 단위(= 기기 단위)로 스레드 풀(설정값, 기본 2)에 나눠 처리하되, 연동 하나 안의 호출은 순차로 보낸다.
 - 회원 1명 처리:
   1. `mod_assign_get_assignments` 1회 → 응답 전체에서 `duedate`가 수집 창 안인 과제만 추림.
-  2. 추린 과제 중 **마감이 `submission-check-days` 안에 든 것만** `mod_assign_get_submission_status(assignid)` 호출 → `submitted` 갱신. 이미 `submitted=true`인 과제는 다시 묻지 않는다(제출 취소는 드물고, 놓쳐도 알림이 안 갈 뿐 잘못 가진 않음).
+  2. 추린 과제에 `mod_assign_get_submission_status(assignid)`를 호출해 `submitted`를 **양방향으로** 갱신한다(재제출이 열리면 false로 되돌아간다). 호출 대상은 (a) 마감이 `submission-check-days` 안에 든 미제출 과제는 매 수집, (b) 그 밖의 과제는 `submission-recheck-hours`(기본 24시간)에 한 번, (c) 연동 직후와 수동 새로고침은 창 안의 전부. `submission_checked_at` 컬럼으로 마지막 확인 시각을 기억한다. (2026-09-18 변경: 이전엔 3일 창 밖 과제는 아예 묻지 않아 앱 목록의 제출 표시가 틀렸다)
   3. upsert. 이번 응답에 없는데 DB에 있는 창 안 과제는 `removed_at` 기록.
   4. `last_synced_at` 갱신.
-- 호출량: 연동 1건당 `1 + (제출 확인 대상 과제 수)`. 제출 확인을 마감 3일 이내로 좁혀 학기 중 평균 1건 남짓이므로, 연동 1,000건이면 1회 수집에 약 2,000 호출이다. 요청 간 딜레이(기본 300ms)와 스레드 2개로 순간 속도를 초당 2회 수준으로 눌러 둔다. 더 줄여야 하면 주기·스레드·딜레이를 yml에서 조정한다.
+- 호출량: 연동 1건당 `1 + (제출 확인 대상 과제 수)`. 마감 3일 이내는 매 수집, 나머지 30일 창 과제는 하루 한 번(3회 수집 중 1회에 몰림)이라 학기 중 하루 평균 연동당 10회 안팎. 연동 1,000건이면 하루 약 1만 호출로, 이전 설계(약 6천)보다 늘지만 요청 간 딜레이·스레드 제한으로 순간 속도는 같다. 요청 간 딜레이(기본 300ms)와 스레드 2개로 순간 속도를 초당 2회 수준으로 눌러 둔다. 더 줄여야 하면 주기·스레드·딜레이를 yml에서 조정한다.
 - 실패 처리:
   - `invalidtoken` → `status=EXPIRED`, 그 연동의 기기에 사일런트 푸시 `ECLASS_RELINK` 발송(연동이 기기 단위이므로 기기마다 따로 만료·재발급된다), `relink_requested_at` 기록, 이후 수집 대상에서 제외. 앱이 재발급해 `POST /eclass/link`를 호출하면 `status=ACTIVE`로 복귀하고 즉시 수집한다.
   - 만료 승격 점검(수집 스케줄러 끝에 수행): `status=EXPIRED AND relink_requested_at < 지금 − 24h AND expired_notified_at IS NULL`인 회원에게 보이는 알림 "이클래스 연동이 만료되었습니다. 설정에서 다시 연동해 주세요"를 1회 발송하고 `expired_notified_at` 기록. 이 알림은 과제 알림 설정(`ECLASS_ASSIGNMENT`)을 꺼둔 사용자에게도 보낸다 — 재연동 유도는 과제 알림과 성격이 다르다.
@@ -177,7 +178,9 @@
 | `sync.thread-count` | 2 |
 | `sync.request-delay-ms` | 300 |
 | `sync.abort-failure-ratio` | 0.5 |
-| `sync.manual-cooldown-seconds` | 60 |
+| `sync.manual-cooldown-seconds` | 20 (2026-09-18: 60→20, 화면 진입마다 부를 수 있게) |
+| `sync.manual-request-delay-ms` | 100 (수동 새로고침의 과제별 제출 확인 간격. 정기 수집은 300) |
+| `sync.submission-recheck-hours` | 24 (리마인드 창 밖 과제의 제출 재확인 주기) |
 | `reminder.cron` | `0 0 8 * * *` |
 | `reminder.days-before` | `[0, 1, 3]` |
 | `reminder.course-name-max-length` | 20 |

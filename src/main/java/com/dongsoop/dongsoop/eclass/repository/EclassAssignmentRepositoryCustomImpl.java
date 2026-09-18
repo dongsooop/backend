@@ -58,14 +58,19 @@ public class EclassAssignmentRepositoryCustomImpl implements EclassAssignmentRep
         return count(device.member.id.eq(memberId), now);
     }
 
+    // 목록은 제출한 과제도 담는다 — 앱이 제출 여부를 보여준다. 미제출이 먼저, 그 안에서 마감순
     private List<EclassAssignment> search(BooleanExpression owner, LocalDateTime now, int limit) {
-        return upcoming(owner, now)
-                .select(assignment)
-                .orderBy(assignment.dueAt.asc())
+        return queryFactory.selectFrom(assignment)
+                .join(assignment.link, link)
+                .join(link.device, device)
+                .where(owner, link.status.eq(EclassLinkStatus.ACTIVE), assignment.removedAt.isNull(),
+                        assignment.dueAt.gt(now))
+                .orderBy(assignment.submitted.asc(), assignment.dueAt.asc())
                 .limit(limit)
                 .fetch();
     }
 
+    // 개수는 "남은 과제" 뜻이라 미제출만 센다
     private long count(BooleanExpression owner, LocalDateTime now) {
         Long count = upcoming(owner, now)
                 .select(assignment.count())

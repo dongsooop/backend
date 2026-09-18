@@ -27,10 +27,13 @@ eclass:
     # 제출 여부는 리마인드가 나가는 기간만 확인한다 — 마감이 먼 과제까지 매번 물으면
     # 이클래스 호출량이 3배로 뛴다
     submission-check-days: 3
+    # 리마인드 창 밖 과제는 이 시간마다 한 번만 제출 여부를 다시 묻는다 (앱 목록의 제출 표시용)
+    submission-recheck-hours: 24
     thread-count: 2
     request-delay-ms: 300
+    manual-request-delay-ms: 100   # 수동 새로고침(POST /eclass/sync)은 사용자가 기다리므로 짧게
     abort-failure-ratio: 0.5
-    manual-cooldown-seconds: 60
+    manual-cooldown-seconds: 20   # 화면 진입·포그라운드 복귀마다 부를 수 있게 짧게. 그 안의 재호출은 429
     relink-timeout-hours: 24
   reminder:
     cron: "0 0 8 * * *"

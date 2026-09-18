@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.eclass;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -151,7 +152,7 @@ class EclassLinkAccessTest {
 
         linkService.syncNow("fid-1", null);
 
-        verify(syncService).syncLink(any());
+        verify(syncService).syncLink(any(), eq(true));
     }
 
     @Test
@@ -162,7 +163,7 @@ class EclassLinkAccessTest {
 
         assertThatThrownBy(() -> linkService.syncNow("fid-1", null))
                 .isInstanceOf(EclassSyncCooldownException.class);
-        verify(syncService, never()).syncLink(any());
+        verify(syncService, never()).syncLink(any(), anyBoolean());
     }
 
     @Test
@@ -175,6 +176,6 @@ class EclassLinkAccessTest {
 
         linkService.syncNow("fid-1", null);
 
-        verify(syncService, never()).syncLink(any());
+        verify(syncService, never()).syncLink(any(), anyBoolean());
     }
 }
