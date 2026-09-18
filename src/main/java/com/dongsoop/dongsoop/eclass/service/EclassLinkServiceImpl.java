@@ -51,7 +51,7 @@ public class EclassLinkServiceImpl implements EclassLinkService {
 
         // 첫 수집이 실패해도 연동 자체는 성공으로 둔다 — 다음 주기에 다시 시도한다
         try {
-            syncService.syncLink(link);
+            syncService.syncLink(link, true);
         } catch (RuntimeException exception) {
             log.warn("initial eclass sync failed. linkId: {}", link.getId(), exception);
         }
@@ -108,7 +108,7 @@ public class EclassLinkServiceImpl implements EclassLinkService {
             throw new EclassSyncCooldownException();
         }
 
-        syncService.syncLink(link);
+        syncService.syncLink(link, true);
     }
 
     /**

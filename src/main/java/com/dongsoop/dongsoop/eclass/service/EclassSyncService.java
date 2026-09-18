@@ -9,6 +9,12 @@ public interface EclassSyncService {
      */
     SyncOutcome syncLink(EclassLink link);
 
+    /**
+     * checkAllSubmissions 가 true 면 수집 창 안의 모든 과제에 제출 여부를 묻는다.
+     * 연동 직후와 사용자의 수동 새로고침처럼 지금 정확해야 하는 경우에 쓴다.
+     */
+    SyncOutcome syncLink(EclassLink link, boolean checkAllSubmissions);
+
     void syncAll();
 
     enum SyncOutcome {

@@ -68,11 +68,18 @@ public class EclassSyncServiceImpl implements EclassSyncService {
     @Value("${eclass.sync.submission-check-days}")
     private int submissionCheckDays;
 
+    @Value("${eclass.sync.submission-recheck-hours:24}")
+    private long submissionRecheckHours;
+
     @Value("${eclass.sync.thread-count}")
     private int threadCount;
 
     @Value("${eclass.sync.request-delay-ms}")
     private long requestDelayMs;
+
+    /** 사용자가 기다리는 수동 새로고침은 간격을 짧게 둔다 — 한 명의 요청이라 학교 서버 부담이 작다 */
+    @Value("${eclass.sync.manual-request-delay-ms:100}")
+    private long manualRequestDelayMs;
 
     @Value("${eclass.sync.abort-failure-ratio}")
     private double abortFailureRatio;
@@ -82,6 +89,11 @@ public class EclassSyncServiceImpl implements EclassSyncService {
 
     @Override
     public SyncOutcome syncLink(EclassLink link) {
+        return syncLink(link, false);
+    }
+
+    @Override
+    public SyncOutcome syncLink(EclassLink link, boolean checkAllSubmissions) {
         LocalDateTime now = LocalDateTime.now(clock);
         String token = eclassTokenEncryptor.decrypt(link.getTokenEncrypted());
 
@@ -113,8 +125,9 @@ public class EclassSyncServiceImpl implements EclassSyncService {
                 if (isDueDateAdvanced(previousDueAt, assignment)) {
                     dueDateAdvanced.add(assignment);
                 }
-                if (needsSubmissionCheck(assignment, now)) {
-                    updateSubmission(token, assignment);
+                if (checkAllSubmissions || needsSubmissionCheck(assignment, now)) {
+                    updateSubmission(token, assignment, now,
+                            checkAllSubmissions ? manualRequestDelayMs : requestDelayMs);
                 }
             }
         } catch (EclassInvalidTokenException exception) {
@@ -277,12 +290,17 @@ public class EclassSyncServiceImpl implements EclassSyncService {
     /**
      * 제출 여부는 리마인드가 나가는 기간에 든 과제만 확인한다.
      *
-     * <p>마감이 3주 남은 과제의 제출 여부는 지금 알아도 쓸 데가 없는 반면, 과제 1건마다 이클래스 호출이
-     * 1회씩 늘어난다. 확인 범위를 좁히는 것이 학교 서버로 나가는 요청을 줄이는 가장 큰 수단이다.
+     * <p>과제 1건마다 이클래스 호출이 1회씩 늘어나므로 확인 범위를 좁히는 것이 학교 서버로 나가는
+     * 요청을 줄이는 가장 큰 수단이다. 리마인드 창(마감 3일 이내)의 미제출 과제는 매 수집마다 묻고,
+     * 그 밖의 과제는 앱 목록에 제출 여부를 보여주기 위해 하루 한 번만 묻는다.
      */
     private boolean needsSubmissionCheck(EclassAssignment assignment, LocalDateTime now) {
-        return !assignment.isSubmitted()
-                && !assignment.getDueAt().isAfter(now.plusDays(submissionCheckDays));
+        if (!assignment.isSubmitted() && !assignment.getDueAt().isAfter(now.plusDays(submissionCheckDays))) {
+            return true;
+        }
+
+        LocalDateTime checkedAt = assignment.getSubmissionCheckedAt();
+        return checkedAt == null || checkedAt.isBefore(now.minusHours(submissionRecheckHours));
     }
 
     /**
@@ -305,16 +323,14 @@ public class EclassSyncServiceImpl implements EclassSyncService {
         }
     }
 
-    private void updateSubmission(String token, EclassAssignment assignment) {
+    private void updateSubmission(String token, EclassAssignment assignment, LocalDateTime now, long delayMs) {
         try {
-            if (eclassClient.isSubmitted(token, assignment.getAssignId())) {
-                assignment.markSubmitted();
-            }
+            assignment.updateSubmission(eclassClient.isSubmitted(token, assignment.getAssignId()), now);
         } catch (EclassApiException exception) {
             log.warn("submission status check failed. assignId: {}", assignment.getAssignId());
         }
 
-        sleepQuietly();
+        sleepQuietly(delayMs);
     }
 
     private void expireLink(EclassLink link, LocalDateTime now) {
@@ -339,13 +355,13 @@ public class EclassSyncServiceImpl implements EclassSyncService {
         return LocalDateTime.ofInstant(Instant.ofEpochSecond(epochSecond), clock.getZone());
     }
 
-    private void sleepQuietly() {
-        if (requestDelayMs <= 0) {
+    private void sleepQuietly(long delayMs) {
+        if (delayMs <= 0) {
             return;
         }
 
         try {
-            Thread.sleep(requestDelayMs);
+            Thread.sleep(delayMs);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
         }

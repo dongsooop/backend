@@ -62,6 +62,10 @@ public class EclassAssignment extends BaseEntity {
     @Column(name = "submitted", nullable = false)
     private boolean submitted = false;
 
+    /** 마지막으로 이클래스에 제출 여부를 물은 시각. 리마인드 창 밖 과제는 이 값으로 하루 한 번만 다시 묻는다 */
+    @Column(name = "submission_checked_at")
+    private LocalDateTime submissionCheckedAt;
+
     @Column(name = "removed_at")
     private LocalDateTime removedAt;
 
@@ -103,8 +107,10 @@ public class EclassAssignment extends BaseEntity {
         return value.substring(0, TEXT_LENGTH);
     }
 
-    public void markSubmitted() {
-        this.submitted = true;
+    /** 제출 상태 API 결과를 양방향으로 반영한다 — 교수가 재제출을 열어 주면 다시 미제출이 된다 */
+    public void updateSubmission(boolean submitted, LocalDateTime checkedAt) {
+        this.submitted = submitted;
+        this.submissionCheckedAt = checkedAt;
     }
 
     public void markRemoved(LocalDateTime now) {
