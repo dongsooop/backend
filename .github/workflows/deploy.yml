@@ -3,6 +3,8 @@ name: Deploy to EC2
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
 
 concurrency:
   group: deploy-${{ github.ref }}
