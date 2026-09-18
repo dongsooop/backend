@@ -8,7 +8,6 @@ import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
 import com.dongsoop.dongsoop.notice.notification.NoticeNotification;
 import com.dongsoop.dongsoop.notice.repository.NoticeDetailsRepository;
 import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
-import com.dongsoop.dongsoop.notice.util.NoticeCrawl;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class NoticeSchedulerImpl implements NoticeScheduler {
 
-    private final NoticeCrawl noticeCrawl;
+    private final NoticeCollectionService noticeCollectionService;
     private final NoticeRepository noticeRepository;
     private final NoticeDetailsRepository noticeDetailsRepository;
     private final DepartmentService departmentService;
@@ -122,7 +121,7 @@ public class NoticeSchedulerImpl implements NoticeScheduler {
         log.info("Starting crawl for department: {}, recent notice ID: {}",
                 department.getId().name(), recentlyNoticeId);
 
-        CrawledNotice crawledNotice = noticeCrawl.crawlNewNotices(department, recentlyNoticeId);
+        CrawledNotice crawledNotice = noticeCollectionService.collectNewNotices(department, recentlyNoticeId);
         noticeSet.addAll(crawledNotice.getNoticeList());
         noticeDetailSet.addAll(crawledNotice.getNoticeDetailSet());
     }
