@@ -28,3 +28,4 @@
 
 - 규칙은 이 파일에 쓴다. Claude 전용 동작에만 해당하는 내용이 아니면 `CLAUDE.md` 에 쓰지 않는다.
 - `CLAUDE.md` 는 `@AGENTS.md` 한 줄로 이 파일을 가리키며, 그 아래에는 Claude 종속적인 내용만 덧붙인다.
+- 커밋 메시지와 PR 본문에 에이전트 흔적(`Co-Authored-By: Claude`, `Generated with ...` 등)을 남기지 않는다.
