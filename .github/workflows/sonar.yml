@@ -9,9 +9,13 @@ on:
       - reopened
       - synchronize
       - ready_for_review
+    paths-ignore:
+      - '**.md'
   push:
     branches:
       - main
+    paths-ignore:
+      - '**.md'
   workflow_dispatch:
 
 jobs:
