@@ -2,7 +2,7 @@
 # 사용법: monitoring/.env 를 만든 뒤  docker compose -f monitoring/docker-compose.monitoring.yml up -d
 services:
   grafana:
-    image: grafana/grafana-oss:11.3.0
+    image: grafana/grafana:13.2.2   # 한국어 UI 는 13.2 부터. grafana-oss 태그는 13.0 에서 멈춰 있어 grafana/grafana 사용
     container_name: grafana
     restart: unless-stopped
     environment:
@@ -13,6 +13,8 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_USERS_DEFAULT_LANGUAGE: ${GRAFANA_LANGUAGE:-ko-KR}
+      GF_DATE_FORMATS_DEFAULT_TIMEZONE: Asia/Seoul
       # provisioning/datasources/elasticsearch.yml 에서 참조
       ES_URL: ${ES_URL:-http://elasticsearch:9200}
     volumes:

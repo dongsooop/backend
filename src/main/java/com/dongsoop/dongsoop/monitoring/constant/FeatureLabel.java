@@ -6,6 +6,7 @@ import java.util.Map;
 public final class FeatureLabel {
 
     private static final Map<String, String> LABELS = Map.ofEntries(
+            Map.entry("system", "자동 호출(앱 시작 등)"),
             Map.entry("blinddate", "소개팅"),
             Map.entry("chat", "채팅"),
             Map.entry("device", "기기"),

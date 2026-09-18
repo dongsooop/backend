@@ -214,5 +214,6 @@ eclass:
 monitoring:
   usage:
     enabled: ${MONITORING_USAGE_ENABLED:true}
+    exclude-member-ids: ${ADMIN_ID}
   discord:
     webhook-url: ${USAGE_REPORT_DISCORD_WEBHOOK_URL:}

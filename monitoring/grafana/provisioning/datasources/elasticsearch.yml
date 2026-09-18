@@ -9,9 +9,9 @@ datasources:
     isDefault: true
     editable: false
     jsonData:
+      # 와일드카드 인덱스에는 interval(월별 인덱스 패턴) 옵션을 같이 주면 안 된다. 주면 "invalid index pattern"
       index: "api-usage-*"
       timeField: "@timestamp"
-      interval: Monthly
       timeInterval: "1m"
       logMessageField: uri
       maxConcurrentShardRequests: 5

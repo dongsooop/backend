@@ -26,8 +26,9 @@ public class ApiUsageRetentionScheduler {
     private final ObjectProvider<ElasticsearchClient> clientProvider;
     private final int retentionMonths;
 
+    /** 0 이하면 삭제하지 않고 계속 보관한다 */
     public ApiUsageRetentionScheduler(ObjectProvider<ElasticsearchClient> clientProvider,
-                                      @Value("${monitoring.usage.retention-months:3}") int retentionMonths) {
+                                      @Value("${monitoring.usage.retention-months:0}") int retentionMonths) {
         this.clientProvider = clientProvider;
         this.retentionMonths = retentionMonths;
     }
@@ -35,7 +36,7 @@ public class ApiUsageRetentionScheduler {
     @Scheduled(cron = "0 0 4 * * ?", zone = "Asia/Seoul")
     public void deleteExpiredIndices() {
         ElasticsearchClient client = clientProvider.getIfAvailable();
-        if (client == null) {
+        if (client == null || retentionMonths <= 0) {
             return;
         }
         try {
