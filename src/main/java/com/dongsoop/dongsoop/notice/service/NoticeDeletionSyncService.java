@@ -7,10 +7,13 @@ import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
 import com.dongsoop.dongsoop.notice.util.NoticeCrawl;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -37,45 +40,32 @@ public class NoticeDeletionSyncService {
         }
 
         Set<Long> crawledIds = crawlRecentNoticeIds(department);
-        long oldestCrawledId = crawledIds.stream()
-                .mapToLong(Long::longValue)
-                .min()
-                .orElseThrow();
+        Map<Boolean, List<Notice>> noticesByRemaining = partitionByRemaining(storedNotices, crawledIds);
 
-        LocalDateTime now = LocalDateTime.now(SEOUL_ZONE);
-        List<Notice> changedNotices = new ArrayList<>();
-        int deletedCount = 0;
-        int restoredCount = 0;
+        // markDeleted 와 restore 는 실제로 상태가 바뀐 경우에만 true 를 반환한다
+        LocalDateTime deletedAt = LocalDateTime.now(SEOUL_ZONE);
+        List<Notice> deletedNotices = noticesByRemaining.get(false).stream()
+                .filter(notice -> notice.markDeleted(deletedAt))
+                .toList();
+        List<Notice> restoredNotices = noticesByRemaining.get(true).stream()
+                .filter(Notice::restore)
+                .toList();
 
-        for (Notice notice : storedNotices) {
-            long noticeId = notice.getNoticeDetails().getId();
-            if (noticeId < oldestCrawledId) {
-                continue;
-            }
+        noticeRepository.saveAll(Stream.concat(deletedNotices.stream(), restoredNotices.stream()).toList());
 
-            boolean changed;
-            if (crawledIds.contains(noticeId)) {
-                changed = notice.restore();
-                if (changed) {
-                    restoredCount++;
-                }
-            } else {
-                changed = notice.markDeleted(now);
-                if (changed) {
-                    deletedCount++;
-                }
-            }
+        return new SyncResult(deletedNotices.size(), restoredNotices.size());
+    }
 
-            if (changed) {
-                changedNotices.add(notice);
-            }
-        }
+    /**
+     * 크롤링 범위 안의 공지를 사이트에 남아 있는 것(true)과 사라진 것(false)으로 가른다. 상태는 바꾸지 않는다.
+     */
+    private Map<Boolean, List<Notice>> partitionByRemaining(List<Notice> storedNotices, Set<Long> crawledIds) {
+        long oldestCrawledId = Collections.min(crawledIds);
 
-        if (!changedNotices.isEmpty()) {
-            noticeRepository.saveAll(changedNotices);
-        }
-
-        return new SyncResult(deletedCount, restoredCount);
+        return storedNotices.stream()
+                .filter(notice -> notice.getNoticeDetails().getId() >= oldestCrawledId)
+                .collect(Collectors.partitioningBy(
+                        notice -> crawledIds.contains(notice.getNoticeDetails().getId())));
     }
 
     private Set<Long> crawlRecentNoticeIds(Department department) {
@@ -84,15 +74,14 @@ public class NoticeDeletionSyncService {
         for (int page = 1; page <= CRAWL_PAGE_COUNT; page++) {
             List<NoticeDetails> notices = noticeCrawl.crawlNoticePage(department, page);
             if (notices.isEmpty()) {
-                if (page == 1) {
-                    throw new IllegalStateException("공지 목록 첫 페이지가 비어 있습니다.");
-                }
                 break;
             }
 
-            notices.stream()
-                    .map(NoticeDetails::getId)
-                    .forEach(noticeIds::add);
+            notices.forEach(noticeDetails -> noticeIds.add(noticeDetails.getId()));
+        }
+
+        if (noticeIds.isEmpty()) {
+            throw new IllegalStateException("공지 목록 첫 페이지가 비어 있습니다.");
         }
 
         return noticeIds;
