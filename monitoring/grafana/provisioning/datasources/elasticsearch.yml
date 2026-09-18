@@ -1,0 +1,17 @@
+apiVersion: 1
+
+datasources:
+  - name: dongsoop-usage
+    uid: dongsoop-usage
+    type: elasticsearch
+    access: proxy
+    url: ${ES_URL}
+    isDefault: true
+    editable: false
+    jsonData:
+      index: "api-usage-*"
+      timeField: "@timestamp"
+      interval: Monthly
+      timeInterval: "1m"
+      logMessageField: uri
+      maxConcurrentShardRequests: 5

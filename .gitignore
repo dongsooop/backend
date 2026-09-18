@@ -39,3 +39,6 @@ out/
 
 ### QueryDSL Generated ###
 src/main/generated/
+
+# Grafana 접속 정보 (monitoring/.env.example 참고)
+monitoring/.env

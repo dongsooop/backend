@@ -1,0 +1,35 @@
+# 사용량 대시보드용 Grafana. 기존 앱 도커 네트워크에 참여해 Elasticsearch를 컨테이너 이름으로 읽는다.
+# 사용법: monitoring/.env 를 만든 뒤  docker compose -f monitoring/docker-compose.monitoring.yml up -d
+services:
+  grafana:
+    image: grafana/grafana-oss:11.3.0
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?monitoring/.env 에 GRAFANA_ADMIN_PASSWORD 를 넣어야 한다}
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://dongsoop.site/grafana/}
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      # provisioning/datasources/elasticsearch.yml 에서 참조
+      ES_URL: ${ES_URL:-http://elasticsearch:9200}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    # nginx 가 같은 네트워크에서 grafana:3000 으로 프록시하므로 포트를 밖으로 열지 않는다.
+    # 로컬 확인용으로만 아래 주석을 푼다.
+    # ports:
+    #   - "127.0.0.1:3000:3000"
+    networks:
+      - app
+
+volumes:
+  grafana-data:
+
+networks:
+  app:
+    external: true
+    name: ${APP_NETWORK:?monitoring/.env 에 APP_NETWORK(앱·ES 가 붙은 도커 네트워크 이름) 를 넣어야 한다}
