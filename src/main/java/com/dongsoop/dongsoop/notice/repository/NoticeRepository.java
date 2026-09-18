@@ -28,7 +28,8 @@ public interface NoticeRepository extends JpaRepository<Notice, NoticeKey>, Noti
             + "n.id.noticeDetails.title AS title,"
             + "n.id.noticeDetails.writer AS writer "
             + "FROM Notice n "
-            + "WHERE n.id.department = :department")
+            + "WHERE n.id.department = :department "
+            + "AND n.deletedAt IS NULL")
     Page<NoticeListResponse> findAllByDepartment(Department department, Pageable pageable);
 
     @Query("SELECT n.id.noticeDetails.id AS id,"
@@ -38,6 +39,7 @@ public interface NoticeRepository extends JpaRepository<Notice, NoticeKey>, Noti
             + "n.id.noticeDetails.writer AS writer "
             + "FROM Notice n "
             + "WHERE n.id.department IN :departments "
+            + "AND n.deletedAt IS NULL "
             + "ORDER BY n.id.noticeDetails.id DESC")
     Page<NoticeListResponse> findAllByDepartmentIn(Collection<Department> departments, Pageable pageable);
 }

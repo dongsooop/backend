@@ -1,9 +1,11 @@
 package com.dongsoop.dongsoop.notice.repository;
 
+import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.entity.QDepartment;
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.notice.dto.HomeNotice;
+import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notice.entity.QNotice;
 import com.dongsoop.dongsoop.notice.entity.QNoticeDetails;
 import com.querydsl.core.types.OrderSpecifier;
@@ -28,6 +30,15 @@ public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
+    public List<Notice> findRecentNoticesIncludingDeleted(Department department, int limit) {
+        return queryFactory.selectFrom(notice)
+                .where(notice.id.department.eq(department))
+                .orderBy(notice.id.noticeDetails.id.desc())
+                .limit(limit)
+                .fetch();
+    }
+
+    @Override
     public List<HomeNotice> searchHomeNotices(DepartmentType departmentType) {
         return queryFactory.select(Projections.constructor(
                         HomeNotice.class,
@@ -39,7 +50,8 @@ public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
                 .from(notice)
                 .innerJoin(notice.id.noticeDetails, noticeDetails)
                 .innerJoin(notice.id.department, department)
-                .where(notice.id.department.id.in(List.of(DepartmentType.DEPT_1001, departmentType))) // 사용자 학과 및 대학 공지
+                .where(notice.id.department.id.in(List.of(DepartmentType.DEPT_1001, departmentType)),
+                        notice.deletedAt.isNull()) // 사용자 학과 및 대학 공지
                 .orderBy(orderLeastId())
                 .limit(3)
                 .fetch();
@@ -57,7 +69,8 @@ public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
                 .from(notice)
                 .innerJoin(notice.id.noticeDetails, noticeDetails)
                 .innerJoin(notice.id.department, department)
-                .where(notice.id.department.id.eq(DepartmentType.DEPT_1001)) // 대학 공지만
+                .where(notice.id.department.id.eq(DepartmentType.DEPT_1001),
+                        notice.deletedAt.isNull()) // 대학 공지만
                 .orderBy(orderLeastId())
                 .limit(3)
                 .fetch();
@@ -78,7 +91,8 @@ public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
                 .from(notice)
                 .innerJoin(notice.id.noticeDetails, noticeDetails)
                 .innerJoin(notice.id.department, department)
-                .where(notice.id.department.id.in(targetDepartments)) // 구독한 학과들 및 대학 공지
+                .where(notice.id.department.id.in(targetDepartments),
+                        notice.deletedAt.isNull()) // 구독한 학과들 및 대학 공지
                 .orderBy(orderLeastId())
                 .limit(3)
                 .fetch();
