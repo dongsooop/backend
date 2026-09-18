@@ -7,7 +7,7 @@
 | 구성 | 위치 | 역할 |
 |---|---|---|
 | 요청 기록 인터셉터·레코더 | 백엔드 `monitoring/` 패키지 | 요청 1건 → 문서 1건. 5초마다 ES bulk 저장 |
-| 보존 스케줄러 | 백엔드 | 매일 04:00, 3개월 지난 월 인덱스 삭제 |
+| 보존 스케줄러 | 백엔드 | 기본 꺼짐(계속 보관). `retention-months`를 N으로 주면 매일 04:00 N개월 지난 월 인덱스 삭제 |
 | 주간 리포트 스케줄러 | 백엔드 | 매주 월 09:00, ES 집계 → 디스코드 웹훅 |
 | Grafana | 이 폴더의 compose | ES를 읽어 대시보드 표시. nginx `/grafana/` 로 접근 |
 
@@ -101,7 +101,7 @@ docker exec nginx nginx -t && docker exec nginx nginx -s reload
 ## 5. 운영
 
 - **용량 확인**: `curl -s 'localhost:9200/_cat/indices/api-usage-*?v&h=index,docs.count,store.size'`. 문서 1건 ≈ 150~300B. 주 5만 요청이면 3개월에 100~200MB.
-- **보존 기간**: 백엔드 `monitoring.usage.retention-months` (기본 3). 바꾸면 다음 04:00부터 적용.
+- **보존 기간**: 기본은 삭제하지 않음(`monitoring.usage.retention-months: 0`). 디스크가 부담되면 값을 개월 수로 바꿔 재배포하면 다음 04:00부터 오래된 월 인덱스를 지운다. 문서 1건 ≈ 150~300B라 연 수백 MB 수준.
 - **기록 끄기**: `MONITORING_USAGE_ENABLED=false` 후 재배포. Grafana는 그대로 둬도 된다.
 - **기능 라벨**: 새 컨트롤러 경로가 추가되면 `monitoring/constant/FeatureLabel.java` 표에 한글 이름을 넣는다. 안 넣으면 경로 키(`project-board`)가 그대로 보인다.
 - **주간 리포트 즉시 확인**: 배포 후 월요일을 기다리지 않고 보려면 서버에서 스케줄 시각을 기다리는 수밖에 없다. 로컬에서는 `UsageReportScheduler.sendReportEndingAt(LocalDate)` 를 테스트로 호출한다.

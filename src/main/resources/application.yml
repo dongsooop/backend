@@ -157,7 +157,7 @@ recaptcha:
 monitoring:
   usage:
     enabled: false           # 요청 기록을 ES에 쌓을지. ES 없는 로컬·테스트는 끈다
-    retention-months: 3      # 이 달수보다 오래된 api-usage-* 월 인덱스는 매일 새벽 삭제
+    retention-months: 0      # 0이면 삭제하지 않고 계속 보관. N이면 N개월보다 오래된 월 인덱스를 매일 새벽 삭제
     # 앱이 시작할 때 자동으로 부르는 경로. 기능 'system' 으로 묶여 기능별 사용자 순위에서 빠진다 (총 호출 수에는 포함)
     system-uris: /token/**, /device, /device/**, /reports/sanction-status, /web-app-check
     # 사용자 수에서 뺄 회원 ID (관리자·봇). 쉼표 구분
