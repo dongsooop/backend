@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import java.time.LocalDateTime;
 import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
@@ -19,6 +20,8 @@ public class Notice {
     @EmbeddedId
     private NoticeKey id;
 
+    private LocalDateTime deletedAt;
+
     public Notice(Department department, NoticeDetails noticeDetails) {
         this.id = new NoticeKey(department, noticeDetails);
     }
@@ -29,6 +32,24 @@ public class Notice {
 
     public NoticeDetails getNoticeDetails() {
         return id.noticeDetails;
+    }
+
+    public boolean markDeleted(LocalDateTime deletedAt) {
+        if (this.deletedAt != null) {
+            return false;
+        }
+
+        this.deletedAt = deletedAt;
+        return true;
+    }
+
+    public boolean restore() {
+        if (deletedAt == null) {
+            return false;
+        }
+
+        deletedAt = null;
+        return true;
     }
 
     @Embeddable
