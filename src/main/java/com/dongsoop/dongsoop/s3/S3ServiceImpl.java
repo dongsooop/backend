@@ -34,7 +34,11 @@ public class S3ServiceImpl implements S3Service {
     public String upload(MultipartFile file, String dirName, long boardId) throws IOException {
         String fileName = file.getOriginalFilename();
 
-        int separateIndex = Objects.isNull(fileName) ? -1 : fileName.lastIndexOf(".");
+        if (Objects.isNull(fileName)) {
+            throw new InvalidFileNameException(null);
+        }
+
+        int separateIndex = fileName.lastIndexOf(".");
         if (separateIndex < 0) {
             throw new InvalidFileNameException(fileName);
         }
