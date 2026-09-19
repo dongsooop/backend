@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
@@ -17,14 +19,15 @@ public class ChatCommonUtils {
     private static final String RECRUITMENT_END_AT_PREFIX = "recruitment:room:";
     private static final String END_AT_SUFFIX = ":end_at";
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final RedisTemplate<String, String> redisTemplate;
 
     public void saveRecruitmentEndAt(String roomId, LocalDateTime endAt) {
         String key = buildEndAtKey(roomId);
         String endAtStr = endAt.format(FORMATTER);
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime expiryTime = endAt.plusDays(1);
+        ZonedDateTime now = ZonedDateTime.now(KST);
+        ZonedDateTime expiryTime = endAt.plusDays(1).atZone(KST);
 
         long secondsBetween = Duration.between(now, expiryTime).toSeconds();
         long ttlInSeconds = Math.max(1L, secondsBetween);

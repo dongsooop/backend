@@ -37,9 +37,14 @@ public class EclassAssignmentServiceImpl implements EclassAssignmentService {
     @Override
     @Transactional(readOnly = true)
     public EclassAssignmentListResponse getUpcoming(String fid, String deviceToken) {
-        Optional<Long> deviceId = deviceAccessor.resolveAccessible(fid, deviceToken)
+        Optional<Long> resolvedDeviceId = deviceAccessor.resolveAccessible(fid, deviceToken)
                 .map(MemberDevice::getId);
-        Optional<EclassLink> link = deviceId.flatMap(linkRepository::findByDeviceId);
+        if (resolvedDeviceId.isEmpty()) {
+            return EclassAssignmentListResponse.unlinked();
+        }
+
+        Long deviceId = resolvedDeviceId.get();
+        Optional<EclassLink> link = linkRepository.findByDeviceId(deviceId);
         if (link.isEmpty()) {
             return EclassAssignmentListResponse.unlinked();
         }
@@ -49,7 +54,7 @@ public class EclassAssignmentServiceImpl implements EclassAssignmentService {
 
         LocalDateTime now = LocalDateTime.now(clock);
         List<EclassAssignmentResponse> assignments =
-                assignmentRepository.searchUpcomingByDevice(deviceId.get(), now, LIST_LIMIT).stream()
+                assignmentRepository.searchUpcomingByDevice(deviceId, now, LIST_LIMIT).stream()
                         .map(assignment -> EclassAssignmentResponse.from(assignment, now.toLocalDate(), baseUrl))
                         .toList();
 
