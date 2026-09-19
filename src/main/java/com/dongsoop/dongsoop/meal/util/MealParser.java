@@ -8,6 +8,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -25,6 +26,7 @@ public class MealParser {
     private static final int MAX_DAYS = 5;
 
     private final TextProcessingUtil textProcessingUtil;
+    private final Clock clock;
 
     public List<Meal> parseWeeklyMeal(Document document) {
         DateRange dateRange = parseDateRange(document);
@@ -52,14 +54,14 @@ public class MealParser {
     }
 
     private boolean validateDateRange(DateRange dateRange) {
-        LocalDate now = LocalDate.now();
+        LocalDate now = LocalDate.now(clock);
         int currentYear = now.getYear();
         return Math.abs(dateRange.startDate().getYear() - currentYear) <= 1 &&
                 Math.abs(dateRange.endDate().getYear() - currentYear) <= 1;
     }
 
     private DateRange getCurrentWeekDateRange() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
         LocalDate monday = today.minusDays(today.getDayOfWeek().getValue() - 1L);
         return new DateRange(monday, monday.plusDays(4));
     }
