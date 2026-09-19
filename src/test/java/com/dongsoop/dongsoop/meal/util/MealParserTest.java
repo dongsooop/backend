@@ -4,8 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.dongsoop.dongsoop.meal.entity.Meal;
 import com.dongsoop.dongsoop.meal.entity.MealType;
-import java.time.DayOfWeek;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,15 +19,19 @@ import org.junit.jupiter.api.Test;
 class MealParserTest {
 
     private static final int DAYS = 5;
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+    private static final LocalDate TODAY = LocalDate.of(2026, 5, 13);
+    private static final LocalDate CURRENT_MONDAY = LocalDate.of(2026, 5, 11);
     private static final DateTimeFormatter PAGE_DATE = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 
     private final TextProcessingUtil textProcessingUtil = new TextProcessingUtil();
-    private final MealParser mealParser = new MealParser(textProcessingUtil);
+    private final Clock clock = Clock.fixed(TODAY.atStartOfDay(KST).toInstant(), KST);
+    private final MealParser mealParser = new MealParser(textProcessingUtil, clock);
 
     @Test
     @DisplayName("주간 날짜 범위가 적힌 페이지는 그 범위의 5일치를 돌려준다")
     void usesDateRangeFromPage() {
-        LocalDate start = LocalDate.now().with(DayOfWeek.MONDAY).plusWeeks(1);
+        LocalDate start = LocalDate.of(2026, 9, 14);
         Document document = page(dateRangeText(start, start.plusDays(4)), menuTable());
 
         List<Meal> meals = mealParser.parseWeeklyMeal(document);
@@ -41,29 +46,28 @@ class MealParserTest {
 
         List<Meal> meals = mealParser.parseWeeklyMeal(document);
 
-        assertEquals(expectedDates(currentMonday()), datesOf(meals));
+        assertEquals(expectedDates(CURRENT_MONDAY), datesOf(meals));
     }
 
     @Test
     @DisplayName("올해와 동떨어진 연도의 날짜 범위는 무시하고 이번 주 5일치를 돌려준다")
     void fallsBackToCurrentWeekWhenYearIsTooFarAway() {
-        LocalDate staleStart = LocalDate.now().minusYears(5).with(DayOfWeek.MONDAY);
+        LocalDate staleStart = LocalDate.of(2019, 3, 4);
         Document document = page(dateRangeText(staleStart, staleStart.plusDays(4)), menuTable());
 
         List<Meal> meals = mealParser.parseWeeklyMeal(document);
 
-        assertEquals(expectedDates(currentMonday()), datesOf(meals));
+        assertEquals(expectedDates(CURRENT_MONDAY), datesOf(meals));
     }
 
     @Test
     @DisplayName("형식만 날짜이고 실재하지 않는 날짜는 무시하고 이번 주 5일치를 돌려준다")
     void fallsBackToCurrentWeekWhenDateDoesNotExist() {
-        int year = LocalDate.now().getYear();
-        Document document = page(year + ".13.45 ~ " + year + ".13.49", menuTable());
+        Document document = page("2026.13.45 ~ 2026.13.49", menuTable());
 
         List<Meal> meals = mealParser.parseWeeklyMeal(document);
 
-        assertEquals(expectedDates(currentMonday()), datesOf(meals));
+        assertEquals(expectedDates(CURRENT_MONDAY), datesOf(meals));
     }
 
     @Test
@@ -141,11 +145,6 @@ class MealParserTest {
                         .filter(meal -> meal.getMealType() == MealType.KOREAN)
                         .map(Meal::getDayOfWeek)
                         .collect(Collectors.toList()));
-    }
-
-    private LocalDate currentMonday() {
-        LocalDate today = LocalDate.now();
-        return today.minusDays(today.getDayOfWeek().getValue() - 1L);
     }
 
     private String dateRangeText(LocalDate start, LocalDate end) {
