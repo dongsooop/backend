@@ -1,5 +1,7 @@
 Closes #ISSUE_NUMBER
 
+> Milestone과 GitHub Project는 연결된 Issue에서 관리합니다. PR은 기본적으로 별도 Project 카드나 Milestone을 중복 지정하지 않습니다.
+
 ## 변경 사항
 
 이 PR에서 최종적으로 변경된 내용을 간단하게 작성합니다.
