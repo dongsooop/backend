@@ -6,14 +6,32 @@
 ## 작업 흐름 (필수)
 
 1. **먼저 Issue를 만든다.** `.github/ISSUE_TEMPLATE`의 템플릿을 사용한다.
-2. Issue의 **정의 / 기대 효과 / 체크포인트 / 범위**를 구현 전에 확인한다.
-3. `main`에서 브랜치를 만든다. 브랜치 이름은 `{type}/{issue-number}` 형식을 사용한다.
+2. Issue를 생성할 때 **Milestone과 GitHub Project를 반드시 선택한다.**
+3. Issue의 **정의 / 기대 효과 / 체크포인트 / 범위**를 구현 전에 확인한다.
+4. `main`에서 브랜치를 만든다. 브랜치 이름은 `{type}/{issue-number}` 형식을 사용한다.
    - 예: `feat/101`, `fix/102`, `refactor/103`, `test/104`, `chore/105`, `docs/106`
-4. 해당 도메인을 수정하기 전에 `docs/domains/<domain>.md`가 있는지 확인하고, 존재하면 반드시 읽는다.
-5. 문서와 코드에서 사용하는 용어는 아래 **용어 소유 규칙**을 따른다.
-6. **`main`에 직접 push 하지 않는다.** 변경은 반드시 PR로 올린다.
-7. PR 본문의 첫 줄은 반드시 `Closes #이슈번호`로 시작한다.
-8. PR 본문은 `.github/pull_request_template.md`를 따른다.
+5. 해당 도메인을 수정하기 전에 `docs/domains/<domain>.md`가 있는지 확인하고, 존재하면 반드시 읽는다.
+6. 문서와 코드에서 사용하는 용어는 아래 **용어 소유 규칙**을 따른다.
+7. **`main`에 직접 push 하지 않는다.** 변경은 반드시 PR로 올린다.
+8. PR 본문의 첫 줄은 반드시 `Closes #이슈번호`로 시작한다.
+9. PR 본문은 `.github/pull_request_template.md`를 따른다.
+
+## Issue 관리
+
+Issue는 작업 계획과 진행 상태를 관리하는 기준 단위다.
+
+- 모든 Issue는 생성 시 **Milestone**을 선택한다.
+- 모든 Issue는 생성 시 **GitHub Project**에 추가한다.
+- Milestone은 해당 작업이 속한 릴리즈 또는 목표 단위를 나타낸다.
+- Project는 작업 상태와 우선순위 등 진행 관리를 담당한다.
+- Issue 없이 PR만 생성하지 않는다.
+
+PR은 구현 결과물이며 기본적으로 별도의 Project 카드로 중복 관리하지 않는다.
+
+- PR은 `Closes #이슈번호`로 Issue와 연결한다.
+- 진행 상태, Milestone, Project는 연결된 Issue를 기준으로 관리한다.
+- 리뷰 단계 자체를 Project에서 별도로 추적해야 하는 명확한 이유가 있을 때만 PR을 Project에 추가한다.
+- PR에도 Milestone을 중복 지정하지 않는다.
 
 ## Issue 체크포인트
 
