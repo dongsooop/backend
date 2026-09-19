@@ -32,7 +32,7 @@ public class BlindDateStorageImpl implements BlindDateStorage {
     }
 
     @Override
-    public String getPointer() {
+    public synchronized String getPointer() {
         return currentPointer;
     }
 
