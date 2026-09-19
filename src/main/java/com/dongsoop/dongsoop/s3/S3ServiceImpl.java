@@ -1,8 +1,10 @@
 package com.dongsoop.dongsoop.s3;
 
+import com.dongsoop.dongsoop.s3.exception.InvalidFileNameException;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,7 +34,10 @@ public class S3ServiceImpl implements S3Service {
     public String upload(MultipartFile file, String dirName, long boardId) throws IOException {
         String fileName = file.getOriginalFilename();
 
-        int separateIndex = fileName.lastIndexOf(".");
+        int separateIndex = Objects.isNull(fileName) ? -1 : fileName.lastIndexOf(".");
+        if (separateIndex < 0) {
+            throw new InvalidFileNameException(fileName);
+        }
         String extension = fileName.substring(separateIndex);
         String saveFileName = UUID.randomUUID() + extension;
         String saveFilePath = dirName + "/" + boardId + "/" + saveFileName;
