@@ -3,7 +3,6 @@ package com.dongsoop.dongsoop.tutoring;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -76,8 +75,8 @@ class TutoringRecruitmentDepartmentEligibilityValidatorTest {
         when(memberService.getMemberReferenceByContext())
                 .thenReturn(member);
 
-        when(tutoringApplyRepositoryCustom.existsByBoardIdAndMemberId(eq(BOARD_ID),
-                eq(REQUESTER_ID))) // null은 회원 ID를 의미
+        when(tutoringApplyRepositoryCustom.existsByBoardIdAndMemberId(BOARD_ID,
+                REQUESTER_ID)) // null은 회원 ID를 의미
                 .thenReturn(false);
 
         // 게시판 조회 시 Id가 1인 게시판 조회
@@ -85,7 +84,7 @@ class TutoringRecruitmentDepartmentEligibilityValidatorTest {
                 .id(BOARD_ID)
                 .department(boardDepartment)
                 .build();
-        when(tutoringBoardRepository.findById(eq(BOARD_ID)))
+        when(tutoringBoardRepository.findById(BOARD_ID))
                 .thenReturn(Optional.of(tutoringBoard));
 
         ApplyTutoringBoardRequest request = new ApplyTutoringBoardRequest(BOARD_ID, TEST_TITLE, TEST_CONTENT);
@@ -114,7 +113,7 @@ class TutoringRecruitmentDepartmentEligibilityValidatorTest {
                 .department(department)
                 .author(author)
                 .build();
-        when(tutoringBoardRepository.findById(eq(BOARD_ID)))
+        when(tutoringBoardRepository.findById(BOARD_ID))
                 .thenReturn(Optional.of(tutoringBoard));
 
         ApplyTutoringBoardRequest request = new ApplyTutoringBoardRequest(BOARD_ID, TEST_TITLE, TEST_CONTENT);
