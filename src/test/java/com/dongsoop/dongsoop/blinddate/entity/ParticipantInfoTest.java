@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.blinddate.entity;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -11,6 +12,8 @@ import org.junit.jupiter.api.Test;
  */
 @DisplayName("ParticipantInfo Entity 단위 테스트")
 class ParticipantInfoTest {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     @Test
     @DisplayName("create - 모든 필드 설정")
@@ -35,13 +38,13 @@ class ParticipantInfoTest {
     @DisplayName("joinedAt - 현재 시간으로 설정")
     void create_SetsJoinedAtToNow() {
         // given
-        LocalDateTime before = LocalDateTime.now().minusSeconds(1);
+        LocalDateTime before = LocalDateTime.now(KST).minusSeconds(1);
 
         // when
         ParticipantInfo participant = ParticipantInfo.create("session-1", 1L, "socket-1", "익명1");
 
         // then
-        LocalDateTime after = LocalDateTime.now().plusSeconds(1);
+        LocalDateTime after = LocalDateTime.now(KST).plusSeconds(1);
         assertThat(participant.getJoinedAt()).isBetween(before, after);
     }
 
@@ -49,7 +52,7 @@ class ParticipantInfoTest {
     @DisplayName("builder - 모든 필드 설정 가능 (create 메소드로 대체)")
     void builder_SetsAllFields() {
         // given
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(KST);
 
         // when
         ParticipantInfo participant = ParticipantInfo.create(
