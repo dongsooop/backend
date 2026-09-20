@@ -1,5 +1,8 @@
 package com.dongsoop.dongsoop.memberdevice;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -65,7 +68,7 @@ class NoticePreferenceDeviceResolverTest {
         MemberDevice bound = MemberDevice.builder()
                 .deviceToken("token-bound")
                 .memberDeviceType(MemberDeviceType.ANDROID)
-                .member(org.mockito.Mockito.mock(Member.class))
+                .member(mock(Member.class))
                 .build();
         given(memberDeviceRepository.findByDeviceToken("token-bound")).willReturn(Optional.of(bound));
 
@@ -88,7 +91,7 @@ class NoticePreferenceDeviceResolverTest {
         MemberDevice resolved = resolver.resolve("fid-known", "token-current");
 
         assertThat(resolved).isEqualTo(device);
-        org.mockito.Mockito.verify(memberDeviceRepository, org.mockito.Mockito.never())
+        verify(memberDeviceRepository, never())
                 .findByDeviceToken(anyString());
     }
 
@@ -115,7 +118,7 @@ class NoticePreferenceDeviceResolverTest {
         MemberDevice bound = MemberDevice.builder()
                 .fid("fid-bound")
                 .memberDeviceType(MemberDeviceType.ANDROID)
-                .member(org.mockito.Mockito.mock(Member.class))
+                .member(mock(Member.class))
                 .build();
         given(memberDeviceRepository.findByFid("fid-bound")).willReturn(Optional.of(bound));
 
