@@ -35,7 +35,7 @@ public class AsyncAutoSanctionService {
     private final TextFilteringService textFilteringService;
     private final ReportRepository reportRepository;
     @Value("${admin.id}")
-    private Long SYSTEM_ADMIN_ID;
+    private Long systemAdminId;
 
     @Async("autoSanctionExecutor")
     public CompletableFuture<Void> processReportAsync(Report report) {
@@ -92,7 +92,7 @@ public class AsyncAutoSanctionService {
 
     private Member createSystemAdmin() {
         return Member.builder()
-                .id(SYSTEM_ADMIN_ID)
+                .id(systemAdminId)
                 .build();
     }
 

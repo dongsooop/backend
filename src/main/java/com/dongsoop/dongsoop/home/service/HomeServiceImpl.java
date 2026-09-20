@@ -52,7 +52,7 @@ public class HomeServiceImpl implements HomeService {
     private final EclassAssignmentService eclassAssignmentService;
 
     @Value("${home.async.timeout.seconds:3}")
-    private int TIMEOUT_SECONDS;
+    private int timeoutSeconds;
 
     @Override
     public HomeDto getHome(Long requesterId, DepartmentType departmentType, String fid, String deviceToken) {
@@ -133,7 +133,7 @@ public class HomeServiceImpl implements HomeService {
 
     private <T> CompletableFuture<T> call(Supplier<T> supplier) {
         return CompletableFuture.supplyAsync(supplier, homeThreadExecutor)
-                .orTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .orTimeout(timeoutSeconds, TimeUnit.SECONDS)
                 .exceptionally(e -> {
                     log.error("thrown exception when collect home need's data", e);
                     throw new HomeAsyncException(e);
