@@ -8,7 +8,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 
 public abstract class MailVerifier {
 
-    protected final Integer AUTH_SUCCESS_TTL_SECONDS = 60 * 10; // 10 minutes
+    protected static final Integer AUTH_SUCCESS_TTL_SECONDS = 60 * 10; // 10 minutes
 
     protected final String opportunityKey;
     protected final String codeKey;

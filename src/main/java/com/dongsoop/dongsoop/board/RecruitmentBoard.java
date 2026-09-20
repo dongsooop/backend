@@ -27,13 +27,13 @@ public abstract class RecruitmentBoard extends Board {
     private String tags;
 
     @Column(name = "chat_room_id", length = 50)
-    private String RoomId;
+    private String roomId;
 
-    public void assignChatRoom(String RoomId) {
-        this.RoomId = RoomId;
+    public void assignChatRoom(String roomId) {
+        this.roomId = roomId;
     }
 
     public boolean hasChatRoom() {
-        return this.RoomId != null;
+        return this.roomId != null;
     }
 }

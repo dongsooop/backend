@@ -33,13 +33,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class StudyBoardCreateTest {
 
-    private final String VALID_TITLE = "This is a test title";
-    private final String VALID_CONTENT = "This is a test content";
-    private final String VALID_TAGS = "tag1, tag2";
-    private final DepartmentType VALID_DEPARTMENT_TYPE_A = DepartmentType.DEPT_2001;
-    private final DepartmentType VALID_DEPARTMENT_TYPE_B = DepartmentType.DEPT_3001;
-    private final LocalDateTime VALID_START_AT = LocalDateTime.of(2099, 1, 1, 0, 0);
-    private final LocalDateTime VALID_END_AT = LocalDateTime.of(2099, 12, 31, 23, 59);
+    private static final String VALID_TITLE = "This is a test title";
+    private static final String VALID_CONTENT = "This is a test content";
+    private static final String VALID_TAGS = "tag1, tag2";
+    private static final DepartmentType VALID_DEPARTMENT_TYPE_A = DepartmentType.DEPT_2001;
+    private static final DepartmentType VALID_DEPARTMENT_TYPE_B = DepartmentType.DEPT_3001;
+    private static final LocalDateTime VALID_START_AT = LocalDateTime.of(2099, 1, 1, 0, 0);
+    private static final LocalDateTime VALID_END_AT = LocalDateTime.of(2099, 12, 31, 23, 59);
 
     @InjectMocks
     private StudyBoardServiceImpl studyBoardService;

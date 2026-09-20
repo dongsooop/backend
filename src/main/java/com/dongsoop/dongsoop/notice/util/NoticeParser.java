@@ -18,17 +18,16 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class NoticeParser {
 
-    private final String TD_SUBJECT_SELECTOR;
-    private final Pattern DEPARTMENT_NOTICE_LINK_PATTERN;
-    private final Pattern UNIVERSITY_NOTICE_LINK_PATTERN;
+    private static final String TD_SUBJECT_SELECTOR = ".td-subject";
+    private final Pattern departmentNoticeLinkPattern;
+    private final Pattern universityNoticeLinkPattern;
     private final NoticeLinkParser noticeLinkParser;
 
     public NoticeParser(NoticeLinkParser noticeLinkParser, @Value("${notice.link.layout-header}") String layoutHeader) {
         this.noticeLinkParser = noticeLinkParser;
-        this.TD_SUBJECT_SELECTOR = ".td-subject";
-        this.DEPARTMENT_NOTICE_LINK_PATTERN = Pattern.compile(
+        this.departmentNoticeLinkPattern = Pattern.compile(
                 "^/combBbs/dmu/\\d+/\\d+/(\\d+)/view.do\\" + layoutHeader + "$");
-        this.UNIVERSITY_NOTICE_LINK_PATTERN = Pattern.compile(
+        this.universityNoticeLinkPattern = Pattern.compile(
                 "^/bbs/dmu/\\d+/(\\d+)/artclView.do\\" + layoutHeader + "$");
     }
 
@@ -56,12 +55,12 @@ public class NoticeParser {
     }
 
     public Long parseNoticeNumber(String link) {
-        Long noticeNumberByDepartmentLink = parseLinkByRegex(link, DEPARTMENT_NOTICE_LINK_PATTERN);
+        Long noticeNumberByDepartmentLink = parseLinkByRegex(link, departmentNoticeLinkPattern);
         if (noticeNumberByDepartmentLink != null) {
             return noticeNumberByDepartmentLink;
         }
 
-        Long noticeNumberByUniversityLink = parseLinkByRegex(link, UNIVERSITY_NOTICE_LINK_PATTERN);
+        Long noticeNumberByUniversityLink = parseLinkByRegex(link, universityNoticeLinkPattern);
         if (noticeNumberByUniversityLink != null) {
             return noticeNumberByUniversityLink;
         }

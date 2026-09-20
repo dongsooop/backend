@@ -41,7 +41,7 @@ class TutoringBoardStartAtTest {
 
     private final JSONObject json = new JSONObject();
 
-    private final String REQUEST_URL = "/tutoring-board";
+    private static final String REQUEST_URL = "/tutoring-board";
 
     @Autowired
     private MockMvc mockMvc;
