@@ -323,7 +323,7 @@ class BlindDateIntegrationTest {
 
         @Test
         @DisplayName("기준 인원 충족 - 세션 시작 준비")
-        void lastParticipant_PrepareToStartSession() throws InterruptedException {
+        void lastParticipant_PrepareToStartSession() {
             // given
             blindDateStorage.start(3, LocalDateTime.now().plusHours(1));
 
@@ -335,9 +335,6 @@ class BlindDateIntegrationTest {
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
 
-            // 세션 시작은 비동기이므로 잠시 대기
-            Thread.sleep(500);
-
             // then
             assertThat(getParticipantCount(sessionId)).isEqualTo(3);
             // 세션 시작은 scheduler에 의해 비동기로 처리됨
@@ -345,7 +342,7 @@ class BlindDateIntegrationTest {
 
         @Test
         @DisplayName("기준 인원 미달 - 세션 대기 상태 유지")
-        void notFull_RemainsWaiting() throws InterruptedException {
+        void notFull_RemainsWaiting() {
             // given
             blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
 
@@ -356,8 +353,6 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-3", 3L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
-
-            Thread.sleep(500);
 
             // then
             SessionState state = sessionStorage.getState(sessionId);
@@ -622,7 +617,7 @@ class BlindDateIntegrationTest {
 
         @Test
         @DisplayName("전체 플로우: 시작 → 입장 → 매칭")
-        void completeFlow_StartToEnd() throws InterruptedException {
+        void completeFlow_StartToEnd() {
             // 1. 과팅 시작
             LocalDateTime expiredDate = LocalDateTime.now().plusHours(1);
             StartBlindDateRequest request = new StartBlindDateRequest(expiredDate, 3);
@@ -637,8 +632,6 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-3", 3L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
-
-            Thread.sleep(500);
 
             // 3. 사랑의 작대기 - 1↔2 매칭
             choiceHandler.execute(sessionId, 1L, 2L);
