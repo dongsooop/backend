@@ -50,7 +50,7 @@ class JwtFilterShouldNotFilterTest {
 
     @Test
     @DisplayName("필터 제외 경로(/api/public/*)는 필터를 적용하지 않는다")
-    void whenPublicApiPath_thenShouldNotFilter() throws Exception {
+    void whenPublicApiPath_thenShouldNotFilter() {
         // given
         when(request.getRequestURI()).thenReturn("/api/public/test");
 
@@ -63,7 +63,7 @@ class JwtFilterShouldNotFilterTest {
 
     @Test
     @DisplayName("필터 제외 경로(/oauth2/*)는 필터를 적용하지 않는다")
-    void whenOAuth2Path_thenShouldNotFilter() throws Exception {
+    void whenOAuth2Path_thenShouldNotFilter() {
         // given
         when(request.getRequestURI()).thenReturn("/oauth2/authorization/google");
 
@@ -76,7 +76,7 @@ class JwtFilterShouldNotFilterTest {
 
     @Test
     @DisplayName("필터 제외 경로(/login)는 필터를 적용하지 않는다")
-    void whenLoginPath_thenShouldNotFilter() throws Exception {
+    void whenLoginPath_thenShouldNotFilter() {
         // given
         when(request.getRequestURI()).thenReturn("/login");
 
@@ -89,7 +89,7 @@ class JwtFilterShouldNotFilterTest {
 
     @Test
     @DisplayName("필터 제외 경로(/api/auth/refresh)는 필터를 적용하지 않는다")
-    void whenRefreshPath_thenShouldNotFilter() throws Exception {
+    void whenRefreshPath_thenShouldNotFilter() {
         // given
         when(request.getRequestURI()).thenReturn("/api/auth/refresh");
 
@@ -102,7 +102,7 @@ class JwtFilterShouldNotFilterTest {
 
     @Test
     @DisplayName("일반 API 경로는 필터를 적용한다")
-    void whenNormalApiPath_thenShouldFilter() throws Exception {
+    void whenNormalApiPath_thenShouldFilter() {
         // given
         when(request.getRequestURI()).thenReturn("/api/user/profile");
 
@@ -115,7 +115,7 @@ class JwtFilterShouldNotFilterTest {
 
     @Test
     @DisplayName("보호된 경로는 필터를 적용한다")
-    void whenProtectedPath_thenShouldFilter() throws Exception {
+    void whenProtectedPath_thenShouldFilter() {
         // given
         when(request.getRequestURI()).thenReturn("/api/admin/users");
 
@@ -128,7 +128,7 @@ class JwtFilterShouldNotFilterTest {
 
     @Test
     @DisplayName("와일드카드 패턴이 하위 경로에도 적용된다")
-    void whenWildcardPattern_thenMatchesSubPaths() throws Exception {
+    void whenWildcardPattern_thenMatchesSubPaths() {
         // given
         when(request.getRequestURI()).thenReturn("/api/public/boards/123/comments");
 
@@ -141,7 +141,7 @@ class JwtFilterShouldNotFilterTest {
 
     @Test
     @DisplayName("경로가 정확히 일치하지 않으면 필터를 적용한다")
-    void whenPathDoesNotMatch_thenShouldFilter() throws Exception {
+    void whenPathDoesNotMatch_thenShouldFilter() {
         // given
         when(request.getRequestURI()).thenReturn("/public/test"); // /api/public이 아님
 
@@ -154,7 +154,7 @@ class JwtFilterShouldNotFilterTest {
 
     @Test
     @DisplayName("빈 경로는 필터를 적용한다")
-    void whenEmptyPath_thenShouldFilter() throws Exception {
+    void whenEmptyPath_thenShouldFilter() {
         // given
         when(request.getRequestURI()).thenReturn("");
 
@@ -167,7 +167,7 @@ class JwtFilterShouldNotFilterTest {
 
     @Test
     @DisplayName("루트 경로는 필터를 적용한다")
-    void whenRootPath_thenShouldFilter() throws Exception {
+    void whenRootPath_thenShouldFilter() {
         // given
         when(request.getRequestURI()).thenReturn("/");
 

@@ -27,7 +27,7 @@ public class FeedbackDetailTest {
     private FeedbackRepository feedbackRepository;
 
     @Test
-    void feedback_WhenDoesNotExist_ReturnsNotFound() throws Exception {
+    void feedback_WhenDoesNotExist_ReturnsNotFound() {
         // given
         when(feedbackRepository.searchFeedbackById(any(Long.class)))
                 .thenReturn(Optional.empty());
@@ -37,7 +37,7 @@ public class FeedbackDetailTest {
     }
 
     @Test
-    void feedback_WhenExist_ReturnsFeedbackDetail() throws Exception {
+    void feedback_WhenExist_ReturnsFeedbackDetail() {
         // given
         Long feedbackId = 1L;
 

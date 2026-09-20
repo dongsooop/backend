@@ -170,7 +170,7 @@ class FirebaseAppCheckFilterTest {
             "/ws-other,      false"
     })
     @DisplayName("shouldNotFilter: Ant 경로 패턴(/ws/**)에 대한 매칭 검증")
-    void shouldNotFilter_withAntPattern(String requestUri, boolean expectedResult) throws Exception {
+    void shouldNotFilter_withAntPattern(String requestUri, boolean expectedResult) {
         // given
         FirebaseAppCheckFilter filterWithPaths = new FirebaseAppCheckFilter(
                 firebaseAppCheck, exceptionResolver, new String[]{"/ws/**"});
@@ -185,7 +185,7 @@ class FirebaseAppCheckFilterTest {
 
     @Test
     @DisplayName("shouldNotFilter: ignorePaths가 비어있으면 모든 경로에 필터를 적용한다")
-    void shouldNotFilter_whenIgnorePathsEmpty_thenAlwaysFilter() throws Exception {
+    void shouldNotFilter_whenIgnorePathsEmpty_thenAlwaysFilter() {
         // given
         when(request.getRequestURI()).thenReturn("/ws/connect");
 
