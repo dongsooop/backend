@@ -16,6 +16,7 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.core.ZSetOperations;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -164,20 +165,22 @@ class RedisChatRepositoryTest {
     }
 
     @Test
-    @DisplayName("saveMessage - 개별 키 저장 시 TTL 포함")
-    void saveMessage_savesWithTTL() {
+    @DisplayName("saveMessage - 개별 키 저장 시 TTL 포함 및 KST 기준 정렬 점수 저장")
+    void saveMessage_savesWithTTLAndKstScore() {
+        LocalDateTime timestamp = LocalDateTime.of(2026, 9, 20, 15, 0);
         ChatMessage message = ChatMessage.builder()
                 .messageId("msg1")
                 .roomId("room1")
                 .senderId(1L)
                 .content("hello")
-                .timestamp(LocalDateTime.now())
+                .timestamp(timestamp)
                 .type(MessageType.CHAT)
                 .build();
 
         redisChatRepository.saveMessage(message);
 
+        double expectedScore = timestamp.atZone(ZoneId.of("Asia/Seoul")).toInstant().toEpochMilli();
         verify(valueOperations).set(eq("chat:message:room1:msg1"), eq(message), eq(30L), eq(TimeUnit.DAYS));
-        verify(zSetOperations).add(eq("chat:messages:sorted:room1"), eq("msg1"), anyDouble());
+        verify(zSetOperations).add("chat:messages:sorted:room1", "msg1", expectedScore);
     }
 }
