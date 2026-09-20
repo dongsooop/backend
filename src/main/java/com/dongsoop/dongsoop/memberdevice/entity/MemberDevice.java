@@ -14,6 +14,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.SequenceGenerator;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -26,6 +27,8 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @SequenceGenerator(name = "member_device_sequence_generator")
 public class MemberDevice extends BaseEntity {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     @Id
     @Getter
@@ -60,7 +63,7 @@ public class MemberDevice extends BaseEntity {
     @PrePersist
     protected void initLastAccess() {
         if (this.lastAccess == null) {
-            this.lastAccess = LocalDateTime.now();
+            this.lastAccess = LocalDateTime.now(KST);
         }
     }
 

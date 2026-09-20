@@ -15,6 +15,7 @@ import com.dongsoop.dongsoop.chat.service.ChatSyncService;
 import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
 import com.dongsoop.dongsoop.chat.util.ChatMessageUtils;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Objects;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -23,6 +24,8 @@ import org.springframework.util.StringUtils;
 
 @Component
 public class ChatValidator {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final Long ANONYMOUS_USER_ID = -1L;
 
     private final ChatRepository chatRepository;
@@ -174,6 +177,6 @@ public class ChatValidator {
     }
 
     private boolean isRecruitmentPeriodActive(LocalDateTime endAt) {
-        return LocalDateTime.now().isBefore(endAt);
+        return LocalDateTime.now(KST).isBefore(endAt);
     }
 }

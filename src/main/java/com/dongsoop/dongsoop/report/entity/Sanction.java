@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Getter
@@ -14,6 +15,8 @@ import java.time.LocalDateTime;
 @Builder
 @Table(name = "sanction")
 public class Sanction extends BaseEntity {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
@@ -56,7 +59,7 @@ public class Sanction extends BaseEntity {
     private Boolean isActive = true;
 
     public boolean isCurrentlyExpired() {
-        return LocalDateTime.now().isAfter(endDate);
+        return LocalDateTime.now(KST).isAfter(endDate);
     }
 
     public void deactivate() {

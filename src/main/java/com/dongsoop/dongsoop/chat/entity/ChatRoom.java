@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 @Getter
@@ -13,6 +14,8 @@ import java.util.*;
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ChatRoom {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final String DEFAULT_GROUP_TITLE = "그룹 채팅";
     public static final String CONTACT_ROOM_TITLE_PREFIX = "[문의]";
     public static final String TRADE_ROOM_TITLE_PREFIX = "[거래]";
@@ -93,7 +96,7 @@ public class ChatRoom {
     }
 
     private static LocalDateTime getCurrentTime() {
-        return LocalDateTime.now();
+        return LocalDateTime.now(KST);
     }
 
     public LocalDateTime getJoinTime(Long userId) {
@@ -150,14 +153,14 @@ public class ChatRoom {
         if (lastActivityAt != null) {
             return lastActivityAt;
         }
-        return LocalDateTime.now();
+        return LocalDateTime.now(KST);
     }
 
     private LocalDateTime getEffectiveLastActivityAt() {
         if (lastActivityAt != null) {
             return lastActivityAt;
         }
-        return LocalDateTime.now();
+        return LocalDateTime.now(KST);
     }
 
     private Set<Long> ensureKickedUsersSet() {

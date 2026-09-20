@@ -12,6 +12,7 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 @RequiredArgsConstructor
 public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private static final String ROLE_DELIMITER = ",";
 
@@ -58,7 +61,7 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
                 .set(member.password, deleteMember.passwordAlias())
                 .setNull(member.studentId)
                 .set(member.isDeleted, true)
-                .set(member.updatedAt, LocalDateTime.now())
+                .set(member.updatedAt, LocalDateTime.now(KST))
                 .where(member.isDeleted.eq(false)
                         .and(member.id.eq(deleteMember.memberId())))
                 .execute();

@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.blinddate.entity;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,6 +16,8 @@ import lombok.Getter;
 @Builder
 @AllArgsConstructor
 public class ParticipantInfo {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private final String sessionId;        // 세션 ID
     private final Long memberId;           // 사용자 ID
     private final Set<String> socketIds;   // 소켓 ID 목록 (여러 기기 접속 가능)
@@ -30,7 +33,7 @@ public class ParticipantInfo {
                 .memberId(memberId)
                 .socketIds(socketIds)
                 .anonymousName(anonymousName)
-                .joinedAt(LocalDateTime.now())
+                .joinedAt(LocalDateTime.now(KST))
                 .build();
     }
 

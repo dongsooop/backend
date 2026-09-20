@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.blinddate.entity;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 import lombok.Builder;
 import lombok.Getter;
@@ -8,6 +9,8 @@ import lombok.Getter;
 @Getter
 @Builder
 public class SessionInfo {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private final String sessionId;
     private final LocalDateTime createdAt;
     private volatile SessionState state;
@@ -16,7 +19,7 @@ public class SessionInfo {
         return SessionInfo.builder()
                 .sessionId(UUID.randomUUID().toString())
                 .state(SessionState.WAITING)
-                .createdAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now(KST))
                 .build();
     }
 

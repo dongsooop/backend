@@ -18,6 +18,7 @@ import com.dongsoop.dongsoop.timetable.repository.TimetableRepository;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.Year;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -38,6 +39,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class HomeServiceImpl implements HomeService {
 
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+
     @Qualifier("homeThreadExecutor")
     private final ExecutorService homeThreadExecutor;
 
@@ -53,8 +56,8 @@ public class HomeServiceImpl implements HomeService {
 
     @Override
     public HomeDto getHome(Long requesterId, DepartmentType departmentType, String fid, String deviceToken) {
-        LocalDate today = LocalDate.now();
-        Year year = Year.now();
+        LocalDate today = LocalDate.now(KST);
+        Year year = Year.now(KST);
         int month = today.getMonthValue();
         SemesterType semester = SemesterType.fromMonth(month);
         DayOfWeek week = today.getDayOfWeek();
@@ -100,7 +103,7 @@ public class HomeServiceImpl implements HomeService {
      */
     @Override
     public HomeDto getHome(Set<DepartmentType> departmentTypes, String fid, String deviceToken) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(KST);
 
         CompletableFuture<List<HomeSchedule>> fOfficialSchedules = call(
                 () -> officialScheduleRepository.searchHomeSchedule(today));

@@ -13,6 +13,7 @@ import com.dongsoop.dongsoop.memberdevice.exception.UnauthorizedDeviceAccessExce
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,6 +31,8 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 @Slf4j
 public class MemberDeviceServiceImpl implements MemberDeviceService {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final MemberDeviceRepository memberDeviceRepository;
     private final MemberRepository memberRepository;
@@ -229,7 +232,7 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
     @Transactional
     public void updateLastAccessAsync(Long deviceId) {
         memberDeviceRepository.findById(deviceId)
-                .ifPresent(device -> device.updateLastAccess(LocalDateTime.now()));
+                .ifPresent(device -> device.updateLastAccess(LocalDateTime.now(KST)));
     }
 
 }

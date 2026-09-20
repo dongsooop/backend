@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -20,6 +21,8 @@ import java.util.function.Consumer;
 @Transactional(readOnly = true)
 @Slf4j
 public class SanctionExecutor {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     // 주의 누적 단계별 상수
     private static final long WARNING_THRESHOLD_3 = 3L;
@@ -166,8 +169,8 @@ public class SanctionExecutor {
                 .member(member)
                 .sanctionType(SanctionType.TEMPORARY_BAN)
                 .reason(reason)
-                .startDate(LocalDateTime.now())
-                .endDate(LocalDateTime.now().plusDays(suspensionDays))
+                .startDate(LocalDateTime.now(KST))
+                .endDate(LocalDateTime.now(KST).plusDays(suspensionDays))
                 .description(description)
                 .build();
     }

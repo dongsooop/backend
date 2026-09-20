@@ -11,6 +11,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.Year;
 import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -23,6 +24,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @RequiredArgsConstructor
 public class TimetableScheduler {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm");
     private static final String TITLE_FORMAT = "[시간표 알림] 오늘 %d개의 수업이 있습니다";
@@ -72,9 +75,9 @@ public class TimetableScheduler {
      * @return 오늘의 시간표 리스트
      */
     private List<TodayTimetable> getTodayTimetableList() {
-        Year year = Year.now();
-        int month = LocalDate.now().getMonthValue();
-        DayOfWeek dayOfWeek = LocalDate.now()
+        Year year = Year.now(KST);
+        int month = LocalDate.now(KST).getMonthValue();
+        DayOfWeek dayOfWeek = LocalDate.now(KST)
                 .getDayOfWeek();
 
         SemesterType semester = SemesterType.fromMonth(month);

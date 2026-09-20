@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.common.handler.exception;
 
 import com.dongsoop.dongsoop.common.exception.CustomException;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<ProblemDetail> handleCustomException(CustomException exception) {
@@ -63,7 +66,7 @@ public class GlobalExceptionHandler {
         log.error(message, exception);
         ErrorResponse error = ErrorResponse.create(exception, httpStatus, message);
         ProblemDetail problemDetail = error.getBody();
-        problemDetail.setProperty("timestamp", LocalDateTime.now());
+        problemDetail.setProperty("timestamp", LocalDateTime.now(KST));
 
         return ResponseEntity.status(httpStatus)
                 .body(problemDetail);

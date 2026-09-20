@@ -13,6 +13,7 @@ import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -20,6 +21,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 @RequiredArgsConstructor
 public class MemberScheduleRepositoryCustomImpl implements MemberScheduleRepositoryCustom {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private static final QMemberSchedule memberSchedule = QMemberSchedule.memberSchedule;
     private static final QMemberDevice memberDevice = QMemberDevice.memberDevice;
@@ -42,7 +45,7 @@ public class MemberScheduleRepositoryCustomImpl implements MemberScheduleReposit
 
     @Override
     public List<TodaySchedule> searchTodaySchedule() {
-        LocalDate now = LocalDate.now();
+        LocalDate now = LocalDate.now(KST);
 
         // startAt to LocalDate
         DateExpression<LocalDate> startAtDate = Expressions.dateTemplate(LocalDate.class, "DATE({0})",

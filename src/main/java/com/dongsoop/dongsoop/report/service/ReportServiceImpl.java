@@ -32,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,6 +40,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ReportServiceImpl implements ReportService {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final ReportRepository reportRepository;
     private final MemberRepository memberRepository;
@@ -159,7 +162,7 @@ public class ReportServiceImpl implements ReportService {
                 .member(targetMember)
                 .sanctionType(request.sanctionType())
                 .reason(request.sanctionReason())
-                .startDate(LocalDateTime.now())
+                .startDate(LocalDateTime.now(KST))
                 .endDate(request.sanctionEndAt())
                 .description(request.sanctionType().getDescription())
                 .build();
