@@ -144,7 +144,7 @@ class MealParserTest {
                 meals.stream()
                         .filter(meal -> meal.getMealType() == MealType.KOREAN)
                         .map(Meal::getDayOfWeek)
-                        .collect(Collectors.toList()));
+                        .toList());
     }
 
     private String dateRangeText(LocalDate start, LocalDate end) {
@@ -154,27 +154,27 @@ class MealParserTest {
     private List<LocalDate> expectedDates(LocalDate start) {
         return IntStream.range(0, DAYS)
                 .mapToObj(start::plusDays)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<LocalDate> datesOf(List<Meal> meals) {
         return meals.stream()
                 .filter(meal -> meal.getMealType() == MealType.KOREAN)
                 .map(Meal::getMealDate)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<String> menusOf(List<Meal> meals, MealType mealType) {
         return meals.stream()
                 .filter(meal -> meal.getMealType() == mealType)
                 .map(Meal::getMenuItems)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<String> defaultMenus(int size) {
         return IntStream.range(0, size)
                 .mapToObj(index -> textProcessingUtil.getDefaultEmptyMenu())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Document page(String header, String tableHtml) {

@@ -2,7 +2,6 @@ package com.dongsoop.dongsoop.search.service;
 
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -29,7 +28,7 @@ public class PopularKeywordService {
         if (keywords == null) {
             return List.of();
         }
-        return keywords.stream().collect(Collectors.toList());
+        return keywords.stream().toList();
     }
 
     @Scheduled(cron = "0 0 0 * * ?", zone = "Asia/Seoul")
