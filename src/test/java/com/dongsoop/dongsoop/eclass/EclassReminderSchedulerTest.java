@@ -3,7 +3,6 @@ package com.dongsoop.dongsoop.eclass;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -122,7 +121,7 @@ class EclassReminderSchedulerTest {
 
         scheduler.remind();
 
-        verify(assignmentRepository).saveAll(eq(targets));
+        verify(assignmentRepository).saveAll(targets);
         assertThat(target.getLastRemindedDays()).isEqualTo(1);
     }
 
@@ -133,8 +132,8 @@ class EclassReminderSchedulerTest {
 
         scheduler.remind();
 
-        verify(assignmentRepository).searchReminderTargets(eq(NOW),
-                eq(NOW.toLocalDate().plusDays(3).atTime(java.time.LocalTime.MAX)));
+        verify(assignmentRepository).searchReminderTargets(NOW,
+                NOW.toLocalDate().plusDays(3).atTime(java.time.LocalTime.MAX));
     }
 
     @Test

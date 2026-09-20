@@ -56,7 +56,7 @@ class RedisChatRepositoryTest {
 
         redisChatRepository.saveRoom(room);
 
-        verify(valueOperations).set(eq("chat:room:room1"), eq(room), eq(30L), eq(TimeUnit.DAYS));
+        verify(valueOperations).set("chat:room:room1", room, 30L, TimeUnit.DAYS);
     }
 
     @Test
@@ -80,7 +80,7 @@ class RedisChatRepositoryTest {
                 .participants(new HashSet<>(Set.of(1L)))
                 .build();
         when(valueOperations.get("chat:room:room1")).thenReturn(room);
-        when(zSetOperations.range(eq("chat:messages:sorted:room1"), eq(0L), eq(-1L)))
+        when(zSetOperations.range("chat:messages:sorted:room1", 0L, -1L))
                 .thenReturn(Collections.emptySet());
 
         redisChatRepository.deleteRoom("room1");
@@ -180,7 +180,7 @@ class RedisChatRepositoryTest {
         redisChatRepository.saveMessage(message);
 
         double expectedScore = timestamp.atZone(ZoneId.of("Asia/Seoul")).toInstant().toEpochMilli();
-        verify(valueOperations).set(eq("chat:message:room1:msg1"), eq(message), eq(30L), eq(TimeUnit.DAYS));
+        verify(valueOperations).set("chat:message:room1:msg1", message, 30L, TimeUnit.DAYS);
         verify(zSetOperations).add("chat:messages:sorted:room1", "msg1", expectedScore);
     }
 }

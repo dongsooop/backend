@@ -3,7 +3,6 @@ package com.dongsoop.dongsoop.studyBoard;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -82,14 +81,14 @@ class StudyRecruitmentDepartmentEligibilityValidatorTest {
         when(memberService.getMemberReferenceByContext())
                 .thenReturn(member);
 
-        when(studyApplyRepositoryCustom.existsByBoardIdAndMemberId(eq(BOARD_ID), eq(REQUESTER_ID))) // null은 회원 ID를 의미
+        when(studyApplyRepositoryCustom.existsByBoardIdAndMemberId(BOARD_ID, REQUESTER_ID)) // null은 회원 ID를 의미
                 .thenReturn(false);
 
         // 게시판 조회 시 Id가 1인 게시판 조회
         StudyBoard studyBoard = StudyBoard.builder()
                 .id(BOARD_ID)
                 .build();
-        when(studyBoardRepository.findById(eq(BOARD_ID)))
+        when(studyBoardRepository.findById(BOARD_ID))
                 .thenReturn(Optional.of(studyBoard));
 
         // Id가 1인 게시판의 학과 조회 시 DEPT_2001인 학과가 등록되어 있음
@@ -124,7 +123,7 @@ class StudyRecruitmentDepartmentEligibilityValidatorTest {
                 .id(BOARD_ID)
                 .author(author)
                 .build();
-        when(studyBoardRepository.findById(eq(BOARD_ID)))
+        when(studyBoardRepository.findById(BOARD_ID))
                 .thenReturn(Optional.of(studyBoard));
 
         // Id가 1인 게시판의 학과 조회 시 DEPT_2001인 학과가 등록되어 있음
