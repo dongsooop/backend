@@ -52,20 +52,15 @@ jobs:
           chmod +x ./gradlew
           ./gradlew test classes
 
+      # 프로젝트 좌표는 build.gradle 에 있다. PR 에서도 돌려야 Quality Gate 와 PR 코멘트가 붙는다
       - name: Run Sonar analysis
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
-          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ -z "$SONAR_TOKEN" ] || [ -z "$SONAR_PROJECT_KEY" ] || [ -z "$SONAR_ORGANIZATION" ]; then
-            echo "::notice::SonarQube Cloud configuration is missing. Set SONAR_TOKEN, SONAR_PROJECT_KEY, and SONAR_ORGANIZATION to enable analysis."
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "::notice::SONAR_TOKEN is not set. Skipping SonarQube Cloud analysis."
             exit 0
           fi
 
-          ./gradlew sonar \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.token="$SONAR_TOKEN" \
-            -Dsonar.projectKey="$SONAR_PROJECT_KEY" \
-            -Dsonar.organization="$SONAR_ORGANIZATION"
+          ./gradlew sonar -Dsonar.token="$SONAR_TOKEN"
