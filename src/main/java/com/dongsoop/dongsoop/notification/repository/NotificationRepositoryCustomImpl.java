@@ -1,12 +1,12 @@
 package com.dongsoop.dongsoop.notification.repository;
 
+import static com.dongsoop.dongsoop.notification.entity.QNotificationDetails.notificationDetails;
+import static com.dongsoop.dongsoop.notification.entity.QMemberNotification.memberNotification;
+import static com.dongsoop.dongsoop.member.entity.QMember.member;
 import com.dongsoop.dongsoop.common.PageableUtil;
-import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.notification.dto.NotificationList;
 import com.dongsoop.dongsoop.notification.dto.NotificationUnread;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
-import com.dongsoop.dongsoop.notification.entity.QMemberNotification;
-import com.dongsoop.dongsoop.notification.entity.QNotificationDetails;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.Collection;
@@ -23,9 +23,6 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
     private final JPAQueryFactory queryFactory;
     private final PageableUtil pageableUtil;
 
-    private final QMember member = QMember.member;
-    private final QMemberNotification memberNotice = QMemberNotification.memberNotification;
-    private final QNotificationDetails notificationDetails = QNotificationDetails.notificationDetails;
 
     @Override
     public List<NotificationList> getMemberNotifications(Long memberId, Pageable pageable) {
@@ -35,11 +32,11 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
                         notificationDetails.body,
                         notificationDetails.type,
                         notificationDetails.value,
-                        memberNotice.isRead,
+                        memberNotification.isRead,
                         notificationDetails.createdAt))
-                .from(memberNotice)
-                .innerJoin(memberNotice.id.details, notificationDetails)
-                .where(memberNotice.id.member.id.eq(memberId)
+                .from(memberNotification)
+                .innerJoin(memberNotification.id.details, notificationDetails)
+                .where(memberNotification.id.member.id.eq(memberId)
                         .and(notificationDetails.isDeleted.eq(false)))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -49,11 +46,11 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
 
     @Override
     public int findUnreadCountByMemberId(Long memberId) {
-        Long count = queryFactory.select(memberNotice.count())
-                .from(memberNotice)
-                .where(memberNotice.id.member.id.eq(memberId)
-                        .and(memberNotice.isRead.eq(false))
-                        .and(memberNotice.id.details.isDeleted.eq(false)))
+        Long count = queryFactory.select(memberNotification.count())
+                .from(memberNotification)
+                .where(memberNotification.id.member.id.eq(memberId)
+                        .and(memberNotification.isRead.eq(false))
+                        .and(memberNotification.id.details.isDeleted.eq(false)))
                 .fetchOne();
 
         if (count == null) {
@@ -70,12 +67,12 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
     @Override
     public List<NotificationUnread> findUnreadCountByMemberIds(Collection<Long> memberIds) {
         return queryFactory.select(Projections.constructor(NotificationUnread.class,
-                        member.id, memberNotice.count()))
+                        member.id, memberNotification.count()))
                 .from(member)
-                .leftJoin(memberNotice)
-                .on(member.eq(memberNotice.id.member)
-                        .and(memberNotice.isRead.eq(false))
-                        .and(memberNotice.id.details.isDeleted.eq(false)))
+                .leftJoin(memberNotification)
+                .on(member.eq(memberNotification.id.member)
+                        .and(memberNotification.isRead.eq(false))
+                        .and(memberNotification.id.details.isDeleted.eq(false)))
                 .where(member.id.in(memberIds))
                 .groupBy(member.id)
                 .fetch();
@@ -83,9 +80,9 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
 
     @Override
     public Optional<MemberNotification> findByMemberIdAndNotificationId(Long memberId, Long notificationId) {
-        MemberNotification result = queryFactory.selectFrom(memberNotice)
-                .where(memberNotice.id.member.id.eq(memberId)
-                        .and(memberNotice.id.details.id.eq(notificationId)))
+        MemberNotification result = queryFactory.selectFrom(memberNotification)
+                .where(memberNotification.id.member.id.eq(memberId)
+                        .and(memberNotification.id.details.id.eq(notificationId)))
                 .fetchOne();
 
         return Optional.ofNullable(result);
@@ -93,11 +90,11 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
 
     @Override
     public void updateAllAsRead(Long memberId) {
-        queryFactory.update(memberNotice)
-                .set(memberNotice.isRead, true)
-                .where(memberNotice.id.member.id.eq(memberId)
-                        .and(memberNotice.isRead.eq(false))
-                        .and(memberNotice.id.details.isDeleted.eq(false)))
+        queryFactory.update(memberNotification)
+                .set(memberNotification.isRead, true)
+                .where(memberNotification.id.member.id.eq(memberId)
+                        .and(memberNotification.isRead.eq(false))
+                        .and(memberNotification.id.details.isDeleted.eq(false)))
                 .execute();
     }
 }
