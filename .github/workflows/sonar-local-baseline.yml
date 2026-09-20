@@ -122,10 +122,17 @@ jobs:
             | jq -r '.facets[] | select(.property == "types") | .values[] | "\(.val)=\(.count)"' \
             | sort
 
-          echo '===== CRITICAL ISSUE DETAILS ====='
+          echo '===== RULE COUNTS (TOP 30) ====='
           curl -fsS -u "$SONAR_TOKEN:" \
-            'http://localhost:9000/api/issues/search?componentKeys=dongsooop-backend-baseline&severities=CRITICAL&ps=100' \
-            | jq -r '.issues[] | [(.type // ""), (.rule // ""), (.component // "" | split(":")[-1]), ((.line // 0) | tostring), (.message // "")] | @tsv'
+            'http://localhost:9000/api/issues/search?componentKeys=dongsooop-backend-baseline&facets=rules&facetMode=count&ps=1' \
+            | jq -r '.facets[] | select(.property == "rules") | .values[] | "\(.count)\t\(.val)"' \
+            | sort -rn \
+            | head -30
+
+          echo '===== BLOCKER / CRITICAL ISSUE DETAILS ====='
+          curl -fsS -u "$SONAR_TOKEN:" \
+            'http://localhost:9000/api/issues/search?componentKeys=dongsooop-backend-baseline&severities=BLOCKER,CRITICAL&ps=100' \
+            | jq -r '.issues[] | [(.severity // ""), (.type // ""), (.rule // ""), (.component // "" | split(":")[-1]), ((.line // 0) | tostring), (.message // "")] | @tsv'
 
           echo '===== BUG DETAILS ====='
           PAGE=1
