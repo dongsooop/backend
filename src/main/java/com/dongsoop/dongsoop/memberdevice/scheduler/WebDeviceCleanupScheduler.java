@@ -22,7 +22,7 @@ public class WebDeviceCleanupScheduler {
     @Value("${jwt.expired-time.refresh-token}")
     private long refreshTokenExpiryMs;
 
-    @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
     @Transactional
     public void deleteExpiredWebDevices() {
         LocalDateTime cutoff = LocalDateTime.now(KST).minusNanos(refreshTokenExpiryMs * 1_000_000L);
