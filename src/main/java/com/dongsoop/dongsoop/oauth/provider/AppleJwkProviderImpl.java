@@ -25,7 +25,7 @@ public class AppleJwkProviderImpl implements AppleJwkProvider {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
-    private final String appleJWKCacheKey = "jwks";
+    private static final String APPLE_JWK_CACHE_KEY = "jwks";
     private final RestTemplate restTemplate;
     private final CacheManager cacheManager;
     private final ObjectMapper objectMapper;
@@ -41,7 +41,7 @@ public class AppleJwkProviderImpl implements AppleJwkProvider {
     public Map<String, AppleJwk> getAppleJwkMap() {
         Cache cache = this.cacheManager.getCache(cacheName);
         if (cache != null) {
-            Map<String, AppleJwk> cachedJwks = cache.get(appleJWKCacheKey, Map.class);
+            Map<String, AppleJwk> cachedJwks = cache.get(APPLE_JWK_CACHE_KEY, Map.class);
             if (cachedJwks != null) {
                 return cachedJwks;
             }
@@ -65,7 +65,7 @@ public class AppleJwkProviderImpl implements AppleJwkProvider {
                 .collect(Collectors.toMap(AppleJwk::kid, jwk -> jwk, (first, second) -> first));
 
         if (cache != null) {
-            cache.put(appleJWKCacheKey, jwkMap);
+            cache.put(APPLE_JWK_CACHE_KEY, jwkMap);
         }
 
         return jwkMap;

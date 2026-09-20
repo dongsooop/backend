@@ -1,9 +1,9 @@
 package com.dongsoop.dongsoop.restaurant.repository;
 
+import static com.dongsoop.dongsoop.restaurant.entity.QRestaurantLike.restaurantLike;
+import static com.dongsoop.dongsoop.restaurant.entity.QRestaurant.restaurant;
 import com.dongsoop.dongsoop.restaurant.dto.QRestaurantOverview;
 import com.dongsoop.dongsoop.restaurant.dto.RestaurantOverview;
-import com.dongsoop.dongsoop.restaurant.entity.QRestaurant;
-import com.dongsoop.dongsoop.restaurant.entity.QRestaurantLike;
 import com.dongsoop.dongsoop.restaurant.entity.RestaurantCategory;
 import com.dongsoop.dongsoop.restaurant.entity.RestaurantTag;
 import com.querydsl.core.types.ExpressionUtils;
@@ -23,8 +23,6 @@ import java.util.List;
 public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
-    private final QRestaurant restaurant = QRestaurant.restaurant;
-    private final QRestaurantLike restaurantLike = QRestaurantLike.restaurantLike;
 
     private final EnumPath<RestaurantTag> tagAlias = Expressions.enumPath(RestaurantTag.class, "T");
 

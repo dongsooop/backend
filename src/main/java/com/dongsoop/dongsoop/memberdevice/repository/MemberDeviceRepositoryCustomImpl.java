@@ -1,17 +1,17 @@
 package com.dongsoop.dongsoop.memberdevice.repository;
 
+import static com.dongsoop.dongsoop.notice.preference.entity.QDeviceNoticePreference.deviceNoticePreference;
+import static com.dongsoop.dongsoop.member.entity.QMember.member;
+import static com.dongsoop.dongsoop.memberdevice.entity.QMemberDevice.memberDevice;
+import static com.dongsoop.dongsoop.notification.setting.entity.QNotificationSetting.notificationSetting;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
-import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.memberdevice.dto.DeviceSubscription;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceDto;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceResponse;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
-import com.dongsoop.dongsoop.memberdevice.entity.QMemberDevice;
-import com.dongsoop.dongsoop.notice.preference.entity.QDeviceNoticePreference;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
-import com.dongsoop.dongsoop.notification.setting.entity.QNotificationSetting;
 import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -31,11 +31,6 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
 
     private final JPAQueryFactory queryFactory;
 
-    private final QNotificationSetting notificationSetting = QNotificationSetting.notificationSetting;
-    private final QMemberDevice memberDevice = QMemberDevice.memberDevice;
-    private final QMember member = QMember.member;
-    private final QDeviceNoticePreference deviceNoticePreference =
-            QDeviceNoticePreference.deviceNoticePreference;
 
     @Override
     public List<MemberDeviceDto> findDevicesWithNotification(MemberDeviceFindCondition condition) {
