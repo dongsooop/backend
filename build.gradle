@@ -107,6 +107,12 @@ tasks.named('jar') {
 sonar {
     properties {
         property 'sonar.exclusions', 'build/generated/**'
+
+        // S4502(CSRF 비활성화)는 이 프로젝트에 해당하지 않는다. 사유는 SecurityConfig 주석 참고
+        property 'sonar.issue.ignore.multicriteria', 'csrfDisabled'
+        property 'sonar.issue.ignore.multicriteria.csrfDisabled.ruleKey', 'java:S4502'
+        property 'sonar.issue.ignore.multicriteria.csrfDisabled.resourceKey', '**/SecurityConfig.java'
+
         property 'sonar.coverage.jacoco.xmlReportPaths', 'build/reports/jacoco/test/jacocoTestReport.xml'
     }
 }

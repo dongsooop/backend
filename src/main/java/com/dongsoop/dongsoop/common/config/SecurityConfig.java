@@ -69,6 +69,10 @@ public class SecurityConfig {
                         .logoutUrl("/logout")
                         .addLogoutHandler(logoutHandler))
                 .httpBasic(AbstractHttpConfigurer::disable) // 기본 인증 기능 제거
+                // 인증은 Authorization 헤더의 JWT 로만 한다. 쿠키로 인증하는 경로가 없어
+                // 브라우저가 자동 전송하는 자격증명이 존재하지 않으므로 CSRF 공격이 성립하지 않는다.
+                // 웹은 Next.js BFF 가 쿠키를 보관하고 이 서버에는 헤더로 전달하므로, 쿠키 구간의
+                // 방어는 웹 저장소 책임이다. 이 서버에 쿠키 인증을 도입하면 이 결정을 재검토할 것
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable) // JWT를 사용하기 때문에 form login 비활성화
                 .addFilterBefore(jwtFilter, LogoutFilter.class)
