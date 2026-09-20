@@ -3,8 +3,11 @@ package com.dongsoop.dongsoop.date;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 public class MaxDateValidator implements ConstraintValidator<MaxDate, LocalDateTime> {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private int year;
 
@@ -31,7 +34,7 @@ public class MaxDateValidator implements ConstraintValidator<MaxDate, LocalDateT
             return true;
         }
 
-        LocalDateTime now = LocalDateTime.now()
+        LocalDateTime now = LocalDateTime.now(KST)
                 .plusMinutes(this.minute)
                 .plusHours(this.hour)
                 .plusDays(this.day)

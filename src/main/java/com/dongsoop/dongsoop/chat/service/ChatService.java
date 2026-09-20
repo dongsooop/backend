@@ -16,6 +16,7 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberblock.constant.BlockStatus;
 import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepository;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -32,6 +33,8 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class ChatService {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private final ChatRoomService chatRoomService;
     private final ChatMessageService chatMessageService;
     private final ChatParticipantService chatParticipantService;
@@ -159,7 +162,7 @@ public class ChatService {
 
     public void markAllMessagesAsRead(String roomId, Long userId) {
         chatValidator.validateUserForRoom(roomId, userId);
-        readStatusService.updateLastReadTimestamp(userId, roomId, LocalDateTime.now());
+        readStatusService.updateLastReadTimestamp(userId, roomId, LocalDateTime.now(KST));
 
         notifyReadStatusChanged(roomId, userId);
     }
@@ -210,7 +213,7 @@ public class ChatService {
                 "type", ChatNotificationType.READ_STATUS_UPDATE,
                 "roomId", roomId,
                 "readerId", readerId,
-                "timestamp", LocalDateTime.now()
+                "timestamp", LocalDateTime.now(KST)
         );
 
         messagingTemplate.convertAndSend("/topic/user/" + userId, readUpdate);
@@ -250,7 +253,7 @@ public class ChatService {
             return;
         }
 
-        readStatusService.updateLastReadTimestamp(userId, roomId, LocalDateTime.now());
+        readStatusService.updateLastReadTimestamp(userId, roomId, LocalDateTime.now(KST));
     }
 
     private void updateReadStatusByMessageId(String roomId, Long userId, String messageId) {

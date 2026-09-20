@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 
 @Repository
 public class RedisChatRepository implements ChatRepository {
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final long CHAT_TTL = 30;
     private static final String ROOM_KEY_PREFIX = "chat:room:";
     private static final String MESSAGE_KEY_PREFIX = "chat:message:";
@@ -229,7 +230,7 @@ public class RedisChatRepository implements ChatRepository {
         if (dateTime == null) {
             return 0.0;
         }
-        return (double) dateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        return (double) dateTime.atZone(KST).toInstant().toEpochMilli();
     }
 
     private Optional<ChatRoom> findDirectRoomByParticipants(Long user1, Long user2) {

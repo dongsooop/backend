@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,8 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 public class ChatMessageService {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private final RedisChatRepository redisChatRepository;
     private final ChatValidator chatValidator;
     private final MemberService memberService;
@@ -107,7 +110,7 @@ public class ChatMessageService {
                 .roomId(roomId)
                 .senderId(userId)
                 .content(content)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(KST))
                 .type(type)
                 .build();
     }

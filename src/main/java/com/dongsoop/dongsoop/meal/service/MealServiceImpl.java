@@ -57,7 +57,7 @@ public class MealServiceImpl implements MealService {
     @Override
     @Transactional(readOnly = true)
     public MealWeeklyResponse getCurrentWeekMealResponse() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(KST);
         LocalDate startDate = today.with(DayOfWeek.MONDAY);
         LocalDate endDate = today.with(DayOfWeek.FRIDAY);
 
@@ -205,7 +205,7 @@ public class MealServiceImpl implements MealService {
     }
 
     private void performCleanup() {
-        LocalDate cutoffDate = LocalDate.now().minusWeeks(2);
+        LocalDate cutoffDate = LocalDate.now(KST).minusWeeks(2);
         mealRepository.deleteOldMealData(cutoffDate);
     }
 

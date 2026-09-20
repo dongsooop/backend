@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.oauth.dto.AppleJwk;
 import com.dongsoop.dongsoop.oauth.exception.InvalidAppleTokenException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -21,6 +22,8 @@ import org.springframework.web.client.RestTemplate;
 @RequiredArgsConstructor
 @Slf4j
 public class AppleJwkProviderImpl implements AppleJwkProvider {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final String appleJWKCacheKey = "jwks";
     private final RestTemplate restTemplate;
@@ -71,7 +74,7 @@ public class AppleJwkProviderImpl implements AppleJwkProvider {
     @Override
     @Synchronized
     public boolean evictAppleJwkCache() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(KST);
 
         Cache cache = this.cacheManager.getCache(cacheName);
         if (cache == null) {

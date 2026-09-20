@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.chat.service;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,8 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class ChatBackupService {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final int BACKUP_DAYS_THRESHOLD = 25;
     private static final int DELETE_DAYS_THRESHOLD = 30;
 
@@ -26,7 +29,7 @@ public class ChatBackupService {
     }
 
     private void performRoomBackup() {
-        LocalDateTime backupCutoffTime = LocalDateTime.now().minusDays(BACKUP_DAYS_THRESHOLD);
+        LocalDateTime backupCutoffTime = LocalDateTime.now(KST).minusDays(BACKUP_DAYS_THRESHOLD);
         List<ChatRoom> roomsNeedingBackup = redisChatRepository.findRoomsWithLastActivityBefore(backupCutoffTime);
 
         for (ChatRoom room : roomsNeedingBackup) {
@@ -42,7 +45,7 @@ public class ChatBackupService {
     }
 
     private void performExpiredRoomDeletion() {
-        LocalDateTime deletionCutoffTime = LocalDateTime.now().minusDays(DELETE_DAYS_THRESHOLD);
+        LocalDateTime deletionCutoffTime = LocalDateTime.now(KST).minusDays(DELETE_DAYS_THRESHOLD);
         List<ChatRoom> expiredRooms = redisChatRepository.findRoomsWithLastActivityBefore(deletionCutoffTime);
 
         for (ChatRoom room : expiredRooms) {

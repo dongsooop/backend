@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -23,6 +24,8 @@ import java.util.concurrent.CompletableFuture;
 @Transactional
 @Slf4j
 public class AsyncAutoSanctionService {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private static final String AUTO_SANCTION_REASON = "부적절한 언어 사용";
     private static final String AUTO_SANCTION_DESCRIPTION = "자동 제재에 의한 게시글 삭제";
@@ -100,8 +103,8 @@ public class AsyncAutoSanctionService {
                 .report(report)
                 .sanctionType(SanctionType.CONTENT_DELETION)
                 .reason(AUTO_SANCTION_REASON)
-                .startDate(LocalDateTime.now())
-                .endDate(LocalDateTime.now().plusDays(1))
+                .startDate(LocalDateTime.now(KST))
+                .endDate(LocalDateTime.now(KST).plusDays(1))
                 .description(AUTO_SANCTION_DESCRIPTION)
                 .build();
     }

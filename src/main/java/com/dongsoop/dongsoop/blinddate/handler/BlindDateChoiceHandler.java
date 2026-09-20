@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,8 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class BlindDateChoiceHandler {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final BlindDateParticipantStorage participantStorage;
     private final SimpMessagingTemplate messagingTemplate;
@@ -27,7 +30,7 @@ public class BlindDateChoiceHandler {
         // 매칭 성공 시 채팅방 개설
         if (isMatched) {
             try {
-                String chatRoomTitle = LocalDateTime.now().toString();
+                String chatRoomTitle = LocalDateTime.now(KST).toString();
                 ChatRoom chatRoom = chatRoomService.createOneToOneChatRoom(choicerId, targetId, chatRoomTitle);
 
                 sendChatRoomCreated(sessionId, choicerId, chatRoom.getRoomId());

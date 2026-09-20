@@ -11,12 +11,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 public class ChatParticipantService {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private final ChatValidator chatValidator;
     private final ReadStatusService readStatusService;
     private final ChatRoomService chatRoomService;
@@ -98,7 +101,7 @@ public class ChatParticipantService {
     }
 
     private void addUserToGroupChatRoom(ChatRoom room, Long userId) {
-        LocalDateTime joinTime = LocalDateTime.now();
+        LocalDateTime joinTime = LocalDateTime.now(KST);
         room.addNewParticipant(userId);
         chatRoomService.saveRoom(room);
 
@@ -152,7 +155,7 @@ public class ChatParticipantService {
     }
 
     private LocalDateTime addNewParticipantAndGetJoinTime(ChatRoom room, Long userId) {
-        LocalDateTime joinTime = LocalDateTime.now();
+        LocalDateTime joinTime = LocalDateTime.now(KST);
         room.addNewParticipant(userId);
         chatRoomService.saveRoom(room);
         return joinTime;

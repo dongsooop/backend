@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.memberdevice.scheduler;
 
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,15 +15,17 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class WebDeviceCleanupScheduler {
 
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+
     private final MemberDeviceRepository memberDeviceRepository;
 
     @Value("${jwt.expired-time.refresh-token}")
     private long refreshTokenExpiryMs;
 
-    @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
     @Transactional
     public void deleteExpiredWebDevices() {
-        LocalDateTime cutoff = LocalDateTime.now().minusNanos(refreshTokenExpiryMs * 1_000_000L);
+        LocalDateTime cutoff = LocalDateTime.now(KST).minusNanos(refreshTokenExpiryMs * 1_000_000L);
         long deleted = memberDeviceRepository.deleteExpiredDevices(cutoff);
         log.info("Deleted {} expired devices (WEB or null token, cutoff={})", deleted, cutoff);
     }

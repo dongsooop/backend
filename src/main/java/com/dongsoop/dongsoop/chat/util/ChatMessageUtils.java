@@ -5,9 +5,12 @@ import com.dongsoop.dongsoop.chat.entity.MessageType;
 import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 
 public final class ChatMessageUtils {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private ChatMessageUtils() {
     }
@@ -33,7 +36,7 @@ public final class ChatMessageUtils {
 
     public static void enrichMessageTimestamp(ChatMessage message) {
         if (message.getTimestamp() == null) {
-            message.setTimestamp(LocalDateTime.now());
+            message.setTimestamp(LocalDateTime.now(KST));
         }
     }
 
