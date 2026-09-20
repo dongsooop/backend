@@ -14,7 +14,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Component
@@ -98,7 +97,7 @@ public class MealParser {
 
         return IntStream.range(0, MAX_DAYS)
                 .mapToObj(index -> extractMenuFromCell(menuCells, cellCount, index))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private String extractMenuFromCell(Elements menuCells, int cellCount, int index) {
@@ -116,7 +115,7 @@ public class MealParser {
                 .map(dayIndex -> createDayMeals(dayIndex, dateRange, menuMap))
                 .flatMap(List::stream)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<Meal> createDayMeals(int dayIndex, DateRange dateRange, Map<MealType, List<String>> menuMap) {
@@ -125,7 +124,7 @@ public class MealParser {
 
         return Arrays.stream(MealType.values())
                 .map(type -> createMeal(currentDate, dayName, type, menuMap.get(type).get(dayIndex)))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Meal createMeal(LocalDate date, String dayName, MealType mealType, String menu) {

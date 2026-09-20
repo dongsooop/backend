@@ -170,7 +170,7 @@ public class MealServiceImpl implements MealService {
     private List<Meal> adjustToNextWeek(List<Meal> meals, LocalDate nextWeekStart) {
         return meals.stream()
                 .map(meal -> createAdjustedMeal(meal, nextWeekStart))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Meal createAdjustedMeal(Meal meal, LocalDate nextWeekStart) {
@@ -196,7 +196,7 @@ public class MealServiceImpl implements MealService {
     private List<Meal> filterNewMeals(List<Meal> allMeals, LocalDate lastDate, LocalDate currentWeekStart) {
         return allMeals.stream()
                 .filter(meal -> isCurrentWeekOrAfterLastDate(meal, lastDate, currentWeekStart))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private boolean isCurrentWeekOrAfterLastDate(Meal meal, LocalDate lastDate, LocalDate currentWeekStart) {
