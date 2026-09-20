@@ -1,5 +1,7 @@
 package com.dongsoop.dongsoop.notice.preference;
 
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -176,8 +178,8 @@ class GuestDepartmentTest {
 
         service.updateDepartments(null, device.getDeviceToken(),sameSet);
 
-        Mockito.verify(preferenceRepository, Mockito.never()).deleteAll(Mockito.anyList());
-        Mockito.verify(preferenceRepository, Mockito.never()).saveAll(Mockito.anyList());
+        verify(preferenceRepository, never()).deleteAll(Mockito.anyList());
+        verify(preferenceRepository, never()).saveAll(Mockito.anyList());
         assertThat(service.getDepartmentTypes(null, device.getDeviceToken()))
                 .containsExactlyInAnyOrder(DepartmentType.DEPT_2001, DepartmentType.DEPT_3001);
     }

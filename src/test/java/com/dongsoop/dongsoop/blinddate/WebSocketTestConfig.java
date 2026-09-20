@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.blinddate;
 
+import static org.mockito.Mockito.mock;
 import com.dongsoop.dongsoop.blinddate.gateway.BlindDateGateway;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateChoiceHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateConnectHandler;
@@ -20,7 +21,6 @@ import com.dongsoop.dongsoop.blinddate.service.BlindDateServiceImpl;
 import com.dongsoop.dongsoop.blinddate.service.BlindDateSessionService;
 import com.dongsoop.dongsoop.blinddate.service.BlindDateSessionServiceImpl;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
-import org.mockito.Mockito;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -73,19 +73,19 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
     @Bean
     @Primary
     public BlindDateSessionScheduler blindDateSessionScheduler() {
-        return Mockito.mock(BlindDateSessionScheduler.class);
+        return mock(BlindDateSessionScheduler.class);
     }
 
     @Bean
     @Primary
     public BlindDateNotification blindDateNotification() {
-        return Mockito.mock(BlindDateNotification.class);
+        return mock(BlindDateNotification.class);
     }
 
     @Bean
     @Primary
     public ChatRoomService chatRoomService() {
-        return Mockito.mock(ChatRoomService.class);
+        return mock(ChatRoomService.class);
     }
 
     @Bean

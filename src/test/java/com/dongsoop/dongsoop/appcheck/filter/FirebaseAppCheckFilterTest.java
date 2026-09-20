@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.appcheck.filter;
 
+import static org.mockito.Mockito.times;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
@@ -79,7 +80,7 @@ class FirebaseAppCheckFilterTest {
 
         // then
         verify(firebaseAppCheck).updateCache();
-        verify(firebaseAppCheck, org.mockito.Mockito.times(2)).validate(deviceToken);
+        verify(firebaseAppCheck, times(2)).validate(deviceToken);
         verify(filterChain).doFilter(request, response);
         verify(exceptionResolver, never()).resolveException(any(), any(), any(), any());
     }
@@ -100,7 +101,7 @@ class FirebaseAppCheckFilterTest {
 
         // then
         verify(firebaseAppCheck).updateCache();
-        verify(firebaseAppCheck, org.mockito.Mockito.times(2)).validate(deviceToken);
+        verify(firebaseAppCheck, times(2)).validate(deviceToken);
         verify(filterChain, never()).doFilter(request, response);
         verify(exceptionResolver).resolveException(any(), any(), any(), any());
     }
