@@ -52,6 +52,7 @@ authentication:
       /member/validate/**,
       /member/password,
       /meal/current,
+      /meal/prices,
       /error,
       /ws/**,
       /notice/**,
