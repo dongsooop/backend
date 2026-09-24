@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.jsoup.Jsoup;
@@ -145,6 +146,88 @@ class MealParserTest {
                         .filter(meal -> meal.getMealType() == MealType.KOREAN)
                         .map(Meal::getDayOfWeek)
                         .toList());
+    }
+
+    @Test
+    @DisplayName("\"단품 메뉴\" 라벨 행을 SPECIAL 메뉴로 읽는다")
+    void readsSingleMenuLabelAsSpecial() {
+        Document document = page("식단 안내",
+                menuRows("한식", "한식1", "한식2", "한식3", "한식4", "한식5")
+                        + menuRows("단품", "단품1", "단품2", "단품3", "단품4", "단품5"));
+
+        List<Meal> meals = mealParser.parseWeeklyMeal(document);
+
+        assertEquals(List.of("단품1", "단품2", "단품3", "단품4", "단품5"), menusOf(meals, MealType.SPECIAL));
+    }
+
+    @Test
+    @DisplayName("단품과 별미 행이 함께 있으면 단품 행을 우선한다")
+    void prefersSingleMenuOverSpecialLabel() {
+        Document document = page("식단 안내",
+                menuRows("별미", "별미1", "별미2", "별미3", "별미4", "별미5")
+                        + menuRows("단품", "단품1", "단품2", "단품3", "단품4", "단품5"));
+
+        List<Meal> meals = mealParser.parseWeeklyMeal(document);
+
+        assertEquals(List.of("단품1", "단품2", "단품3", "단품4", "단품5"), menusOf(meals, MealType.SPECIAL));
+    }
+
+    @Test
+    @DisplayName("실제 페이지 구조(라벨 행 + 내용 행, 빈 칸은 -)를 그대로 읽는다")
+    void parsesRealPageStructure() {
+        Document document = Jsoup.parse(realPage("<span>15:00까지만 운영합니다.</span>"));
+
+        List<Meal> meals = mealParser.parseWeeklyMeal(document);
+
+        String empty = textProcessingUtil.getDefaultEmptyMenu();
+        assertEquals(List.of("백미밥, 달걀국", "백미밥, 육개장", "추석 휴무", empty, empty),
+                menusOf(meals, MealType.KOREAN));
+        assertEquals(List.of("덮밥: 스팸김치볶음밥 라면류, 돈까스류", empty, "덮밥: 삼겹살덮밥", empty, empty),
+                menusOf(meals, MealType.SPECIAL));
+    }
+
+    @Test
+    @DisplayName("공지사항 행의 문장을 돌려주고 여러 줄이면 줄바꿈으로 잇는다")
+    void parsesNoticeLines() {
+        Document document = Jsoup.parse(realPage("<span>15:00까지만 운영합니다.</span><span>라스트 오더는 14:00입니다.</span>"));
+
+        Optional<String> notice = mealParser.parseNotice(document);
+
+        assertEquals(Optional.of("15:00까지만 운영합니다.\n라스트 오더는 14:00입니다."), notice);
+    }
+
+    @Test
+    @DisplayName("공지사항 칸이 비어 있거나 - 면 공지 없음으로 돌려준다")
+    void returnsEmptyNoticeWhenCellIsBlankOrDash() {
+        assertEquals(Optional.empty(), mealParser.parseNotice(Jsoup.parse(realPage(" - "))));
+        assertEquals(Optional.empty(), mealParser.parseNotice(Jsoup.parse(realPage(""))));
+    }
+
+    @Test
+    @DisplayName("공지사항 행이 없는 페이지는 공지 없음으로 돌려준다")
+    void returnsEmptyNoticeWhenRowMissing() {
+        Document document = page("식단 안내", menuTable());
+
+        assertEquals(Optional.empty(), mealParser.parseNotice(document));
+    }
+
+
+    // 2026-09-22 학교 페이지의 표 구조를 줄인 것
+    private String realPage(String noticeCellHtml) {
+        return "<html><body><div class=\"table_1\"><table>"
+                + "<caption>일주일간의 식단을 요일별로 한식 메뉴, 별미 메뉴, 공지사항별로 안내합니다.</caption>"
+                + "<thead><tr><th>월<span>(2026.09.21)</span></th><th>화<span>(2026.09.22)</span></th>"
+                + "<th>수<span>(2026.09.23)</span></th><th>목<span>(2026.09.24)</span></th><th>금<span>(2026.09.25)</span></th></tr></thead>"
+                + "<tbody>"
+                + "<tr><td class=\"tit\" colspan=\"5\">한식 메뉴</td></tr>"
+                + "<tr><td>[점심]<br/>백미밥, 달걀국<br/><br/></td><td class=\"highlight\">[점심]<br/>백미밥, 육개장<br/><br/></td>"
+                + "<td>[점심]<br/>추석 휴무<br/><br/></td><td>-</td><td>-</td></tr>"
+                + "<tr><td class=\"tit\" colspan=\"5\">단품 메뉴</td></tr>"
+                + "<tr><td>[점심]<br/>덮밥: 스팸김치볶음밥\n<br/>라면류, 돈까스류<br/><br/></td><td class=\"highlight\">-</td>"
+                + "<td>[점심]<br/>덮밥: 삼겹살덮밥<br/><br/></td><td>-</td><td>-</td></tr>"
+                + "<tr><td class=\"tit\" colspan=\"5\">공지사항</td></tr>"
+                + "<tr><td class=\"notice-line\" colspan=\"5\">" + noticeCellHtml + "</td></tr>"
+                + "</tbody></table></div></body></html>";
     }
 
     private String dateRangeText(LocalDate start, LocalDate end) {

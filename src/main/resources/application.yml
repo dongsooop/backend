@@ -52,6 +52,7 @@ authentication:
       /member/validate/**,
       /member/password,
       /meal/current,
+      /meal/prices,
       /error,
       /ws/**,
       /notice/**,
@@ -141,6 +142,47 @@ meal:
     base-url: "https://www.dongyang.ac.kr/dmu/4902/subview.do?enc="
     timeout: 15000 # 15 seconds
     user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+  # 학교 페이지에는 가격이 없어 여기서 관리한다. days 는 판매 요일(월~금), 비우면 매일
+  prices:
+    ticket-price: 6500 # 한식 식권
+    categories:
+      - name: 돈까스류
+        note: 공기밥 포함
+        items:
+          - { name: 돈까스, price: 5000 }
+          - { name: 치킨까스, price: 5200 }
+          - { name: 치즈돈까스, price: 5500 }
+          - { name: 수제왕돈까스, price: 6000 }
+          - { name: 고구마치즈돈까스, price: 6000 }
+      - name: 라면류
+        note: 공기밥 포함
+        items:
+          - { name: 신라면, price: 3500 }
+          - { name: 참깨라면, price: 3500 }
+          - { name: 짜파게티, price: 3500 }
+          - { name: 불닭볶음면, price: 3500 }
+          - { name: 투움바, price: 3700 }
+          - { name: 치즈라면, price: 4000 }
+          - { name: 짜계치, price: 4000 }
+          - { name: 불계치, price: 4000 }
+          - { name: 해물짬뽕라면, price: 4500 }
+      - name: 덮밥류
+        note: 요일별로 메뉴가 상이합니다
+        items:
+          - { name: 김치볶음밥, price: 4900, large-price: 5900, days: [월, 금] }
+          - { name: 눈꽃치즈김치볶음밥, price: 5900, days: [월, 금] }
+          - { name: 참치마요덮밥, price: 4900, days: [화] }
+          - { name: 고추참치마요덮밥, price: 4900, days: [화] }
+          - { name: 삼겹살덮밥, price: 5500, large-price: 7500, days: [수] }
+          - { name: 치킨마요덮밥, price: 4900, days: [목] }
+          - { name: 불닭마요덮밥, price: 4900, days: [목] }
+      - name: 음료류
+        items:
+          - { name: 코카콜라, price: 1500 }
+          - { name: 코카콜라 제로, price: 1500 }
+          - { name: 사이다, price: 1500 }
+          - { name: 환타 오렌지, price: 1500 }
+          - { name: 환타 파인애플, price: 1500 }
 
 resource:
   static:
