@@ -19,6 +19,7 @@ import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.entity.Sanction;
+import com.dongsoop.dongsoop.report.entity.SanctionType;
 import com.dongsoop.dongsoop.report.exception.ReportNotFoundException;
 import com.dongsoop.dongsoop.report.exception.ReportTargetNotFoundException;
 import com.dongsoop.dongsoop.report.exception.SanctionAlreadyExistsException;
@@ -34,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -152,19 +154,26 @@ public class ReportServiceImpl implements ReportService {
 
     private void processSanctionForReport(Report report, ProcessSanctionRequest request, Member admin,
                                           Member targetMember) {
-        Sanction sanction = createSanction(targetMember, request);
+        Sanction sanction = createSanction(report, admin, targetMember, request);
         sanctionRepository.save(sanction);
         report.processSanction(admin, targetMember, sanction);
     }
 
-    private Sanction createSanction(Member targetMember, ProcessSanctionRequest request) {
+    private Sanction createSanction(Report report, Member admin, Member targetMember,
+                                    ProcessSanctionRequest request) {
+        SanctionType sanctionType = request.sanctionType();
+        LocalDateTime now = LocalDateTime.now(KST);
+
         return Sanction.builder()
                 .member(targetMember)
-                .sanctionType(request.sanctionType())
-                .reason(request.sanctionReason())
-                .startDate(LocalDateTime.now(KST))
-                .endDate(request.sanctionEndAt())
-                .description(request.sanctionType().getDescription())
+                .admin(admin)
+                .targetMember(targetMember)
+                .report(report)
+                .sanctionType(sanctionType)
+                .reason(Objects.requireNonNullElse(request.sanctionReason(), sanctionType.getDescription()))
+                .startDate(now)
+                .endDate(sanctionType.resolveEndDate(request.sanctionEndAt(), now))
+                .description(sanctionType.getDescription())
                 .build();
     }
 
