@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.report.dto;
 
+import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshots;
 import com.dongsoop.dongsoop.report.entity.ReportReason;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 
@@ -14,6 +15,11 @@ public record ReportSummaryResponse(
         LocalDateTime createdAt,
         Long targetMemberId,
         Long targetId,
-        String description
+        String description,
+        String chatRoomId,
+        String messageId,
+        String messageContent,
+        LocalDateTime messageSentAt,
+        ChatMessageSnapshots messageContext
 ) {
 }

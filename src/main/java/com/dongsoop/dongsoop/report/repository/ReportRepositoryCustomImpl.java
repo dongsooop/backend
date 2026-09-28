@@ -95,7 +95,12 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 sanction.startDate,
                 sanction.endDate,
                 sanction.isActive,
-                report.createdAt);
+                report.createdAt,
+                report.chatRoomId,
+                report.messageId,
+                report.messageContent,
+                report.messageSentAt,
+                report.messageContext);
     }
 
     private Expression<ReportSummaryResponse> createSummaryProjection() {
@@ -108,7 +113,12 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 report.createdAt,
                 report.targetMember.id,
                 report.targetId,
-                report.description
+                report.description,
+                report.chatRoomId,
+                report.messageId,
+                report.messageContent,
+                report.messageSentAt,
+                report.messageContext
         );
     }
 

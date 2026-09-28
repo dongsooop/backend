@@ -8,7 +8,10 @@ import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
+import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshot;
+import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshots;
 import com.dongsoop.dongsoop.report.entity.Report;
+import com.dongsoop.dongsoop.report.entity.ReportFilterType;
 import com.dongsoop.dongsoop.report.entity.ReportReason;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.entity.Sanction;
@@ -142,5 +145,40 @@ class ReportPersistenceIntegrationTest extends AbstractIntegrationTest {
                 .toList();
 
         assertThat(ids).contains(fresh.getId()).doesNotContain(reviewed.getId());
+    }
+
+    @Test
+    @DisplayName("관리자 목록은 채팅 신고의 메시지와 맥락을 함께 돌려준다")
+    void adminList_IncludesChatFields() {
+        Member reporter = saveMember("rep5");
+        Member target = saveMember("tgt5");
+        reportRepository.save(Report.builder()
+                .reporter(reporter)
+                .reportType(ReportType.CHAT_MESSAGE)
+                .targetId(target.getId())
+                .targetMember(target)
+                .reportReason(ReportReason.HATE_SPEECH)
+                .targetUrl("/chat/room/room5")
+                .chatRoomId("room5")
+                .messageId("msg5")
+                .messageContent("욕설")
+                .messageContext(new ChatMessageSnapshots(List.of(ChatMessageSnapshot.of(target.getId(), "앞말", null))))
+                .build());
+        entityManager.flush();
+        entityManager.clear();
+
+        var detailed = reportRepository.findDetailedReportsByFilter(ReportFilterType.ALL, PageRequest.of(0, 50));
+        var summary = reportRepository.findSummaryReportsByFilter(ReportFilterType.UNPROCESSED, PageRequest.of(0, 50));
+
+        assertThat(detailed).anySatisfy(report -> {
+            assertThat(report.messageId()).isEqualTo("msg5");
+            assertThat(report.messageContent()).isEqualTo("욕설");
+            assertThat(report.messageContext().messages()).hasSize(1);
+        });
+        assertThat(summary).anySatisfy(report -> {
+            assertThat(report.chatRoomId()).isEqualTo("room5");
+            assertThat(report.messageContext().messages()).extracting(snapshot -> snapshot.content())
+                    .containsExactly("앞말");
+        });
     }
 }
