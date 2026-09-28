@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.report;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.AbstractIntegrationTest;
@@ -21,10 +22,12 @@ import com.dongsoop.dongsoop.report.repository.SanctionRepository;
 import com.dongsoop.dongsoop.report.service.ReportService;
 import jakarta.persistence.EntityManager;
 import java.util.List;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
@@ -203,5 +206,114 @@ class ReportPersistenceIntegrationTest extends AbstractIntegrationTest {
 
         assertThat(reportRepository.existsByReporterIdAndReportTypeAndChatRoomIdAndTargetMemberId(
                 reporter.getId(), ReportType.BLINDDATE_MESSAGE, "s6", target.getId())).isTrue();
+    }
+
+    @Test
+    @Sql(scripts = {"classpath:migration/chat_report.sql", "classpath:migration/blinddate_report.sql"})
+    @DisplayName("같은 메시지를 두 번 신고하면 채팅 신고 유니크 인덱스가 실제 Postgres에서 막는다")
+    void chatReportUniqueIndex_BlocksDuplicateInPostgres() {
+        Member reporter = saveMember("rep7");
+        Member target = saveMember("tgt7");
+        reportRepository.saveAndFlush(Report.builder()
+                .reporter(reporter)
+                .reportType(ReportType.CHAT_MESSAGE)
+                .targetId(target.getId())
+                .targetMember(target)
+                .reportReason(ReportReason.HATE_SPEECH)
+                .targetUrl("/chat/room/room7")
+                .chatRoomId("room7")
+                .messageId("dup-msg")
+                .messageContent("욕설")
+                .build());
+
+        Report duplicate = Report.builder()
+                .reporter(reporter)
+                .reportType(ReportType.CHAT_MESSAGE)
+                .targetId(target.getId())
+                .targetMember(target)
+                .reportReason(ReportReason.HATE_SPEECH)
+                .targetUrl("/chat/room/room7")
+                .chatRoomId("room7")
+                .messageId("dup-msg")
+                .messageContent("욕설")
+                .build();
+
+        assertThatThrownBy(() -> reportRepository.saveAndFlush(duplicate))
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .satisfies(e -> assertThat(constraintNameOf((DataIntegrityViolationException) e))
+                        .isEqualToIgnoringCase("uk_report_reporter_message"));
+    }
+
+    @Test
+    @Sql(scripts = {"classpath:migration/chat_report.sql", "classpath:migration/blinddate_report.sql"})
+    @DisplayName("같은 세션·같은 상대의 과팅 신고는 유니크 인덱스가 막지만, 채팅 타입은 걸리지 않는다")
+    void blindDateReportUniqueIndex_BlocksDuplicateButNotChatType() {
+        Member reporter = saveMember("rep8");
+        Member target = saveMember("tgt8");
+
+        // 부분 인덱스(WHERE report_type = 'BLINDDATE_MESSAGE')라 같은 세션·같은 상대라도 CHAT_MESSAGE는 걸리지 않아야 한다
+        reportRepository.saveAndFlush(Report.builder()
+                .reporter(reporter)
+                .reportType(ReportType.CHAT_MESSAGE)
+                .targetId(target.getId())
+                .targetMember(target)
+                .reportReason(ReportReason.HATE_SPEECH)
+                .targetUrl("/chat/room/s8")
+                .chatRoomId("s8")
+                .messageId("chat-msg-1")
+                .messageContent("욕설")
+                .build());
+        reportRepository.saveAndFlush(Report.builder()
+                .reporter(reporter)
+                .reportType(ReportType.CHAT_MESSAGE)
+                .targetId(target.getId())
+                .targetMember(target)
+                .reportReason(ReportReason.HATE_SPEECH)
+                .targetUrl("/chat/room/s8")
+                .chatRoomId("s8")
+                .messageId("chat-msg-2")
+                .messageContent("욕설")
+                .build());
+
+        reportRepository.saveAndFlush(Report.builder()
+                .reporter(reporter)
+                .reportType(ReportType.BLINDDATE_MESSAGE)
+                .targetId(target.getId())
+                .targetMember(target)
+                .reportReason(ReportReason.INAPPROPRIATE_CONTENT)
+                .targetUrl("/blinddate/session/s8")
+                .chatRoomId("s8")
+                .messageId("blind-msg-1")
+                .messageContent("무례한 말")
+                .build());
+
+        Report duplicateBlindDate = Report.builder()
+                .reporter(reporter)
+                .reportType(ReportType.BLINDDATE_MESSAGE)
+                .targetId(target.getId())
+                .targetMember(target)
+                .reportReason(ReportReason.INAPPROPRIATE_CONTENT)
+                .targetUrl("/blinddate/session/s8")
+                .chatRoomId("s8")
+                .messageId("blind-msg-2")
+                .messageContent("무례한 말")
+                .build();
+
+        assertThatThrownBy(() -> reportRepository.saveAndFlush(duplicateBlindDate))
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .satisfies(e -> assertThat(constraintNameOf((DataIntegrityViolationException) e))
+                        .isEqualToIgnoringCase("uk_report_blinddate_reporter_target"));
+    }
+
+    // 예외 발생 뒤 Postgres 트랜잭션이 abort 상태가 되어 추가 조회가 실패하므로, 예외 객체에서만 제약 이름을 꺼낸다
+    private static String constraintNameOf(DataIntegrityViolationException e) {
+        Throwable cause = e.getCause();
+        while (cause != null) {
+            if (cause instanceof ConstraintViolationException constraintViolation) {
+                return constraintViolation.getConstraintName();
+            }
+            cause = cause.getCause();
+        }
+        return null;
     }
 }
