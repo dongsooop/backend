@@ -126,4 +126,21 @@ class ReportPersistenceIntegrationTest extends AbstractIntegrationTest {
                 "SELECT COUNT(*) FROM pg_constraint WHERE conname = 'report_report_type_check'", Integer.class);
         assertThat(checkConstraints).isZero();
     }
+
+    @Test
+    @DisplayName("자동 판정이 끝난 채팅 신고는 스케줄러가 다시 가져가지 않는다")
+    void findUnprocessedReports_SkipsAutoReviewedChatReports() {
+        Member reporter = saveMember("rep4");
+        Member target = saveMember("tgt4");
+        Report fresh = saveReport(reporter, target, ReportType.CHAT_MESSAGE);
+        Report reviewed = saveReport(reporter, target, ReportType.CHAT_MESSAGE);
+        reviewed.markAutoReviewed();
+        entityManager.flush();
+
+        List<Long> ids = reportRepository.findUnprocessedReports(PageRequest.of(0, 50)).stream()
+                .map(Report::getId)
+                .toList();
+
+        assertThat(ids).contains(fresh.getId()).doesNotContain(reviewed.getId());
+    }
 }

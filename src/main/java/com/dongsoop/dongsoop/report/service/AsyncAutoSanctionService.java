@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.report.service;
 
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.report.entity.Report;
+import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.entity.Sanction;
 import com.dongsoop.dongsoop.report.entity.SanctionType;
 import com.dongsoop.dongsoop.report.handler.ContentDeletionHandler;
@@ -28,11 +29,13 @@ public class AsyncAutoSanctionService {
 
     private static final String AUTO_SANCTION_REASON = "부적절한 언어 사용";
     private static final String AUTO_SANCTION_DESCRIPTION = "자동 제재에 의한 게시글 삭제";
+    private static final String AUTO_WARNING_DESCRIPTION = "자동 제재에 의한 경고";
     private final SanctionRepository sanctionRepository;
     private final ContentDeletionHandler contentDeletionHandler;
     private final BoardContentService boardContentService;
     private final TextFilteringService textFilteringService;
     private final ReportRepository reportRepository;
+    private final SanctionExecutor sanctionExecutor;
     @Value("${admin.id}")
     private Long systemAdminId;
 
@@ -41,7 +44,11 @@ public class AsyncAutoSanctionService {
         try {
             log.info("Report processing started - Report ID: {}", report.getId());
 
-            checkProfanityAndExecute(report);
+            if (ReportType.CHAT_MESSAGE.equals(report.getReportType())) {
+                judgeChatMessage(report);
+            } else {
+                checkProfanityAndExecute(report);
+            }
 
             log.info("Auto sanction completed - Report ID: {}", report.getId());
 
@@ -68,6 +75,38 @@ public class AsyncAutoSanctionService {
         }
 
         executeSanction(report);
+    }
+
+    // 욕설이 아니거나 필터 호출이 실패하면 닫지 않는다. 스팸·사기 같은 사유는 욕설 필터로 판단할 수 없다
+    private void judgeChatMessage(Report report) {
+        boolean hasProfanity = textFilteringService.hasProfanity("", "", report.getMessageContent());
+        log.info("Chat profanity result - Report ID: {}, HasProfanity: {}", report.getId(), hasProfanity);
+
+        if (!hasProfanity) {
+            report.markAutoReviewed();
+            reportRepository.save(report);
+            return;
+        }
+
+        Member systemAdmin = createSystemAdmin();
+        Member targetMember = report.getTargetMember();
+        LocalDateTime now = LocalDateTime.now(KST);
+        Sanction warning = Sanction.builder()
+                .member(targetMember)
+                .admin(systemAdmin)
+                .targetMember(targetMember)
+                .report(report)
+                .sanctionType(SanctionType.WARNING)
+                .reason(AUTO_SANCTION_REASON)
+                .startDate(now)
+                .endDate(SanctionType.WARNING.resolveEndDate(null, now))
+                .description(AUTO_WARNING_DESCRIPTION)
+                .build();
+
+        sanctionRepository.save(warning);
+        report.processSanction(systemAdmin, targetMember, warning);
+        reportRepository.save(report);
+        sanctionExecutor.checkWarningAccumulation(targetMember);
     }
 
     private void executeSanction(Report report) {

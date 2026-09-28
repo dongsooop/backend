@@ -190,6 +190,7 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     }
 
     private BooleanExpression isAutoSanctionTarget() {
-        return report.reportType.in(ReportType.BOARD_TYPES);
+        return report.reportType.in(ReportType.BOARD_TYPES)
+                .or(report.reportType.eq(ReportType.CHAT_MESSAGE).and(report.isAutoReviewed.eq(false)));
     }
 }
