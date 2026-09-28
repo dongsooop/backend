@@ -23,6 +23,7 @@ import com.dongsoop.dongsoop.report.entity.SanctionType;
 import com.dongsoop.dongsoop.report.exception.ReportNotFoundException;
 import com.dongsoop.dongsoop.report.exception.ReportTargetNotFoundException;
 import com.dongsoop.dongsoop.report.exception.SanctionAlreadyExistsException;
+import com.dongsoop.dongsoop.report.exception.UnsupportedReportTypeException;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
 import com.dongsoop.dongsoop.report.repository.SanctionRepository;
 import com.dongsoop.dongsoop.report.util.ReportUrlGenerator;
@@ -61,6 +62,10 @@ public class ReportServiceImpl implements ReportService {
     @Override
     @Transactional
     public void createReport(CreateReportRequest request) {
+        if (request.reportType().isMessageReport()) {
+            throw new UnsupportedReportTypeException();
+        }
+
         Member reporter = memberService.getMemberReferenceByContext();
         reportValidator.validateAll(reporter, request.reportType(), request.targetId());
 

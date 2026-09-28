@@ -6,19 +6,24 @@ import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import com.dongsoop.dongsoop.report.controller.ReportController;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
+import com.dongsoop.dongsoop.report.service.ChatReportService;
 import com.dongsoop.dongsoop.report.service.ReportService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -31,6 +36,9 @@ class ReportControllerTest {
 
     @MockitoBean
     private ReportService reportService;
+
+    @MockitoBean
+    private ChatReportService chatReportService;
 
     @MockitoBean
     private JwtFilter jwtFilter;
@@ -87,5 +95,29 @@ class ReportControllerTest {
                 .andExpect(jsonPath("$.startDate").value("2025-01-01T00:00:00"))
                 .andExpect(jsonPath("$.endDate").value("2025-01-31T23:59:00"))
                 .andExpect(jsonPath("$.description").value("30일 임시 정지 처분"));
+    }
+
+    @Test
+    @DisplayName("채팅 신고 요청은 201을 반환한다")
+    void createChatReport_ReturnsCreated() throws Exception {
+        mockMvc.perform(post("/reports/chat")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "roomId": "room1", "messageId": "m1", "reason": "HATE_SPEECH" }
+                                """))
+                .andExpect(status().isCreated());
+
+        verify(chatReportService).createReport(any());
+    }
+
+    @Test
+    @DisplayName("채팅 신고에 메시지 ID가 없으면 400을 반환한다")
+    void createChatReport_WithoutMessageId_ReturnsBadRequest() throws Exception {
+        mockMvc.perform(post("/reports/chat")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "roomId": "room1", "reason": "HATE_SPEECH" }
+                                """))
+                .andExpect(status().isBadRequest());
     }
 }

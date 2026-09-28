@@ -1,9 +1,11 @@
 package com.dongsoop.dongsoop.report.controller;
 
+import com.dongsoop.dongsoop.report.dto.CreateChatReportRequest;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
+import com.dongsoop.dongsoop.report.service.ChatReportService;
 import com.dongsoop.dongsoop.report.service.ReportService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
 import jakarta.validation.Valid;
@@ -22,11 +24,19 @@ import java.util.List;
 public class ReportController {
 
     private final ReportService reportService;
+    private final ChatReportService chatReportService;
 
     @PostMapping
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<Void> createReport(@RequestBody @Valid CreateReportRequest request) {
         reportService.createReport(request);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PostMapping("/chat")
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<Void> createChatReport(@RequestBody @Valid CreateChatReportRequest request) {
+        chatReportService.createReport(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
