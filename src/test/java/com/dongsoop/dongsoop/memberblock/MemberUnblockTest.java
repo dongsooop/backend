@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.repository.RedisChatRepository;
 import com.dongsoop.dongsoop.chat.service.ChatService;
 import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
@@ -16,12 +17,14 @@ import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.service.MemberService;
+import com.dongsoop.dongsoop.memberblock.constant.BlockStatus;
 import com.dongsoop.dongsoop.memberblock.controller.MemberBlockController;
 import com.dongsoop.dongsoop.memberblock.entity.MemberBlock;
 import com.dongsoop.dongsoop.memberblock.entity.MemberBlockId;
 import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepository;
 import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepositoryCustom;
 import com.dongsoop.dongsoop.memberblock.service.MemberBlockServiceImpl;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -68,6 +71,7 @@ public class MemberUnblockTest {
     @DisplayName("DB에 저장된 멤버 차단 정보를 제거한다.")
     void unblockedMember_WhenMemberRequest_SavedDataBase() throws Exception {
         // given
+        when(memberService.getMemberIdByAuthentication()).thenReturn(1L);
         when(memberRepository.getReferenceById(any(Long.class)))
                 .thenAnswer(invocation -> Member.builder()
                         .id(invocation.getArgument(0, Long.class))
@@ -94,7 +98,7 @@ public class MemberUnblockTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {
-                            "blockerId": 1,
+                            "blockerId": 999,
                             "blockedMemberId": 2
                         }
                         """);
@@ -111,5 +115,27 @@ public class MemberUnblockTest {
                 .usingRecursiveComparison()
                 .ignoringExpectedNullFields()
                 .isEqualTo(answer);
+    }
+
+    @Test
+    @DisplayName("해제 후 상대에게도 다시 계산한 상태(NONE)를 보낸다")
+    void unblock_SendsRecalculatedStatusToBoth() throws Exception {
+        when(memberService.getMemberIdByAuthentication()).thenReturn(1L);
+        when(memberRepository.getReferenceById(any(Long.class)))
+                .thenAnswer(invocation -> Member.builder().id(invocation.getArgument(0, Long.class)).build());
+        when(memberBlockRepository.existsById(any(MemberBlockId.class))).thenReturn(true);
+        ChatRoom room = ChatRoom.builder().roomId("room1").build();
+        when(redisChatRepository.findRoomByParticipants(1L, 2L)).thenReturn(Optional.of(room));
+        when(chatService.getBlockStatus("room1", 1L)).thenReturn(BlockStatus.NONE);
+        when(chatService.getBlockStatus("room1", 2L)).thenReturn(BlockStatus.NONE);
+
+        mockMvc.perform(delete("/member-block")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "blockedMemberId": 2 }
+                                """))
+                .andExpect(status().isNoContent());
+
+        verify(chatService).sendBlockStatusToUser("room1", 2L, BlockStatus.NONE);
     }
 }
