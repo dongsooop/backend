@@ -2,8 +2,8 @@ package com.dongsoop.dongsoop.report.entity;
 
 import com.dongsoop.dongsoop.common.BaseEntity;
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.report.dto.MessageReportDraft;
 import com.dongsoop.dongsoop.report.exception.ReportAlreadyProcessedException;
-import com.dongsoop.dongsoop.report.exception.SanctionAlreadyExistsException;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
@@ -86,10 +86,32 @@ public class Report extends BaseEntity {
     @Builder.Default
     private Boolean isAutoReviewed = false;
 
-    public void processSanction(Member admin, Member targetMember, Sanction sanction) {
+    public static Report messageReport(Member reporter, MessageReportDraft draft, ReportReason reason,
+                                       String description) {
+        return Report.builder()
+                .reporter(reporter)
+                .reportType(draft.reportType())
+                .targetId(draft.targetMember().getId())
+                .targetMember(draft.targetMember())
+                .reportReason(reason)
+                .description(description)
+                .targetUrl(draft.targetUrl())
+                .chatRoomId(draft.chatRoomId())
+                .messageId(draft.messageId())
+                .messageContent(draft.messageContent())
+                .messageSentAt(draft.messageSentAt())
+                .messageContext(draft.messageContext())
+                .build();
+    }
+
+    public void ensureNotProcessed() {
         if (this.isProcessed) {
-            throw new SanctionAlreadyExistsException(this.id);
+            throw new ReportAlreadyProcessedException(this.id);
         }
+    }
+
+    public void processSanction(Member admin, Member targetMember, Sanction sanction) {
+        ensureNotProcessed();
 
         this.admin = admin;
         this.targetMember = targetMember;
@@ -102,9 +124,7 @@ public class Report extends BaseEntity {
     }
 
     public void dismiss(Member admin) {
-        if (this.isProcessed) {
-            throw new ReportAlreadyProcessedException(this.id);
-        }
+        ensureNotProcessed();
 
         this.admin = admin;
         this.isProcessed = true;

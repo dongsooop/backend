@@ -210,7 +210,9 @@ class ChatParticipantServiceTest {
     @Test
     @DisplayName("방장은 관리자 추방 대상이 될 수 없다")
     void kickUserByAdmin_Manager_Throws() {
-        when(chatRoomService.getChatRoomById("room1")).thenReturn(groupRoom(Set.of(1L, 2L)));
+        ChatRoom room = groupRoom(Set.of(1L, 2L));
+        when(chatRoomService.getChatRoomById("room1")).thenReturn(room);
+        doThrow(new ManagerKickAttemptException()).when(chatValidator).validateNotKickingManager(room, 1L);
 
         assertThatThrownBy(() -> chatParticipantService.kickUserByAdmin("room1", 1L))
                 .isInstanceOf(ManagerKickAttemptException.class);

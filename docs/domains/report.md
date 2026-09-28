@@ -92,7 +92,7 @@ POST /reports/blinddate { messageId, reason, description }
 - `CHAT_KICK`은 `CHAT_MESSAGE` 신고이면서 대상 방이 그룹방일 때만 허용한다. 그 외에는 400으로 거절한다. 대상이 방장이면 거절하고(방장 부재 방지), 이미 방을 나간 대상은 퇴장 시스템 메시지 없이 제재만 기록한다.
 - 메시지 신고(`CHAT_MESSAGE`, `BLINDDATE_MESSAGE`)의 관리자 제재는 요청한 제재 대상 회원이 신고된 메시지의 작성자와 같아야 한다(다르면 400).
 - 메시지 신고에는 `CONTENT_DELETION`(게시글 삭제) 제재를 쓸 수 없다(400). 삭제할 게시글이 없기 때문이다.
-- 신고 기각은 이미 처리된 신고에는 쓸 수 없다(409).
+- 관리자 제재와 신고 기각은 이미 처리된 신고에는 쓸 수 없다(409, "이미 처리된 신고입니다. ID : n").
 - 회원 본인의 제재 상태 조회(`GET /reports/sanction-status`)는 활성 상태인 정지(`TEMPORARY_BAN`, `PERMANENT_BAN`)만 노출하고, 여러 건이 활성 상태면 종료일이 가장 늦은 것을 반환한다. 경고는 영구 누적이라 노출하면 한 번 경고받은 사용자가 계속 "제재 중"으로 보이므로 노출하지 않는다.
 - 신고자에게는 처리 결과를 통보하지 않는다. 신고 접수 응답(201)만 준다.
 - 게시판 신고의 판정·처리 방식(욕설 필터 호출, 실패 시 처리 완료 취급)은 이번 개편에서 바꾸지 않는다.
@@ -157,7 +157,7 @@ POST /reports/blinddate { messageId, reason, description }
 ## Failure Handling
 
 - 욕설 필터 API 호출이 실패하면 게시판 신고는 "욕설 없음"과 동일하게 처리 완료되고(기존 동작 유지), 채팅 신고는 처리하지 않고 `is_auto_reviewed`만 표시한다.
-- 신고 저장 시 유니크 인덱스 위반(`DataIntegrityViolationException`)을 잡아 `DuplicateReportException`으로 변환한다. 사전에 `existsBy...` 조회로 중복을 걸러도 동시 요청 경합은 DB 제약이 최종 방어선이다.
+- 신고 접수는 게시판·채팅·과팅 모두 `ReportService`가 받는다. 메시지 신고 저장 시 유니크 인덱스 위반(`DataIntegrityViolationException`)을 잡아 `DuplicateReportException`으로 변환한다. 사전에 `existsBy...` 조회로 중복을 걸러도 동시 요청 경합은 DB 제약이 최종 방어선이다.
 - 자동제재 스케줄러는 신고별 처리를 비동기로 실행하고, 전체 실패나 타임아웃(60초)이 나도 스케줄러 자체는 죽지 않고 다음 주기에 다시 시도한다.
 
 ## Concurrency / Consistency
@@ -165,6 +165,7 @@ POST /reports/blinddate { messageId, reason, description }
 - 자동제재 스케줄러는 채팅 신고는 `CHAT_MESSAGE:messageId`, 그 외 신고는 `reportType:targetId`를 키로 쓴다. 이전 주기에서 아직 처리 중인 키(`ConcurrentHashMap` 기반 집합)와 같은 배치 안에서 이미 나온 키는 모두 건너뛰므로, 같은 메시지를 여러 사람이 신고해도 한 번에 한 건만 자동 판정한다.
 - 자동 판정은 스케줄러가 넘긴 신고를 그대로 쓰지 않고 트랜잭션 안에서 다시 읽는다. 그사이 관리자가 처리했거나 삭제된 신고는 건너뛴다.
 - 욕설로 판정돼도 같은 메시지에 `WARNING` 제재가 연결된 다른 신고가 이미 있으면 새 경고를 만들지 않고 제재 없이 처리 완료로 닫는다. 같은 메시지로 경고가 쌓여 자동 정지가 잘못 붙는 것을 막기 위함이다.
+- 모든 제재(관리자 제재, 자동 게시글 삭제·경고, 누적 자동 정지)는 `SanctionExecutor.issue` 한 곳에서 만들고 저장한다. 제재 행을 먼저 flush한 뒤 효과(게시글 삭제·채팅방 추방·경고 누적 검사)를 실행해, DB 제약 오류가 되돌릴 수 없는 Redis 추방보다 먼저 드러나게 한다.
 - 활성 제재는 회원당 여러 건 있을 수 있다고 가정한다(`SanctionRepository.findActiveSanctionsByMemberId`가 `List` 반환). 정지 우선순위 계산과 만료 처리는 애플리케이션에서 필터링·정렬한다.
 - 과팅 메시지 보관소의 동시성 제약은 이 도메인이 소유하지 않는다. `blinddate` 패키지 문서가 생기면 그쪽에서 다룬다.
 

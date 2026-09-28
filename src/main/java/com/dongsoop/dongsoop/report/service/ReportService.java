@@ -1,5 +1,7 @@
 package com.dongsoop.dongsoop.report.service;
 
+import com.dongsoop.dongsoop.report.dto.CreateBlindDateReportRequest;
+import com.dongsoop.dongsoop.report.dto.CreateChatReportRequest;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
@@ -11,6 +13,10 @@ import java.util.List;
 public interface ReportService {
 
     void createReport(CreateReportRequest request);
+
+    void createChatReport(CreateChatReportRequest request);
+
+    void createBlindDateReport(CreateBlindDateReportRequest request);
 
     void processSanction(ProcessSanctionRequest request);
 

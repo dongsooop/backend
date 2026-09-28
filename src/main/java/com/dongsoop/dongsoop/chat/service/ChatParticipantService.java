@@ -5,7 +5,6 @@ import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.MessageType;
 import com.dongsoop.dongsoop.chat.exception.GroupChatOnlyException;
 import com.dongsoop.dongsoop.chat.exception.KickedUserInviteException;
-import com.dongsoop.dongsoop.chat.exception.ManagerKickAttemptException;
 import com.dongsoop.dongsoop.chat.exception.UserAlreadyInRoomException;
 import com.dongsoop.dongsoop.chat.util.ChatMessageUtils;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
@@ -55,15 +54,12 @@ public class ChatParticipantService {
             throw new GroupChatOnlyException("채팅방 추방");
         }
 
-        if (Objects.equals(room.getManagerId(), userToKick)) {
-            throw new ManagerKickAttemptException();
-        }
+        chatValidator.validateNotKickingManager(room, userToKick);
 
-        boolean wasParticipant = room.getParticipants().contains(userToKick);
-        room.kickUser(userToKick);
-
-        if (wasParticipant) {
-            chatMessageService.createAndSaveSystemMessage(roomId, userToKick, MessageType.LEAVE);
+        if (room.getParticipants().contains(userToKick)) {
+            processUserKickWithMessage(room, roomId, userToKick);
+        } else {
+            room.kickUser(userToKick);
         }
 
         chatRoomService.saveRoom(room);

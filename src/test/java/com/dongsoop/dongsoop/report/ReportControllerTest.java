@@ -6,8 +6,6 @@ import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import com.dongsoop.dongsoop.report.controller.ReportController;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
-import com.dongsoop.dongsoop.report.service.BlindDateReportService;
-import com.dongsoop.dongsoop.report.service.ChatReportService;
 import com.dongsoop.dongsoop.report.service.ReportService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,12 +35,6 @@ class ReportControllerTest {
 
     @MockitoBean
     private ReportService reportService;
-
-    @MockitoBean
-    private ChatReportService chatReportService;
-
-    @MockitoBean
-    private BlindDateReportService blindDateReportService;
 
     @MockitoBean
     private JwtFilter jwtFilter;
@@ -111,7 +103,7 @@ class ReportControllerTest {
                                 """))
                 .andExpect(status().isCreated());
 
-        verify(chatReportService).createReport(any());
+        verify(reportService).createChatReport(any());
     }
 
     @Test
@@ -135,7 +127,7 @@ class ReportControllerTest {
                                 """))
                 .andExpect(status().isCreated());
 
-        verify(blindDateReportService).createReport(any());
+        verify(reportService).createBlindDateReport(any());
     }
 
     @Test

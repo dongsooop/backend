@@ -13,17 +13,21 @@ import com.dongsoop.dongsoop.recruitment.board.study.entity.StudyBoard;
 import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.entity.TutoringBoard;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoardRepository;
+import com.dongsoop.dongsoop.report.dto.CreateBlindDateReportRequest;
+import com.dongsoop.dongsoop.report.dto.CreateChatReportRequest;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
+import com.dongsoop.dongsoop.report.dto.MessageReportDraft;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
 import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
+import com.dongsoop.dongsoop.report.entity.ReportReason;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.entity.Sanction;
 import com.dongsoop.dongsoop.report.entity.SanctionType;
+import com.dongsoop.dongsoop.report.exception.DuplicateReportException;
 import com.dongsoop.dongsoop.report.exception.ReportNotFoundException;
 import com.dongsoop.dongsoop.report.exception.ReportTargetNotFoundException;
-import com.dongsoop.dongsoop.report.exception.SanctionAlreadyExistsException;
 import com.dongsoop.dongsoop.report.exception.SanctionTargetMismatchException;
 import com.dongsoop.dongsoop.report.exception.UnsupportedReportTypeException;
 import com.dongsoop.dongsoop.report.exception.UnsupportedSanctionTypeException;
@@ -32,22 +36,25 @@ import com.dongsoop.dongsoop.report.repository.SanctionRepository;
 import com.dongsoop.dongsoop.report.util.ReportUrlGenerator;
 import com.dongsoop.dongsoop.report.validator.ReportValidator;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
+import java.util.Locale;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ReportServiceImpl implements ReportService {
 
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+    // 사전 중복 조회와 저장 사이의 경합으로 신고 유니크 인덱스에 걸린 경우만 중복 신고로 바꾼다
+    private static final Set<String> DUPLICATE_REPORT_CONSTRAINT_NAMES =
+            Set.of("uk_report_reporter_message", "uk_report_blinddate_reporter_target");
 
     private final ReportRepository reportRepository;
     private final MemberRepository memberRepository;
@@ -56,6 +63,8 @@ public class ReportServiceImpl implements ReportService {
     private final ReportUrlGenerator urlGenerator;
     private final SanctionExecutor sanctionExecutor;
     private final SanctionRepository sanctionRepository;
+    private final ChatReportTargetResolver chatReportTargetResolver;
+    private final BlindDateReportTargetResolver blindDateReportTargetResolver;
 
     private final ProjectBoardRepository projectBoardRepository;
     private final StudyBoardRepository studyBoardRepository;
@@ -79,16 +88,32 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     @Transactional
+    public void createChatReport(CreateChatReportRequest request) {
+        Long reporterId = memberService.getMemberIdByAuthentication();
+        MessageReportDraft draft = chatReportTargetResolver.resolve(reporterId, request);
+        createMessageReport(reporterId, draft, request.reason(), request.description());
+    }
+
+    @Override
+    @Transactional
+    public void createBlindDateReport(CreateBlindDateReportRequest request) {
+        Long reporterId = memberService.getMemberIdByAuthentication();
+        MessageReportDraft draft = blindDateReportTargetResolver.resolve(reporterId, request);
+        createMessageReport(reporterId, draft, request.reason(), request.description());
+    }
+
+    @Override
+    @Transactional
     public void processSanction(ProcessSanctionRequest request) {
         Report report = findReportById(request.reportId());
-        checkReportNotProcessed(report);
+        report.ensureNotProcessed();
 
         Member targetMember = findMemberById(request.targetMemberId());
         Member admin = memberService.getMemberReferenceByContext();
         validateSanctionApplicable(report, request);
 
-        processSanctionForReport(report, request, admin, targetMember);
-        sanctionExecutor.executeSanction(report);
+        sanctionExecutor.issue(report, admin, targetMember, request.sanctionType(), request.sanctionReason(),
+                request.sanctionEndAt(), null);
     }
 
     @Override
@@ -104,6 +129,47 @@ public class ReportServiceImpl implements ReportService {
             return reportRepository.findSummaryReportsByFilter(filterType, pageable);
         }
         return reportRepository.findDetailedReportsByFilter(filterType, pageable);
+    }
+
+    private void createMessageReport(Long reporterId, MessageReportDraft draft, ReportReason reason,
+                                     String description) {
+        if (isDuplicateMessageReport(reporterId, draft)) {
+            throw new DuplicateReportException();
+        }
+
+        saveMessageReport(Report.messageReport(memberRepository.getReferenceById(reporterId), draft, reason,
+                description));
+    }
+
+    private boolean isDuplicateMessageReport(Long reporterId, MessageReportDraft draft) {
+        if (draft.reportType() == ReportType.CHAT_MESSAGE) {
+            return reportRepository.existsByReporterIdAndMessageId(reporterId, draft.messageId());
+        }
+
+        return reportRepository.existsByReporterIdAndReportTypeAndChatRoomIdAndTargetMemberId(
+                reporterId, draft.reportType(), draft.chatRoomId(), draft.targetMember().getId());
+    }
+
+    private void saveMessageReport(Report report) {
+        try {
+            reportRepository.saveAndFlush(report);
+        } catch (DataIntegrityViolationException e) {
+            if (isDuplicateReportConstraintViolation(e)) {
+                throw new DuplicateReportException();
+            }
+            throw e;
+        }
+    }
+
+    private static boolean isDuplicateReportConstraintViolation(DataIntegrityViolationException e) {
+        for (Throwable cause = e.getCause(); cause != null; cause = cause.getCause()) {
+            if (cause instanceof ConstraintViolationException constraintViolation) {
+                String constraintName = constraintViolation.getConstraintName();
+                return constraintName != null
+                        && DUPLICATE_REPORT_CONSTRAINT_NAMES.contains(constraintName.toLowerCase(Locale.ROOT));
+            }
+        }
+        return false;
     }
 
     private Report buildReport(CreateReportRequest request, Member reporter, String targetUrl) {
@@ -168,31 +234,6 @@ public class ReportServiceImpl implements ReportService {
         return board.getAuthor();
     }
 
-    private void processSanctionForReport(Report report, ProcessSanctionRequest request, Member admin,
-                                          Member targetMember) {
-        Sanction sanction = createSanction(report, admin, targetMember, request);
-        sanctionRepository.saveAndFlush(sanction);
-        report.processSanction(admin, targetMember, sanction);
-    }
-
-    private Sanction createSanction(Report report, Member admin, Member targetMember,
-                                    ProcessSanctionRequest request) {
-        SanctionType sanctionType = request.sanctionType();
-        LocalDateTime now = LocalDateTime.now(KST);
-
-        return Sanction.builder()
-                .member(targetMember)
-                .admin(admin)
-                .targetMember(targetMember)
-                .report(report)
-                .sanctionType(sanctionType)
-                .reason(Objects.requireNonNullElse(request.sanctionReason(), sanctionType.getDescription()))
-                .startDate(now)
-                .endDate(sanctionType.resolveEndDate(request.sanctionEndAt(), now))
-                .description(sanctionType.getDescription())
-                .build();
-    }
-
     private void validateSanctionApplicable(Report report, ProcessSanctionRequest request) {
         SanctionType sanctionType = request.sanctionType();
         if (sanctionType == SanctionType.CHAT_KICK && report.getReportType() != ReportType.CHAT_MESSAGE) {
@@ -209,12 +250,6 @@ public class ReportServiceImpl implements ReportService {
 
         if (sanctionType == SanctionType.CONTENT_DELETION) {
             throw new UnsupportedSanctionTypeException();
-        }
-    }
-
-    private void checkReportNotProcessed(Report report) {
-        if (report.getIsProcessed()) {
-            throw new SanctionAlreadyExistsException(report.getId());
         }
     }
 
