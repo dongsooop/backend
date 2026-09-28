@@ -50,5 +50,12 @@ class BlindDateMessageHandlerTest {
         assertThat(payload.get("messageId")).isEqualTo(recorded.getValue().messageId());
         assertThat(recorded.getValue().senderId()).isEqualTo(2L);
         assertThat(recorded.getValue().content()).isEqualTo("안녕");
+
+        assertThat(payload.get("message")).isEqualTo("안녕");
+        assertThat(payload.get("senderId")).isEqualTo(2L);
+        assertThat(payload.get("senderName")).isEqualTo("익명1");
+        assertThat(payload.get("timestamp")).isInstanceOf(Long.class);
+        assertThat(payload.keySet()).containsExactlyInAnyOrder(
+                "messageId", "message", "senderId", "senderName", "timestamp");
     }
 }
