@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.dongsoop.dongsoop.chat.exception.GroupChatOnlyException;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.member.service.MemberService;
@@ -106,5 +107,15 @@ class ReportSanctionProcessTest {
         reportService.processSanction(new ProcessSanctionRequest(1L, 2L, SanctionType.TEMPORARY_BAN, "욕설", endAt));
 
         assertThat(capturedSanction().getEndDate()).isEqualTo(endAt);
+    }
+
+    @Test
+    @DisplayName("채팅 메시지 신고가 아니면 채팅방 추방을 거절한다")
+    void processSanction_ChatKickOnNonChatReport_Throws() {
+        ProcessSanctionRequest request = new ProcessSanctionRequest(1L, 2L, SanctionType.CHAT_KICK, null, null);
+
+        assertThatThrownBy(() -> reportService.processSanction(request))
+                .isInstanceOf(GroupChatOnlyException.class);
+        verify(sanctionRepository, never()).save(any());
     }
 }

@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.report.service;
 
+import com.dongsoop.dongsoop.chat.exception.GroupChatOnlyException;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoard;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
@@ -82,6 +83,7 @@ public class ReportServiceImpl implements ReportService {
 
         Member targetMember = findMemberById(request.targetMemberId());
         Member admin = memberService.getMemberReferenceByContext();
+        validateSanctionApplicable(report, request.sanctionType());
 
         processSanctionForReport(report, request, admin, targetMember);
         sanctionExecutor.executeSanction(report);
@@ -180,6 +182,12 @@ public class ReportServiceImpl implements ReportService {
                 .endDate(sanctionType.resolveEndDate(request.sanctionEndAt(), now))
                 .description(sanctionType.getDescription())
                 .build();
+    }
+
+    private void validateSanctionApplicable(Report report, SanctionType sanctionType) {
+        if (sanctionType == SanctionType.CHAT_KICK && report.getReportType() != ReportType.CHAT_MESSAGE) {
+            throw new GroupChatOnlyException("채팅방 추방");
+        }
     }
 
     private void checkReportNotProcessed(Report report) {

@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.report.service;
 
+import com.dongsoop.dongsoop.chat.service.ChatParticipantService;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.report.entity.*;
@@ -44,6 +45,7 @@ public class SanctionExecutor {
     private final MemberRepository memberRepository;
     private final ContentDeletionHandler contentDeletionHandler;
     private final SanctionRepository sanctionRepository;
+    private final ChatParticipantService chatParticipantService;
     @Value("${admin.id}")
     private Long systemAdminId;
 
@@ -60,7 +62,8 @@ public class SanctionExecutor {
                 SanctionType.WARNING, this::executeWarning,
                 SanctionType.TEMPORARY_BAN, this::executeTemporaryBan,
                 SanctionType.PERMANENT_BAN, this::executePermanentBan,
-                SanctionType.CONTENT_DELETION, this::executeContentDeletion
+                SanctionType.CONTENT_DELETION, this::executeContentDeletion,
+                SanctionType.CHAT_KICK, this::executeChatKick
         );
     }
 
@@ -82,6 +85,11 @@ public class SanctionExecutor {
     private void executeContentDeletion(Report report) {
         contentDeletionHandler.deleteContent(report);
         log.info("게시글 삭제 제재 실행: {}", report.getId());
+    }
+
+    private void executeChatKick(Report report) {
+        log.info("채팅방 추방 제재 실행: {}", report.getId());
+        chatParticipantService.kickUserByAdmin(report.getChatRoomId(), report.getTargetMember().getId());
     }
 
     private void handleUnsupportedSanctionType(Report report) {
