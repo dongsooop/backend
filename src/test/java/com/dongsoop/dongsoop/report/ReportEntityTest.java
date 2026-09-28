@@ -61,4 +61,11 @@ class ReportEntityTest {
         assertThatThrownBy(() -> report.dismiss(Member.builder().id(100L).build()))
                 .isInstanceOf(ReportAlreadyProcessedException.class);
     }
+
+    @Test
+    @DisplayName("게시판 신고 타입 집합은 바꿀 수 없다")
+    void boardTypes_IsUnmodifiable() {
+        assertThatThrownBy(() -> ReportType.BOARD_TYPES.add(ReportType.MEMBER))
+                .isInstanceOf(UnsupportedOperationException.class);
+    }
 }
