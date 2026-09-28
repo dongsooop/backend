@@ -82,7 +82,11 @@ authentication:
       /notice/keywords,
       /notice/keywords/**
     admin:
-      /admin
+      /admin,
+      /reports/admin,
+      /reports/message,
+      /reports/sanctions,
+      /reports/*/dismiss
   origins:
     http://localhost:3000,
     http://dongsoop.site,
