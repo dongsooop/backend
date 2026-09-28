@@ -40,9 +40,16 @@ public class AsyncAutoSanctionService {
     private Long systemAdminId;
 
     @Async("autoSanctionExecutor")
-    public CompletableFuture<Void> processReportAsync(Report report) {
+    public CompletableFuture<Void> processReportAsync(Report detachedReport) {
+        Long reportId = detachedReport.getId();
         try {
-            log.info("Report processing started - Report ID: {}", report.getId());
+            log.info("Report processing started - Report ID: {}", reportId);
+
+            Report report = reportRepository.findById(reportId).orElse(null);
+            if (report == null || report.getIsProcessed()) {
+                log.info("Report already processed or removed - Report ID: {}", reportId);
+                return CompletableFuture.completedFuture(null);
+            }
 
             if (ReportType.CHAT_MESSAGE.equals(report.getReportType())) {
                 judgeChatMessage(report);
@@ -50,10 +57,10 @@ public class AsyncAutoSanctionService {
                 checkProfanityAndExecute(report);
             }
 
-            log.info("Auto sanction completed - Report ID: {}", report.getId());
+            log.info("Auto sanction completed - Report ID: {}", reportId);
 
         } catch (Exception e) {
-            log.error("Auto sanction failed - Report ID: {}", report.getId(), e);
+            log.error("Auto sanction failed - Report ID: {}", reportId, e);
         }
 
         return CompletableFuture.completedFuture(null);
@@ -84,6 +91,13 @@ public class AsyncAutoSanctionService {
 
         if (!hasProfanity) {
             report.markAutoReviewed();
+            reportRepository.save(report);
+            return;
+        }
+
+        if (reportRepository.existsByMessageIdAndSanctionSanctionType(report.getMessageId(), SanctionType.WARNING)) {
+            log.info("Message already warned - Report ID: {}, Message ID: {}", report.getId(), report.getMessageId());
+            report.markAsProcessedWithoutSanction();
             reportRepository.save(report);
             return;
         }
