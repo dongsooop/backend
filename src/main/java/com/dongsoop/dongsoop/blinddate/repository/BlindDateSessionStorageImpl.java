@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.blinddate.repository;
 
 import com.dongsoop.dongsoop.blinddate.entity.BlindDateMessage;
+import com.dongsoop.dongsoop.blinddate.entity.BlindDateMessageLog;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo.SessionState;
 import java.util.List;
@@ -99,31 +100,23 @@ public class BlindDateSessionStorageImpl implements BlindDateSessionStorage {
 
     @Override
     public void recordMessage(String sessionId, BlindDateMessage message) {
-        SessionInfo session = sessions.get(sessionId);
-        if (session == null) {
-            return;
-        }
-
-        session.getMessageLog().add(message);
+        messageLogOf(sessionId).ifPresent(messageLog -> messageLog.add(message));
     }
 
     @Override
     public Optional<BlindDateMessage> findMessage(String sessionId, String messageId) {
-        SessionInfo session = sessions.get(sessionId);
-        if (session == null) {
-            return Optional.empty();
-        }
-
-        return session.getMessageLog().find(messageId);
+        return messageLogOf(sessionId).flatMap(messageLog -> messageLog.find(messageId));
     }
 
     @Override
     public List<BlindDateMessage> findMessagesBefore(String sessionId, String messageId, int limit) {
-        SessionInfo session = sessions.get(sessionId);
-        if (session == null) {
-            return List.of();
-        }
+        return messageLogOf(sessionId)
+                .map(messageLog -> messageLog.findBefore(messageId, limit))
+                .orElse(List.of());
+    }
 
-        return session.getMessageLog().findBefore(messageId, limit);
+    // 종료된 세션은 맵에서 제거되므로 보관 메시지도 함께 사라진다
+    private Optional<BlindDateMessageLog> messageLogOf(String sessionId) {
+        return Optional.ofNullable(sessions.get(sessionId)).map(SessionInfo::getMessageLog);
     }
 }
