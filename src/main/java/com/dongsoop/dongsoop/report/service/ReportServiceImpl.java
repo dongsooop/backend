@@ -34,9 +34,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -198,38 +198,26 @@ public class ReportServiceImpl implements ReportService {
     public SanctionStatusResponse checkAndUpdateSanctionStatus() {
         try {
             Long memberId = memberService.getMemberIdByAuthentication();
-            Optional<Sanction> sanctionOpt = sanctionRepository.findActiveSanctionByMemberId(memberId);
+            List<Sanction> activeBans = sanctionRepository.findActiveSanctionsByMemberId(memberId).stream()
+                    .filter(sanction -> sanction.getSanctionType().isBan())
+                    .toList();
 
-            return sanctionOpt.map(this::processSanctionStatus)
+            activeBans.stream()
+                    .filter(Sanction::isCurrentlyExpired)
+                    .forEach(this::expire);
+
+            return activeBans.stream()
+                    .filter(Sanction::isSanctionActive)
+                    .max(Comparator.comparing(Sanction::getEndDate))
+                    .map(SanctionStatusResponse::withSanction)
                     .orElse(SanctionStatusResponse.noSanction());
         } catch (Exception e) {
             return SanctionStatusResponse.noSanction();
         }
     }
 
-    private SanctionStatusResponse processSanctionStatus(Sanction sanction) {
-        if (sanction.isCurrentlyExpired()) {
-            return handleExpiredSanction(sanction);
-        }
-
-        if (sanction.isSanctionActive()) {
-            return createSanctionResponse(true, sanction);
-        }
-
-        return createSanctionResponse(false, null);
-    }
-
-    private SanctionStatusResponse handleExpiredSanction(Sanction sanction) {
-        sanction.expireIfNeeded();
+    private void expire(Sanction sanction) {
+        sanction.deactivate();
         sanctionRepository.save(sanction);
-        return SanctionStatusResponse.noSanction();
-    }
-
-    private SanctionStatusResponse createSanctionResponse(boolean isSanctioned, Sanction sanction) {
-        if (!isSanctioned) {
-            return SanctionStatusResponse.noSanction();
-        }
-
-        return SanctionStatusResponse.withSanction(sanction);
     }
 }
