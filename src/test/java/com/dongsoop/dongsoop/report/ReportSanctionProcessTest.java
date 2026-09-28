@@ -17,6 +17,8 @@ import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.entity.Sanction;
 import com.dongsoop.dongsoop.report.entity.SanctionType;
 import com.dongsoop.dongsoop.report.exception.SanctionEndDateRequiredException;
+import com.dongsoop.dongsoop.report.exception.SanctionTargetMismatchException;
+import com.dongsoop.dongsoop.report.exception.UnsupportedSanctionTypeException;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
 import com.dongsoop.dongsoop.report.repository.SanctionRepository;
 import com.dongsoop.dongsoop.report.service.ReportServiceImpl;
@@ -116,6 +118,34 @@ class ReportSanctionProcessTest {
 
         assertThatThrownBy(() -> reportService.processSanction(request))
                 .isInstanceOf(GroupChatOnlyException.class);
+        verify(sanctionRepository, never()).saveAndFlush(any());
+    }
+
+    private void stubChatMessageReport(Member reportedMember) {
+        Report chatReport = Report.builder().id(1L).reportType(ReportType.CHAT_MESSAGE).targetId(reportedMember.getId())
+                .targetMember(reportedMember).messageId("m1").build();
+        when(reportRepository.findById(1L)).thenReturn(Optional.of(chatReport));
+    }
+
+    @Test
+    @DisplayName("메시지 신고는 신고된 메시지 작성자가 아닌 회원에게 제재할 수 없다")
+    void processSanction_MessageReportTargetMismatch_Throws() {
+        stubChatMessageReport(Member.builder().id(3L).build());
+        ProcessSanctionRequest request = new ProcessSanctionRequest(1L, 2L, SanctionType.WARNING, null, null);
+
+        assertThatThrownBy(() -> reportService.processSanction(request))
+                .isInstanceOf(SanctionTargetMismatchException.class);
+        verify(sanctionRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    @DisplayName("메시지 신고에는 게시글 삭제 제재를 쓸 수 없다")
+    void processSanction_MessageReportContentDeletion_Throws() {
+        stubChatMessageReport(target);
+        ProcessSanctionRequest request = new ProcessSanctionRequest(1L, 2L, SanctionType.CONTENT_DELETION, null, null);
+
+        assertThatThrownBy(() -> reportService.processSanction(request))
+                .isInstanceOf(UnsupportedSanctionTypeException.class);
         verify(sanctionRepository, never()).saveAndFlush(any());
     }
 }

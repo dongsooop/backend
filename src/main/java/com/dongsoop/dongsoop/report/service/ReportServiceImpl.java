@@ -24,7 +24,9 @@ import com.dongsoop.dongsoop.report.entity.SanctionType;
 import com.dongsoop.dongsoop.report.exception.ReportNotFoundException;
 import com.dongsoop.dongsoop.report.exception.ReportTargetNotFoundException;
 import com.dongsoop.dongsoop.report.exception.SanctionAlreadyExistsException;
+import com.dongsoop.dongsoop.report.exception.SanctionTargetMismatchException;
 import com.dongsoop.dongsoop.report.exception.UnsupportedReportTypeException;
+import com.dongsoop.dongsoop.report.exception.UnsupportedSanctionTypeException;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
 import com.dongsoop.dongsoop.report.repository.SanctionRepository;
 import com.dongsoop.dongsoop.report.util.ReportUrlGenerator;
@@ -83,7 +85,7 @@ public class ReportServiceImpl implements ReportService {
 
         Member targetMember = findMemberById(request.targetMemberId());
         Member admin = memberService.getMemberReferenceByContext();
-        validateSanctionApplicable(report, request.sanctionType());
+        validateSanctionApplicable(report, request);
 
         processSanctionForReport(report, request, admin, targetMember);
         sanctionExecutor.executeSanction(report);
@@ -191,9 +193,22 @@ public class ReportServiceImpl implements ReportService {
                 .build();
     }
 
-    private void validateSanctionApplicable(Report report, SanctionType sanctionType) {
+    private void validateSanctionApplicable(Report report, ProcessSanctionRequest request) {
+        SanctionType sanctionType = request.sanctionType();
         if (sanctionType == SanctionType.CHAT_KICK && report.getReportType() != ReportType.CHAT_MESSAGE) {
             throw new GroupChatOnlyException("채팅방 추방");
+        }
+
+        if (!report.getReportType().isMessageReport()) {
+            return;
+        }
+
+        if (!request.targetMemberId().equals(report.getTargetMember().getId())) {
+            throw new SanctionTargetMismatchException();
+        }
+
+        if (sanctionType == SanctionType.CONTENT_DELETION) {
+            throw new UnsupportedSanctionTypeException();
         }
     }
 
