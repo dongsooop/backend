@@ -168,11 +168,13 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
     @Primary
     public BlindDateMessageHandler blindDateMessageHandler(
             BlindDateParticipantStorage participantStorage,
-            SimpMessagingTemplate messagingTemplate
+            SimpMessagingTemplate messagingTemplate,
+            BlindDateSessionStorage sessionStorage
     ) {
         return new BlindDateMessageHandler(
                 participantStorage,
-                messagingTemplate
+                messagingTemplate,
+                sessionStorage
         );
     }
 

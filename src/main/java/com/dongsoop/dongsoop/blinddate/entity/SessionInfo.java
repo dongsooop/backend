@@ -14,6 +14,8 @@ public class SessionInfo {
     private final String sessionId;
     private final LocalDateTime createdAt;
     private volatile SessionState state;
+    @Builder.Default
+    private final BlindDateMessageLog messageLog = new BlindDateMessageLog();
 
     public static SessionInfo create() {
         return SessionInfo.builder()
