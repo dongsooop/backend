@@ -50,4 +50,29 @@ class ChatMessageSnapshotsConverterTest {
         assertThat(ChatMessageSnapshot.truncate("가".repeat(1500))).hasSize(1000);
         assertThat(ChatMessageSnapshot.truncate(null)).isEmpty();
     }
+
+    @Test
+    @DisplayName("정확히 1,000자는 그대로 저장된다")
+    void truncate_ExactlyMaxLength_StaysAsIs() {
+        String content = "가".repeat(1000);
+
+        assertThat(ChatMessageSnapshot.truncate(content)).isEqualTo(content);
+    }
+
+    @Test
+    @DisplayName("1,001자는 1,000자로 잘린다")
+    void truncate_OneOverMaxLength_CutsToMaxLength() {
+        assertThat(ChatMessageSnapshot.truncate("가".repeat(1001))).hasSize(1000);
+    }
+
+    @Test
+    @DisplayName("1,000번째 유닛이 상위 서로게이트면 서로게이트 쌍을 쪼개지 않도록 999자로 자른다")
+    void truncate_SurrogatePairAtBoundary_DoesNotSplitPair() {
+        String content = "가".repeat(999) + "😀" + "끝";
+
+        String truncated = ChatMessageSnapshot.truncate(content);
+
+        assertThat(truncated).hasSize(999);
+        assertThat(Character.isHighSurrogate(truncated.charAt(truncated.length() - 1))).isFalse();
+    }
 }

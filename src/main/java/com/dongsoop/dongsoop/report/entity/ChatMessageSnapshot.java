@@ -20,6 +20,10 @@ public record ChatMessageSnapshot(Long senderId, String content, LocalDateTime s
             return content;
         }
 
+        if (Character.isHighSurrogate(content.charAt(MAX_CONTENT_LENGTH - 1))) {
+            return content.substring(0, MAX_CONTENT_LENGTH - 1);
+        }
+
         return content.substring(0, MAX_CONTENT_LENGTH);
     }
 }
