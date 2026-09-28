@@ -8,6 +8,7 @@ import com.dongsoop.dongsoop.report.repository.ReportRepository;
 import com.dongsoop.dongsoop.report.repository.SanctionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +44,8 @@ public class SanctionExecutor {
     private final MemberRepository memberRepository;
     private final ContentDeletionHandler contentDeletionHandler;
     private final SanctionRepository sanctionRepository;
+    @Value("${admin.id}")
+    private Long systemAdminId;
 
     @Transactional
     public void executeSanction(Report report) {
@@ -87,7 +90,8 @@ public class SanctionExecutor {
         throw new IllegalArgumentException("지원되지 않는 제재 타입: " + sanctionType);
     }
 
-    private void checkWarningAccumulation(Member member) {
+    @Transactional
+    public void checkWarningAccumulation(Member member) {
         Long warningCount = reportRepository.countActiveWarningsForMember(
                 member.getId(),
                 SanctionType.WARNING
@@ -99,57 +103,34 @@ public class SanctionExecutor {
 
     private void executeAutoSuspensionWhen(Long warningCount, Member member) {
         if (warningCount == WARNING_THRESHOLD_7) {
-            createAutoSuspension30Days(member.getId());
+            createAutoSuspension(member.getId(), SUSPENSION_DAYS_7, AUTO_SUSPENSION_DESCRIPTION_7);
             return;
         }
 
         if (warningCount == WARNING_THRESHOLD_5) {
-            createAutoSuspension14Days(member.getId());
+            createAutoSuspension(member.getId(), SUSPENSION_DAYS_5, AUTO_SUSPENSION_DESCRIPTION_5);
             return;
         }
 
         if (warningCount == WARNING_THRESHOLD_3) {
-            createAutoSuspension3Days(member.getId());
+            createAutoSuspension(member.getId(), SUSPENSION_DAYS_3, AUTO_SUSPENSION_DESCRIPTION_3);
         }
     }
 
-    private void createAutoSuspension3Days(Long memberId) {
-        log.info("경고 3회 누적으로 인한 자동 3일 정지 실행: {}", memberId);
-        Member memberRef = memberRepository.getReferenceById(memberId);
-        Sanction sanction = createAutoSuspensionSanction(memberRef, SUSPENSION_DAYS_3,
-                AUTO_SUSPENSION_DESCRIPTION_3, AUTO_SUSPENSION_DESCRIPTION_3);
-        sanctionRepository.save(sanction);
+    private void createAutoSuspension(Long memberId, int suspensionDays, String description) {
+        log.info("{} 실행: {}", description, memberId);
+        Member member = memberRepository.getReferenceById(memberId);
+        Member systemAdmin = memberRepository.getReferenceById(systemAdminId);
 
-        Report autoSuspensionReport = buildAutoSuspensionReport(memberRef, sanction, AUTO_SUSPENSION_DESCRIPTION_3);
-        reportRepository.save(autoSuspensionReport);
-        log.info("자동 3일 정지 제재 생성 완료: 회원 ID {}", memberId);
+        // Sanction.report가 NOT NULL이라 신고를 먼저 저장하고 제재를 연결한다
+        Report report = reportRepository.save(buildAutoSuspensionReport(member, description));
+        Sanction sanction = sanctionRepository.save(
+                createAutoSuspensionSanction(member, systemAdmin, report, suspensionDays, description));
+        report.processSanction(systemAdmin, member, sanction);
+        log.info("{} 생성 완료: 회원 ID {}", description, memberId);
     }
 
-    private void createAutoSuspension14Days(Long memberId) {
-        log.info("경고 5회 누적으로 인한 자동 14일 정지 실행: {}", memberId);
-        Member memberRef = memberRepository.getReferenceById(memberId);
-        Sanction sanction = createAutoSuspensionSanction(memberRef, SUSPENSION_DAYS_5,
-                AUTO_SUSPENSION_DESCRIPTION_5, AUTO_SUSPENSION_DESCRIPTION_5);
-        sanctionRepository.save(sanction);
-
-        Report autoSuspensionReport = buildAutoSuspensionReport(memberRef, sanction, AUTO_SUSPENSION_DESCRIPTION_5);
-        reportRepository.save(autoSuspensionReport);
-        log.info("자동 14일 정지 제재 생성 완료: 회원 ID {}", memberId);
-    }
-
-    private void createAutoSuspension30Days(Long memberId) {
-        log.info("경고 7회 누적으로 인한 자동 30일 정지 실행: {}", memberId);
-        Member memberRef = memberRepository.getReferenceById(memberId);
-        Sanction sanction = createAutoSuspensionSanction(memberRef, SUSPENSION_DAYS_7,
-                AUTO_SUSPENSION_DESCRIPTION_7, AUTO_SUSPENSION_DESCRIPTION_7);
-        sanctionRepository.save(sanction);
-
-        Report autoSuspensionReport = buildAutoSuspensionReport(memberRef, sanction, AUTO_SUSPENSION_DESCRIPTION_7);
-        reportRepository.save(autoSuspensionReport);
-        log.info("자동 30일 정지 제재 생성 완료: 회원 ID {}", memberId);
-    }
-
-    private Report buildAutoSuspensionReport(Member member, Sanction sanction, String description) {
+    private Report buildAutoSuspensionReport(Member member, String description) {
         return Report.builder()
                 .reporter(member)
                 .reportType(ReportType.MEMBER)
@@ -157,20 +138,22 @@ public class SanctionExecutor {
                 .reportReason(ReportReason.OTHER)
                 .description(description)
                 .targetUrl("/member/" + member.getId())
-                .admin(member)
                 .targetMember(member)
-                .sanction(sanction)
-                .isProcessed(true)
                 .build();
     }
 
-    private Sanction createAutoSuspensionSanction(Member member, int suspensionDays, String reason, String description) {
+    private Sanction createAutoSuspensionSanction(Member member, Member systemAdmin, Report report,
+                                                  int suspensionDays, String description) {
+        LocalDateTime now = LocalDateTime.now(KST);
         return Sanction.builder()
                 .member(member)
+                .admin(systemAdmin)
+                .targetMember(member)
+                .report(report)
                 .sanctionType(SanctionType.TEMPORARY_BAN)
-                .reason(reason)
-                .startDate(LocalDateTime.now(KST))
-                .endDate(LocalDateTime.now(KST).plusDays(suspensionDays))
+                .reason(description)
+                .startDate(now)
+                .endDate(now.plusDays(suspensionDays))
                 .description(description)
                 .build();
     }
