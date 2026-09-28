@@ -182,10 +182,14 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     public List<Report> findUnprocessedReports(Pageable pageable) {
         return queryFactory
                 .selectFrom(report)
-                .where(report.isProcessed.eq(false))
+                .where(report.isProcessed.eq(false), isAutoSanctionTarget())
                 .orderBy(report.createdAt.asc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
+    }
+
+    private BooleanExpression isAutoSanctionTarget() {
+        return report.reportType.in(ReportType.BOARD_TYPES);
     }
 }

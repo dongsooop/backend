@@ -2,7 +2,6 @@ package com.dongsoop.dongsoop.report.service;
 
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.report.entity.Report;
-import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.entity.Sanction;
 import com.dongsoop.dongsoop.report.entity.SanctionType;
 import com.dongsoop.dongsoop.report.handler.ContentDeletionHandler;
@@ -42,7 +41,6 @@ public class AsyncAutoSanctionService {
         try {
             log.info("Report processing started - Report ID: {}", report.getId());
 
-            validateReportType(report);
             checkProfanityAndExecute(report);
 
             log.info("Auto sanction completed - Report ID: {}", report.getId());
@@ -52,14 +50,6 @@ public class AsyncAutoSanctionService {
         }
 
         return CompletableFuture.completedFuture(null);
-    }
-
-    private void validateReportType(Report report) {
-        if (ReportType.MEMBER.equals(report.getReportType())) {
-            log.info("Member report excluded from auto processing - Report ID: {}", report.getId());
-            report.markAsProcessedWithoutSanction();
-            reportRepository.save(report);
-        }
     }
 
     private void checkProfanityAndExecute(Report report) {
