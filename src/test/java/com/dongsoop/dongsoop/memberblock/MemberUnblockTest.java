@@ -151,5 +151,6 @@ public class MemberUnblockTest {
                 .andExpect(status().isNotFound());
 
         verify(memberBlockRepository, never()).delete(any());
+        verify(memberRepository, never()).getReferenceById(any());
     }
 }
