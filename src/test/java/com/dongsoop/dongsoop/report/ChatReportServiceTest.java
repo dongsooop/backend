@@ -28,12 +28,14 @@ import com.dongsoop.dongsoop.report.exception.ReportTargetNotFoundException;
 import com.dongsoop.dongsoop.report.exception.SelfReportException;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
 import com.dongsoop.dongsoop.report.service.ChatReportService;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -208,9 +210,26 @@ class ChatReportServiceTest {
     void createReport_UniqueViolation_ThrowsDuplicate() {
         when(redisChatRepository.findMessagesByRoomId(ROOM_ID))
                 .thenReturn(List.of(message("target", 2L, 0, MessageType.CHAT)));
-        when(reportRepository.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("uk"));
+        ConstraintViolationException cause = new ConstraintViolationException(
+                "duplicate key", new SQLException("duplicate key"), "uk_report_reporter_message");
+        when(reportRepository.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("uk", cause));
 
         assertThatThrownBy(() -> chatReportService.createReport(request("target")))
                 .isInstanceOf(DuplicateReportException.class);
+    }
+
+    @Test
+    @DisplayName("다른 제약 위반은 중복 신고로 바꾸지 않고 그대로 전파한다")
+    void createReport_OtherConstraintViolation_Propagates() {
+        when(redisChatRepository.findMessagesByRoomId(ROOM_ID))
+                .thenReturn(List.of(message("target", 2L, 0, MessageType.CHAT)));
+        ConstraintViolationException cause = new ConstraintViolationException(
+                "fk violation", new SQLException("fk"), "fk_report_target_member");
+        DataIntegrityViolationException thrown = new DataIntegrityViolationException("fk", cause);
+        when(reportRepository.saveAndFlush(any())).thenThrow(thrown);
+
+        assertThatThrownBy(() -> chatReportService.createReport(request("target")))
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .isSameAs(thrown);
     }
 }

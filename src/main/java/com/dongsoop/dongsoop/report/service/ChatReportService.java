@@ -27,6 +27,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChatReportService {
 
     private static final int CONTEXT_SIZE = 10;
+    private static final String DUPLICATE_REPORT_CONSTRAINT_NAME = "uk_report_reporter_message";
 
     private final MemberService memberService;
     private final MemberRepository memberRepository;
@@ -146,7 +148,21 @@ public class ChatReportService {
         try {
             reportRepository.saveAndFlush(report);
         } catch (DataIntegrityViolationException e) {
-            throw new DuplicateReportException();
+            if (isDuplicateReportConstraintViolation(e)) {
+                throw new DuplicateReportException();
+            }
+            throw e;
         }
+    }
+
+    private static boolean isDuplicateReportConstraintViolation(DataIntegrityViolationException e) {
+        Throwable cause = e.getCause();
+        while (cause != null) {
+            if (cause instanceof ConstraintViolationException constraintViolation) {
+                return DUPLICATE_REPORT_CONSTRAINT_NAME.equalsIgnoreCase(constraintViolation.getConstraintName());
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 }
