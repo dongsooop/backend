@@ -1,9 +1,12 @@
 package com.dongsoop.dongsoop.report;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportType;
+import com.dongsoop.dongsoop.report.exception.ReportAlreadyProcessedException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -34,5 +37,27 @@ class ReportEntityTest {
         assertThat(ReportType.CHAT_MESSAGE.isMessageReport()).isTrue();
         assertThat(ReportType.PROJECT_BOARD.isMessageReport()).isFalse();
         assertThat(ReportType.MEMBER.isMessageReport()).isFalse();
+    }
+
+    @Test
+    @DisplayName("기각하면 제재 없이 처리 완료되고 처리한 관리자가 남는다")
+    void dismiss_ClosesWithoutSanction() {
+        Member admin = Member.builder().id(100L).build();
+        Report report = Report.builder().id(1L).reportType(ReportType.CHAT_MESSAGE).build();
+
+        report.dismiss(admin);
+
+        assertThat(report.getIsProcessed()).isTrue();
+        assertThat(report.getAdmin()).isEqualTo(admin);
+        assertThat(report.getSanction()).isNull();
+    }
+
+    @Test
+    @DisplayName("이미 처리된 신고는 기각할 수 없다")
+    void dismiss_AlreadyProcessed_Throws() {
+        Report report = Report.builder().id(1L).reportType(ReportType.CHAT_MESSAGE).isProcessed(true).build();
+
+        assertThatThrownBy(() -> report.dismiss(Member.builder().id(100L).build()))
+                .isInstanceOf(ReportAlreadyProcessedException.class);
     }
 }

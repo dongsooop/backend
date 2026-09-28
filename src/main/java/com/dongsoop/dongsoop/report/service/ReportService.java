@@ -14,6 +14,8 @@ public interface ReportService {
 
     void processSanction(ProcessSanctionRequest request);
 
+    void dismissReport(Long reportId);
+
     List<?> getReports(ReportFilterType filterType, Pageable pageable);
 
     SanctionStatusResponse checkAndUpdateSanctionStatus();

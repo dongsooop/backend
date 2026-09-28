@@ -120,4 +120,13 @@ class ReportControllerTest {
                                 """))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    @DisplayName("신고 기각은 204를 반환한다")
+    void dismissReport_ReturnsNoContent() throws Exception {
+        mockMvc.perform(post("/reports/7/dismiss"))
+                .andExpect(status().isNoContent());
+
+        verify(reportService).dismissReport(7L);
+    }
 }

@@ -53,6 +53,13 @@ public class ReportController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
+    @PostMapping("/{reportId}/dismiss")
+    @Secured(RoleType.ADMIN_ROLE)
+    public ResponseEntity<Void> dismissReport(@PathVariable("reportId") Long reportId) {
+        reportService.dismissReport(reportId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/admin")
     @Secured("ROLE_ADMIN")
     public ResponseEntity<List<?>> getReports(

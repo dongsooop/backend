@@ -90,6 +90,13 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
+    @Transactional
+    public void dismissReport(Long reportId) {
+        Report report = findReportById(reportId);
+        report.dismiss(memberService.getMemberReferenceByContext());
+    }
+
+    @Override
     public List<?> getReports(ReportFilterType filterType, Pageable pageable) {
         if (ReportFilterType.UNPROCESSED.equals(filterType)) {
             return reportRepository.findSummaryReportsByFilter(filterType, pageable);

@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.report.entity;
 
 import com.dongsoop.dongsoop.common.BaseEntity;
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.report.exception.ReportAlreadyProcessedException;
 import com.dongsoop.dongsoop.report.exception.SanctionAlreadyExistsException;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -97,6 +98,15 @@ public class Report extends BaseEntity {
     }
 
     public void markAsProcessedWithoutSanction() {
+        this.isProcessed = true;
+    }
+
+    public void dismiss(Member admin) {
+        if (this.isProcessed) {
+            throw new ReportAlreadyProcessedException(this.id);
+        }
+
+        this.admin = admin;
         this.isProcessed = true;
     }
 
