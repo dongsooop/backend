@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.memberblock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -137,5 +138,18 @@ public class MemberUnblockTest {
                 .andExpect(status().isNoContent());
 
         verify(chatService).sendBlockStatusToUser("room1", 2L, BlockStatus.NONE);
+    }
+
+    @Test
+    @DisplayName("대상 ID 없이 해제하면 404")
+    void unblock_WhenTargetMissing_ReturnsNotFound() throws Exception {
+        when(memberService.getMemberIdByAuthentication()).thenReturn(1L);
+
+        mockMvc.perform(delete("/member-block")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isNotFound());
+
+        verify(memberBlockRepository, never()).delete(any());
     }
 }

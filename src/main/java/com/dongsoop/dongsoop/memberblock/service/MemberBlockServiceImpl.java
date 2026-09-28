@@ -55,6 +55,11 @@ public class MemberBlockServiceImpl implements MemberBlockService {
     @Override
     public void unblockMember(MemberBlockRequest request) {
         Long blockerId = memberService.getMemberIdByAuthentication();
+
+        if (request.blockedMemberId() == null) {
+            throw new BlockNotFoundException();
+        }
+
         Member blocker = memberRepository.getReferenceById(blockerId);
         Member blockedMember = memberRepository.getReferenceById(request.blockedMemberId());
         MemberBlockId memberBlockId = new MemberBlockId(blocker, blockedMember);
