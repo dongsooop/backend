@@ -24,13 +24,17 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Locale;
+import java.util.Set;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class BlindDateReportService {
 
     private static final int CONTEXT_SIZE = 10;
-    private static final String DUPLICATE_REPORT_CONSTRAINT_NAME = "uk_report_blinddate_reporter_target";
+    private static final Set<String> DUPLICATE_REPORT_CONSTRAINT_NAMES =
+            Set.of("uk_report_blinddate_reporter_target", "uk_report_reporter_message");
 
     private final MemberService memberService;
     private final MemberRepository memberRepository;
@@ -98,7 +102,9 @@ public class BlindDateReportService {
         Throwable cause = e.getCause();
         while (cause != null) {
             if (cause instanceof ConstraintViolationException constraintViolation) {
-                return DUPLICATE_REPORT_CONSTRAINT_NAME.equalsIgnoreCase(constraintViolation.getConstraintName());
+                String constraintName = constraintViolation.getConstraintName();
+                return constraintName != null
+                        && DUPLICATE_REPORT_CONSTRAINT_NAMES.contains(constraintName.toLowerCase(Locale.ROOT));
             }
             cause = cause.getCause();
         }

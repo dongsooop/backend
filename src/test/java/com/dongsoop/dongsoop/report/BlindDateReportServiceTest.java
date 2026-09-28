@@ -163,6 +163,17 @@ class BlindDateReportServiceTest {
     }
 
     @Test
+    @DisplayName("같은 메시지 재신고로 채팅 유니크 인덱스에 걸려도 중복 신고로 응답한다")
+    void createReport_MessageUniqueViolation_ThrowsDuplicate() {
+        ConstraintViolationException cause = new ConstraintViolationException(
+                "duplicate key", new SQLException("duplicate key"), "uk_report_reporter_message");
+        when(reportRepository.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("uk", cause));
+
+        assertThatThrownBy(() -> blindDateReportService.createReport(request("m2")))
+                .isInstanceOf(DuplicateReportException.class);
+    }
+
+    @Test
     @DisplayName("다른 제약 위반은 중복 신고로 바꾸지 않고 그대로 전파한다")
     void createReport_OtherConstraintViolation_Propagates() {
         ConstraintViolationException cause = new ConstraintViolationException(
