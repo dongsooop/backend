@@ -61,6 +61,7 @@ POST /reports/chat { roomId, messageId, reason, description }
 AutoSanctionScheduler(1시간마다, 최대 3건, is_auto_reviewed=false인 CHAT_MESSAGE만 조회)
   ↓
 욕설 판정 → 욕설이면 자동 WARNING 생성 + 처리 완료 + 경고 누적 검사(3·5·7회 → 3·14·30일 자동 정지)
+        → 욕설이지만 같은 메시지에 이미 경고가 있으면 새 경고 없이 처리 완료
         → 욕설이 아니거나 API 실패면 처리하지 않고 is_auto_reviewed만 true로 표시
   ↓
 관리자 목록(GET /reports/admin)에서 미처리 신고 확인 → POST /reports/sanctions 또는 POST /reports/{id}/dismiss
@@ -89,6 +90,8 @@ POST /reports/blinddate { messageId, reason, description }
 - 경고는 영구 누적된다. 누적 3·5·7회에 도달하면 각각 3·14·30일 자동 정지가 붙는다. 8회 이상은 자동 제재 없이 관리자가 판단한다.
 - `TEMPORARY_BAN`은 관리자가 종료일을 반드시 입력해야 한다(없으면 400). `WARNING`·`PERMANENT_BAN`은 종료일 입력이 없으면 9999-12-31로 채운다(경고는 영구 누적이 정책이라 만료시키지 않기 위함). `CONTENT_DELETION`·`CHAT_KICK`은 기간 개념이 없어 시작 시각을 종료일로 쓴다.
 - `CHAT_KICK`은 `CHAT_MESSAGE` 신고이면서 대상 방이 그룹방일 때만 허용한다. 그 외에는 400으로 거절한다. 대상이 방장이면 거절하고(방장 부재 방지), 이미 방을 나간 대상은 퇴장 시스템 메시지 없이 제재만 기록한다.
+- 메시지 신고(`CHAT_MESSAGE`, `BLINDDATE_MESSAGE`)의 관리자 제재는 요청한 제재 대상 회원이 신고된 메시지의 작성자와 같아야 한다(다르면 400).
+- 메시지 신고에는 `CONTENT_DELETION`(게시글 삭제) 제재를 쓸 수 없다(400). 삭제할 게시글이 없기 때문이다.
 - 신고 기각은 이미 처리된 신고에는 쓸 수 없다(409).
 - 회원 본인의 제재 상태 조회(`GET /reports/sanction-status`)는 활성 상태인 정지(`TEMPORARY_BAN`, `PERMANENT_BAN`)만 노출하고, 여러 건이 활성 상태면 종료일이 가장 늦은 것을 반환한다. 경고는 영구 누적이라 노출하면 한 번 경고받은 사용자가 계속 "제재 중"으로 보이므로 노출하지 않는다.
 - 신고자에게는 처리 결과를 통보하지 않는다. 신고 접수 응답(201)만 준다.
@@ -159,7 +162,9 @@ POST /reports/blinddate { messageId, reason, description }
 
 ## Concurrency / Consistency
 
-- 자동제재 스케줄러는 처리 중인 `reportType:targetId` 키를 `ConcurrentHashMap` 기반 집합에 담아 같은 주기 안에서 같은 대상을 중복 처리하지 않는다.
+- 자동제재 스케줄러는 채팅 신고는 `CHAT_MESSAGE:messageId`, 그 외 신고는 `reportType:targetId`를 키로 쓴다. 이전 주기에서 아직 처리 중인 키(`ConcurrentHashMap` 기반 집합)와 같은 배치 안에서 이미 나온 키는 모두 건너뛰므로, 같은 메시지를 여러 사람이 신고해도 한 번에 한 건만 자동 판정한다.
+- 자동 판정은 스케줄러가 넘긴 신고를 그대로 쓰지 않고 트랜잭션 안에서 다시 읽는다. 그사이 관리자가 처리했거나 삭제된 신고는 건너뛴다.
+- 욕설로 판정돼도 같은 메시지에 `WARNING` 제재가 연결된 다른 신고가 이미 있으면 새 경고를 만들지 않고 제재 없이 처리 완료로 닫는다. 같은 메시지로 경고가 쌓여 자동 정지가 잘못 붙는 것을 막기 위함이다.
 - 활성 제재는 회원당 여러 건 있을 수 있다고 가정한다(`SanctionRepository.findActiveSanctionsByMemberId`가 `List` 반환). 정지 우선순위 계산과 만료 처리는 애플리케이션에서 필터링·정렬한다.
 - 과팅 메시지 보관소의 동시성 제약은 이 도메인이 소유하지 않는다. `blinddate` 패키지 문서가 생기면 그쪽에서 다룬다.
 
