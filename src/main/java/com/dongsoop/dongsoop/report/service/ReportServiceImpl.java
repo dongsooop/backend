@@ -169,7 +169,7 @@ public class ReportServiceImpl implements ReportService {
     private void processSanctionForReport(Report report, ProcessSanctionRequest request, Member admin,
                                           Member targetMember) {
         Sanction sanction = createSanction(report, admin, targetMember, request);
-        sanctionRepository.save(sanction);
+        sanctionRepository.saveAndFlush(sanction);
         report.processSanction(admin, targetMember, sanction);
     }
 

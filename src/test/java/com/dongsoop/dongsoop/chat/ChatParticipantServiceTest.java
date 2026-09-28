@@ -203,6 +203,8 @@ class ChatParticipantServiceTest {
 
         assertThatThrownBy(() -> chatParticipantService.kickUserByAdmin("room1", 2L))
                 .isInstanceOf(GroupChatOnlyException.class);
+        verify(chatRoomService, never()).saveRoom(any());
+        verify(chatMessageService, never()).createAndSaveSystemMessage(any(), any(), any());
     }
 
     @Test
@@ -212,5 +214,7 @@ class ChatParticipantServiceTest {
 
         assertThatThrownBy(() -> chatParticipantService.kickUserByAdmin("room1", 1L))
                 .isInstanceOf(ManagerKickAttemptException.class);
+        verify(chatRoomService, never()).saveRoom(any());
+        verify(chatMessageService, never()).createAndSaveSystemMessage(any(), any(), any());
     }
 }

@@ -63,7 +63,7 @@ class ReportSanctionProcessTest {
 
     private Sanction capturedSanction() {
         ArgumentCaptor<Sanction> captor = ArgumentCaptor.forClass(Sanction.class);
-        verify(sanctionRepository).save(captor.capture());
+        verify(sanctionRepository).saveAndFlush(captor.capture());
         return captor.getValue();
     }
 
@@ -96,7 +96,7 @@ class ReportSanctionProcessTest {
 
         assertThatThrownBy(() -> reportService.processSanction(request))
                 .isInstanceOf(SanctionEndDateRequiredException.class);
-        verify(sanctionRepository, never()).save(any());
+        verify(sanctionRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -116,6 +116,6 @@ class ReportSanctionProcessTest {
 
         assertThatThrownBy(() -> reportService.processSanction(request))
                 .isInstanceOf(GroupChatOnlyException.class);
-        verify(sanctionRepository, never()).save(any());
+        verify(sanctionRepository, never()).saveAndFlush(any());
     }
 }
