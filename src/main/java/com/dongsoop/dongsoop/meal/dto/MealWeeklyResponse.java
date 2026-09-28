@@ -13,5 +13,6 @@ public class MealWeeklyResponse {
     private LocalDate startDate;
     private LocalDate endDate;
     private List<MealDailyResponse> dailyMeals;
+    private String notice;
 
 }

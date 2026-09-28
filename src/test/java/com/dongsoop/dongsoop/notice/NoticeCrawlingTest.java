@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -38,6 +39,8 @@ import org.springframework.util.ReflectionUtils;
         NoticeCollectionService.class,
         NoticeSchedulerImpl.class
 })
+// 실제 학교 홈페이지에 접속한다. GitHub Actions 러너에서는 학교 사이트 접속이 막혀 로컬에서만 돌린다
+@DisabledIfEnvironmentVariable(named = "CI", matches = "true")
 class NoticeCrawlingTest {
 
     private static final Integer MIN_NUMBER_OF_INVOCATIONS = 1;

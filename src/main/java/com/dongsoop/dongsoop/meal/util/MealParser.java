@@ -23,6 +23,14 @@ public class MealParser {
     private static final Pattern DATE_RANGE_PATTERN = Pattern.compile("(\\d{4}\\.\\d{2}\\.\\d{2})\\s+~\\s+(\\d{4}\\.\\d{2}\\.\\d{2})");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd");
     private static final int MAX_DAYS = 5;
+    private static final int MIN_MENU_CELLS = 3;
+    private static final String NOTICE_LABEL = "공지사항";
+
+    // 학교 페이지가 "별미 메뉴" 행을 "단품 메뉴"로 바꿔 표기한다. 되돌릴 경우를 대비해 둘 다 받는다
+    private static final Map<MealType, List<String>> MENU_LABELS = Map.of(
+            MealType.KOREAN, List.of("한식 메뉴"),
+            MealType.SPECIAL, List.of("단품 메뉴", "별미 메뉴")
+    );
 
     private final TextProcessingUtil textProcessingUtil;
     private final Clock clock;
@@ -31,6 +39,13 @@ public class MealParser {
         DateRange dateRange = parseDateRange(document);
         Map<MealType, List<String>> menuMap = parseAllMenus(document);
         return buildMealList(dateRange, menuMap);
+    }
+
+    public Optional<String> parseNotice(Document document) {
+        return findRowAfter(document, NOTICE_LABEL, 1)
+                .map(row -> row.selectFirst("td"))
+                .map(this::extractNoticeText)
+                .filter(text -> !text.isEmpty() && !"-".equals(text));
     }
 
     private DateRange parseDateRange(Document document) {
@@ -67,23 +82,28 @@ public class MealParser {
 
     private Map<MealType, List<String>> parseAllMenus(Document document) {
         Map<MealType, List<String>> menuMap = new EnumMap<>(MealType.class);
-        menuMap.put(MealType.KOREAN, parseMenusByType(document, "한식"));
-        menuMap.put(MealType.SPECIAL, parseMenusByType(document, "별미"));
+        for (MealType type : MealType.values()) {
+            menuMap.put(type, parseMenusByType(document, MENU_LABELS.get(type)));
+        }
         return menuMap;
     }
 
-    private List<String> parseMenusByType(Document document, String menuTypeName) {
-        return findMenuRows(document, menuTypeName)
+    private List<String> parseMenusByType(Document document, List<String> labels) {
+        return labels.stream()
+                .map(label -> findRowAfter(document, label, MIN_MENU_CELLS))
+                .flatMap(Optional::stream)
+                .findFirst()
                 .map(this::extractMenusFromFirstRow)
                 .orElse(Collections.nCopies(MAX_DAYS, textProcessingUtil.getDefaultEmptyMenu()));
     }
 
-    private Optional<Element> findMenuRows(Document document, String menuType) {
-        return document.select("tr:contains(" + menuType + " 메뉴)").stream()
+    // 라벨이 적힌 행의 바로 다음 행을 돌려준다. 라벨 행과 내용 행이 위아래로 나뉜 표 구조
+    private Optional<Element> findRowAfter(Document document, String label, int minCells) {
+        return document.select("tr:contains(" + label + ")").stream()
                 .map(Element::nextElementSibling)
                 .filter(Objects::nonNull)
                 .filter(row -> "tr".equals(row.tagName()))
-                .filter(row -> row.select("td").size() >= 3)
+                .filter(row -> row.select("td").size() >= minCells)
                 .findFirst();
     }
 
@@ -107,6 +127,17 @@ public class MealParser {
                 .map(Element::html)
                 .map(textProcessingUtil::processMenuText)
                 .orElse(textProcessingUtil.getDefaultEmptyMenu());
+    }
+
+    private String extractNoticeText(Element cell) {
+        Elements lines = cell.select("span");
+        List<String> texts = lines.isEmpty() ? List.of(cell.text()) : lines.eachText();
+
+        return texts.stream()
+                .map(String::trim)
+                .filter(text -> !text.isEmpty())
+                .reduce((first, second) -> first + "\n" + second)
+                .orElse("");
     }
 
     private List<Meal> buildMealList(DateRange dateRange, Map<MealType, List<String>> menuMap) {

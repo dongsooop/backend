@@ -1,12 +1,16 @@
 package com.dongsoop.dongsoop.meal.service;
 
+import com.dongsoop.dongsoop.meal.config.MealPriceProperties;
 import com.dongsoop.dongsoop.meal.dto.MealDailyResponse;
 import com.dongsoop.dongsoop.meal.dto.MealListDto;
+import com.dongsoop.dongsoop.meal.dto.MealPriceResponse;
 import com.dongsoop.dongsoop.meal.dto.MealWeeklyResponse;
 import com.dongsoop.dongsoop.meal.entity.Meal;
+import com.dongsoop.dongsoop.meal.entity.MealNotice;
 import com.dongsoop.dongsoop.meal.entity.MealType;
 import com.dongsoop.dongsoop.meal.exception.MealCrawlingException;
 import com.dongsoop.dongsoop.meal.exception.MealNotFoundException;
+import com.dongsoop.dongsoop.meal.repository.MealNoticeRepository;
 import com.dongsoop.dongsoop.meal.repository.MealRepository;
 import com.dongsoop.dongsoop.meal.util.DayOfWeekUtil;
 import com.dongsoop.dongsoop.meal.util.MealParser;
@@ -42,8 +46,10 @@ public class MealServiceImpl implements MealService {
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final MealRepository mealRepository;
+    private final MealNoticeRepository mealNoticeRepository;
     private final MealParser mealParser;
     private final UrlEncodingUtil urlEncodingUtil;
+    private final MealPriceProperties mealPriceProperties;
 
     @Value("${meal.crawler.base-url}")
     private String mealBaseUrl;
@@ -62,11 +68,39 @@ public class MealServiceImpl implements MealService {
         LocalDate endDate = today.with(DayOfWeek.FRIDAY);
 
         List<MealListDto> meals = mealRepository.findMealsByDateRangeList(startDate, endDate);
+        String notice = mealNoticeRepository.findByWeekStart(startDate)
+                .map(MealNotice::getContent)
+                .orElse(null);
 
         return Optional.of(meals)
                 .filter(list -> !list.isEmpty())
-                .map(list -> buildWeeklyResponse(startDate, endDate, list))
+                .map(list -> buildWeeklyResponse(startDate, endDate, list, notice))
                 .orElseThrow(() -> new MealNotFoundException(startDate, endDate));
+    }
+
+    @Override
+    public MealPriceResponse getPriceResponse() {
+        List<MealPriceResponse.Category> categories = Optional.ofNullable(mealPriceProperties.categories())
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(this::toCategoryResponse)
+                .toList();
+
+        return new MealPriceResponse(mealPriceProperties.ticketPrice(), categories);
+    }
+
+    private MealPriceResponse.Category toCategoryResponse(MealPriceProperties.Category category) {
+        List<MealPriceResponse.Item> items = Optional.ofNullable(category.items())
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(item -> new MealPriceResponse.Item(
+                        item.name(),
+                        item.price(),
+                        item.largePrice(),
+                        Optional.ofNullable(item.days()).orElse(Collections.emptyList())))
+                .toList();
+
+        return new MealPriceResponse.Category(category.name(), category.note(), items);
     }
 
     @Scheduled(cron = "0 0 9 * * SAT", zone = "Asia/Seoul")
@@ -115,12 +149,12 @@ public class MealServiceImpl implements MealService {
         LocalDate today = LocalDate.now(KST);
         LocalDate monday = today.with(DayOfWeek.MONDAY);
 
-        List<Meal> currentWeekMeals = crawlCurrentWeek(monday);
-        List<Meal> nextWeekMeals = crawlNextWeek(monday);
+        CrawledWeek currentWeek = crawlCurrentWeek(monday);
+        CrawledWeek nextWeek = crawlNextWeek(monday);
 
         List<Meal> allMeals = new ArrayList<>();
-        allMeals.addAll(currentWeekMeals);
-        allMeals.addAll(nextWeekMeals);
+        allMeals.addAll(currentWeek.meals());
+        allMeals.addAll(nextWeek.meals());
 
         boolean isFirstCrawling = mealRepository.count() == 0;
         LocalDate lastDate = mealRepository.findMaxMealDate()
@@ -132,30 +166,38 @@ public class MealServiceImpl implements MealService {
         Optional.of(newMeals)
                 .filter(meals -> !meals.isEmpty())
                 .ifPresent(this::saveMealData);
+
+        saveNotice(currentWeek);
+        saveNotice(nextWeek);
     }
 
-    private List<Meal> crawlCurrentWeek(LocalDate monday) {
+    private CrawledWeek crawlCurrentWeek(LocalDate monday) {
         LocalDate nextMonday = monday.plusWeeks(1);
         String url = urlEncodingUtil.buildWeekUrl(mealBaseUrl, nextMonday, "pre");
 
-        Document document = fetchDocument(url);
-        List<Meal> meals = mealParser.parseWeeklyMeal(document);
-
-        return meals;
+        return crawlWeek(url);
     }
 
-    private List<Meal> crawlNextWeek(LocalDate monday) {
+    private CrawledWeek crawlNextWeek(LocalDate monday) {
         String url = urlEncodingUtil.buildWeekUrl(mealBaseUrl, monday, "next");
 
-        Document document = fetchDocument(url);
-        List<Meal> meals = mealParser.parseWeeklyMeal(document);
+        CrawledWeek crawled = crawlWeek(url);
+        List<Meal> meals = crawled.meals();
 
         List<Meal> processedMeals = Optional.of(meals)
                 .filter(mealList -> isCurrentWeekData(mealList, monday))
                 .map(mealList -> adjustToNextWeek(mealList, monday.plusWeeks(1)))
                 .orElse(meals);
 
-        return processedMeals;
+        return new CrawledWeek(processedMeals, crawled.notice());
+    }
+
+    private CrawledWeek crawlWeek(String url) {
+        Document document = fetchDocument(url);
+        List<Meal> meals = mealParser.parseWeeklyMeal(document);
+        String notice = mealParser.parseNotice(document).orElse(null);
+
+        return new CrawledWeek(meals, notice);
     }
 
     private boolean isCurrentWeekData(List<Meal> meals, LocalDate monday) {
@@ -207,6 +249,7 @@ public class MealServiceImpl implements MealService {
     private void performCleanup() {
         LocalDate cutoffDate = LocalDate.now(KST).minusWeeks(2);
         mealRepository.deleteOldMealData(cutoffDate);
+        mealNoticeRepository.deleteOldNotices(cutoffDate);
     }
 
     private Document fetchDocument(String url) {
@@ -228,6 +271,26 @@ public class MealServiceImpl implements MealService {
         List<Meal> uniqueMeals = removeDuplicates(newMeals);
         deleteExistingData(uniqueMeals);
         saveToDatabase(uniqueMeals);
+    }
+
+    // 페이지에 공지가 없으면 그 주의 이전 공지도 지운다. 학교가 공지를 내린 뒤에도 앱에 남지 않도록
+    private void saveNotice(CrawledWeek week) {
+        if (week.meals().isEmpty()) {
+            return;
+        }
+
+        LocalDate weekStart = week.meals().get(0).getMealDate().with(DayOfWeek.MONDAY);
+        String notice = week.notice();
+
+        if (notice == null) {
+            mealNoticeRepository.deleteByWeekStart(weekStart);
+            return;
+        }
+
+        mealNoticeRepository.findByWeekStart(weekStart)
+                .ifPresentOrElse(
+                        existing -> existing.updateContent(notice),
+                        () -> mealNoticeRepository.save(new MealNotice(weekStart, notice)));
     }
 
     private List<Meal> removeDuplicates(List<Meal> meals) {
@@ -268,7 +331,8 @@ public class MealServiceImpl implements MealService {
         mealRepository.flush();
     }
 
-    private MealWeeklyResponse buildWeeklyResponse(LocalDate startDate, LocalDate endDate, List<MealListDto> meals) {
+    private MealWeeklyResponse buildWeeklyResponse(LocalDate startDate, LocalDate endDate, List<MealListDto> meals,
+                                                   String notice) {
         Map<LocalDate, Map<MealType, String>> mealsByDate = meals.stream()
                 .collect(Collectors.groupingBy(
                         MealListDto::getMealDate,
@@ -283,12 +347,13 @@ public class MealServiceImpl implements MealService {
         List<MealDailyResponse> dailyMeals = startDate.datesUntil(endDate.plusDays(1))
                 .map(date -> createDailyMeal(date, mealsByDate))
                 .sorted(Comparator.comparing(MealDailyResponse::getDate))
-                .collect(Collectors.toList());
+                .toList();
 
         return MealWeeklyResponse.builder()
                 .startDate(startDate)
                 .endDate(endDate)
                 .dailyMeals(dailyMeals)
+                .notice(notice)
                 .build();
     }
 
@@ -301,5 +366,8 @@ public class MealServiceImpl implements MealService {
                 .koreanMenu(dailyMealMap.getOrDefault(MealType.KOREAN, DEFAULT_EMPTY_MENU))
                 .specialMenu(dailyMealMap.getOrDefault(MealType.SPECIAL, DEFAULT_EMPTY_MENU))
                 .build();
+    }
+
+    private record CrawledWeek(List<Meal> meals, String notice) {
     }
 }

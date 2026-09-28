@@ -6,6 +6,8 @@ spring:
       local: local
       prod: prod
     default: local
+  config:
+    import: classpath:meal-prices.yml
 
 logging:
   config: classpath:logback.xml
@@ -52,6 +54,7 @@ authentication:
       /member/validate/**,
       /member/password,
       /meal/current,
+      /meal/prices,
       /error,
       /ws/**,
       /notice/**,
