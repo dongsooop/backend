@@ -151,6 +151,21 @@ class ReportPersistenceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("자동제재 스케줄러 조회는 과팅 신고를 가져가지 않는다")
+    void findUnprocessedReports_SkipsBlindDateReports() {
+        Member reporter = saveMember("rep9");
+        Member target = saveMember("tgt9");
+        Report blindDateReport = saveReport(reporter, target, ReportType.BLINDDATE_MESSAGE);
+        entityManager.flush();
+
+        List<Long> ids = reportRepository.findUnprocessedReports(PageRequest.of(0, 50)).stream()
+                .map(Report::getId)
+                .toList();
+
+        assertThat(ids).doesNotContain(blindDateReport.getId());
+    }
+
+    @Test
     @DisplayName("관리자 목록은 채팅 신고의 메시지와 맥락을 함께 돌려준다")
     void adminList_IncludesChatFields() {
         Member reporter = saveMember("rep5");
