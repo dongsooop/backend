@@ -1,8 +1,8 @@
 package com.dongsoop.dongsoop.report.controller;
 
-import com.dongsoop.dongsoop.report.dto.CreateBlindDateReportRequest;
 import com.dongsoop.dongsoop.report.dto.CreateChatReportRequest;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
+import com.dongsoop.dongsoop.report.dto.CreateServerMessageReportRequest;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
@@ -39,10 +39,11 @@ public class ReportController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @PostMapping("/blinddate")
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> createBlindDateReport(@RequestBody @Valid CreateBlindDateReportRequest request) {
-        reportService.createBlindDateReport(request);
+    @PostMapping("/message")
+    @Secured(RoleType.ADMIN_ROLE)
+    public ResponseEntity<Void> createServerMessageReport(
+            @RequestBody @Valid CreateServerMessageReportRequest request) {
+        reportService.createServerMessageReport(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 

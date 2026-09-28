@@ -6,6 +6,6 @@ import org.springframework.http.HttpStatus;
 public class UnsupportedReportTypeException extends CustomException {
 
     public UnsupportedReportTypeException() {
-        super("채팅 메시지 신고는 전용 API를 사용해야 합니다.", HttpStatus.BAD_REQUEST);
+        super("이 API에서 지원하지 않는 신고 유형입니다.", HttpStatus.BAD_REQUEST);
     }
 }

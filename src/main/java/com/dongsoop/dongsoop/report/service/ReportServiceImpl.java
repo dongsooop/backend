@@ -13,12 +13,14 @@ import com.dongsoop.dongsoop.recruitment.board.study.entity.StudyBoard;
 import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.entity.TutoringBoard;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoardRepository;
-import com.dongsoop.dongsoop.report.dto.CreateBlindDateReportRequest;
 import com.dongsoop.dongsoop.report.dto.CreateChatReportRequest;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
+import com.dongsoop.dongsoop.report.dto.CreateServerMessageReportRequest;
 import com.dongsoop.dongsoop.report.dto.MessageReportDraft;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
+import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshot;
+import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshots;
 import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
 import com.dongsoop.dongsoop.report.entity.ReportReason;
@@ -28,6 +30,7 @@ import com.dongsoop.dongsoop.report.entity.SanctionType;
 import com.dongsoop.dongsoop.report.exception.DuplicateReportException;
 import com.dongsoop.dongsoop.report.exception.ReportNotFoundException;
 import com.dongsoop.dongsoop.report.exception.ReportTargetNotFoundException;
+import com.dongsoop.dongsoop.report.exception.SelfReportException;
 import com.dongsoop.dongsoop.report.exception.SanctionTargetMismatchException;
 import com.dongsoop.dongsoop.report.exception.UnsupportedReportTypeException;
 import com.dongsoop.dongsoop.report.exception.UnsupportedSanctionTypeException;
@@ -56,6 +59,8 @@ public class ReportServiceImpl implements ReportService {
     private static final Set<String> DUPLICATE_REPORT_CONSTRAINT_NAMES =
             Set.of("uk_report_reporter_message", "uk_report_blinddate_reporter_target");
 
+    private static final int SERVER_MESSAGE_CONTEXT_SIZE = 10;
+
     private final ReportRepository reportRepository;
     private final MemberRepository memberRepository;
     private final MemberService memberService;
@@ -64,7 +69,6 @@ public class ReportServiceImpl implements ReportService {
     private final SanctionExecutor sanctionExecutor;
     private final SanctionRepository sanctionRepository;
     private final ChatReportTargetResolver chatReportTargetResolver;
-    private final BlindDateReportTargetResolver blindDateReportTargetResolver;
 
     private final ProjectBoardRepository projectBoardRepository;
     private final StudyBoardRepository studyBoardRepository;
@@ -91,15 +95,40 @@ public class ReportServiceImpl implements ReportService {
     public void createChatReport(CreateChatReportRequest request) {
         Long reporterId = memberService.getMemberIdByAuthentication();
         MessageReportDraft draft = chatReportTargetResolver.resolve(reporterId, request);
-        createMessageReport(reporterId, draft, request.reason(), request.description());
+        createMessageReport(memberRepository.getReferenceById(reporterId), draft, request.reason(),
+                request.description());
     }
 
     @Override
     @Transactional
-    public void createBlindDateReport(CreateBlindDateReportRequest request) {
-        Long reporterId = memberService.getMemberIdByAuthentication();
-        MessageReportDraft draft = blindDateReportTargetResolver.resolve(reporterId, request);
-        createMessageReport(reporterId, draft, request.reason(), request.description());
+    public void createServerMessageReport(CreateServerMessageReportRequest request) {
+        if (request.reportType() != ReportType.BLINDDATE_MESSAGE) {
+            throw new UnsupportedReportTypeException();
+        }
+
+        if (request.reporterId().equals(request.targetMemberId())) {
+            throw new SelfReportException();
+        }
+
+        Member reporter = findMemberById(request.reporterId());
+        Member targetMember = findMemberById(request.targetMemberId());
+        createMessageReport(reporter, toBlindDateDraft(request, targetMember), request.reason(),
+                request.description());
+    }
+
+    private static MessageReportDraft toBlindDateDraft(CreateServerMessageReportRequest request,
+                                                       Member targetMember) {
+        List<CreateServerMessageReportRequest.ContextMessage> context =
+                request.context() == null ? List.of() : request.context();
+        List<ChatMessageSnapshot> snapshots = context
+                .subList(Math.max(0, context.size() - SERVER_MESSAGE_CONTEXT_SIZE), context.size()).stream()
+                .map(message -> ChatMessageSnapshot.of(message.senderId(), message.content(), message.sentAt()))
+                .toList();
+
+        return new MessageReportDraft(ReportType.BLINDDATE_MESSAGE, request.roomId(),
+                "/blinddate/session/" + request.roomId(), targetMember, request.messageId(),
+                ChatMessageSnapshot.truncate(request.messageContent()), request.messageSentAt(),
+                new ChatMessageSnapshots(snapshots));
     }
 
     @Override
@@ -131,14 +160,13 @@ public class ReportServiceImpl implements ReportService {
         return reportRepository.findDetailedReportsByFilter(filterType, pageable);
     }
 
-    private void createMessageReport(Long reporterId, MessageReportDraft draft, ReportReason reason,
+    private void createMessageReport(Member reporter, MessageReportDraft draft, ReportReason reason,
                                      String description) {
-        if (isDuplicateMessageReport(reporterId, draft)) {
+        if (isDuplicateMessageReport(reporter.getId(), draft)) {
             throw new DuplicateReportException();
         }
 
-        saveMessageReport(Report.messageReport(memberRepository.getReferenceById(reporterId), draft, reason,
-                description));
+        saveMessageReport(Report.messageReport(reporter, draft, reason, description));
     }
 
     private boolean isDuplicateMessageReport(Long reporterId, MessageReportDraft draft) {

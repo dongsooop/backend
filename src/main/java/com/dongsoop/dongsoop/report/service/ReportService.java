@@ -1,8 +1,8 @@
 package com.dongsoop.dongsoop.report.service;
 
-import com.dongsoop.dongsoop.report.dto.CreateBlindDateReportRequest;
 import com.dongsoop.dongsoop.report.dto.CreateChatReportRequest;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
+import com.dongsoop.dongsoop.report.dto.CreateServerMessageReportRequest;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
@@ -16,7 +16,7 @@ public interface ReportService {
 
     void createChatReport(CreateChatReportRequest request);
 
-    void createBlindDateReport(CreateBlindDateReportRequest request);
+    void createServerMessageReport(CreateServerMessageReportRequest request);
 
     void processSanction(ProcessSanctionRequest request);
 
