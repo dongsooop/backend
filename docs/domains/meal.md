@@ -49,7 +49,7 @@ MealParser: 날짜 범위 + 한식/단품 5일치 + 공지사항
 meal 테이블: 해당 주 삭제 후 저장 / meal_notice 테이블: 주 단위 덮어쓰기
   ↓
 GET /meal/current → 월~금 한식·단품 + notice
-GET /meal/prices  → application.yml 의 meal.prices
+GET /meal/prices  → meal-prices.yml 의 meal.prices
 ```
 
 ## Domain Rules
@@ -57,7 +57,7 @@ GET /meal/prices  → application.yml 의 meal.prices
 - 식단은 월~금 5일, 타입마다 한 줄씩 항상 채운다. 페이지에 없거나 `-` 이면 "식단 정보 없음".
 - 파서는 "단품 메뉴" 행을 먼저 찾고 없으면 "별미 메뉴" 행을 받는다. 학교가 표기를 되돌려도 동작해야 한다.
 - 공지는 그 주 페이지에 없으면 저장된 것도 지운다. 학교가 공지를 내렸는데 앱에 남아 있으면 안 된다.
-- 가격표 값은 `application.yml` 의 `meal.prices` 가 유일한 원본이다. `days` 가 비어 있으면 매일 판매, 값이 있으면 그 요일에만 판다(월~금 한글 한 글자, 식단 응답의 요일 표기와 같다).
+- 가격표 값은 `src/main/resources/meal-prices.yml` 의 `meal.prices` 가 유일한 원본이다. `days` 가 비어 있으면 매일 판매, 값이 있으면 그 요일에만 판다(월~금 한글 한 글자, 식단 응답의 요일 표기와 같다).
 
 ## Decisions
 
@@ -65,11 +65,13 @@ GET /meal/prices  → application.yml 의 meal.prices
 
 #### 선택
 
-`application.yml` 의 `meal.prices` 에 분류·메뉴·가격·곱빼기 가격·판매 요일을 적고, `@ConfigurationProperties` 로 바인딩해 `GET /meal/prices` 로 내려준다. 응답은 하루 캐시.
+`meal-prices.yml` 의 `meal.prices` 에 분류·메뉴·가격·곱빼기 가격·판매 요일을 적고, `@ConfigurationProperties` 로 바인딩해 `GET /meal/prices` 로 내려준다. 응답은 하루 캐시.
 
 #### 이유
 
 학교 페이지에 가격이 없어 크롤링할 수 없고, 값은 학기에 한 번 바뀔까 말까 한 정보다. 관리자 API·테이블·화면을 만드는 비용보다 값 바꾸고 재배포하는 편이 싸다.
+
+`application.yml` 은 서버 동작 설정을 두는 곳이라, 메뉴 데이터가 섞이지 않도록 가격표만 `meal-prices.yml` 로 분리하고 `spring.config.import` 로 읽는다.
 
 #### 영향 / Trade-offs
 
