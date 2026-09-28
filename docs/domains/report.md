@@ -148,7 +148,7 @@ POST /reports/blinddate { messageId, reason, description }
 
 #### 선택
 
-`report_report_type_check`, `sanction_sanction_type_check` 제약을 `src/main/resources/migration/chat_report.sql`에서 `DROP CONSTRAINT IF EXISTS`로 제거한다. 새 컬럼은 `ADD COLUMN IF NOT EXISTS`로 추가하고, `is_auto_reviewed`에는 `DEFAULT FALSE`를 둔다.
+`report_report_type_check`, `sanction_sanction_type_check` 제약을 `src/main/resources/migration/417_chat_report.sql`에서 `DROP CONSTRAINT IF EXISTS`로 제거한다. 새 컬럼은 `ADD COLUMN IF NOT EXISTS`로 추가하고, `is_auto_reviewed`에는 `DEFAULT FALSE`를 둔다.
 
 #### 이유
 

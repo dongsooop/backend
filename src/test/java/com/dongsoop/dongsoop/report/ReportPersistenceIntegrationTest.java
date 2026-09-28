@@ -110,7 +110,7 @@ class ReportPersistenceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @Sql(scripts = "classpath:migration/chat_report.sql")
+    @Sql(scripts = "classpath:migration/417_chat_report.sql")
     @DisplayName("채팅 신고 마이그레이션이 Postgres에서 실행되고 채팅 신고가 저장된다")
     void chatReportMigration_RunsAndChatReportPersists() {
         Member reporter = saveMember("rep3");
@@ -201,7 +201,7 @@ class ReportPersistenceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @Sql(scripts = {"classpath:migration/chat_report.sql", "classpath:migration/blinddate_report.sql"})
+    @Sql(scripts = {"classpath:migration/417_chat_report.sql", "classpath:migration/417_blinddate_report.sql"})
     @DisplayName("과팅 신고 마이그레이션이 Postgres에서 실행되고 과팅 신고가 저장된다")
     void blindDateReportMigration_RunsAndReportPersists() {
         Member reporter = saveMember("rep6");
@@ -224,7 +224,7 @@ class ReportPersistenceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @Sql(scripts = {"classpath:migration/chat_report.sql", "classpath:migration/blinddate_report.sql"})
+    @Sql(scripts = {"classpath:migration/417_chat_report.sql", "classpath:migration/417_blinddate_report.sql"})
     @DisplayName("같은 메시지를 두 번 신고하면 채팅 신고 유니크 인덱스가 실제 Postgres에서 막는다")
     void chatReportUniqueIndex_BlocksDuplicateInPostgres() {
         Member reporter = saveMember("rep7");
@@ -260,7 +260,7 @@ class ReportPersistenceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @Sql(scripts = {"classpath:migration/chat_report.sql", "classpath:migration/blinddate_report.sql"})
+    @Sql(scripts = {"classpath:migration/417_chat_report.sql", "classpath:migration/417_blinddate_report.sql"})
     @DisplayName("같은 세션·같은 상대의 과팅 신고는 유니크 인덱스가 막지만, 채팅 타입은 걸리지 않는다")
     void blindDateReportUniqueIndex_BlocksDuplicateButNotChatType() {
         Member reporter = saveMember("rep8");
