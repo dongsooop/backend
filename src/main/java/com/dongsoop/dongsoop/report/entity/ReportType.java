@@ -8,8 +8,13 @@ public enum ReportType {
     STUDY_BOARD,
     MARKETPLACE_BOARD,
     TUTORING_BOARD,
-    MEMBER;
+    MEMBER,
+    CHAT_MESSAGE;
 
     public static final Set<ReportType> BOARD_TYPES =
             EnumSet.of(PROJECT_BOARD, STUDY_BOARD, MARKETPLACE_BOARD, TUTORING_BOARD);
+
+    public boolean isMessageReport() {
+        return this == CHAT_MESSAGE;
+    }
 }

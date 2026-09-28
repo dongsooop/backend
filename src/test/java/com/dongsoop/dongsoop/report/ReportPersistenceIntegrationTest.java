@@ -23,8 +23,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.jdbc.Sql;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
@@ -42,6 +44,8 @@ class ReportPersistenceIntegrationTest extends AbstractIntegrationTest {
     private ReportService reportService;
     @Autowired
     private EntityManager entityManager;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
     @MockitoBean
     private MemberService memberService;
 
@@ -97,5 +101,29 @@ class ReportPersistenceIntegrationTest extends AbstractIntegrationTest {
         Sanction saved = sanctionRepository.findActiveSanctionsByMemberId(target.getId()).get(0);
         assertThat(saved.getEndDate()).isEqualTo(SanctionType.PERMANENT_END_DATE);
         assertThat(saved.getReport().getId()).isEqualTo(report.getId());
+    }
+
+    @Test
+    @Sql(scripts = "classpath:migration/chat_report.sql")
+    @DisplayName("채팅 신고 마이그레이션이 Postgres에서 실행되고 채팅 신고가 저장된다")
+    void chatReportMigration_RunsAndChatReportPersists() {
+        Member reporter = saveMember("rep3");
+        Member target = saveMember("tgt3");
+        reportRepository.save(Report.builder()
+                .reporter(reporter)
+                .reportType(ReportType.CHAT_MESSAGE)
+                .targetId(target.getId())
+                .targetMember(target)
+                .reportReason(ReportReason.HATE_SPEECH)
+                .targetUrl("/chat/room/room1")
+                .chatRoomId("room1")
+                .messageId("msg1")
+                .messageContent("욕설")
+                .build());
+        entityManager.flush();
+
+        Integer checkConstraints = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM pg_constraint WHERE conname = 'report_report_type_check'", Integer.class);
+        assertThat(checkConstraints).isZero();
     }
 }

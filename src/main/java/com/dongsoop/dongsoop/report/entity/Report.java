@@ -4,10 +4,12 @@ import com.dongsoop.dongsoop.common.BaseEntity;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.report.exception.SanctionAlreadyExistsException;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Getter
@@ -61,6 +63,28 @@ public class Report extends BaseEntity {
     @Builder.Default
     private Boolean isSanctionActive = false;
 
+    @Column(name = "chat_room_id", length = 64)
+    private String chatRoomId;
+
+    @Column(name = "message_id", length = 64)
+    private String messageId;
+
+    @Column(name = "message_content", length = 1000)
+    private String messageContent;
+
+    @Column(name = "message_sent_at")
+    private LocalDateTime messageSentAt;
+
+    @Convert(converter = ChatMessageSnapshotsConverter.class)
+    @Column(name = "message_context", columnDefinition = "text")
+    private ChatMessageSnapshots messageContext;
+
+    // 기존 행이 있는 운영 테이블에 ddl-auto가 NOT NULL 컬럼을 추가하려면 기본값이 필요하다
+    @Column(name = "is_auto_reviewed", nullable = false)
+    @ColumnDefault("false")
+    @Builder.Default
+    private Boolean isAutoReviewed = false;
+
     public void processSanction(Member admin, Member targetMember, Sanction sanction) {
         if (this.isProcessed) {
             throw new SanctionAlreadyExistsException(this.id);
@@ -74,5 +98,9 @@ public class Report extends BaseEntity {
 
     public void markAsProcessedWithoutSanction() {
         this.isProcessed = true;
+    }
+
+    public void markAutoReviewed() {
+        this.isAutoReviewed = true;
     }
 }
