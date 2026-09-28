@@ -35,6 +35,7 @@ class ReportEntityTest {
     @DisplayName("메시지 신고 타입만 isMessageReport가 참이다")
     void isMessageReport() {
         assertThat(ReportType.CHAT_MESSAGE.isMessageReport()).isTrue();
+        assertThat(ReportType.BLINDDATE_MESSAGE.isMessageReport()).isTrue();
         assertThat(ReportType.PROJECT_BOARD.isMessageReport()).isFalse();
         assertThat(ReportType.MEMBER.isMessageReport()).isFalse();
     }

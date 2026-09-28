@@ -181,4 +181,27 @@ class ReportPersistenceIntegrationTest extends AbstractIntegrationTest {
                     .containsExactly("앞말");
         });
     }
+
+    @Test
+    @Sql(scripts = {"classpath:migration/chat_report.sql", "classpath:migration/blinddate_report.sql"})
+    @DisplayName("과팅 신고 마이그레이션이 Postgres에서 실행되고 과팅 신고가 저장된다")
+    void blindDateReportMigration_RunsAndReportPersists() {
+        Member reporter = saveMember("rep6");
+        Member target = saveMember("tgt6");
+        reportRepository.save(Report.builder()
+                .reporter(reporter)
+                .reportType(ReportType.BLINDDATE_MESSAGE)
+                .targetId(target.getId())
+                .targetMember(target)
+                .reportReason(ReportReason.INAPPROPRIATE_CONTENT)
+                .targetUrl("/blinddate/session/s6")
+                .chatRoomId("s6")
+                .messageId("m6")
+                .messageContent("무례한 말")
+                .build());
+        entityManager.flush();
+
+        assertThat(reportRepository.existsByReporterIdAndReportTypeAndChatRoomIdAndTargetMemberId(
+                reporter.getId(), ReportType.BLINDDATE_MESSAGE, "s6", target.getId())).isTrue();
+    }
 }

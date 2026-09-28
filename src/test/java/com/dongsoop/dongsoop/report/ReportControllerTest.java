@@ -6,6 +6,7 @@ import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import com.dongsoop.dongsoop.report.controller.ReportController;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
+import com.dongsoop.dongsoop.report.service.BlindDateReportService;
 import com.dongsoop.dongsoop.report.service.ChatReportService;
 import com.dongsoop.dongsoop.report.service.ReportService;
 import org.junit.jupiter.api.DisplayName;
@@ -39,6 +40,9 @@ class ReportControllerTest {
 
     @MockitoBean
     private ChatReportService chatReportService;
+
+    @MockitoBean
+    private BlindDateReportService blindDateReportService;
 
     @MockitoBean
     private JwtFilter jwtFilter;
@@ -119,6 +123,19 @@ class ReportControllerTest {
                                 { "roomId": "room1", "reason": "HATE_SPEECH" }
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("과팅 신고 요청은 201을 반환한다")
+    void createBlindDateReport_ReturnsCreated() throws Exception {
+        mockMvc.perform(post("/reports/blinddate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "messageId": "m1", "reason": "INAPPROPRIATE_CONTENT" }
+                                """))
+                .andExpect(status().isCreated());
+
+        verify(blindDateReportService).createReport(any());
     }
 
     @Test

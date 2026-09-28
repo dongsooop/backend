@@ -1,10 +1,12 @@
 package com.dongsoop.dongsoop.report.controller;
 
+import com.dongsoop.dongsoop.report.dto.CreateBlindDateReportRequest;
 import com.dongsoop.dongsoop.report.dto.CreateChatReportRequest;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
+import com.dongsoop.dongsoop.report.service.BlindDateReportService;
 import com.dongsoop.dongsoop.report.service.ChatReportService;
 import com.dongsoop.dongsoop.report.service.ReportService;
 import com.dongsoop.dongsoop.role.entity.RoleType;
@@ -25,6 +27,7 @@ public class ReportController {
 
     private final ReportService reportService;
     private final ChatReportService chatReportService;
+    private final BlindDateReportService blindDateReportService;
 
     @PostMapping
     @Secured(RoleType.USER_ROLE)
@@ -37,6 +40,13 @@ public class ReportController {
     @Secured(RoleType.USER_ROLE)
     public ResponseEntity<Void> createChatReport(@RequestBody @Valid CreateChatReportRequest request) {
         chatReportService.createReport(request);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PostMapping("/blinddate")
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<Void> createBlindDateReport(@RequestBody @Valid CreateBlindDateReportRequest request) {
+        blindDateReportService.createReport(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
