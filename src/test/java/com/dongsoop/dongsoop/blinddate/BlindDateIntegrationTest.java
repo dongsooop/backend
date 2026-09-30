@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.blinddate.dto.StartBlindDateRequest;
@@ -43,6 +45,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -183,6 +186,24 @@ class BlindDateIntegrationTest {
             ParticipantInfo participant = participantStorage.getByMemberId(1L);
             assertThat(participant).isNotNull();
             assertThat(participant.getAnonymousName()).isEqualTo("익명1");
+        }
+
+        @Test
+        @DisplayName("입장 응답에 세션 정원을 포함한다")
+        void joinResponse_IncludesMaxCount() {
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+
+            connectHandler.execute("socket-1", 1L, new HashMap<>());
+            eventQueue.awaitIdle();
+
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<Map<String, Object>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
+            verify(messagingTemplate).convertAndSendToUser(
+                    eq("1"),
+                    eq("/queue/blinddate/join"),
+                    payloadCaptor.capture()
+            );
+            assertThat(payloadCaptor.getValue().get("maxCount")).isEqualTo(5);
         }
 
         @Test

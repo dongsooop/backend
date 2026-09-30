@@ -230,7 +230,8 @@ public class BlindDateConnectHandler {
                 "name", participantInfo.getAnonymousName(),
                 "sessionId", joinResult.sessionId(),
                 "state", "WAITING",
-                "volunteer", joinResult.currentCount()
+                "volunteer", joinResult.currentCount(),
+                "maxCount", joinResult.maxCount()
         );
 
         String destination = "/queue/blinddate/join";
