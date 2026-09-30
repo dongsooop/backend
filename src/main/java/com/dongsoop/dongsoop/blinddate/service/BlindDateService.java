@@ -10,5 +10,5 @@ public interface BlindDateService {
 
     void broadcastJoinedCount(String sessionId, int count);
 
-    void resetBlindDate();
+    void closeSession(String sessionId);
 }
