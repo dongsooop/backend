@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -55,5 +56,15 @@ public class BlindDateController {
         blindDateService.startBlindDate(request);
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    /**
+     * 특정 과팅 세션 강제 종료(관리자 전용): 세션을 없애고 참가자가 다시 입장할 수 있게 한다
+     */
+    @Secured(RoleType.ADMIN_ROLE)
+    @PostMapping("/reset")
+    public ResponseEntity<Void> resetSession(@RequestParam String sessionId) {
+        blindDateService.closeSession(sessionId);
+        return ResponseEntity.noContent().build();
     }
 }

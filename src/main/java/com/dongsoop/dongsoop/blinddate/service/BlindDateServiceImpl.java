@@ -2,6 +2,8 @@ package com.dongsoop.dongsoop.blinddate.service;
 
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
 import com.dongsoop.dongsoop.blinddate.dto.StartBlindDateRequest;
+import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
+import com.dongsoop.dongsoop.blinddate.exception.BlindDateSessionNotFoundException;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
@@ -92,6 +94,41 @@ public class BlindDateServiceImpl implements BlindDateService {
             // TaskScheduler 정리
             taskScheduler.cleanupAllSessions();
         }, BLINDDATE_CLOSE_DELAY);
+    }
+
+    /**
+     * 특정 세션 강제 종료: 세션을 없애고 참가자 기록을 지워 다시 입장할 수 있게 한 뒤, 참가자에게 종료를 알린다.
+     * <p>
+     * 대기 중인 세션이면 포인터도 비워 새 입장자가 종료된 세션에 배정되지 않게 한다.
+     */
+    @Override
+    public void closeSession(String sessionId) {
+        if (sessionStorage.getState(sessionId) == null) {
+            throw new BlindDateSessionNotFoundException();
+        }
+
+        eventQueue.submit(() -> {
+            if (sessionId.equals(blindDateStorage.getPointer())) {
+                blindDateStorage.setPointer(null);
+            }
+            sessionStorage.terminate(sessionId);
+
+            for (ParticipantInfo participant : participantStorage.findAllBySessionId(sessionId)) {
+                participantStorage.removeParticipant(participant.getMemberId());
+                sendSessionTerminated(participant.getMemberId());
+            }
+
+            log.info("[BlindDate] session closed by admin: sessionId={}", sessionId);
+        });
+    }
+
+    private void sendSessionTerminated(Long memberId) {
+        try {
+            messagingTemplate.convertAndSendToUser(memberId.toString(), "/queue/blinddate/join",
+                    Map.of("state", "TERMINATED"));
+        } catch (Exception e) {
+            log.error("Failed to send SESSION_TERMINATED event: memberId={}", memberId, e);
+        }
     }
 
     /**

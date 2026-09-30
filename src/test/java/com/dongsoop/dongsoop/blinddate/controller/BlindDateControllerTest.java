@@ -119,4 +119,18 @@ class BlindDateControllerTest {
             verify(blindDateService).startBlindDate(request);
         }
     }
+
+    @Nested
+    @DisplayName("POST /blinddate/reset - 특정 세션 강제 종료")
+    class ResetSessionTest {
+
+        @Test
+        @DisplayName("지정한 세션을 닫고 204를 반환한다")
+        void resetSession_ReturnsNoContent() {
+            ResponseEntity<Void> response = controller.resetSession("session-1");
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+            verify(blindDateService).closeSession("session-1");
+        }
+    }
 }
