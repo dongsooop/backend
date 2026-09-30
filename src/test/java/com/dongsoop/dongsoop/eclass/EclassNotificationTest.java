@@ -94,6 +94,14 @@ class EclassNotificationTest {
     }
 
     @Test
+    @DisplayName("새 과제 알림은 과목명과 함께 새로 올라왔다고 쓴다")
+    void newAssignmentTitle() {
+        eclassNotification.sendNewAssignment(link, new EclassAssignment(link, 1L, 9101L, "자료구조", "과제", DUE_AT, DUE_AT));
+
+        assertThat(sentMessage().title()).isEqualTo("[자료구조] 새 과제가 올라왔어요");
+    }
+
+    @Test
     @DisplayName("만료 안내는 과제 알림 설정을 보지 않고 보낸다")
     void expiredNoticeIgnoresSetting() {
         eclassNotification.sendExpiredNotice(link);

@@ -64,6 +64,14 @@ public class EclassNotificationImpl implements EclassNotification {
     }
 
     @Override
+    public void sendNewAssignment(EclassLink link, EclassAssignment assignment) {
+        // sendDueDateChanged 와 같은 이유로 호출자가 들고 있는 링크를 받는다
+        String title = String.format("[%s] 새 과제가 올라왔어요", shorten(assignment.getCourseName()));
+
+        sendAssignment(link.getDevice(), title, assignment);
+    }
+
+    @Override
     public void sendRelinkSilent(EclassLink link) {
         String deviceToken = link.getDevice()
                 .getDeviceToken();

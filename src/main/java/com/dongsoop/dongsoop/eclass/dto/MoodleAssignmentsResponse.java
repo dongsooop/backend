@@ -14,7 +14,7 @@ public record MoodleAssignmentsResponse(
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Assignment(long id, long cmid, String name, long duedate, long cutoffdate) {
+    public record Assignment(long id, long cmid, String name, long duedate, long cutoffdate, long timemodified) {
     }
 
     public List<MoodleAssignment> flatten() {
@@ -26,7 +26,8 @@ public record MoodleAssignmentsResponse(
                 .filter(course -> course.assignments() != null)
                 .flatMap(course -> course.assignments().stream()
                         .map(assignment -> new MoodleAssignment(assignment.id(), assignment.cmid(),
-                                course.fullname(), assignment.name(), assignment.duedate(), assignment.cutoffdate())))
+                                course.fullname(), assignment.name(), assignment.duedate(), assignment.cutoffdate(),
+                                assignment.timemodified())))
                 .toList();
     }
 }

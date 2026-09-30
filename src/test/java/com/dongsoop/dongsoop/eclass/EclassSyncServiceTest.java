@@ -103,8 +103,13 @@ class EclassSyncServiceTest {
     }
 
     private MoodleAssignment moodleAssignment(long assignId, LocalDateTime dueAt) {
+        return moodleAssignment(assignId, dueAt, LocalDateTime.of(2026, 3, 2, 9, 0));
+    }
+
+    private MoodleAssignment moodleAssignment(long assignId, LocalDateTime dueAt, LocalDateTime modifiedAt) {
         long epochSecond = dueAt.toInstant(ZoneOffset.ofHours(9)).getEpochSecond();
-        return new MoodleAssignment(assignId, 9000L + assignId, "자료구조", "과제 " + assignId, epochSecond, epochSecond);
+        return new MoodleAssignment(assignId, 9000L + assignId, "자료구조", "과제 " + assignId, epochSecond, epochSecond,
+                modifiedAt.toInstant(ZoneOffset.ofHours(9)).getEpochSecond());
     }
 
     private EclassAssignment existing(LocalDateTime dueAt) {
@@ -125,7 +130,7 @@ class EclassSyncServiceTest {
     @Test
     @DisplayName("수집 창 밖의 과제와 마감 없는 과제는 저장하지 않는다")
     void filtersOutOfWindow() {
-        MoodleAssignment noDueDate = new MoodleAssignment(500L, 9500L, "자바", "마감 없는 과제", 0L, 0L);
+        MoodleAssignment noDueDate = new MoodleAssignment(500L, 9500L, "자바", "마감 없는 과제", 0L, 0L, 0L);
         givenFetched(
                 noDueDate,
                 moodleAssignment(501L, NOW.minusDays(5)),
@@ -354,7 +359,7 @@ class EclassSyncServiceTest {
     void convertsEpochInSeoul() {
         long epochSecond = Instant.parse("2026-09-03T14:55:00Z").getEpochSecond();
         givenFetched(
-                new MoodleAssignment(701L, 9701L, "자료구조", "과제", epochSecond, 0L));
+                new MoodleAssignment(701L, 9701L, "자료구조", "과제", epochSecond, 0L, 0L));
         when(eclassClient.isSubmitted(anyString(), eq(701L))).thenReturn(false);
 
         syncService.syncLink(link);
@@ -427,6 +432,68 @@ class EclassSyncServiceTest {
     }
 
     @Test
+    @DisplayName("지난 수집 이후 이클래스에 올라온 과제는 새 과제 알림을 보낸다")
+    void notifiesNewlyPostedAssignment() {
+        link.markSynced(NOW.minusHours(6));
+        givenFetched(moodleAssignment(601L, NOW.plusDays(14), NOW.minusHours(2)));
+        givenSubmissionStatus(false);
+
+        syncService.syncLink(link);
+
+        verify(eclassNotification).sendNewAssignment(eq(link), any(EclassAssignment.class));
+    }
+
+    @Test
+    @DisplayName("연동 직후 첫 수집에서는 기존 과제를 새 과제로 알리지 않는다")
+    void doesNotNotifyNewAssignmentOnFirstSync() {
+        givenFetched(moodleAssignment(601L, NOW.plusDays(14), NOW.minusHours(2)));
+        givenSubmissionStatus(false);
+
+        syncService.syncLink(link, true);
+
+        verify(eclassNotification, never()).sendNewAssignment(any(), any());
+    }
+
+    @Test
+    @DisplayName("마감이 멀어 창 밖에 있던 과제가 창에 들어온 것은 새 과제가 아니다")
+    void doesNotNotifyAssignmentEnteringWindow() {
+        link.markSynced(NOW.minusHours(6));
+        givenFetched(moodleAssignment(601L, NOW.plusDays(30), NOW.minusDays(20)));
+        givenSubmissionStatus(false);
+
+        syncService.syncLink(link);
+
+        verify(eclassNotification, never()).sendNewAssignment(any(), any());
+    }
+
+    @Test
+    @DisplayName("이미 저장된 과제는 수정 시각이 바뀌어도 새 과제로 알리지 않는다")
+    void doesNotNotifyExistingAssignmentAsNew() {
+        link.markSynced(NOW.minusHours(6));
+        givenExisting(existing(NOW.plusDays(14)));
+        givenFetched(moodleAssignment(601L, NOW.plusDays(14), NOW.minusHours(2)));
+        givenSubmissionStatus(false);
+
+        syncService.syncLink(link);
+
+        verify(eclassNotification, never()).sendNewAssignment(any(), any());
+    }
+
+    @Test
+    @DisplayName("새 과제라도 이미 제출했거나 마감이 지났으면 알리지 않는다")
+    void doesNotNotifySubmittedOrOverdueNewAssignment() {
+        link.markSynced(NOW.minusHours(6));
+        givenFetched(moodleAssignment(601L, NOW.plusDays(2), NOW.minusHours(2)),
+                moodleAssignment(602L, NOW.minusHours(1), NOW.minusHours(2)));
+        when(eclassClient.isSubmitted("moodle-token", 601L)).thenReturn(true);
+        when(eclassClient.isSubmitted("moodle-token", 602L)).thenReturn(false);
+
+        syncService.syncLink(link);
+
+        verify(eclassNotification, never()).sendNewAssignment(any(), any());
+    }
+
+    @Test
     @DisplayName("선제 재발급 뒤 실제로 만료되면 재발급 타이머를 다시 잰다")
     void resetsRelinkTimerOnExpire() {
         ReflectionTestUtils.setField(link, "relinkRequestedAt", NOW.minusHours(30));
@@ -443,7 +510,7 @@ class EclassSyncServiceTest {
         String longText = "가".repeat(300);
         long epochSecond = NOW.plusDays(2).toInstant(ZoneOffset.ofHours(9)).getEpochSecond();
         givenFetched(
-                new MoodleAssignment(801L, 9801L, longText, longText, epochSecond, 0L));
+                new MoodleAssignment(801L, 9801L, longText, longText, epochSecond, 0L, 0L));
         givenSubmissionStatus(false);
 
         syncService.syncLink(link);
