@@ -119,4 +119,18 @@ class BlindDateControllerTest {
             verify(blindDateService).startBlindDate(request);
         }
     }
+
+    @Nested
+    @DisplayName("DELETE /blinddate/participants - 참가자 입장 기록 초기화")
+    class ResetParticipantsTest {
+
+        @Test
+        @DisplayName("초기화 요청 성공 - 204 NO CONTENT")
+        void resetParticipants_ReturnsNoContent() {
+            ResponseEntity<Void> response = controller.resetParticipants();
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+            verify(blindDateService).resetParticipants();
+        }
+    }
 }
