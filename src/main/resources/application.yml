@@ -23,7 +23,7 @@ eclass:
   connect-timeout-ms: 5000
   read-timeout-ms: 15000
   sync:
-    cron: "0 30 6,12,18 * * *"
+    cron: "0 30 6,10,14,18,22 * * *"
     window-past-days: 1
     window-future-days: 30
     # 제출 여부는 리마인드가 나가는 기간만 확인한다 — 마감이 먼 과제까지 매번 물으면
