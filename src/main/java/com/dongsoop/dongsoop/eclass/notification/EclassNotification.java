@@ -16,6 +16,11 @@ public interface EclassNotification {
     void sendDueDateChanged(EclassLink link, EclassAssignment assignment);
 
     /**
+     * 연동 이후 이클래스에 새로 올라온 과제를 알린다.
+     */
+    void sendNewAssignment(EclassLink link, EclassAssignment assignment);
+
+    /**
      * 앱이 보관한 계정으로 토큰을 재발급하도록 지시하는 무음 푸시. 사용자에게는 아무것도 보이지 않는다.
      */
     void sendRelinkSilent(EclassLink link);

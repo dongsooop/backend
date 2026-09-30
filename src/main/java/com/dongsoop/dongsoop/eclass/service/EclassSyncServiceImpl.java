@@ -95,6 +95,7 @@ public class EclassSyncServiceImpl implements EclassSyncService {
     @Override
     public SyncOutcome syncLink(EclassLink link, boolean checkAllSubmissions) {
         LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime previousSyncedAt = link.getLastSyncedAt();
         String token = eclassTokenEncryptor.decrypt(link.getTokenEncrypted());
 
         List<MoodleAssignment> fetched;
@@ -115,6 +116,7 @@ public class EclassSyncServiceImpl implements EclassSyncService {
 
         List<EclassAssignment> toSave = new ArrayList<>();
         List<EclassAssignment> dueDateAdvanced = new ArrayList<>();
+        List<EclassAssignment> newlyPosted = new ArrayList<>();
         try {
             for (MoodleAssignment fetchedAssignment : inWindow.values()) {
                 EclassAssignment existingAssignment = existing.get(fetchedAssignment.assignId());
@@ -124,6 +126,9 @@ public class EclassSyncServiceImpl implements EclassSyncService {
 
                 if (isDueDateAdvanced(previousDueAt, assignment)) {
                     dueDateAdvanced.add(assignment);
+                }
+                if (existingAssignment == null && isNewlyPosted(previousSyncedAt, fetchedAssignment)) {
+                    newlyPosted.add(assignment);
                 }
                 if (checkAllSubmissions || needsSubmissionCheck(assignment, now)) {
                     updateSubmission(token, assignment, now,
@@ -157,6 +162,10 @@ public class EclassSyncServiceImpl implements EclassSyncService {
                 // 이번 회차의 제출 조회에서 제출로 바뀐 과제는 알릴 이유가 없다
                 .filter(assignment -> !assignment.isSubmitted())
                 .forEach(assignment -> notifyDueDateAdvanced(link, assignment));
+        newlyPosted.stream()
+                .filter(assignment -> !assignment.isSubmitted())
+                .filter(assignment -> assignment.getDueAt().isAfter(now))
+                .forEach(assignment -> notifyNewAssignment(link, assignment));
 
         return SyncOutcome.SYNCED;
     }
@@ -313,6 +322,27 @@ public class EclassSyncServiceImpl implements EclassSyncService {
     private boolean isDueDateAdvanced(LocalDateTime previousDueAt, EclassAssignment merged) {
         return previousDueAt != null
                 && merged.getDueAt().isBefore(previousDueAt);
+    }
+
+    /**
+     * 처음 보는 과제가 지난 수집 이후 이클래스에 올라온 것인지 판단한다.
+     *
+     * <p>처음 보는 과제에는 새로 올라온 과제 말고도 두 부류가 섞인다. 연동 직후 첫 수집에서는 기존 과제가
+     * 전부 처음 보는 과제이고, 마감이 멀던 과제는 수집 창(앞으로 {@code window-future-days}일)에 들어오는 날
+     * 처음 보인다. 둘 다 새 과제가 아니므로, 수집에 성공한 적이 있고 이클래스의 수정 시각이 지난 수집
+     * 이후인 과제만 새 과제로 본다. 오래된 과제를 교수가 고친 날 창에 들어오면 새 과제로 잘못 알릴 수 있다.
+     */
+    private boolean isNewlyPosted(LocalDateTime previousSyncedAt, MoodleAssignment fetched) {
+        return previousSyncedAt != null
+                && !toLocalDateTime(fetched.timeModified()).isBefore(previousSyncedAt);
+    }
+
+    private void notifyNewAssignment(EclassLink link, EclassAssignment assignment) {
+        try {
+            eclassNotification.sendNewAssignment(link, assignment);
+        } catch (RuntimeException exception) {
+            log.warn("failed to send new assignment notice. assignId: {}", assignment.getAssignId(), exception);
+        }
     }
 
     private void notifyDueDateAdvanced(EclassLink link, EclassAssignment assignment) {
