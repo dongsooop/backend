@@ -180,13 +180,17 @@ public class WebSocketTestConfig implements WebSocketMessageBrokerConfigurer {
     @Primary
     public BlindDateChoiceHandler blindDateChoiceHandler(
             BlindDateParticipantStorage participantStorage,
+            BlindDateSessionStorage sessionStorage,
             SimpMessagingTemplate messagingTemplate,
-            ChatRoomService chatRoomService
+            ChatRoomService chatRoomService,
+            BlindDateEventQueue eventQueue
     ) {
         return new BlindDateChoiceHandler(
                 participantStorage,
+                sessionStorage,
                 messagingTemplate,
-                chatRoomService
+                chatRoomService,
+                eventQueue
         );
     }
 
