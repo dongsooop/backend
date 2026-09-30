@@ -9,4 +9,6 @@ public interface BlindDateService {
     void startBlindDate(StartBlindDateRequest request);
 
     void broadcastJoinedCount(String sessionId, int count);
+
+    void resetBlindDate();
 }

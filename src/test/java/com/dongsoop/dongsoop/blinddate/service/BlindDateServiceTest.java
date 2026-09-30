@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.blinddate.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -136,6 +138,31 @@ class BlindDateServiceTest {
                     BlindDateTopic.joined(sessionId),
                     Map.of("volunteer", count)
             );
+        }
+    }
+
+    @Nested
+    @DisplayName("과팅 초기화")
+    class ResetBlindDateTest {
+
+        @Test
+        @DisplayName("예약 작업을 취소하고 과팅을 닫은 뒤, 큐에서 세션·참가자 기록을 비운다")
+        void reset_cancelsTasksClosesAndClearsStorages() {
+            blindDateService.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 5));
+
+            blindDateService.resetBlindDate();
+
+            verify(taskScheduler).cleanupAllSessions();
+            assertThat(blindDateService.isAvailable()).isFalse();
+
+            ArgumentCaptor<Runnable> queued = ArgumentCaptor.forClass(Runnable.class);
+            verify(eventQueue).submit(queued.capture());
+            verify(sessionStorage, never()).clear();
+
+            queued.getValue().run();
+
+            verify(sessionStorage).clear();
+            verify(participantStorage).clear();
         }
     }
 }

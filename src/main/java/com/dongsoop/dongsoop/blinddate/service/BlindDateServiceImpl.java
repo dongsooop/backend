@@ -95,6 +95,24 @@ public class BlindDateServiceImpl implements BlindDateService {
     }
 
     /**
+     * 과팅 즉시 초기화: 예약된 종료·세션 작업을 모두 취소하고 운영 상태·세션·참가자 기록을 비운다.
+     * <p>
+     * 예약 작업을 먼저 취소해야 이전 회차의 자동 종료가 초기화 뒤 새로 연 과팅을 닫지 않는다.
+     */
+    @Override
+    public void resetBlindDate() {
+        taskScheduler.cleanupAllSessions();
+        blindDateStorage.close();
+
+        eventQueue.submit(() -> {
+            sessionStorage.clear();
+            participantStorage.clear();
+        });
+
+        log.info("[BlindDate] reset by admin");
+    }
+
+    /**
      * 사용자 입장 시 사용자 수 업데이트 소켓 이벤트 발행
      *
      * @param sessionId 대상 세션 id

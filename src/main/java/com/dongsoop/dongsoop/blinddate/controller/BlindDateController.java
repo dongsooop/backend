@@ -56,4 +56,14 @@ public class BlindDateController {
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
+
+    /**
+     * 과팅 초기화(관리자 전용): 진행 중인 세션과 참가자 기록을 모두 지우고 과팅을 닫는다
+     */
+    @Secured(RoleType.ADMIN_ROLE)
+    @PostMapping("/reset")
+    public ResponseEntity<Void> resetBlindDate() {
+        blindDateService.resetBlindDate();
+        return ResponseEntity.noContent().build();
+    }
 }

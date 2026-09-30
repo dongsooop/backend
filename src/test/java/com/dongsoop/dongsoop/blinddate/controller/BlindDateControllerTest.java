@@ -119,4 +119,18 @@ class BlindDateControllerTest {
             verify(blindDateService).startBlindDate(request);
         }
     }
+
+    @Nested
+    @DisplayName("POST /blinddate/reset - 과팅 초기화")
+    class ResetBlindDateTest {
+
+        @Test
+        @DisplayName("과팅을 초기화하고 204를 반환한다")
+        void resetBlindDate_ReturnsNoContent() {
+            ResponseEntity<Void> response = controller.resetBlindDate();
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+            verify(blindDateService).resetBlindDate();
+        }
+    }
 }

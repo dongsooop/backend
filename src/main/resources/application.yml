@@ -82,7 +82,8 @@ authentication:
       /notice/keywords,
       /notice/keywords/**
     admin:
-      /admin
+      /admin,
+      /blinddate/reset
   origins:
     http://localhost:3000,
     http://dongsoop.site,
