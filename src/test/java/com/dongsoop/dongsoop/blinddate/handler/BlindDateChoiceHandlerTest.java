@@ -5,11 +5,14 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,26 +31,38 @@ class BlindDateChoiceHandlerTest {
     @Mock
     private BlindDateParticipantStorage participantStorage;
     @Mock
+    private BlindDateSessionStorage sessionStorage;
+    @Mock
     private SimpMessagingTemplate messagingTemplate;
     @Mock
     private ChatRoomService chatRoomService;
 
+    private BlindDateEventQueue eventQueue;
     private BlindDateChoiceHandler handler;
 
     @BeforeEach
     void setUp() {
-        handler = new BlindDateChoiceHandler(participantStorage, messagingTemplate, chatRoomService);
+        eventQueue = new BlindDateEventQueue();
+        handler = new BlindDateChoiceHandler(
+                participantStorage, sessionStorage, messagingTemplate, chatRoomService, eventQueue);
+    }
+
+    @AfterEach
+    void tearDown() {
+        eventQueue.shutdown();
     }
 
     @Test
     @DisplayName("매칭 채팅방 제목은 KST 기준 yyyy-MM-dd 형식이다")
     void matchedChatRoom_UsesDateOnlyTitle() {
+        when(sessionStorage.isProcessing("session-1")).thenReturn(true);
         when(participantStorage.recordChoice("session-1", 1L, 2L)).thenReturn(true);
         when(chatRoomService.createOneToOneChatRoom(eq(1L), eq(2L),
                 org.mockito.ArgumentMatchers.anyString()))
                 .thenReturn(ChatRoom.builder().roomId("room-1").title("title").build());
 
         handler.execute("session-1", 1L, 2L);
+        eventQueue.awaitIdle();
 
         ArgumentCaptor<String> titleCaptor = ArgumentCaptor.forClass(String.class);
         verify(chatRoomService).createOneToOneChatRoom(eq(1L), eq(2L), titleCaptor.capture());
