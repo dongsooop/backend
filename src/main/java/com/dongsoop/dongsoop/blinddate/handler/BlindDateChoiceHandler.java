@@ -1,7 +1,9 @@
 package com.dongsoop.dongsoop.blinddate.handler;
 
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
+import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import java.time.LocalDate;
@@ -20,10 +22,22 @@ public class BlindDateChoiceHandler {
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final BlindDateParticipantStorage participantStorage;
+    private final BlindDateSessionStorage sessionStorage;
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatRoomService chatRoomService;
+    private final BlindDateEventQueue eventQueue;
 
     public void execute(String sessionId, Long choicerId, Long targetId) {
+        eventQueue.submit(() -> handle(sessionId, choicerId, targetId));
+    }
+
+    private void handle(String sessionId, Long choicerId, Long targetId) {
+        if (!sessionStorage.isProcessing(sessionId)) {
+            log.info("[BlindDate] Ignore choice for ended session: sessionId={}, choicerId={}",
+                    sessionId, choicerId);
+            return;
+        }
+
         // 선택 및 매칭 여부 확인
         boolean isMatched = participantStorage.recordChoice(sessionId, choicerId, targetId);
 
