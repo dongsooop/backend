@@ -143,10 +143,8 @@ class BlindDateIntegrationTest {
 
         choiceHandler = new BlindDateChoiceHandler(
                 participantStorage,
-                sessionStorage,
                 messagingTemplate,
-                chatRoomService,
-                eventQueue
+                chatRoomService
         );
     }
 
@@ -565,7 +563,6 @@ class BlindDateIntegrationTest {
             // when
             choiceHandler.execute(sessionId, 1L, 2L);
             choiceHandler.execute(sessionId, 2L, 1L);
-            eventQueue.awaitIdle();
 
             // then
             Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
@@ -589,30 +586,10 @@ class BlindDateIntegrationTest {
 
             // when
             choiceHandler.execute(sessionId, 1L, 2L);
-            eventQueue.awaitIdle();
 
             // then
             Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
             assertThat(notMatched).containsExactlyInAnyOrder(1L, 2L);
-
-            assertThat(participantStorage.isMatched(sessionId, 1L)).isFalse();
-            assertThat(participantStorage.isMatched(sessionId, 2L)).isFalse();
-        }
-
-        @Test
-        @DisplayName("세션 종료 후 도착한 선택은 매칭하지 않는다")
-        void choiceAfterTermination_IsIgnored() {
-            blindDateStorage.start(2, LocalDateTime.now().plusHours(1));
-            Map<String, Object> attr = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, attr);
-            connectHandler.execute("socket-2", 2L, attr);
-            eventQueue.awaitIdle();
-            String sessionId = (String) attr.get("sessionId");
-            sessionStorage.terminate(sessionId);
-
-            choiceHandler.execute(sessionId, 1L, 2L);
-            choiceHandler.execute(sessionId, 2L, 1L);
-            eventQueue.awaitIdle();
 
             assertThat(participantStorage.isMatched(sessionId, 1L)).isFalse();
             assertThat(participantStorage.isMatched(sessionId, 2L)).isFalse();
@@ -634,7 +611,6 @@ class BlindDateIntegrationTest {
             choiceHandler.execute(sessionId, 1L, 2L);
             choiceHandler.execute(sessionId, 2L, 3L);
             choiceHandler.execute(sessionId, 3L, 1L);
-            eventQueue.awaitIdle();
 
             // then
             Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
@@ -660,7 +636,6 @@ class BlindDateIntegrationTest {
             choiceHandler.execute(sessionId, 3L, 4L);
             choiceHandler.execute(sessionId, 4L, 3L);
             choiceHandler.execute(sessionId, 5L, 1L);
-            eventQueue.awaitIdle();
 
             // then
             Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
@@ -693,7 +668,6 @@ class BlindDateIntegrationTest {
             // 3. 사랑의 작대기 - 1↔2 매칭
             choiceHandler.execute(sessionId, 1L, 2L);
             choiceHandler.execute(sessionId, 2L, 1L);
-            eventQueue.awaitIdle();
 
             // 4. 매칭 결과 확인
             Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
