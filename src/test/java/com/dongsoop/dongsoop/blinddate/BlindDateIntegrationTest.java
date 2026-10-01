@@ -260,7 +260,7 @@ class BlindDateIntegrationTest {
         }
 
         @Test
-        @DisplayName("재연결 - 기존 세션 상태로 복귀, 인원 증가 안 함")
+        @DisplayName("진행 중 연결 해제 후 재접속 - 기존 세션 상태와 닉네임으로 복귀")
         void reconnect_ReturnsToExistingSession() {
             // given
             blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
@@ -268,9 +268,18 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-1", 1L, attr1);
             eventQueue.awaitIdle();
             String session1 = (String) attr1.get("sessionId");
+            String originalName = participantStorage.getByMemberId(1L).getAnonymousName();
             sessionStorage.start(session1);
 
-            // when - 같은 memberId로 재연결
+            disconnectHandler.execute("socket-1", 1L, session1);
+            eventQueue.awaitIdle();
+
+            ParticipantInfo disconnected = participantStorage.getByMemberId(1L);
+            assertThat(disconnected).isNotNull();
+            assertThat(disconnected.getAnonymousName()).isEqualTo(originalName);
+            assertThat(disconnected.getSocketIds()).isEmpty();
+
+            // when - 같은 memberId로 실제 재접속
             Map<String, Object> attr2 = new HashMap<>();
             connectHandler.execute("socket-2", 1L, attr2);
             eventQueue.awaitIdle();
@@ -279,6 +288,7 @@ class BlindDateIntegrationTest {
             // then
             assertThat(session2).isEqualTo(session1);
             assertThat(getParticipantCount(session1)).isEqualTo(1); // 인원 증가 안 함
+            assertThat(participantStorage.getByMemberId(1L).getAnonymousName()).isEqualTo(originalName);
 
             @SuppressWarnings("unchecked")
             ArgumentCaptor<Map<String, Object>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
@@ -287,7 +297,9 @@ class BlindDateIntegrationTest {
                     eq("/queue/blinddate/join"),
                     payloadCaptor.capture()
             );
-            assertThat(payloadCaptor.getAllValues().get(1).get("state")).isEqualTo("PROCESSING");
+            Map<String, Object> reconnectPayload = payloadCaptor.getAllValues().get(1);
+            assertThat(reconnectPayload.get("state")).isEqualTo("PROCESSING");
+            assertThat(reconnectPayload.get("name")).isEqualTo(originalName);
         }
 
         @Test

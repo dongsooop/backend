@@ -79,7 +79,7 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
     }
 
     /**
-     * 소켓 제거 (연결 해제) 모든 소켓이 제거되면 참여자도 제거
+     * 소켓 제거 (연결 해제). 참가자 제거 여부는 세션 상태를 아는 호출자가 결정한다.
      */
     public boolean removeSocket(String socketId) throws IllegalArgumentException {
         // socketId -> memberId 인덱스로 O(1) 조회
@@ -101,16 +101,7 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
         log.info("[BlindDate] Socket removed: memberId={}, socketId={}, remainingSockets={}",
                 participant.getMemberId(), socketId, participant.getSocketIds().size());
 
-        // 모든 소켓이 제거되면 참여자도 제거
-        if (participant.hasNoSockets()) {
-            participants.remove(participant.getMemberId());
-            log.info("Participant fully removed: memberId={}, sessionId={}",
-                    participant.getMemberId(), participant.getSessionId());
-
-            return true;
-        }
-
-        return false;
+        return participant.hasNoSockets();
     }
 
     /**

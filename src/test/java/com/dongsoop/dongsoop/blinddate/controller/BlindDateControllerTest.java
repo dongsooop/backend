@@ -5,6 +5,9 @@ import static org.mockito.BDDMockito.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.times;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dongsoop.dongsoop.blinddate.dto.StartBlindDateRequest;
 import com.dongsoop.dongsoop.blinddate.service.BlindDateService;
@@ -18,6 +21,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 /**
  * BlindDateController 단위 테스트
@@ -121,16 +126,20 @@ class BlindDateControllerTest {
     }
 
     @Nested
-    @DisplayName("DELETE /blinddate/participants - 참가자 입장 기록 초기화")
+    @DisplayName("POST/DELETE /blinddate/participants - 참가자 입장 기록 초기화")
     class ResetParticipantsTest {
 
         @Test
-        @DisplayName("초기화 요청 성공 - 204 NO CONTENT")
-        void resetParticipants_ReturnsNoContent() {
-            ResponseEntity<Void> response = controller.resetParticipants();
+        @DisplayName("POST와 DELETE 모두 204 NO CONTENT")
+        void resetParticipants_SupportsPostAndDelete() throws Exception {
+            MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
-            verify(blindDateService).resetParticipants();
+            mockMvc.perform(post("/blinddate/participants"))
+                    .andExpect(status().isNoContent());
+            mockMvc.perform(delete("/blinddate/participants"))
+                    .andExpect(status().isNoContent());
+
+            verify(blindDateService, times(2)).resetParticipants();
         }
     }
 }

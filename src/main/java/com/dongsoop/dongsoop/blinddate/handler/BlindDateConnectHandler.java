@@ -64,16 +64,7 @@ public class BlindDateConnectHandler {
 
         if (existingSessionId != null) {
             sessionAttributes.put("sessionId", existingSessionId);
-            ParticipantInfo participant = participantStorage.getByMemberId(memberId);
-            int currentCount = participantStorage.findAllBySessionId(existingSessionId).size();
-            int maxCount = blindDateStorage.getMaxSessionMemberCount();
-            BlindDateJoinResult joinResult = new BlindDateJoinResult(
-                    participant,
-                    existingSessionId,
-                    currentCount,
-                    maxCount
-            );
-            sendJoinEvent(joinResult, sessionStorage.getState(existingSessionId));
+            sendJoinEvent(createJoinResult(existingSessionId, memberId));
             return;
         }
 
@@ -145,7 +136,7 @@ public class BlindDateConnectHandler {
             BlindDateJoinResult joinResult = new BlindDateJoinResult(participant, sessionId, currentCount, maxCount);
 
             // 입장한 사용자에게 정보 전달
-            sendJoinEvent(joinResult, SessionState.WAITING);
+            sendJoinEvent(joinResult);
 
             return joinResult;
         } catch (Exception e) {
@@ -198,6 +189,13 @@ public class BlindDateConnectHandler {
         return existingSessionId;
     }
 
+    private BlindDateJoinResult createJoinResult(String sessionId, Long memberId) {
+        ParticipantInfo participant = participantStorage.getByMemberId(memberId);
+        int currentCount = participantStorage.findAllBySessionId(sessionId).size();
+        int maxCount = blindDateStorage.getMaxSessionMemberCount();
+        return new BlindDateJoinResult(participant, sessionId, currentCount, maxCount);
+    }
+
     /**
      * 세션 할당 (큐에서 순서대로 처리되어 동시성 보장)
      *
@@ -234,10 +232,13 @@ public class BlindDateConnectHandler {
      * 입장 이벤트 전송
      *
      * @param joinResult 입장 결과 (참여 정보, 참여자 수, 세션 id, 최대 수용 인원)
-     * @param state      현재 세션 상태
      */
-    private void sendJoinEvent(BlindDateJoinResult joinResult, SessionState state) {
+    private void sendJoinEvent(BlindDateJoinResult joinResult) {
         ParticipantInfo participantInfo = joinResult.participantInfo();
+        SessionState state = sessionStorage.getState(joinResult.sessionId());
+        if (state == null) {
+            throw new SessionTerminatedException();
+        }
         Map<String, Object> event = Map.of(
                 "name", participantInfo.getAnonymousName(),
                 "sessionId", joinResult.sessionId(),

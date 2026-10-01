@@ -45,8 +45,7 @@ public class BlindDateDisconnectHandler {
 
     private boolean removeSocketByParticipantInfo(String socketId, Long memberId) {
         try {
-            // 소켓만 제거 (모든 소켓이 제거되면 자동으로 참여자도 제거됨)
-            // 제거 후 모든 소켓을 제거했는지 여부 반환
+            // 소켓만 제거하고, 제거 후 연결된 소켓이 없는지 반환
             return participantStorage.removeSocket(socketId);
         } catch (IllegalArgumentException e) {
             log.warn("Socket already removed or not found: socketId={}, memberId={}", socketId, memberId);
