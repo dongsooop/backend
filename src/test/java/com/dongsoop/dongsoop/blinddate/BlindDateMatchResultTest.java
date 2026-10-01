@@ -102,6 +102,7 @@ class BlindDateMatchResultTest {
         eventQueue.awaitIdle();
 
         assertSuccessfulPairAndUnmatchedMember();
+        assertThat(events.get(2)).isEqualTo(failedEvent(3L));
     }
 
     @Test
@@ -129,11 +130,15 @@ class BlindDateMatchResultTest {
         eventQueue.awaitIdle();
 
         assertSuccessfulPairAndUnmatchedMember();
+        assertThat(events.get(2)).isEqualTo(failedEvent(3L));
     }
 
     @Test
     @DisplayName("종료 후 늦은 상호 선택은 실패 결과를 성공으로 뒤집지 않는다")
     void choicesAfterFinalizationDoNotProduceSuccess() {
+        when(chatRoomService.createOneToOneChatRoom(anyLong(), anyLong(), anyString()))
+                .thenReturn(ChatRoom.builder().roomId("room-1").build());
+
         timers.remove().run();
         choiceHandler.execute(sessionId, 1L, 2L);
         choiceHandler.execute(sessionId, 2L, 1L);
