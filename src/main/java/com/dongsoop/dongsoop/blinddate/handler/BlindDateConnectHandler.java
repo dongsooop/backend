@@ -3,7 +3,6 @@ package com.dongsoop.dongsoop.blinddate.handler;
 import com.dongsoop.dongsoop.blinddate.dto.BlindDateJoinResult;
 import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo;
-import com.dongsoop.dongsoop.blinddate.entity.SessionInfo.SessionState;
 import com.dongsoop.dongsoop.blinddate.exception.SessionTerminatedException;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
@@ -64,16 +63,6 @@ public class BlindDateConnectHandler {
 
         if (existingSessionId != null) {
             sessionAttributes.put("sessionId", existingSessionId);
-            ParticipantInfo participant = participantStorage.getByMemberId(memberId);
-            int currentCount = participantStorage.findAllBySessionId(existingSessionId).size();
-            int maxCount = blindDateStorage.getMaxSessionMemberCount();
-            BlindDateJoinResult joinResult = new BlindDateJoinResult(
-                    participant,
-                    existingSessionId,
-                    currentCount,
-                    maxCount
-            );
-            sendJoinEvent(joinResult, sessionStorage.getState(existingSessionId));
             return;
         }
 
@@ -145,7 +134,7 @@ public class BlindDateConnectHandler {
             BlindDateJoinResult joinResult = new BlindDateJoinResult(participant, sessionId, currentCount, maxCount);
 
             // 입장한 사용자에게 정보 전달
-            sendJoinEvent(joinResult, SessionState.WAITING);
+            sendJoinEvent(joinResult);
 
             return joinResult;
         } catch (Exception e) {
@@ -234,14 +223,13 @@ public class BlindDateConnectHandler {
      * 입장 이벤트 전송
      *
      * @param joinResult 입장 결과 (참여 정보, 참여자 수, 세션 id, 최대 수용 인원)
-     * @param state      현재 세션 상태
      */
-    private void sendJoinEvent(BlindDateJoinResult joinResult, SessionState state) {
+    private void sendJoinEvent(BlindDateJoinResult joinResult) {
         ParticipantInfo participantInfo = joinResult.participantInfo();
         Map<String, Object> event = Map.of(
                 "name", participantInfo.getAnonymousName(),
                 "sessionId", joinResult.sessionId(),
-                "state", state.name(),
+                "state", "WAITING",
                 "volunteer", joinResult.currentCount(),
                 "maxCount", joinResult.maxCount()
         );

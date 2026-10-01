@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -260,7 +259,7 @@ class BlindDateIntegrationTest {
         }
 
         @Test
-        @DisplayName("재연결 - 기존 세션 상태로 복귀, 인원 증가 안 함")
+        @DisplayName("재연결 - 기존 세션으로 복귀, 인원 증가 안 함")
         void reconnect_ReturnsToExistingSession() {
             // given
             blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
@@ -268,7 +267,6 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-1", 1L, attr1);
             eventQueue.awaitIdle();
             String session1 = (String) attr1.get("sessionId");
-            sessionStorage.start(session1);
 
             // when - 같은 memberId로 재연결
             Map<String, Object> attr2 = new HashMap<>();
@@ -279,15 +277,6 @@ class BlindDateIntegrationTest {
             // then
             assertThat(session2).isEqualTo(session1);
             assertThat(getParticipantCount(session1)).isEqualTo(1); // 인원 증가 안 함
-
-            @SuppressWarnings("unchecked")
-            ArgumentCaptor<Map<String, Object>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
-            verify(messagingTemplate, times(2)).convertAndSendToUser(
-                    eq("1"),
-                    eq("/queue/blinddate/join"),
-                    payloadCaptor.capture()
-            );
-            assertThat(payloadCaptor.getAllValues().get(1).get("state")).isEqualTo("PROCESSING");
         }
 
         @Test
