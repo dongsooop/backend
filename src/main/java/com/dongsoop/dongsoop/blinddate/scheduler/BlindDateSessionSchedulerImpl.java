@@ -214,7 +214,7 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
      * @param sessionId 대상 세션 id
      */
     private void sendFailedToUnmatched(String sessionId) {
-        Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
+        Set<Long> notMatched = participantStorage.finalizeChoices(sessionId);
         // 모두 매치되었다면 이벤트를 발행하지 않음
         if (notMatched.isEmpty()) {
             return;

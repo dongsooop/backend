@@ -72,4 +72,10 @@ public interface BlindDateParticipantStorage {
      * 매칭되지 않은 멤버 조회
      */
     Set<Long> getNotMatched(String sessionId);
+
+    /**
+     * 선택 접수를 종료하고 최종 미매칭 참가자를 한 번만 반환한다.
+     * 매칭 확정과 원자적으로 실행되어 성공 참가자는 실패 대상에 포함되지 않는다.
+     */
+    Set<Long> finalizeChoices(String sessionId);
 }
