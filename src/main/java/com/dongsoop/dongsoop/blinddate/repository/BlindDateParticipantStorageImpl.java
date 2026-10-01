@@ -30,8 +30,6 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
     // sessionId -> Set<matchedMemberId>
     private final Map<String, Set<Long>> matches = new ConcurrentHashMap<>();
 
-    private final Set<String> finalizedSessions = ConcurrentHashMap.newKeySet();
-
     /**
      * 참여자 추가 또는 소켓 추가
      * <p>
@@ -146,11 +144,7 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
     /**
      * 선택 기록
      */
-    public synchronized boolean recordChoice(String sessionId, Long choicerId, Long targetId) {
-        if (finalizedSessions.contains(sessionId)) {
-            return false;
-        }
-
+    public boolean recordChoice(String sessionId, Long choicerId, Long targetId) {
         Map<Long, Long> sessionChoices = choices.computeIfAbsent(sessionId, k -> new ConcurrentHashMap<>());
 
         // 이미 선택했는지 확인 + 반영을 원자적으로 처리 (확인과 반영 사이 공백 제거)
@@ -194,7 +188,6 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
         nameCounters.clear();
         choices.clear();
         matches.clear();
-        finalizedSessions.clear();
 
         log.info("[BlindDate] All participant data cleared");
     }
@@ -232,15 +225,5 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
         allMemberIds.removeAll(matched);
 
         return allMemberIds;
-    }
-
-    @Override
-    public synchronized Set<Long> finalizeChoices(String sessionId) {
-        if (!finalizedSessions.add(sessionId)) {
-            return Collections.emptySet();
-        }
-
-        // recordChoice와 같은 모니터에서 선택 접수 종료와 결과 스냅샷을 확정한다.
-        return getNotMatched(sessionId);
     }
 }

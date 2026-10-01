@@ -175,11 +175,11 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
 
             log.info("[BlindDate] Finalizing session: {}", sessionId);
 
+            // 실패 이벤트 전송 중 예외가 발생해도 늦은 선택을 받지 않도록 먼저 종료
+            sessionStorage.terminate(sessionId);
+
             // 매칭 실패자에게 FAILED 이벤트
             sendFailedToUnmatched(sessionId);
-
-            // 선택 처리와 같은 큐에서 세션 종료
-            sessionStorage.terminate(sessionId);
 
             // 회원 정보는 재 접속 방지를 위해 제거하지 않음
             // participantStorage.clearSession(sessionId);
@@ -214,7 +214,7 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
      * @param sessionId 대상 세션 id
      */
     private void sendFailedToUnmatched(String sessionId) {
-        Set<Long> notMatched = participantStorage.finalizeChoices(sessionId);
+        Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
         // 모두 매치되었다면 이벤트를 발행하지 않음
         if (notMatched.isEmpty()) {
             return;

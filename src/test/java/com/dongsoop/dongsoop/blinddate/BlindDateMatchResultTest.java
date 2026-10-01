@@ -41,6 +41,7 @@ class BlindDateMatchResultTest {
     private final ChatRoomService chatRoomService = mock(ChatRoomService.class);
     private BlindDateChoiceHandler choiceHandler;
     private String sessionId;
+    private boolean failAfterFirstFailureEvent;
 
     @BeforeEach
     void setUp() {
@@ -55,6 +56,9 @@ class BlindDateMatchResultTest {
         var messaging = mock(SimpMessagingTemplate.class);
         doAnswer(invocation -> {
             String destination = invocation.getArgument(0);
+            if (failAfterFirstFailureEvent && destination.endsWith("/failed") && !events.isEmpty()) {
+                throw new IllegalStateException("Failure event delivery failed");
+            }
             if (destination.endsWith("/chatroom") || destination.endsWith("/failed")) {
                 events.add(new ResultEvent(destination, invocation.getArgument(1)));
             }
@@ -153,6 +157,28 @@ class BlindDateMatchResultTest {
                 new ResultEvent(BlindDateTopic.chatRoomCreated(sessionId, 1L), Map.of("chatRoomId", "room-1")),
                 new ResultEvent(BlindDateTopic.chatRoomCreated(sessionId, 2L), Map.of("chatRoomId", "room-1")),
                 failedEvent(3L));
+    }
+
+    @Test
+    @DisplayName("실패 알림 전송 중 예외가 발생해도 늦은 선택에서 성공 이벤트를 보내지 않는다")
+    void failureDeliveryExceptionDoesNotAllowLateMatch() {
+        when(chatRoomService.createOneToOneChatRoom(anyLong(), anyLong(), anyString()))
+                .thenReturn(ChatRoom.builder().roomId("room-1").build());
+        failAfterFirstFailureEvent = true;
+        timers.remove().run();
+        eventQueue.awaitIdle();
+
+        assertThat(events).hasSize(1);
+        ResultEvent failure = events.get(0);
+        String[] segments = failure.destination().split("/");
+        Long failedMember = Long.valueOf(segments[segments.length - 2]);
+        Long otherMember = failedMember.equals(1L) ? 2L : 1L;
+
+        choiceHandler.execute(sessionId, failedMember, otherMember);
+        choiceHandler.execute(sessionId, otherMember, failedMember);
+        eventQueue.awaitIdle();
+
+        assertThat(events).containsExactly(failure);
     }
 
     private ResultEvent failedEvent(Long memberId) {
