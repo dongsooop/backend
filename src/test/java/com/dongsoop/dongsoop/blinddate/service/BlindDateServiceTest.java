@@ -16,6 +16,7 @@ import com.dongsoop.dongsoop.blinddate.repository.BlindDateStorageImpl;
 import com.dongsoop.dongsoop.blinddate.scheduler.BlindDateTaskScheduler;
 import java.time.LocalDateTime;
 import java.util.Map;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -117,6 +118,32 @@ class BlindDateServiceTest {
                     .isInstanceOf(RuntimeException.class)
                     .hasMessageContaining("Failed to scheduled close");
             assertThat(blindDateService.isAvailable()).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("참가자 입장 기록 초기화")
+    class ResetParticipantsTest {
+
+        @Test
+        @DisplayName("운영 상태는 유지하고 대기 세션과 참가자 기록만 초기화한다")
+        void resetParticipants_clearsReentryStateAndKeepsBlindDateAvailable() {
+            StartBlindDateRequest request = new StartBlindDateRequest(
+                    LocalDateTime.now().plusHours(1),
+                    5
+            );
+            blindDateService.startBlindDate(request);
+            blindDateStorage.setPointer("session-123");
+            ArgumentCaptor<Runnable> eventCaptor = ArgumentCaptor.forClass(Runnable.class);
+
+            blindDateService.resetParticipants();
+
+            verify(eventQueue).submit(eventCaptor.capture());
+            eventCaptor.getValue().run();
+            assertThat(blindDateStorage.isAvailable()).isTrue();
+            assertThat(blindDateStorage.getPointer()).isNull();
+            verify(sessionStorage).clear();
+            verify(participantStorage).clear();
         }
     }
 

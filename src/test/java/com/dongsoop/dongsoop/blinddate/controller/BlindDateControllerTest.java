@@ -5,6 +5,9 @@ import static org.mockito.BDDMockito.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.times;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dongsoop.dongsoop.blinddate.dto.StartBlindDateRequest;
 import com.dongsoop.dongsoop.blinddate.service.BlindDateService;
@@ -18,6 +21,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 /**
  * BlindDateController 단위 테스트
@@ -117,6 +122,24 @@ class BlindDateControllerTest {
             // then
             verify(blindDateService).isAvailable();
             verify(blindDateService).startBlindDate(request);
+        }
+    }
+
+    @Nested
+    @DisplayName("POST/DELETE /blinddate/participants - 참가자 입장 기록 초기화")
+    class ResetParticipantsTest {
+
+        @Test
+        @DisplayName("POST와 DELETE 모두 204 NO CONTENT")
+        void resetParticipants_SupportsPostAndDelete() throws Exception {
+            MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+
+            mockMvc.perform(post("/blinddate/participants"))
+                    .andExpect(status().isNoContent());
+            mockMvc.perform(delete("/blinddate/participants"))
+                    .andExpect(status().isNoContent());
+
+            verify(blindDateService, times(2)).resetParticipants();
         }
     }
 }
