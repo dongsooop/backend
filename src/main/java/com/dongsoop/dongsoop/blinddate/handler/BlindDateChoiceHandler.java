@@ -4,7 +4,7 @@ import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,7 @@ public class BlindDateChoiceHandler {
         // 매칭 성공 시 채팅방 개설
         if (isMatched) {
             try {
-                String chatRoomTitle = LocalDateTime.now(KST).toString();
+                String chatRoomTitle = LocalDate.now(KST).toString();
                 ChatRoom chatRoom = chatRoomService.createOneToOneChatRoom(choicerId, targetId, chatRoomTitle);
 
                 sendChatRoomCreated(sessionId, choicerId, chatRoom.getRoomId());

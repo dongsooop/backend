@@ -190,6 +190,24 @@ class BlindDateIntegrationTest {
         }
 
         @Test
+        @DisplayName("입장 응답에 세션 정원을 포함한다")
+        void joinResponse_IncludesMaxCount() {
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+
+            connectHandler.execute("socket-1", 1L, new HashMap<>());
+            eventQueue.awaitIdle();
+
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<Map<String, Object>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
+            verify(messagingTemplate).convertAndSendToUser(
+                    eq("1"),
+                    eq("/queue/blinddate/join"),
+                    payloadCaptor.capture()
+            );
+            assertThat(payloadCaptor.getValue().get("maxCount")).isEqualTo(5);
+        }
+
+        @Test
         @DisplayName("여러 사용자 입장 - 같은 세션에 배정")
         void multipleUsers_AssignedToSameSession() {
             // given
