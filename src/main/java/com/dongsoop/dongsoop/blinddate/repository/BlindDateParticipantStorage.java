@@ -17,7 +17,9 @@ public interface BlindDateParticipantStorage {
     ParticipantInfo addParticipant(String sessionId, Long memberId, String socketId);
 
     /**
-     * 소켓 제거 (연결 해제) 모든 소켓이 제거되면 참여자도 제거
+     * 소켓 제거 (연결 해제)
+     *
+     * @return 제거 후 연결된 소켓이 하나도 없으면 true
      */
     boolean removeSocket(String socketId);
 

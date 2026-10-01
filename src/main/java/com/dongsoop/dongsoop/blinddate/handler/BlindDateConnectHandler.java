@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.blinddate.handler;
 import com.dongsoop.dongsoop.blinddate.dto.BlindDateJoinResult;
 import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo;
+import com.dongsoop.dongsoop.blinddate.entity.SessionInfo.SessionState;
 import com.dongsoop.dongsoop.blinddate.exception.SessionTerminatedException;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
@@ -63,6 +64,7 @@ public class BlindDateConnectHandler {
 
         if (existingSessionId != null) {
             sessionAttributes.put("sessionId", existingSessionId);
+            sendJoinEvent(createJoinResult(existingSessionId, memberId));
             return;
         }
 
@@ -187,6 +189,13 @@ public class BlindDateConnectHandler {
         return existingSessionId;
     }
 
+    private BlindDateJoinResult createJoinResult(String sessionId, Long memberId) {
+        ParticipantInfo participant = participantStorage.getByMemberId(memberId);
+        int currentCount = participantStorage.findAllBySessionId(sessionId).size();
+        int maxCount = blindDateStorage.getMaxSessionMemberCount();
+        return new BlindDateJoinResult(participant, sessionId, currentCount, maxCount);
+    }
+
     /**
      * 세션 할당 (큐에서 순서대로 처리되어 동시성 보장)
      *
@@ -226,10 +235,14 @@ public class BlindDateConnectHandler {
      */
     private void sendJoinEvent(BlindDateJoinResult joinResult) {
         ParticipantInfo participantInfo = joinResult.participantInfo();
+        SessionState state = sessionStorage.getState(joinResult.sessionId());
+        if (state == null) {
+            throw new SessionTerminatedException();
+        }
         Map<String, Object> event = Map.of(
                 "name", participantInfo.getAnonymousName(),
                 "sessionId", joinResult.sessionId(),
-                "state", "WAITING",
+                "state", state.name(),
                 "volunteer", joinResult.currentCount(),
                 "maxCount", joinResult.maxCount()
         );
