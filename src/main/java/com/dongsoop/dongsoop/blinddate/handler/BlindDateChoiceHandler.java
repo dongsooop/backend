@@ -28,7 +28,7 @@ public class BlindDateChoiceHandler {
     private final BlindDateEventQueue eventQueue;
 
     public void execute(String sessionId, Long choicerId, Long targetId) {
-        eventQueue.submit(() -> handle(sessionId, choicerId, targetId));
+        eventQueue.submitChoice(sessionId, () -> handle(sessionId, choicerId, targetId));
     }
 
     private void handle(String sessionId, Long choicerId, Long targetId) {

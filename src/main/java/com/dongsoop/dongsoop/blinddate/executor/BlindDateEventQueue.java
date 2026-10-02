@@ -1,7 +1,10 @@
 package com.dongsoop.dongsoop.blinddate.executor;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +21,30 @@ import org.springframework.stereotype.Component;
 public class BlindDateEventQueue {
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final Map<String, Long> choiceDeadlines = new HashMap<>();
+
+    /** 선택 단계에서만 접수한다. 경과 시간은 시스템 시계 변경의 영향을 받지 않는다. */
+    public synchronized void openChoices(String sessionId, long durationMillis) {
+        choiceDeadlines.putIfAbsent(sessionId,
+                System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(durationMillis));
+    }
+
+    /** 접수 확인과 큐 삽입을 마감 처리와 같은 잠금으로 묶는다. */
+    public synchronized void submitChoice(String sessionId, Runnable choice) {
+        Long deadline = choiceDeadlines.get(sessionId);
+        if (deadline == null || System.nanoTime() - deadline >= 0) {
+            log.info("[BlindDate] Ignore choice outside choice period: sessionId={}", sessionId);
+            return;
+        }
+        submit(choice);
+    }
+
+    /** 접수를 먼저 닫고, 이미 접수한 선택들 뒤에 결과 확정 작업을 넣는다. */
+    public synchronized void closeChoices(String sessionId, Runnable finalizeSession) {
+        if (choiceDeadlines.remove(sessionId) != null) {
+            submit(finalizeSession);
+        }
+    }
 
     /**
      * 이벤트를 큐에 넣는다. 이미 큐에 있는 다른 이벤트들이 처리된 뒤 순서대로 실행된다.

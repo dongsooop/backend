@@ -40,13 +40,14 @@ class BlindDateMatchResultTest {
     private final List<ResultEvent> events = new CopyOnWriteArrayList<>();
     private final ChatRoomService chatRoomService = mock(ChatRoomService.class);
     private BlindDateChoiceHandler choiceHandler;
+    private BlindDateSessionStorageImpl sessions;
     private String sessionId;
     private boolean failAfterFirstFailureEvent;
 
     @BeforeEach
     void setUp() {
         var participants = new BlindDateParticipantStorageImpl();
-        var sessions = new BlindDateSessionStorageImpl();
+        sessions = new BlindDateSessionStorageImpl();
         sessionId = sessions.create().getSessionId();
         sessions.start(sessionId);
         for (long memberId = 1; memberId <= 3; memberId++) {
@@ -152,6 +153,61 @@ class BlindDateMatchResultTest {
                 failedEvent(1L), failedEvent(2L), failedEvent(3L));
     }
 
+    @Test
+    @DisplayName("마감 전에 접수한 선택은 큐에서 대기 중이어도 처리한 뒤 결과를 확정한다")
+    void queuedChoicesAreCompletedBeforeFinalization() throws Exception {
+        when(chatRoomService.createOneToOneChatRoom(anyLong(), anyLong(), anyString()))
+                .thenReturn(ChatRoom.builder().roomId("room-1").build());
+        var blocked = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        eventQueue.submit(() -> awaitRelease(blocked, release));
+        try {
+            assertThat(blocked.await(5, TimeUnit.SECONDS)).isTrue();
+            choiceHandler.execute(sessionId, 1L, 2L);
+            choiceHandler.execute(sessionId, 2L, 1L);
+            timers.remove().run();
+            assertThat(events).isEmpty();
+        } finally {
+            release.countDown();
+        }
+        eventQueue.awaitIdle();
+        assertSuccessfulPairAndUnmatchedMember();
+        assertThat(events.get(2)).isEqualTo(failedEvent(3L));
+    }
+
+    @Test
+    @DisplayName("접수 마감 후에는 종료 작업이 대기 중이어도 새 선택을 받지 않는다")
+    void closedChoicesAreRejectedBeforeFinalizationRuns() throws Exception {
+        when(chatRoomService.createOneToOneChatRoom(anyLong(), anyLong(), anyString()))
+                .thenReturn(ChatRoom.builder().roomId("room-1").build());
+        var blocked = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        eventQueue.submit(() -> awaitRelease(blocked, release));
+        try {
+            assertThat(blocked.await(5, TimeUnit.SECONDS)).isTrue();
+            timers.remove().run();
+            choiceHandler.execute(sessionId, 1L, 2L);
+            choiceHandler.execute(sessionId, 2L, 1L);
+        } finally {
+            release.countDown();
+        }
+        eventQueue.awaitIdle();
+        assertThat(events).containsExactlyInAnyOrder(
+                failedEvent(1L), failedEvent(2L), failedEvent(3L));
+    }
+
+    private void awaitRelease(CountDownLatch blocked, CountDownLatch release) {
+        blocked.countDown();
+        try {
+            if (!release.await(5, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Queue was not released");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
+    }
+
     private void assertSuccessfulPairAndUnmatchedMember() {
         assertThat(events).containsExactlyInAnyOrder(
                 new ResultEvent(BlindDateTopic.chatRoomCreated(sessionId, 1L), Map.of("chatRoomId", "room-1")),
@@ -179,6 +235,7 @@ class BlindDateMatchResultTest {
         eventQueue.awaitIdle();
 
         assertThat(events).containsExactly(failure);
+        assertThat(sessions.getState(sessionId)).isNull();
     }
 
     private ResultEvent failedEvent(Long memberId) {

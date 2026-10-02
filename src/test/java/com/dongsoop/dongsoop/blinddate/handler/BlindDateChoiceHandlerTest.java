@@ -61,6 +61,7 @@ class BlindDateChoiceHandlerTest {
                 org.mockito.ArgumentMatchers.anyString()))
                 .thenReturn(ChatRoom.builder().roomId("room-1").title("title").build());
 
+        eventQueue.openChoices("session-1", 10_000);
         handler.execute("session-1", 1L, 2L);
         eventQueue.awaitIdle();
 
