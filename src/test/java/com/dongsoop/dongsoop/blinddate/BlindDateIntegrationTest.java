@@ -574,6 +574,7 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-2", 2L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
+            eventQueue.openChoices(sessionId, 10_000);
 
             // when
             choiceHandler.execute(sessionId, 1L, 2L);
@@ -599,6 +600,7 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-2", 2L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
+            eventQueue.openChoices(sessionId, 10_000);
 
             // when
             choiceHandler.execute(sessionId, 1L, 2L);
@@ -621,6 +623,7 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-2", 2L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
+            eventQueue.openChoices(sessionId, 10_000);
             sessionStorage.terminate(sessionId);
 
             choiceHandler.execute(sessionId, 1L, 2L);
@@ -642,6 +645,7 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-3", 3L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
+            eventQueue.openChoices(sessionId, 10_000);
 
             // when - 1→2, 2→3, 3→1
             choiceHandler.execute(sessionId, 1L, 2L);
@@ -666,6 +670,7 @@ class BlindDateIntegrationTest {
             }
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
+            eventQueue.openChoices(sessionId, 10_000);
 
             // when - 1↔2, 3↔4, 5 혼자
             choiceHandler.execute(sessionId, 1L, 2L);
@@ -702,6 +707,7 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-3", 3L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
+            eventQueue.openChoices(sessionId, 10_000);
 
             // 3. 사랑의 작대기 - 1↔2 매칭
             choiceHandler.execute(sessionId, 1L, 2L);

@@ -73,6 +73,8 @@ class BlindDateWebSocketIntegrationTest {
     @Autowired
     private BlindDateParticipantStorage participantStorage;
     @Autowired
+    private com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue eventQueue;
+    @Autowired
     private TestJwtTokenGenerator tokenGenerator;
 
     private WebSocketStompClient stompClient;
@@ -217,6 +219,9 @@ class BlindDateWebSocketIntegrationTest {
 
         // ========== STEP 11: 매칭 테스트 ==========
         log.info("📋 STEP 11: 매칭 테스트 (서로 선택)");
+
+        // 이 테스트는 세션 스케줄러를 모킹하므로 선택 단계 시작을 직접 진행한다.
+        eventQueue.openChoices(handler1.sessionId, 10_000);
 
         // User1 → User2 선택 (DTO 구조 변경: choicerId 제거, Principal에서 추출)
         session1.send("/app/blinddate/choice", Map.of(

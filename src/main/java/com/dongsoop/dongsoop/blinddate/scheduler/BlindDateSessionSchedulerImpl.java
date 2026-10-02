@@ -148,7 +148,12 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
      * @param sessionId 종료할 세션 id
      */
     private void scheduleSessionEnd(String sessionId) {
+        if (!sessionStorage.isProcessing(sessionId)) {
+            return;
+        }
         log.info("[BlindDate] Sending participants list for session: {}", sessionId);
+
+        eventQueue.openChoices(sessionId, CHOICE_TIME);
 
         try {
             // 사랑의 작대기를 위해 사용자에게 사용자 목록 이벤트 발행
@@ -158,7 +163,7 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
             log.error("[BlindDate] Error sending participants list for session: {}", sessionId, e);
         }
 
-        taskScheduler.schedule(() -> eventQueue.submit(() -> finalizeSession(sessionId)), CHOICE_TIME);
+        taskScheduler.schedule(() -> eventQueue.closeChoices(sessionId, () -> finalizeSession(sessionId)), CHOICE_TIME);
     }
 
     /**
@@ -175,18 +180,18 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
 
             log.info("[BlindDate] Finalizing session: {}", sessionId);
 
-            // 실패 이벤트 전송 중 예외가 발생해도 늦은 선택을 받지 않도록 먼저 종료
-            sessionStorage.terminate(sessionId);
-
-            // 매칭 실패자에게 FAILED 이벤트
+            // 큐에서 앞선 매칭 성공 처리를 마친 뒤, 나머지 미매칭 참가자에게 FAILED 이벤트
             sendFailedToUnmatched(sessionId);
 
             // 회원 정보는 재 접속 방지를 위해 제거하지 않음
             // participantStorage.clearSession(sessionId);
 
-            log.info("Session ended: {}", sessionId);
         } catch (Exception e) {
             log.error("Error finalizing session: {}", sessionId, e);
+        } finally {
+            // 접수는 이미 닫혔고 앞선 성공 이벤트 처리도 완료됐다. 실패 전송 예외에도 세션을 종료한다.
+            sessionStorage.terminate(sessionId);
+            log.info("Session ended: {}", sessionId);
         }
     }
 
