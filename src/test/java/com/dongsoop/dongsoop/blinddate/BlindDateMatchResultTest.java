@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
-@DisplayName("과팅 매칭 결과 이벤트 배타성")
+@DisplayName("과팅 매칭 성공 후 미매칭 결과 전송")
 class BlindDateMatchResultTest {
 
     private final BlindDateEventQueue eventQueue = new BlindDateEventQueue();
@@ -95,8 +95,8 @@ class BlindDateMatchResultTest {
     }
 
     @Test
-    @DisplayName("상호 선택한 참가자는 성공만, 미매칭 참가자는 실패만 받는다")
-    void matchedMembersReceiveOnlySuccess() {
+    @DisplayName("매칭 성공 이벤트를 먼저 보내고 나머지 참가자에게 실패 이벤트를 보낸다")
+    void sendsSuccessBeforeFailureForUnmatchedMembers() {
         when(chatRoomService.createOneToOneChatRoom(anyLong(), anyLong(), anyString()))
                 .thenReturn(ChatRoom.builder().roomId("room-1").build());
 
@@ -106,8 +106,7 @@ class BlindDateMatchResultTest {
         timers.remove().run();
         eventQueue.awaitIdle();
 
-        assertSuccessfulPairAndUnmatchedMember();
-        assertThat(events.get(2)).isEqualTo(failedEvent(3L));
+        assertSuccessThenUnmatchedFailure();
     }
 
     @Test
@@ -134,8 +133,7 @@ class BlindDateMatchResultTest {
         }
         eventQueue.awaitIdle();
 
-        assertSuccessfulPairAndUnmatchedMember();
-        assertThat(events.get(2)).isEqualTo(failedEvent(3L));
+        assertSuccessThenUnmatchedFailure();
     }
 
     @Test
@@ -171,8 +169,7 @@ class BlindDateMatchResultTest {
             release.countDown();
         }
         eventQueue.awaitIdle();
-        assertSuccessfulPairAndUnmatchedMember();
-        assertThat(events.get(2)).isEqualTo(failedEvent(3L));
+        assertSuccessThenUnmatchedFailure();
     }
 
     @Test
@@ -208,10 +205,10 @@ class BlindDateMatchResultTest {
         }
     }
 
-    private void assertSuccessfulPairAndUnmatchedMember() {
-        assertThat(events).containsExactlyInAnyOrder(
-                new ResultEvent(BlindDateTopic.chatRoomCreated(sessionId, 1L), Map.of("chatRoomId", "room-1")),
+    private void assertSuccessThenUnmatchedFailure() {
+        assertThat(events).containsExactly(
                 new ResultEvent(BlindDateTopic.chatRoomCreated(sessionId, 2L), Map.of("chatRoomId", "room-1")),
+                new ResultEvent(BlindDateTopic.chatRoomCreated(sessionId, 1L), Map.of("chatRoomId", "room-1")),
                 failedEvent(3L));
     }
 
