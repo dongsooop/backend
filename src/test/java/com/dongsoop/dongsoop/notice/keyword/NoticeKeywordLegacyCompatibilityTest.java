@@ -15,6 +15,7 @@ import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.notice.keyword.dto.NoticeKeywordRequest;
 import com.dongsoop.dongsoop.notice.keyword.dto.NoticeKeywordResponse;
+import com.dongsoop.dongsoop.notice.keyword.entity.NoticeKeyword;
 import com.dongsoop.dongsoop.notice.keyword.entity.NoticeKeywordType;
 import com.dongsoop.dongsoop.notice.keyword.exception.DuplicateNoticeKeywordException;
 import com.dongsoop.dongsoop.notice.keyword.repository.NoticeKeywordRepository;
@@ -110,10 +111,10 @@ class NoticeKeywordLegacyCompatibilityTest {
                 new NoticeKeywordRequest("장학", NoticeKeywordType.INCLUDE));
 
         assertThat(noticeKeywordRepository.findAllByDeviceId(phone.getId()))
-                .extracting(keyword -> keyword.getKeyword())
+                .extracting(NoticeKeyword::getKeyword)
                 .containsExactly("장학");
         assertThat(noticeKeywordRepository.findAllByDeviceId(tablet.getId()))
-                .extracting(keyword -> keyword.getKeyword())
+                .extracting(NoticeKeyword::getKeyword)
                 .containsExactly("장학");
     }
 

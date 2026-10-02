@@ -81,7 +81,7 @@ public class NotificationSettingSwitcher {
         List<NotificationSettingId> notificationSettingIdList = deviceList.stream()
                 .flatMap(device ->
                         types.stream()
-                                .map((notificationType) -> new NotificationSettingId(device, notificationType)))
+                                .map(notificationType -> new NotificationSettingId(device, notificationType)))
                 .toList();
 
         // 기존 설정 정보 조회

@@ -52,7 +52,6 @@ class ParticipantInfoTest {
     @DisplayName("builder - 모든 필드 설정 가능 (create 메소드로 대체)")
     void builder_SetsAllFields() {
         // given
-        LocalDateTime now = LocalDateTime.now(KST);
 
         // when
         ParticipantInfo participant = ParticipantInfo.create(

@@ -199,7 +199,7 @@ public class RedisChatRepository implements ChatRepository {
 
         return results.stream()
                 .filter(Objects::nonNull)
-                .map(obj -> (ChatMessage) obj)
+                .map(ChatMessage.class::cast)
                 .toList();
     }
 

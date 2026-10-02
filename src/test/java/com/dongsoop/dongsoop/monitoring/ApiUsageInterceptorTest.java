@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.monitoring;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -107,6 +108,7 @@ class ApiUsageInterceptorTest {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/home");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        interceptor.afterCompletion(request, response, new Object(), null);
+        assertThatCode(() -> interceptor.afterCompletion(request, response, new Object(), null))
+                .doesNotThrowAnyException();
     }
 }

@@ -206,7 +206,7 @@ class BlindDateIntegrationTest {
                     eq("/queue/blinddate/join"),
                     payloadCaptor.capture()
             );
-            assertThat(payloadCaptor.getValue().get("maxCount")).isEqualTo(5);
+            assertThat(payloadCaptor.getValue()).containsEntry("maxCount", 5);
         }
 
         @Test
@@ -298,8 +298,9 @@ class BlindDateIntegrationTest {
                     payloadCaptor.capture()
             );
             Map<String, Object> reconnectPayload = payloadCaptor.getAllValues().get(1);
-            assertThat(reconnectPayload.get("state")).isEqualTo("PROCESSING");
-            assertThat(reconnectPayload.get("name")).isEqualTo(originalName);
+            assertThat(reconnectPayload)
+                    .containsEntry("state", "PROCESSING")
+                    .containsEntry("name", originalName);
         }
 
         @Test

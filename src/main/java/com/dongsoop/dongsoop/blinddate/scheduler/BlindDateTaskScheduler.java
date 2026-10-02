@@ -56,7 +56,7 @@ public class BlindDateTaskScheduler {
      * 모든 세션 정리
      */
     public void cleanupAllSessions() {
-        futures.forEach((future) -> future.cancel(true));
+        futures.forEach(future -> future.cancel(true));
         futures.clear();
         log.info("[BlindDate] All sessions task cleaned up");
     }

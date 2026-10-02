@@ -26,7 +26,7 @@ public class SettingChangeClassifier {
     ) {
 
         return devices.stream()
-                .flatMap((device) -> types.stream().map((type) -> {
+                .flatMap(device -> types.stream().map(type -> {
                     // 기존 설정 조회, 없으면 기본값 생성
                     NotificationSettingId id = new NotificationSettingId(device, type);
                     NotificationSetting existing = existingSettings.getOrDefault(id, null);

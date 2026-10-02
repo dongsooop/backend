@@ -123,7 +123,7 @@ public class MealParser {
     private String extractMenuFromCell(Elements menuCells, int cellCount, int index) {
         return Optional.of(index)
                 .filter(i -> i < cellCount)
-                .map(i -> menuCells.get(i))
+                .map(menuCells::get)
                 .map(Element::html)
                 .map(textProcessingUtil::processMenuText)
                 .orElse(textProcessingUtil.getDefaultEmptyMenu());
