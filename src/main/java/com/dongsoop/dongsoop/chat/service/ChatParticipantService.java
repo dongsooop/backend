@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.chat.service;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.MessageType;
+import com.dongsoop.dongsoop.chat.exception.GroupChatOnlyException;
 import com.dongsoop.dongsoop.chat.exception.KickedUserInviteException;
 import com.dongsoop.dongsoop.chat.exception.UserAlreadyInRoomException;
 import com.dongsoop.dongsoop.chat.util.ChatMessageUtils;
@@ -43,6 +44,25 @@ public class ChatParticipantService {
         processUserKickWithMessage(room, roomId, userToKick);
 
         return chatRoomService.saveRoom(room);
+    }
+
+    // 관리자 신고 처리용. 방장 권한 검사를 하지 않으며 기존 방장 추방 경로와 분리한다
+    public void kickUserByAdmin(String roomId, Long userToKick) {
+        ChatRoom room = chatRoomService.getChatRoomById(roomId);
+
+        if (!room.isGroupChat()) {
+            throw new GroupChatOnlyException("채팅방 추방");
+        }
+
+        chatValidator.validateNotKickingManager(room, userToKick);
+
+        if (room.getParticipants().contains(userToKick)) {
+            processUserKickWithMessage(room, roomId, userToKick);
+        } else {
+            room.kickUser(userToKick);
+        }
+
+        chatRoomService.saveRoom(room);
     }
 
     public void leaveChatRoom(String roomId, Long userId) {

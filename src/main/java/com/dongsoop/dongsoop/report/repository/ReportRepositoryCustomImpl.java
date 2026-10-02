@@ -95,7 +95,12 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 sanction.startDate,
                 sanction.endDate,
                 sanction.isActive,
-                report.createdAt);
+                report.createdAt,
+                report.chatRoomId,
+                report.messageId,
+                report.messageContent,
+                report.messageSentAt,
+                report.messageContext);
     }
 
     private Expression<ReportSummaryResponse> createSummaryProjection() {
@@ -108,7 +113,12 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 report.createdAt,
                 report.targetMember.id,
                 report.targetId,
-                report.description
+                report.description,
+                report.chatRoomId,
+                report.messageId,
+                report.messageContent,
+                report.messageSentAt,
+                report.messageContext
         );
     }
 
@@ -182,10 +192,15 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     public List<Report> findUnprocessedReports(Pageable pageable) {
         return queryFactory
                 .selectFrom(report)
-                .where(report.isProcessed.eq(false))
+                .where(report.isProcessed.eq(false), isAutoSanctionTarget())
                 .orderBy(report.createdAt.asc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
+    }
+
+    private BooleanExpression isAutoSanctionTarget() {
+        return report.reportType.in(ReportType.BOARD_TYPES)
+                .or(report.reportType.eq(ReportType.CHAT_MESSAGE).and(report.isAutoReviewed.eq(false)));
     }
 }

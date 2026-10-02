@@ -142,7 +142,7 @@ public class ChatValidator {
         }
     }
 
-    private void validateNotKickingManager(ChatRoom room, Long userToKick) {
+    public void validateNotKickingManager(ChatRoom room, Long userToKick) {
         if (Objects.equals(room.getManagerId(), userToKick)) {
             throw new ManagerKickAttemptException();
         }

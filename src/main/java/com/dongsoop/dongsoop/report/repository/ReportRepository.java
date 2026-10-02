@@ -12,6 +12,13 @@ public interface ReportRepository extends JpaRepository<Report, Long>, ReportRep
 
     boolean existsByReporterAndReportTypeAndTargetId(Member reporter, ReportType reportType, Long targetId);
 
+    boolean existsByReporterIdAndMessageId(Long reporterId, String messageId);
+
+    boolean existsByReporterIdAndReportTypeAndChatRoomIdAndTargetMemberId(
+            Long reporterId, ReportType reportType, String chatRoomId, Long targetMemberId);
+
+    boolean existsByMessageIdAndSanctionSanctionType(String messageId, SanctionType sanctionType);
+
     @Query("""
             SELECT COUNT(r)
             FROM Report r

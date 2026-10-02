@@ -32,7 +32,7 @@ public class ChatSocketController {
         Long userId = extractUserIdFromPrincipal(principal);
 
         BlockStatus status = chatService.getBlockStatus(roomId, userId);
-        if (status == BlockStatus.I_BLOCKED) {
+        if (status != BlockStatus.NONE) {
             return;
         }
 

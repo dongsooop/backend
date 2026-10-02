@@ -1,6 +1,8 @@
 package com.dongsoop.dongsoop.report.controller;
 
+import com.dongsoop.dongsoop.report.dto.CreateChatReportRequest;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
+import com.dongsoop.dongsoop.report.dto.CreateServerMessageReportRequest;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
@@ -30,6 +32,21 @@ public class ReportController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
+    @PostMapping("/chat")
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<Void> createChatReport(@RequestBody @Valid CreateChatReportRequest request) {
+        reportService.createChatReport(request);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PostMapping("/message")
+    @Secured(RoleType.ADMIN_ROLE)
+    public ResponseEntity<Void> createServerMessageReport(
+            @RequestBody @Valid CreateServerMessageReportRequest request) {
+        reportService.createServerMessageReport(request);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
     @GetMapping("/sanction-status")
     public ResponseEntity<SanctionStatusResponse> checkSanctionStatus() {
         SanctionStatusResponse response = reportService.checkAndUpdateSanctionStatus();
@@ -41,6 +58,13 @@ public class ReportController {
     public ResponseEntity<Void> processSanction(@RequestBody @Valid ProcessSanctionRequest request) {
         reportService.processSanction(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PostMapping("/{reportId}/dismiss")
+    @Secured(RoleType.ADMIN_ROLE)
+    public ResponseEntity<Void> dismissReport(@PathVariable("reportId") Long reportId) {
+        reportService.dismissReport(reportId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/admin")

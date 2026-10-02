@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.report.scheduler;
 
 import com.dongsoop.dongsoop.report.entity.Report;
+import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
 import com.dongsoop.dongsoop.report.service.AsyncAutoSanctionService;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -41,21 +43,21 @@ public class AutoSanctionScheduler {
             return;
         }
 
-        List<Report> filteredReports = reports.stream()
-                .filter(this::isNotAlreadyProcessing)
-                .toList();
-
-        log.info("Reports after duplicate filtering: {}", filteredReports.size());
-
         List<CompletableFuture<Void>> futures = new ArrayList<>();
-        for (Report report : filteredReports) {
-            String targetKey = report.getReportType() + ":" + report.getTargetId();
-            processingTargets.add(targetKey);
+        // 이미 끝난 처리는 whenComplete가 공유 집합에서 키를 바로 지우므로, 같은 배치 안 중복은 별도 집합으로 막는다
+        Set<String> batchTargets = new HashSet<>();
+        for (Report report : reports) {
+            String targetKey = targetKeyOf(report);
+            if (!batchTargets.add(targetKey) || !processingTargets.add(targetKey)) {
+                continue;
+            }
 
             CompletableFuture<Void> future = asyncAutoSanctionService.processReportAsync(report)
                     .whenComplete((result, throwable) -> processingTargets.remove(targetKey));
             futures.add(future);
         }
+
+        log.info("Reports after duplicate filtering: {}", futures.size());
 
         try {
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get(60, TimeUnit.SECONDS);
@@ -70,8 +72,10 @@ public class AutoSanctionScheduler {
         }
     }
 
-    private boolean isNotAlreadyProcessing(Report report) {
-        String targetKey = report.getReportType() + ":" + report.getTargetId();
-        return !processingTargets.contains(targetKey);
+    private static String targetKeyOf(Report report) {
+        if (report.getReportType() == ReportType.CHAT_MESSAGE) {
+            return ReportType.CHAT_MESSAGE + ":" + report.getMessageId();
+        }
+        return report.getReportType() + ":" + report.getTargetId();
     }
 }

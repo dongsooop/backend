@@ -5,20 +5,28 @@ import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import com.dongsoop.dongsoop.report.controller.ReportController;
+import com.dongsoop.dongsoop.report.dto.CreateServerMessageReportRequest;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
 import com.dongsoop.dongsoop.report.service.ReportService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -87,5 +95,111 @@ class ReportControllerTest {
                 .andExpect(jsonPath("$.startDate").value("2025-01-01T00:00:00"))
                 .andExpect(jsonPath("$.endDate").value("2025-01-31T23:59:00"))
                 .andExpect(jsonPath("$.description").value("30일 임시 정지 처분"));
+    }
+
+    @Test
+    @DisplayName("채팅 신고 요청은 201을 반환한다")
+    void createChatReport_ReturnsCreated() throws Exception {
+        mockMvc.perform(post("/reports/chat")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "roomId": "room1", "messageId": "m1", "reason": "HATE_SPEECH" }
+                                """))
+                .andExpect(status().isCreated());
+
+        verify(reportService).createChatReport(any());
+    }
+
+    @Test
+    @DisplayName("채팅 신고에 메시지 ID가 없으면 400을 반환한다")
+    void createChatReport_WithoutMessageId_ReturnsBadRequest() throws Exception {
+        mockMvc.perform(post("/reports/chat")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "roomId": "room1", "reason": "HATE_SPEECH" }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("서버 간 메시지 신고는 관리자 전용이고 서비스로 넘겨 201을 반환한다")
+    void createServerMessageReport_ReturnsCreated() throws Exception {
+        mockMvc.perform(post("/reports/message")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "reportType": "BLINDDATE_MESSAGE",
+                                  "reporterId": 11,
+                                  "targetMemberId": 42,
+                                  "roomId": "session-1",
+                                  "messageId": "m1",
+                                  "messageContent": "신고된 메시지",
+                                  "messageSentAt": "2026-09-28T21:13:40.123",
+                                  "context": [
+                                    { "senderId": 11, "content": "직전 메시지", "sentAt": "2026-09-28T21:12:10" }
+                                  ],
+                                  "reason": "HATE_SPEECH"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        ArgumentCaptor<CreateServerMessageReportRequest> captor =
+                ArgumentCaptor.forClass(CreateServerMessageReportRequest.class);
+        verify(reportService).createServerMessageReport(captor.capture());
+        assertThat(captor.getValue().messageSentAt()).isEqualTo(LocalDateTime.of(2026, 9, 28, 21, 13, 40, 123_000_000));
+        assertThat(captor.getValue().context()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("서버 간 메시지 신고에 필수값이 없으면 400을 반환하고 서비스를 부르지 않는다")
+    void createServerMessageReport_WithoutRequiredField_ReturnsBadRequest() throws Exception {
+        mockMvc.perform(post("/reports/message")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "reportType": "BLINDDATE_MESSAGE",
+                                  "reporterId": 11,
+                                  "targetMemberId": 42,
+                                  "roomId": "session-1",
+                                  "messageContent": "신고된 메시지",
+                                  "messageSentAt": "2026-09-28T21:13:40",
+                                  "reason": "HATE_SPEECH"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        verify(reportService, never()).createServerMessageReport(any());
+    }
+
+    @Test
+    @DisplayName("서버 간 메시지 신고의 맥락 메시지에 필수값이 없으면 400을 반환한다")
+    void createServerMessageReport_InvalidContext_ReturnsBadRequest() throws Exception {
+        mockMvc.perform(post("/reports/message")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "reportType": "BLINDDATE_MESSAGE",
+                                  "reporterId": 11,
+                                  "targetMemberId": 42,
+                                  "roomId": "session-1",
+                                  "messageId": "m1",
+                                  "messageContent": "신고된 메시지",
+                                  "messageSentAt": "2026-09-28T21:13:40",
+                                  "context": [ { "content": "발신자 없음", "sentAt": "2026-09-28T21:12:10" } ],
+                                  "reason": "HATE_SPEECH"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        verify(reportService, never()).createServerMessageReport(any());
+    }
+
+    @Test
+    @DisplayName("신고 기각은 204를 반환한다")
+    void dismissReport_ReturnsNoContent() throws Exception {
+        mockMvc.perform(post("/reports/7/dismiss"))
+                .andExpect(status().isNoContent());
+
+        verify(reportService).dismissReport(7L);
     }
 }
