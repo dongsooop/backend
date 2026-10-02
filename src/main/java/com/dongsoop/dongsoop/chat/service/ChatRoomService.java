@@ -20,6 +20,9 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class ChatRoomService {
+
+    private static final String ROOM_TITLE_FORMAT = "%s %s";
+
     private final RedisChatRepository redisChatRepository;
     private final ChatValidator chatValidator;
     private final ChatSyncService chatSyncService;
@@ -134,14 +137,14 @@ public class ChatRoomService {
 
     private String buildChatRoomTitle(BoardType boardType, String boardTitle) {
         if (boardType == BoardType.MARKETPLACE) {
-            return String.format("%s %s", ChatRoom.TRADE_ROOM_TITLE_PREFIX, boardTitle);
+            return String.format(ROOM_TITLE_FORMAT, ChatRoom.TRADE_ROOM_TITLE_PREFIX, boardTitle);
         }
 
         if (boardType == BoardType.BLINDDATE) {
-            return String.format("%s %s", ChatRoom.BLINDDATE_ROOM_TITLE_PREFIX, boardTitle);
+            return String.format(ROOM_TITLE_FORMAT, ChatRoom.BLINDDATE_ROOM_TITLE_PREFIX, boardTitle);
         }
 
-        return String.format("%s %s", ChatRoom.CONTACT_ROOM_TITLE_PREFIX, boardTitle);
+        return String.format(ROOM_TITLE_FORMAT, ChatRoom.CONTACT_ROOM_TITLE_PREFIX, boardTitle);
     }
 
     private void validateBoard(BoardType boardType, Long boardId) {
