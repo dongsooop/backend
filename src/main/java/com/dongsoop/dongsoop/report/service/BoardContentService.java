@@ -45,7 +45,7 @@ public class BoardContentService {
     private Optional<Board> getBoard(Long targetId, ReportType reportType) {
         return Optional.ofNullable(repositoryMap.get(reportType))
                 .flatMap(repository -> repository.apply(targetId))
-                .map(board -> (Board) board);
+                .map(Board.class::cast);
     }
 
     private Optional<? extends Board> findProjectBoard(Long id) {

@@ -6,7 +6,6 @@ import com.dongsoop.dongsoop.monitoring.dto.UsageReport.FeatureUsage;
 import com.dongsoop.dongsoop.monitoring.dto.UsageWindow.EndpointCount;
 import com.dongsoop.dongsoop.monitoring.dto.UsageWindow.EndpointLatency;
 import com.dongsoop.dongsoop.monitoring.interceptor.ApiUsageInterceptor;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;

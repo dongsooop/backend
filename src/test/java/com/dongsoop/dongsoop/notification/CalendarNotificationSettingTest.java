@@ -46,7 +46,7 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-public class CalendarNotificationSettingTest extends AbstractIntegrationTest {
+class CalendarNotificationSettingTest extends AbstractIntegrationTest {
 
     @Autowired
     MemberRepository memberRepository;
@@ -101,10 +101,10 @@ public class CalendarNotificationSettingTest extends AbstractIntegrationTest {
         MemberDevice memberDevice1 = memberDeviceRepository.save(
                 MemberDevice.builder().member(member1).deviceToken("token1").memberDeviceType(MemberDeviceType.IOS)
                         .build());
-        MemberDevice memberDevice2 = memberDeviceRepository.save(
+        memberDeviceRepository.save(
                 MemberDevice.builder().member(member2).deviceToken("token2").memberDeviceType(MemberDeviceType.WEB)
                         .build());
-        MemberDevice memberDevice3 = memberDeviceRepository.save(
+        memberDeviceRepository.save(
                 MemberDevice.builder().member(member3).deviceToken("token3").memberDeviceType(MemberDeviceType.ANDROID)
                         .build());
 

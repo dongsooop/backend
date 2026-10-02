@@ -2,8 +2,6 @@ package com.dongsoop.dongsoop.s3;
 
 import com.dongsoop.dongsoop.s3.exception.InvalidFileNameException;
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -56,11 +54,6 @@ public class S3ServiceImpl implements S3Service {
                 putObjectRequest,
                 RequestBody.fromInputStream(file.getInputStream(), file.getSize())
         );
-
-        String encodedPath = URLEncoder.encode(saveFilePath, StandardCharsets.UTF_8)
-                .replace("+", "%20") // 공백 처리
-                .replace("%2F", "/") // 슬래시 복구
-                .replace("%2f", "/");
 
         return String.format("https://objectstorage.%s.oraclecloud.com/n/%s/b/%s/o/%s",
                 region, namespace, bucket, saveFilePath);

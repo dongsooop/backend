@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ChatNotificationImpl implements ChatNotification {
 
-    private final static Long NON_SAVE_NOTIFICATION_ID = -1L;
+    private static final Long NON_SAVE_NOTIFICATION_ID = -1L;
 
     private final MemberDeviceRepository memberDeviceRepository;
     private final NotificationSendService notificationSendService;

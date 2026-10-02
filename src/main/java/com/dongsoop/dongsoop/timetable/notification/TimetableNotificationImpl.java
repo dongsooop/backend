@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class TimetableNotificationImpl implements TimetableNotification {
 
-    private final static Long NON_SAVE_NOTIFICATION_ID = -1L;
+    private static final Long NON_SAVE_NOTIFICATION_ID = -1L;
 
     private final NotificationSendService notificationSendService;
 

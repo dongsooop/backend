@@ -67,7 +67,7 @@ class ReadStatusServiceTest {
 
         Map<String, LocalDateTime> result = readStatusService.getLastReadTimestampsBatch(1L, List.of("room1"));
 
-        assertThat(result.get("room1")).isEqualTo(joinTime);
+        assertThat(result).containsEntry("room1", joinTime);
     }
 
     @Test
