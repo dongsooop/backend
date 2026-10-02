@@ -24,6 +24,10 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class BlindDateConnectHandler {
 
+    private static final String SESSION_ID_KEY = "sessionId";
+    private static final String STATE_KEY = "state";
+    private static final String JOIN_DESTINATION = "/queue/blinddate/join";
+
     private final BlindDateParticipantStorage participantStorage;
     private final BlindDateStorage blindDateStorage;
     private final BlindDateSessionStorage sessionStorage;
@@ -57,13 +61,13 @@ public class BlindDateConnectHandler {
             // 재접속하려는 세션이 이미 종료된 경우: 참가자 기록은 재입장 방지를 위해 그대로 두고
             // 클라이언트에만 알림 (BlindDateSessionSchedulerImpl.finalizeSession 참고)
             log.info("[BlindDate] Reconnect target session already terminated: memberId={}", memberId);
-            sessionAttributes.remove("sessionId");
+            sessionAttributes.remove(SESSION_ID_KEY);
             sendSessionTerminatedEvent(memberId);
             return;
         }
 
         if (existingSessionId != null) {
-            sessionAttributes.put("sessionId", existingSessionId);
+            sessionAttributes.put(SESSION_ID_KEY, existingSessionId);
             sendJoinEvent(createJoinResult(existingSessionId, memberId));
             return;
         }
@@ -114,7 +118,7 @@ public class BlindDateConnectHandler {
             sessionId = assignSession();
 
             // 과팅 세션 id 세션 속성에 저장
-            sessionAttributes.put("sessionId", sessionId);
+            sessionAttributes.put(SESSION_ID_KEY, sessionId);
 
             // 참여 정보 추가 (assignSession에서 편입 가능한 과팅 세션 여부를 확인했기에 바로 저장)
             participant = participantStorage.addParticipant(sessionId, memberId, socketId);
@@ -122,7 +126,7 @@ public class BlindDateConnectHandler {
             // addParticipant는 compute() 기반이라 예외 발생 시 참가자 맵에 아무 것도 반영되지 않는다.
             // 따라서 여기서 회원을 제거하면, 다른 세션에 이미 정상 등록된 참가자 정보를 잘못 지울 수 있다.
             log.error("[BlindDate] Exception from enter process: memberId={}", memberId, e);
-            sessionAttributes.remove("sessionId");
+            sessionAttributes.remove(SESSION_ID_KEY);
 
             return null;
         }
@@ -144,7 +148,7 @@ public class BlindDateConnectHandler {
             // 실패하면(정원 조회 실패, 알림 전송 실패 등) 참가자가 고아로 남으므로, 방금 추가한
             // 소켓을 그대로 퇴장 처리(큐에 위임)해 되돌리고, 클라이언트에는 재시도를 요청한다.
             log.error("[BlindDate] Post-registration failure, rolling back: memberId={}", memberId, e);
-            sessionAttributes.remove("sessionId");
+            sessionAttributes.remove(SESSION_ID_KEY);
             sendJoinFailedEvent(memberId);
             disconnectHandler.execute(socketId, memberId, sessionId);
 
@@ -241,13 +245,13 @@ public class BlindDateConnectHandler {
         }
         Map<String, Object> event = Map.of(
                 "name", participantInfo.getAnonymousName(),
-                "sessionId", joinResult.sessionId(),
-                "state", state.name(),
+                SESSION_ID_KEY, joinResult.sessionId(),
+                STATE_KEY, state.name(),
                 "volunteer", joinResult.currentCount(),
                 "maxCount", joinResult.maxCount()
         );
 
-        String destination = "/queue/blinddate/join";
+        String destination = JOIN_DESTINATION;
 
         try {
             messagingTemplate.convertAndSendToUser(
@@ -267,12 +271,12 @@ public class BlindDateConnectHandler {
      * @param memberId 알림 대상 회원 id
      */
     private void sendJoinFailedEvent(Long memberId) {
-        Map<String, Object> event = Map.of("state", "FAILED");
+        Map<String, Object> event = Map.of(STATE_KEY, "FAILED");
 
         try {
             messagingTemplate.convertAndSendToUser(
                     memberId.toString(),
-                    "/queue/blinddate/join",
+                    JOIN_DESTINATION,
                     event
             );
         } catch (Exception e) {
@@ -286,12 +290,12 @@ public class BlindDateConnectHandler {
      * @param memberId 알림 대상 회원 id
      */
     private void sendSessionTerminatedEvent(Long memberId) {
-        Map<String, Object> event = Map.of("state", "TERMINATED");
+        Map<String, Object> event = Map.of(STATE_KEY, "TERMINATED");
 
         try {
             messagingTemplate.convertAndSendToUser(
                     memberId.toString(),
-                    "/queue/blinddate/join",
+                    JOIN_DESTINATION,
                     event
             );
         } catch (Exception e) {

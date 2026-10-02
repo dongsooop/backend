@@ -47,7 +47,7 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
 
     private final S3Service s3Service;
 
-    @Transactional
+    @Transactional(rollbackFor = IOException.class)
     public MarketplaceBoard create(CreateMarketplaceBoardRequest request, MultipartFile[] images) throws IOException {
         MarketplaceBoard board = marketplaceBoardMapper.toEntity(request);
         MarketplaceBoard savedBoard = marketplaceBoardRepository.save(board);
@@ -107,7 +107,7 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = IOException.class)
     public void update(Long boardId, UpdateMarketplaceBoardRequest request, MultipartFile[] images) throws IOException {
         // 게시글 내용 수정
         MarketplaceBoard board = marketplaceBoardRepository.findById(boardId)

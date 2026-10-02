@@ -33,6 +33,11 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "monitoring.usage.enabled", havingValue = "true")
 public class UsageStatsClient {
 
+    private static final String TIMESTAMP_FIELD = "@timestamp";
+    private static final String USERS_AGGREGATION = "users";
+    private static final String ACTOR_FIELD = "actor";
+    private static final String COUNT_AGGREGATION = "count";
+
     /** 사용자 수에서 빼는 actor: 식별 불가(anon)와 관리자(admin) */
     private static final List<co.elastic.clients.elasticsearch._types.FieldValue> EXCLUDED_ACTORS = List.of(
             co.elastic.clients.elasticsearch._types.FieldValue.of("anon"),
@@ -53,23 +58,23 @@ public class UsageStatsClient {
                         .index(ApiUsageRecorder.INDEX_PREFIX + "*")
                         .size(0)
                         .trackTotalHits(t -> t.enabled(true))
-                        .query(q -> q.range(r -> r.date(d -> d.field("@timestamp")
+                        .query(q -> q.range(r -> r.date(d -> d.field(TIMESTAMP_FIELD)
                                 .gte(from.toOffsetDateTime().toString())
                                 .lt(to.toOffsetDateTime().toString()))))
-                        .aggregations("users", identifiedUsers())
+                        .aggregations(USERS_AGGREGATION, identifiedUsers())
                         .aggregations("members", a -> a
-                                .filter(f -> f.prefix(p -> p.field("actor").value(MEMBER_ACTOR_PREFIX)))
-                                .aggregations("count", a2 -> a2.cardinality(c -> c.field("actor"))))
+                                .filter(f -> f.prefix(p -> p.field(ACTOR_FIELD).value(MEMBER_ACTOR_PREFIX)))
+                                .aggregations(COUNT_AGGREGATION, a2 -> a2.cardinality(c -> c.field(ACTOR_FIELD))))
                         .aggregations("p95", a -> a.percentiles(p -> p.field("durationMs").percents(P95).keyed(false)))
                         .aggregations("features", a -> a
                                 .terms(t -> t.field("feature").size(FEATURE_BUCKETS))
-                                .aggregations("users", identifiedUsers()))
+                                .aggregations(USERS_AGGREGATION, identifiedUsers()))
                         .aggregations("daily", a -> a
-                                .dateHistogram(h -> h.field("@timestamp").calendarInterval(CalendarInterval.Day)
+                                .dateHistogram(h -> h.field(TIMESTAMP_FIELD).calendarInterval(CalendarInterval.Day)
                                         .timeZone(ZONE_ID).minDocCount(0))
-                                .aggregations("users", identifiedUsers()))
+                                .aggregations(USERS_AGGREGATION, identifiedUsers()))
                         .aggregations("hourly", a -> a
-                                .dateHistogram(h -> h.field("@timestamp").calendarInterval(CalendarInterval.Hour)
+                                .dateHistogram(h -> h.field(TIMESTAMP_FIELD).calendarInterval(CalendarInterval.Hour)
                                         .timeZone(ZONE_ID).minDocCount(1)))
                         .aggregations("uris", a -> a
                                 .terms(t -> t.field("uri").size(URI_BUCKETS))
@@ -85,13 +90,13 @@ public class UsageStatsClient {
         Map<String, FeatureCount> features = new LinkedHashMap<>();
         for (StringTermsBucket bucket : aggs.get("features").sterms().buckets().array()) {
             features.put(bucket.key().stringValue(),
-                    new FeatureCount(bucket.docCount(), usersOf(bucket.aggregations().get("users"))));
+                    new FeatureCount(bucket.docCount(), usersOf(bucket.aggregations().get(USERS_AGGREGATION))));
         }
 
         Map<LocalDate, Long> dailyUsers = new LinkedHashMap<>();
         for (DateHistogramBucket bucket : aggs.get("daily").dateHistogram().buckets().array()) {
             LocalDate day = Instant.ofEpochMilli(bucket.key()).atZone(ZONE).toLocalDate();
-            dailyUsers.put(day, usersOf(bucket.aggregations().get("users")));
+            dailyUsers.put(day, usersOf(bucket.aggregations().get(USERS_AGGREGATION)));
         }
 
         HourCount peak = null;
@@ -120,8 +125,8 @@ public class UsageStatsClient {
 
         return new UsageWindow(
                 calls,
-                usersOf(aggs.get("users")),
-                aggs.get("members").filter().aggregations().get("count").cardinality().value(),
+                usersOf(aggs.get(USERS_AGGREGATION)),
+                aggs.get("members").filter().aggregations().get(COUNT_AGGREGATION).cardinality().value(),
                 p95Of(aggs.get("p95")),
                 features,
                 dailyUsers,
@@ -136,12 +141,12 @@ public class UsageStatsClient {
     /** anon·admin 을 뺀 actor 의 cardinality. 비회원 기기·fid 는 포함된다 */
     private static Aggregation identifiedUsers() {
         return Aggregation.of(a -> a
-                .filter(f -> f.bool(b -> b.mustNot(m -> m.terms(t -> t.field("actor").terms(v -> v.value(EXCLUDED_ACTORS))))))
-                .aggregations("count", a2 -> a2.cardinality(c -> c.field("actor"))));
+                .filter(f -> f.bool(b -> b.mustNot(m -> m.terms(t -> t.field(ACTOR_FIELD).terms(v -> v.value(EXCLUDED_ACTORS))))))
+                .aggregations(COUNT_AGGREGATION, a2 -> a2.cardinality(c -> c.field(ACTOR_FIELD))));
     }
 
     private static long usersOf(Aggregate filterAggregate) {
-        return filterAggregate.filter().aggregations().get("count").cardinality().value();
+        return filterAggregate.filter().aggregations().get(COUNT_AGGREGATION).cardinality().value();
     }
 
     private static double p95Of(Aggregate percentiles) {

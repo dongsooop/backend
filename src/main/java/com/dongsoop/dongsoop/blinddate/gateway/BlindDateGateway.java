@@ -26,6 +26,9 @@ import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 @RequiredArgsConstructor
 public class BlindDateGateway {
 
+    private static final String MEMBER_ID_KEY = "memberId";
+    private static final String SESSION_ID_KEY = "sessionId";
+
     private final BlindDateConnectHandler connectHandler;
     private final BlindDateDisconnectHandler disconnectHandler;
     private final BlindDateMessageHandler messageHandler;
@@ -50,7 +53,7 @@ public class BlindDateGateway {
         }
 
         String socketId = accessor.getSessionId();
-        Long memberId = (Long) sessionAttributes.get("memberId");
+        Long memberId = (Long) sessionAttributes.get(MEMBER_ID_KEY);
         if (memberId == null) {
             log.info("[BlindDate] Member id not initialized");
             return;
@@ -73,8 +76,8 @@ public class BlindDateGateway {
             return;
         }
 
-        Long memberId = (Long) sessionAttributes.get("memberId");
-        String sessionId = (String) sessionAttributes.get("sessionId");
+        Long memberId = (Long) sessionAttributes.get(MEMBER_ID_KEY);
+        String sessionId = (String) sessionAttributes.get(SESSION_ID_KEY);
 
         try {
             disconnectHandler.execute(socketId, memberId, sessionId);
@@ -94,8 +97,8 @@ public class BlindDateGateway {
             return;
         }
 
-        Long memberId = (Long) sessionAttributes.get("memberId");
-        String sessionId = (String) sessionAttributes.get("sessionId");
+        Long memberId = (Long) sessionAttributes.get(MEMBER_ID_KEY);
+        String sessionId = (String) sessionAttributes.get(SESSION_ID_KEY);
 
         if (memberId == null || sessionId == null) {
             log.error("[BlindDate] Member or session data not found");
@@ -117,8 +120,8 @@ public class BlindDateGateway {
             return;
         }
 
-        Long memberId = (Long) sessionAttributes.get("memberId");
-        String sessionId = (String) sessionAttributes.get("sessionId");
+        Long memberId = (Long) sessionAttributes.get(MEMBER_ID_KEY);
+        String sessionId = (String) sessionAttributes.get(SESSION_ID_KEY);
 
         if (memberId == null || sessionId == null) {
             log.error("Member or session data not found");
