@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.dongsoop.dongsoop.blinddate.config.BlindDateMessageProvider;
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
 import com.dongsoop.dongsoop.blinddate.dto.StartBlindDateRequest;
+import com.dongsoop.dongsoop.blinddate.entity.SessionInfo.SessionState;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateChoiceHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateConnectHandler;
@@ -126,6 +127,12 @@ class BlindDateFullFlowIntegrationTest {
         String sessionId = (String) first.get("sessionId");
         assertThat(second.get("sessionId")).isEqualTo(sessionId);
         assertThat(third.get("sessionId")).isEqualTo(sessionId);
+        assertThat(blindDateStorage.getPointer()).isEqualTo(sessionId);
+        assertThat(sessionStorage.getState(sessionId)).isEqualTo(SessionState.PROCESSING);
+        assertThat(participantStorage.findAllBySessionId(sessionId)).hasSize(3);
+        assertParticipantConnection(participantStorage, sessionId, 1L, "socket-1");
+        assertParticipantConnection(participantStorage, sessionId, 2L, "socket-2");
+        assertParticipantConnection(participantStorage, sessionId, 3L, "socket-3");
 
         // 실제 세션 스케줄러가 등록한 대화 단계 종료와 선택 단계 시작 작업을 순서대로 실행한다.
         taskScheduler.runNext();
@@ -144,6 +151,22 @@ class BlindDateFullFlowIntegrationTest {
                 matchFailed(sessionId, 3L)
         );
         assertThat(sessionStorage.getState(sessionId)).isNull();
+    }
+
+    private void assertParticipantConnection(
+            BlindDateParticipantStorageImpl participantStorage,
+            String sessionId,
+            Long memberId,
+            String socketId
+    ) {
+        var byMember = participantStorage.getByMemberId(memberId);
+        var bySocket = participantStorage.getBySocketId(socketId);
+
+        assertThat(byMember).isNotNull();
+        assertThat(bySocket).isSameAs(byMember);
+        assertThat(byMember.getSessionId()).isEqualTo(sessionId);
+        assertThat(byMember.getMemberId()).isEqualTo(memberId);
+        assertThat(byMember.getSocketIds()).containsExactly(socketId);
     }
 
     private SimpMessagingTemplate resultCapturingMessagingTemplate(List<ResultEvent> resultEvents) {

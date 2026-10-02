@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -384,7 +385,8 @@ class BlindDateIntegrationTest {
 
             // then
             assertThat(getParticipantCount(sessionId)).isEqualTo(3);
-            // 세션 시작은 scheduler에 의해 비동기로 처리됨
+            assertThat(sessionStorage.getState(sessionId)).isEqualTo(SessionState.PROCESSING);
+            verify(sessionScheduler, timeout(1_000)).start(sessionId);
         }
 
         @Test
@@ -430,6 +432,8 @@ class BlindDateIntegrationTest {
 
             // then
             assertThat(participantStorage.getByMemberId(1L)).isNull();
+            assertThat(participantStorage.getBySocketId("socket-1")).isNull();
+            assertThat(getParticipantCount(sessionId)).isEqualTo(1);
         }
     }
 
