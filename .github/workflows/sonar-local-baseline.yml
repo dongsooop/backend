@@ -144,3 +144,24 @@ jobs:
 
             PAGE=$((PAGE + 1))
           done
+
+          echo '===== CODE SMELL RULE COUNTS ====='
+          ISSUES_FILE=$(mktemp)
+          PAGE=1
+          PAGE_SIZE=100
+          while true; do
+            RESPONSE=$(curl -fsS -u "$SONAR_TOKEN:" \
+              "http://localhost:9000/api/issues/search?componentKeys=dongsooop-backend-baseline&types=CODE_SMELL&ps=$PAGE_SIZE&p=$PAGE")
+            echo "$RESPONSE" | jq -c '.issues[]' >> "$ISSUES_FILE"
+            TOTAL=$(echo "$RESPONSE" | jq -r '.paging.total')
+            if [ $((PAGE * PAGE_SIZE)) -ge "$TOTAL" ]; then
+              break
+            fi
+            PAGE=$((PAGE + 1))
+          done
+
+          jq -s -r 'group_by(.rule) | map({rule: .[0].rule, count: length}) | sort_by(-.count, .rule)[] | [.rule, (.count | tostring)] | @tsv' "$ISSUES_FILE"
+
+          echo '===== CODE SMELL DETAILS ====='
+          jq -r '[.severity, .rule, (.component | split(":")[-1]), ((.line // 0) | tostring), .message] | @tsv' "$ISSUES_FILE"
+          rm "$ISSUES_FILE"
