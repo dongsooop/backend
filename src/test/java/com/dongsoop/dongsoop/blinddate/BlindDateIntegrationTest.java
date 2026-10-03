@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -384,7 +385,8 @@ class BlindDateIntegrationTest {
 
             // then
             assertThat(getParticipantCount(sessionId)).isEqualTo(3);
-            // 세션 시작은 scheduler에 의해 비동기로 처리됨
+            assertThat(sessionStorage.getState(sessionId)).isEqualTo(SessionState.PROCESSING);
+            verify(sessionScheduler, timeout(1_000)).start(sessionId);
         }
 
         @Test
@@ -430,6 +432,8 @@ class BlindDateIntegrationTest {
 
             // then
             assertThat(participantStorage.getByMemberId(1L)).isNull();
+            assertThat(participantStorage.getBySocketId("socket-1")).isNull();
+            assertThat(getParticipantCount(sessionId)).isEqualTo(1);
         }
     }
 
@@ -563,6 +567,29 @@ class BlindDateIntegrationTest {
     @Nested
     @DisplayName("시나리오 6: 사랑의 작대기 - 매칭")
     class MatchingScenarios {
+
+        @Test
+        @DisplayName("선택 단계가 열리기 전 상호 선택은 매칭되지 않는다")
+        void choicesBeforeChoicePeriod_DoNotMatch() {
+            blindDateStorage.start(2, LocalDateTime.now().plusHours(1));
+            Map<String, Object> first = new HashMap<>();
+            Map<String, Object> second = new HashMap<>();
+
+            connectHandler.execute("socket-1", 1L, first);
+            connectHandler.execute("socket-2", 2L, second);
+            eventQueue.awaitIdle();
+            String sessionId = (String) first.get("sessionId");
+
+            assertThat(sessionStorage.getState(sessionId)).isEqualTo(SessionState.PROCESSING);
+
+            choiceHandler.execute(sessionId, 1L, 2L);
+            choiceHandler.execute(sessionId, 2L, 1L);
+            eventQueue.awaitIdle();
+
+            assertThat(participantStorage.isMatched(sessionId, 1L)).isFalse();
+            assertThat(participantStorage.isMatched(sessionId, 2L)).isFalse();
+            assertThat(participantStorage.getNotMatched(sessionId)).containsExactlyInAnyOrder(1L, 2L);
+        }
 
         @Test
         @DisplayName("서로 선택 - 매칭 성공")
