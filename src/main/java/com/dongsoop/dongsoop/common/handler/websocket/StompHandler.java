@@ -50,11 +50,22 @@ public class StompHandler implements ChannelInterceptor {
         if (StompCommand.CONNECT == command) {
             authenticateConnection(accessor);
         }
+        if (StompCommand.SEND == command) {
+            rejectClientChoiceErrorSend(accessor);
+        }
         if (StompCommand.SUBSCRIBE == command) {
             authorizeChoiceErrorSubscription(accessor);
         }
         if (StompCommand.DISCONNECT == command) {
             handleDisconnect(accessor);
+        }
+    }
+
+    /** 선택 오류는 서버만 발행한다. 서버의 brokerChannel 전송에는 이 검사가 적용되지 않는다. */
+    private void rejectClientChoiceErrorSend(StompHeaderAccessor accessor) {
+        String destination = accessor.getDestination();
+        if (destination != null && CHOICE_ERROR_TOPIC.matcher(destination).matches()) {
+            throw new UnauthorizedChatAccessException();
         }
     }
 

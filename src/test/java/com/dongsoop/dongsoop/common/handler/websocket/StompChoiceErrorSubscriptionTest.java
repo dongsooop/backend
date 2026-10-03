@@ -83,6 +83,36 @@ class StompChoiceErrorSubscriptionTest {
         assertAllowed(destination, authenticated(1L));
     }
 
+    @ParameterizedTest
+    @ValueSource(longs = {1L, 2L})
+    void clientsCannotPublishOwnOrAnotherMembersErrors(long member) {
+        var headers = StompHeaderAccessor.create(StompCommand.SEND);
+        headers.setDestination(OWN_TOPIC);
+        headers.setUser(authenticated(member));
+        headers.setLeaveMutable(true);
+        assertThatThrownBy(
+                        () ->
+                                handler.preSend(
+                                        MessageBuilder.createMessage(
+                                                new byte[0], headers.getMessageHeaders()),
+                                        null))
+                .isInstanceOf(UnauthorizedChatAccessException.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/app/blinddate/choice", "/app/blinddate/message"})
+    void applicationSendKeepsExistingBehavior(String destination) {
+        var headers = StompHeaderAccessor.create(StompCommand.SEND);
+        headers.setDestination(destination);
+        headers.setUser(authenticated(1L));
+        headers.setLeaveMutable(true);
+        var result =
+                handler.preSend(
+                        MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders()),
+                        null);
+        assertThat(StompHeaderAccessor.wrap(result).getDestination()).isEqualTo(destination);
+    }
+
     private Principal authenticated(Long member) {
         return new UsernamePasswordAuthenticationToken(member, null, List.of());
     }
