@@ -96,10 +96,14 @@ class BlindDateParticipantStorageTest {
     @Test
     @DisplayName("R07 최초 선택 유지, 다른 세션 선택은 별개")
     void firstChoiceAndSessionIsolation() {
+        for (long member = 1; member <= 3; member++)
+            storage.addParticipant("a", member, "a-" + member);
+        storage.addParticipant("b", 4L, "b-4");
+        storage.addParticipant("b", 5L, "b-5");
         assertThat(storage.recordChoice("a", 1L, 2L)).isFalse();
         assertThat(storage.recordChoice("a", 1L, 3L)).isFalse();
         assertThat(storage.recordChoice("a", 3L, 1L)).isFalse();
-        assertThat(storage.recordChoice("b", 2L, 1L)).isFalse();
+        assertThat(storage.recordChoice("b", 4L, 5L)).isFalse();
         assertThat(storage.recordChoice("a", 2L, 1L)).isTrue();
         assertThat(storage.isMatched("b", 1L)).isFalse();
     }
