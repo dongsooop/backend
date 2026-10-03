@@ -1,0 +1,109 @@
+package com.dongsoop.dongsoop.common.handler.websocket;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+
+import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
+import com.dongsoop.dongsoop.chat.session.WebSocketSessionManager;
+import com.dongsoop.dongsoop.jwt.JwtUtil;
+import com.dongsoop.dongsoop.jwt.JwtValidator;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.simp.stomp.StompCommand;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+
+import java.security.Principal;
+import java.util.List;
+
+class StompChoiceErrorSubscriptionTest {
+    private final StompHandler handler =
+            new StompHandler(
+                    mock(JwtValidator.class),
+                    mock(JwtUtil.class),
+                    mock(WebSocketSessionManager.class));
+    private static final String OWN_TOPIC =
+            "/topic/blinddate/session/session-1/member/1/choice-error";
+
+    @Test
+    void authenticatedOwnerCanSubscribeBeforeChoicesOpen() {
+        // 참가자 저장소와 선택 기간에 의존하지 않고 인증된 수신자의 사전 구독을 허용한다.
+        assertAllowed(OWN_TOPIC, authenticated(1L));
+    }
+
+    @Test
+    void anotherMemberCannotSubscribe() {
+        assertDenied(OWN_TOPIC, authenticated(2L));
+    }
+
+    @Test
+    void missingPrincipalCannotSubscribe() {
+        assertDenied(OWN_TOPIC, null);
+    }
+
+    @Test
+    void unauthenticatedPrincipalCannotSubscribe() {
+        assertDenied(OWN_TOPIC, new UsernamePasswordAuthenticationToken(1L, null));
+    }
+
+    @Test
+    void arbitraryPrincipalCannotSubscribe() {
+        assertDenied(OWN_TOPIC, () -> "1");
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "/topic/**",
+                "/topic/*/**",
+                "/topic/blinddate/**",
+                "/topic/blinddate/session/session-1/member/*/choice-error",
+                "/topic/blinddate/session/session-1/member/?/choice-error",
+                "/topic/blinddate/session/{session}/member/{member}/choice-error"
+            })
+    void patternsCannotBypassOwnershipCheck(String destination) {
+        assertDenied(destination, authenticated(1L));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "/topic/blinddate/session/session-1/participants",
+                "/topic/blinddate/session/session-1/start",
+                "/user/queue/blinddate/join",
+                "/topic/chat/**",
+                "/topic/blinddate/join"
+            })
+    void otherSubscriptionsKeepExistingBehavior(String destination) {
+        assertAllowed(destination, authenticated(1L));
+    }
+
+    private Principal authenticated(Long member) {
+        return new UsernamePasswordAuthenticationToken(member, null, List.of());
+    }
+
+    private void assertAllowed(String destination, Principal principal) {
+        var result = handler.preSend(subscription(destination, principal), null);
+        var headers = StompHeaderAccessor.wrap(result);
+        assertThat(headers.getCommand()).isEqualTo(StompCommand.SUBSCRIBE);
+        assertThat(headers.getDestination()).isEqualTo(destination);
+    }
+
+    private void assertDenied(String destination, Principal principal) {
+        assertThatThrownBy(() -> handler.preSend(subscription(destination, principal), null))
+                .isInstanceOf(UnauthorizedChatAccessException.class);
+    }
+
+    private Message<byte[]> subscription(String destination, Principal principal) {
+        var headers = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        headers.setDestination(destination);
+        headers.setUser(principal);
+        headers.setLeaveMutable(true);
+        return MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
+    }
+}
