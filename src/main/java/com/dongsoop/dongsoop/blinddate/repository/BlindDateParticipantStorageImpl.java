@@ -174,15 +174,27 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
     }
 
     private void validateChoice(String sessionId, Long choicerId, Long targetId) {
+        validateChooserParticipation(sessionId, choicerId);
+        validateTargetId(choicerId, targetId);
+        validateTargetParticipation(sessionId, targetId);
+    }
+
+    private void validateChooserParticipation(String sessionId, Long choicerId) {
         ParticipantInfo choicer = choicerId == null ? null : participants.get(choicerId);
         if (choicer == null || !choicer.getSessionId().equals(sessionId)) {
             throw new InvalidBlindDateChoiceException(
                     403, "CHOICE_FORBIDDEN", "해당 세션의 참가자만 선택할 수 있습니다.");
         }
+    }
+
+    private void validateTargetId(Long choicerId, Long targetId) {
         if (targetId == null || choicerId.equals(targetId)) {
             throw new InvalidBlindDateChoiceException(
                     400, "INVALID_CHOICE", "자신을 선택할 수 없으며 선택 대상이 필요합니다.");
         }
+    }
+
+    private void validateTargetParticipation(String sessionId, Long targetId) {
         ParticipantInfo target = participants.get(targetId);
         if (target == null || !target.getSessionId().equals(sessionId)) {
             throw new InvalidBlindDateChoiceException(
