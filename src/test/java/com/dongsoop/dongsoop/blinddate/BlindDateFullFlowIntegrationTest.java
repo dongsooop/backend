@@ -32,14 +32,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
+@Timeout(15)
 @DisplayName("과팅 시작부터 매칭 결과까지 통합 흐름")
 class BlindDateFullFlowIntegrationTest {
 
@@ -53,6 +57,16 @@ class BlindDateFullFlowIntegrationTest {
     @Test
     @DisplayName("일부 매칭 성공을 먼저 알리고 나머지 참가자에게 실패를 알린 뒤 세션을 종료한다")
     void sendsSuccessThenFailureAndTerminatesSession() throws Exception {
+        verifyResultFlow(false);
+    }
+
+    @Test
+    @DisplayName("선택 마감 시 진행 중인 매칭 성공 전송을 기다린 뒤 실패를 알리고 세션을 종료한다")
+    void waitsForInFlightMatchBeforeFailureAndTermination() throws Exception {
+        verifyResultFlow(true);
+    }
+
+    private void verifyResultFlow(boolean pauseChatRoomCreation) throws Exception {
         var blindDateStorage = new BlindDateStorageImpl();
         var participantStorage = new BlindDateParticipantStorageImpl();
         var sessionStorage = new BlindDateSessionStorageImpl();
@@ -61,8 +75,15 @@ class BlindDateFullFlowIntegrationTest {
         var messaging = resultCapturingMessagingTemplate(resultEvents);
         var notification = mock(BlindDateNotification.class);
         var chatRoomService = mock(ChatRoomService.class);
+        var chatRoomCreationStarted = new CountDownLatch(1);
+        var allowChatRoomCreation = new CountDownLatch(pauseChatRoomCreation ? 1 : 0);
         when(chatRoomService.createOneToOneChatRoom(anyLong(), anyLong(), anyString()))
-                .thenReturn(ChatRoom.builder().roomId("room-1").build());
+                .thenAnswer(invocation -> {
+                    chatRoomCreationStarted.countDown();
+                    assertThat(allowChatRoomCreation.await(5, TimeUnit.SECONDS))
+                            .as("테스트가 채팅방 생성을 재개해야 한다").isTrue();
+                    return ChatRoom.builder().roomId("room-1").build();
+                });
 
         var service = new BlindDateServiceImpl(
                 participantStorage,
@@ -138,18 +159,39 @@ class BlindDateFullFlowIntegrationTest {
         taskScheduler.runNext();
         taskScheduler.runNext();
 
-        choiceHandler.execute(sessionId, 1L, 2L);
-        choiceHandler.execute(sessionId, 2L, 1L);
+        // 요청 스레드와 무관하게 채팅방 생성 중 선택 마감을 실행할 수 있어야 한다.
+        var choiceRequests = Executors.newSingleThreadExecutor();
+        try {
+            var choices = choiceRequests.submit(() -> {
+                choiceHandler.execute(sessionId, 1L, 2L);
+                choiceHandler.execute(sessionId, 2L, 1L);
+            });
+            assertThat(chatRoomCreationStarted.await(5, TimeUnit.SECONDS))
+                    .as("상호 선택의 채팅방 생성이 시작되어야 한다").isTrue();
 
-        // 선택 마감 작업은 앞서 접수된 성공 처리 뒤에 최종 결과 처리를 배치한다.
-        taskScheduler.runNext();
-        eventQueue.awaitIdle();
+            // 채팅방 생성이 끝나기 전에 실제 스케줄러의 선택 마감 작업을 실행한다.
+            taskScheduler.runNext();
+            if (pauseChatRoomCreation) {
+                assertThat(resultEvents).as("성공 처리 중에는 실패를 먼저 전송하면 안 된다").isEmpty();
+                assertThat(sessionStorage.getState(sessionId))
+                        .as("성공 처리 중에는 세션을 종료하면 안 된다")
+                        .isEqualTo(SessionState.PROCESSING);
+            }
 
-        assertThat(resultEvents).containsExactly(
+            allowChatRoomCreation.countDown();
+            choices.get(5, TimeUnit.SECONDS);
+            eventQueue.awaitIdle();
+        } finally {
+            allowChatRoomCreation.countDown();
+            choiceRequests.shutdownNow();
+        }
+
+        assertThat(resultEvents).hasSize(3);
+        assertThat(resultEvents.subList(0, 2)).containsExactlyInAnyOrder(
                 chatRoomCreated(sessionId, 2L),
-                chatRoomCreated(sessionId, 1L),
-                matchFailed(sessionId, 3L)
+                chatRoomCreated(sessionId, 1L)
         );
+        assertThat(resultEvents.get(2)).isEqualTo(matchFailed(sessionId, 3L));
         assertThat(sessionStorage.getState(sessionId)).isNull();
     }
 
