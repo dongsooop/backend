@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.blinddate.repository;
 
 import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
+import com.dongsoop.dongsoop.blinddate.exception.InvalidBlindDateChoiceException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -145,6 +146,7 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
      * 선택 기록
      */
     public boolean recordChoice(String sessionId, Long choicerId, Long targetId) {
+        validateChoice(sessionId, choicerId, targetId);
         Map<Long, Long> sessionChoices = choices.computeIfAbsent(sessionId, k -> new ConcurrentHashMap<>());
 
         // 이미 선택했는지 확인 + 반영을 원자적으로 처리 (확인과 반영 사이 공백 제거)
@@ -169,6 +171,35 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
 
         log.info("🎉 Match found: sessionId={}, member1={}, member2={}", sessionId, choicerId, targetId);
         return true;
+    }
+
+    private void validateChoice(String sessionId, Long choicerId, Long targetId) {
+        validateChooserParticipation(sessionId, choicerId);
+        validateTargetId(choicerId, targetId);
+        validateTargetParticipation(sessionId, targetId);
+    }
+
+    private void validateChooserParticipation(String sessionId, Long choicerId) {
+        ParticipantInfo choicer = choicerId == null ? null : participants.get(choicerId);
+        if (choicer == null || !choicer.getSessionId().equals(sessionId)) {
+            throw new InvalidBlindDateChoiceException(
+                    403, "CHOICE_FORBIDDEN", "해당 세션의 참가자만 선택할 수 있습니다.");
+        }
+    }
+
+    private void validateTargetId(Long choicerId, Long targetId) {
+        if (targetId == null || choicerId.equals(targetId)) {
+            throw new InvalidBlindDateChoiceException(
+                    400, "INVALID_CHOICE", "자신을 선택할 수 없으며 선택 대상이 필요합니다.");
+        }
+    }
+
+    private void validateTargetParticipation(String sessionId, Long targetId) {
+        ParticipantInfo target = participants.get(targetId);
+        if (target == null || !target.getSessionId().equals(sessionId)) {
+            throw new InvalidBlindDateChoiceException(
+                    404, "CHOICE_TARGET_NOT_FOUND", "해당 세션에서 선택 대상을 찾을 수 없습니다.");
+        }
     }
 
     /**

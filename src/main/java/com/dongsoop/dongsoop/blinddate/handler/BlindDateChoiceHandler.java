@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.blinddate.handler;
 
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
+import com.dongsoop.dongsoop.blinddate.exception.InvalidBlindDateChoiceException;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
@@ -39,7 +40,15 @@ public class BlindDateChoiceHandler {
         }
 
         // 선택 및 매칭 여부 확인
-        boolean isMatched = participantStorage.recordChoice(sessionId, choicerId, targetId);
+        boolean isMatched;
+        try {
+            isMatched = participantStorage.recordChoice(sessionId, choicerId, targetId);
+        } catch (InvalidBlindDateChoiceException e) {
+            messagingTemplate.convertAndSend(
+                    BlindDateTopic.choiceError(sessionId, choicerId),
+                    Map.of("status", e.getStatus(), "code", e.getCode(), "message", e.getMessage()));
+            return;
+        }
 
         // 매칭 성공 시 채팅방 개설
         if (isMatched) {

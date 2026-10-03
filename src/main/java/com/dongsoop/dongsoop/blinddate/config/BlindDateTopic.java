@@ -85,6 +85,11 @@ public class BlindDateTopic {
         return memberEvent(sessionId, memberId, "chatroom");
     }
 
+    /** 선택 요청 오류. 매칭 실패 이벤트와 구분하며 선택 기회를 소비하지 않는다. */
+    public static String choiceError(String sessionId, Long memberId) {
+        return memberEvent(sessionId, memberId, "choice-error");
+    }
+
     /**
      * 매칭 실패 알림
      */
