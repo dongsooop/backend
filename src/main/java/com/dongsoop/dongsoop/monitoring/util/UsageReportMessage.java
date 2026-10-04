@@ -38,6 +38,17 @@ public final class UsageReportMessage {
         sb.append("기간 ").append(day(r.from())).append(" ~ ").append(day(r.to()))
                 .append(" · 생성 ").append(DATE_TIME.format(generatedAt)).append("\n\n");
 
+        appendSummary(sb, r);
+        appendDailyUsers(sb, r);
+        appendFeatures(sb, r);
+        appendTopCalls(sb, r);
+        appendSlowest(sb, r);
+        appendErrors(sb, r);
+        appendNotableChanges(sb, r);
+        return sb.toString().stripTrailing();
+    }
+
+    private static void appendSummary(StringBuilder sb, UsageReport r) {
         sb.append("**요약**\n");
         sb.append("• 사용자 ").append(n(r.users())).append("명 ").append(delta(r.usersDeltaPercent()))
                 .append(" · 회원 ").append(n(r.memberUsers())).append(" · 비회원 ").append(n(r.users() - r.memberUsers())).append("\n");
@@ -55,7 +66,9 @@ public final class UsageReportMessage {
             sb.append("• 가장 바쁜 시간: ").append(DAY_KO[r.peakHour().dayOfWeek()]).append(' ')
                     .append(r.peakHour().hour()).append("시 (").append(n(r.peakHour().count())).append("회)\n");
         }
+    }
 
+    private static void appendDailyUsers(StringBuilder sb, UsageReport r) {
         if (!r.dailyUsers().isEmpty()) {
             sb.append("\n**일별 사용자**\n```\n");
             long max = r.dailyUsers().values().stream().mapToLong(Long::longValue).max().orElse(0);
@@ -64,7 +77,9 @@ public final class UsageReportMessage {
             }
             sb.append("```\n");
         }
+    }
 
+    private static void appendFeatures(StringBuilder sb, UsageReport r) {
         sb.append("\n**기능별 사용자 (상위 ").append(TOP_FEATURES).append(")**\n");
         List<FeatureUsage> top = r.features().stream()
                 .filter(f -> f.users() > 0 && !ApiUsageInterceptor.SYSTEM_FEATURE.equals(f.feature()))
@@ -80,7 +95,9 @@ public final class UsageReportMessage {
             }
             sb.append("```\n");
         }
+    }
 
+    private static void appendTopCalls(StringBuilder sb, UsageReport r) {
         if (!r.topByCalls().isEmpty()) {
             sb.append("\n**많이 부른 API TOP ").append(r.topByCalls().size()).append("**\n```\n");
             for (EndpointCount e : r.topByCalls()) {
@@ -88,6 +105,9 @@ public final class UsageReportMessage {
             }
             sb.append("```\n");
         }
+    }
+
+    private static void appendSlowest(StringBuilder sb, UsageReport r) {
         List<EndpointLatency> slow = r.slowest().stream().limit(TOP_SLOWEST).toList();
         if (!slow.isEmpty()) {
             sb.append("\n**느린 API TOP ").append(slow.size()).append("** (p95)\n```\n");
@@ -96,6 +116,9 @@ public final class UsageReportMessage {
             }
             sb.append("```\n");
         }
+    }
+
+    private static void appendErrors(StringBuilder sb, UsageReport r) {
         if (!r.errorsByUri().isEmpty()) {
             sb.append("\n**에러 많은 API TOP ").append(r.errorsByUri().size()).append("** (5xx)\n```\n");
             for (EndpointCount e : r.errorsByUri()) {
@@ -103,7 +126,9 @@ public final class UsageReportMessage {
             }
             sb.append("```\n");
         }
+    }
 
+    private static void appendNotableChanges(StringBuilder sb, UsageReport r) {
         sb.append("\n**눈에 띄는 것**\n");
         int notable = 0;
         for (FeatureUsage f : r.features()) {
@@ -128,7 +153,6 @@ public final class UsageReportMessage {
         if (notable == 0) {
             sb.append("• 특이사항 없음\n");
         }
-        return sb.toString().stripTrailing();
     }
 
     private static String day(LocalDate date) {
