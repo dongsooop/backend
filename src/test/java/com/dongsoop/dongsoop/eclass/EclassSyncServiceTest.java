@@ -33,6 +33,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -367,44 +369,19 @@ class EclassSyncServiceTest {
         assertThat(capturedSaved().get(0).getDueAt()).isEqualTo(LocalDateTime.of(2026, 9, 3, 23, 55));
     }
 
-    @Test
-    @DisplayName("마감이 앞당겨지면 변경 알림을 보낸다")
-    void notifiesWhenDueDateAdvanced() {
-        EclassAssignment existing = existing(NOW.plusDays(9));
+    @ParameterizedTest(name = "마감 {0}일 → {1}일, 알림 {2}회")
+    @CsvSource({"9, 2, 1", "2, 9, 0", "2, 2, 0"})
+    @DisplayName("미제출 과제는 마감이 앞당겨질 때만 변경 알림을 보낸다")
+    void notifiesOnlyWhenDueDateAdvanced(int previousDays, int newDays, int notificationCount) {
+        EclassAssignment existing = existing(NOW.plusDays(previousDays));
         givenExisting(existing);
-        givenFetched(moodleAssignment(601L, NOW.plusDays(2)));
+        givenFetched(moodleAssignment(601L, NOW.plusDays(newDays)));
         givenSubmissionStatus(false);
 
         syncService.syncLink(link);
 
-        verify(eclassNotification).sendDueDateChanged(link, existing);
-        assertThat(existing.getDueAt()).isEqualTo(NOW.plusDays(2));
-    }
-
-    @Test
-    @DisplayName("마감이 미뤄지면 변경 알림을 보내지 않는다 — 리마인드가 새 일정으로 다시 나간다")
-    void doesNotNotifyWhenDueDatePostponed() {
-        EclassAssignment existing = existing(NOW.plusDays(2));
-        givenExisting(existing);
-        givenFetched(moodleAssignment(601L, NOW.plusDays(9)));
-        givenSubmissionStatus(false);
-
-        syncService.syncLink(link);
-
-        verify(eclassNotification, never()).sendDueDateChanged(any(), any());
-    }
-
-    @Test
-    @DisplayName("마감이 그대로면 변경 알림을 보내지 않는다")
-    void doesNotNotifyWhenDueDateUnchanged() {
-        EclassAssignment existing = existing(NOW.plusDays(2));
-        givenExisting(existing);
-        givenFetched(moodleAssignment(601L, NOW.plusDays(2)));
-        givenSubmissionStatus(false);
-
-        syncService.syncLink(link);
-
-        verify(eclassNotification, never()).sendDueDateChanged(any(), any());
+        verify(eclassNotification, times(notificationCount)).sendDueDateChanged(link, existing);
+        assertThat(existing.getDueAt()).isEqualTo(NOW.plusDays(newDays));
     }
 
     @Test
