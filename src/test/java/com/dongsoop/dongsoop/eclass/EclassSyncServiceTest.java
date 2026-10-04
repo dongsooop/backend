@@ -380,7 +380,10 @@ class EclassSyncServiceTest {
 
         syncService.syncLink(link);
 
-        verify(eclassNotification, times(notificationCount)).sendDueDateChanged(link, existing);
+        verify(eclassNotification, times(notificationCount)).sendDueDateChanged(any(), any());
+        if (notificationCount > 0) {
+            verify(eclassNotification).sendDueDateChanged(link, existing);
+        }
         assertThat(existing.getDueAt()).isEqualTo(NOW.plusDays(newDays));
     }
 
