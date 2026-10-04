@@ -157,11 +157,14 @@ class OAuth2ServiceTest {
                 .thenReturn(Optional.empty());
         when(oAuth2UserParser.extractProvider("google")).thenReturn(null);
 
+        com.dongsoop.dongsoop.oauth.dto.UnlinkSocialAccountRequest request =
+                new com.dongsoop.dongsoop.oauth.dto.UnlinkSocialAccountRequest("token");
+
         // when & then
         assertThatThrownBy(() -> oAuth2Service.unlinkMemberWithProviderType(
                 MEMBER_ID,
                 OAuthProviderType.GOOGLE,
-                new com.dongsoop.dongsoop.oauth.dto.UnlinkSocialAccountRequest("token")
+                request
         )).isInstanceOf(InvalidProviderTypeException.class);
     }
 

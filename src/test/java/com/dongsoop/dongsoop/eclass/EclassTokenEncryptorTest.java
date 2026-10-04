@@ -54,7 +54,9 @@ class EclassTokenEncryptorTest {
     void otherKeyCannotDecrypt() {
         String encrypted = encryptor().encrypt(TOKEN);
 
-        assertThatThrownBy(() -> Encryptors.delux("another-password", SALT).decrypt(encrypted))
+        TextEncryptor otherEncryptor = Encryptors.delux("another-password", SALT);
+
+        assertThatThrownBy(() -> otherEncryptor.decrypt(encrypted))
                 .isInstanceOf(RuntimeException.class);
     }
 
