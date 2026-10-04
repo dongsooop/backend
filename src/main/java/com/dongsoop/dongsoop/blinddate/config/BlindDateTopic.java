@@ -5,6 +5,9 @@ package com.dongsoop.dongsoop.blinddate.config;
  */
 public class BlindDateTopic {
 
+    private BlindDateTopic() {
+    }
+
     private static final String BASE = "/topic/blinddate";
     private static final String SESSION_BASE = BASE + "/session";
 
