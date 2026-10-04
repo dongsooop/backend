@@ -25,7 +25,7 @@ public class SignupRequest {
 
     @NotNull
     @NotBlank(message = "비밀번호는 필수 입력값입니다.")
-    @Pattern(regexp = MemberPassword.regex,
+    @Pattern(regexp = MemberPassword.REGEX,
             message = "비밀번호는 8자 이상, 영문, 숫자, 특수문자를 포함해야 합니다.")
     private String password;
 
