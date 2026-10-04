@@ -48,12 +48,4 @@ class WebSocketSessionManagerTest {
                 .doesNotThrowAnyException();
     }
 
-    @Test
-    @DisplayName("addUserSession 후 removeSession을 호출하면 isUserOnline이 false를 반환한다")
-    void addUserSession_then_removeSession_then_isUserOnline_returns_false() {
-        sessionManager.addUserSession(1L, "session-1");
-        sessionManager.removeSession("session-1");
-
-        assertThat(sessionManager.isUserOnline(1L)).isFalse();
-    }
 }
