@@ -59,12 +59,10 @@ public class EclassReminderScheduler {
 
             // 실제로 보낸 것만 기록한다 — 기기 토큰이 없거나 알림이 꺼져 건너뛴 과제까지 보냈다고 적으면
             // 그 사용자는 이 단계의 알림을 영영 받지 못한다
-            if (!send(assignment, remainingDays)) {
-                continue;
+            if (send(assignment, remainingDays)) {
+                assignment.markReminded(remainingDays);
+                sent.add(assignment);
             }
-
-            assignment.markReminded(remainingDays);
-            sent.add(assignment);
         }
 
         assignmentRepository.saveAll(sent);
