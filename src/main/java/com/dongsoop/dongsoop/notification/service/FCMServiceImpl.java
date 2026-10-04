@@ -237,22 +237,24 @@ public class FCMServiceImpl implements FCMService {
                 continue;
             }
 
-            FirebaseMessagingException exception = response.getException();
-            if (exception == null) {
-                continue;
-            }
-
-            // 만료된 토큰 확인
-            if (isValidToken(exception)) {
-                String invalidToken = tokens.get(i);
-                memberDeviceService.unbindByToken(invalidToken);
-                log.warn("Invalid FCM token unbound: {}", invalidToken);
-
-                continue;
-            }
-
-            log.error("Error sending FCM message: {}", exception.getMessage());
+            handleFailedResponse(response, tokens.get(i));
         }
+    }
+
+    private void handleFailedResponse(SendResponse response, String token) {
+        FirebaseMessagingException exception = response.getException();
+        if (exception == null) {
+            return;
+        }
+
+        // 만료된 토큰 확인
+        if (isValidToken(exception)) {
+            memberDeviceService.unbindByToken(token);
+            log.warn("Invalid FCM token unbound: {}", token);
+            return;
+        }
+
+        log.error("Error sending FCM message: {}", exception.getMessage());
     }
 
     private boolean isValidToken(FirebaseMessagingException exception) {
