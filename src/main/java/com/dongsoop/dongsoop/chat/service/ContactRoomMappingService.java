@@ -18,8 +18,8 @@ public class ContactRoomMappingService {
         String mappingKey = createContactMappingKey(userId, targetUserId, boardType, boardId);
         Object result = redisTemplate.opsForValue().get(mappingKey);
 
-        if (result instanceof String) {
-            return (String) result;
+        if (result instanceof String roomId) {
+            return roomId;
         }
         return null;
     }

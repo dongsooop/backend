@@ -230,7 +230,7 @@ public class RedisChatRepository implements ChatRepository {
         if (dateTime == null) {
             return 0.0;
         }
-        return (double) dateTime.atZone(KST).toInstant().toEpochMilli();
+        return dateTime.atZone(KST).toInstant().toEpochMilli();
     }
 
     private Optional<ChatRoom> findDirectRoomByParticipants(Long user1, Long user2) {
