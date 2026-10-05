@@ -25,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 @Timeout(15)
 @DisplayName("과팅 전원 응답 후 일괄 결과 확정")

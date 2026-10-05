@@ -89,14 +89,19 @@ public class BlindDateEventQueue {
     public synchronized void submitCleanup(Runnable cleanup) {
         openChoiceSessions.clear();
 
-        List<CompletableFuture<Void>> sessionBarriers = sessionExecutors.values().stream()
+        Map<String, SerialExecutor> executorsToClean = new HashMap<>(sessionExecutors);
+        List<CompletableFuture<Void>> sessionBarriers = executorsToClean.values().stream()
                 .map(SerialExecutor::barrier)
                 .toList();
 
         try {
             participantExecutor.execute(wrap(() -> {
                 sessionBarriers.forEach(this::await);
-                cleanup.run();
+                try {
+                    cleanup.run();
+                } finally {
+                    executorsToClean.forEach(this::removeSessionExecutor);
+                }
             }));
         } catch (Exception e) {
             log.error("[BlindDate] Failed to submit cleanup", e);

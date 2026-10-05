@@ -156,6 +156,7 @@ class BlindDateEventQueueTest {
         queue.awaitIdle();
 
         assertThat(order).containsExactly("choice", "cleanup");
+        assertThat(queue.activeSessionQueueCount()).isZero();
     }
 
     @Test
