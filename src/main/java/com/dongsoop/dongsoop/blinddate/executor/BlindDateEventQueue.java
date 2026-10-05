@@ -86,6 +86,24 @@ public class BlindDateEventQueue {
         }
     }
 
+    /** 새 선택 접수를 닫고, 이미 제출된 세션 작업이 끝난 뒤 전체 상태 정리를 실행한다. */
+    public synchronized void submitCleanup(Runnable cleanup) {
+        choiceDeadlines.clear();
+
+        List<CompletableFuture<Void>> sessionBarriers = sessionExecutors.values().stream()
+                .map(SerialExecutor::barrier)
+                .toList();
+
+        try {
+            participantExecutor.execute(wrap(() -> {
+                sessionBarriers.forEach(this::await);
+                cleanup.run();
+            }));
+        } catch (Exception e) {
+            log.error("[BlindDate] Failed to submit cleanup", e);
+        }
+    }
+
     private Runnable wrap(Runnable event) {
         return () -> {
             try {

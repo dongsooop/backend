@@ -138,7 +138,7 @@ class BlindDateServiceTest {
 
             blindDateService.resetParticipants();
 
-            verify(eventQueue).submit(eventCaptor.capture());
+            verify(eventQueue).submitCleanup(eventCaptor.capture());
             eventCaptor.getValue().run();
             assertThat(blindDateStorage.isAvailable()).isTrue();
             assertThat(blindDateStorage.getPointer()).isNull();

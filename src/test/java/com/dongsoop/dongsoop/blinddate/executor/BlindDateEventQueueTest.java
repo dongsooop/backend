@@ -129,6 +129,36 @@ class BlindDateEventQueueTest {
     }
 
     @Test
+    @DisplayName("전체 정리는 새 선택을 차단하고 이미 접수된 세션 작업 뒤에 실행한다")
+    void cleanupWaitsForAcceptedSessionTasks() throws Exception {
+        String sessionId = "session-a";
+        queue.openChoices(sessionId, 10_000);
+        List<String> order = new CopyOnWriteArrayList<>();
+        CountDownLatch choiceStarted = new CountDownLatch(1);
+        CountDownLatch releaseChoice = new CountDownLatch(1);
+        CountDownLatch cleanupCompleted = new CountDownLatch(1);
+
+        queue.submitChoice(sessionId, () -> {
+            order.add("choice");
+            choiceStarted.countDown();
+            await(releaseChoice);
+        });
+        assertThat(choiceStarted.await(3, TimeUnit.SECONDS)).isTrue();
+
+        queue.submitCleanup(() -> {
+            order.add("cleanup");
+            cleanupCompleted.countDown();
+        });
+        queue.submitChoice(sessionId, () -> order.add("late-choice"));
+
+        assertThat(cleanupCompleted.await(200, TimeUnit.MILLISECONDS)).isFalse();
+        releaseChoice.countDown();
+        queue.awaitIdle();
+
+        assertThat(order).containsExactly("choice", "cleanup");
+    }
+
+    @Test
     @DisplayName("종료된 실행기에 작업을 제출해도 호출자에게 예외를 전파하지 않는다")
     void ignoresSubmissionsAfterShutdown() {
         queue.openChoices("session-a", 10_000);
