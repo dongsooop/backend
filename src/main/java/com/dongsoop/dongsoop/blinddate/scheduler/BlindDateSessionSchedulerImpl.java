@@ -184,7 +184,6 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
             sendFailedToUnmatched(sessionId);
 
             // 회원 정보는 재 접속 방지를 위해 제거하지 않음
-            // participantStorage.clearSession(sessionId);
 
         } catch (Exception e) {
             log.error("Error finalizing session: {}", sessionId, e);
