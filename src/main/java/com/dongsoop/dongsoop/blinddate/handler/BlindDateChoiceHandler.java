@@ -53,7 +53,7 @@ public class BlindDateChoiceHandler {
         // 매칭 성공 시 채팅방 개설
         if (isMatched) {
             try {
-                String chatRoomTitle = LocalDate.now(KST).toString();
+                String chatRoomTitle = String.format("[과팅] %s", LocalDate.now(KST));
                 ChatRoom chatRoom = chatRoomService.createOneToOneChatRoom(choicerId, targetId, chatRoomTitle);
 
                 sendChatRoomCreated(sessionId, choicerId, chatRoom.getRoomId());

@@ -53,8 +53,8 @@ class BlindDateChoiceHandlerTest {
     }
 
     @Test
-    @DisplayName("매칭 채팅방 제목은 KST 기준 yyyy-MM-dd 형식이다")
-    void matchedChatRoom_UsesDateOnlyTitle() {
+    @DisplayName("매칭 채팅방 제목은 과팅 접두사와 KST 기준 날짜를 포함한다")
+    void matchedChatRoom_UsesBlindDatePrefixAndDateTitle() {
         when(sessionStorage.isProcessing("session-1")).thenReturn(true);
         when(participantStorage.recordChoice("session-1", 1L, 2L)).thenReturn(true);
         when(chatRoomService.createOneToOneChatRoom(eq(1L), eq(2L),
@@ -68,7 +68,7 @@ class BlindDateChoiceHandlerTest {
         ArgumentCaptor<String> titleCaptor = ArgumentCaptor.forClass(String.class);
         verify(chatRoomService).createOneToOneChatRoom(eq(1L), eq(2L), titleCaptor.capture());
         assertThat(titleCaptor.getValue())
-                .isEqualTo(LocalDate.now(KST).toString())
-                .matches("\\d{4}-\\d{2}-\\d{2}");
+                .isEqualTo("[과팅] " + LocalDate.now(KST))
+                .matches("\\[과팅] \\d{4}-\\d{2}-\\d{2}");
     }
 }
