@@ -54,6 +54,9 @@ public interface BlindDateParticipantStorage {
      */
     boolean recordChoice(String sessionId, Long choicerId, Long targetId);
 
+    /** 미응답을 미선택으로 채우고 처리 권한을 한 번만 획득한다. */
+    boolean completeChoices(String sessionId);
+
     /**
      * 매칭 확인
      */

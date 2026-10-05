@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 import com.dongsoop.dongsoop.blinddate.config.BlindDateMessageProvider;
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
+import com.dongsoop.dongsoop.blinddate.handler.BlindDateChoiceHandler;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import java.util.Map;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
+import org.mockito.ArgumentCaptor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -37,6 +39,7 @@ class BlindDateSessionSchedulerImplTest {
     private final BlindDateSessionStorage sessionStorage = mock(BlindDateSessionStorage.class);
     private final SimpMessagingTemplate messagingTemplate = mock(SimpMessagingTemplate.class);
     private final BlindDateTaskScheduler taskScheduler = mock(BlindDateTaskScheduler.class);
+    private final BlindDateChoiceHandler choiceHandler = mock(BlindDateChoiceHandler.class);
     private final BlindDateEventQueue eventQueue = spy(new BlindDateEventQueue());
 
     private BlindDateSessionSchedulerImpl scheduler;
@@ -49,7 +52,7 @@ class BlindDateSessionSchedulerImplTest {
                 mock(BlindDateMessageProvider.class),
                 messagingTemplate,
                 taskScheduler,
-                eventQueue);
+                eventQueue, choiceHandler);
 
         when(sessionStorage.isProcessing(SESSION_ID)).thenReturn(true);
         when(participantStorage.getParticipantsIdAndName(SESSION_ID))
@@ -57,7 +60,7 @@ class BlindDateSessionSchedulerImplTest {
     }
 
     @Test
-    @DisplayName("참가자 목록 발행 전에 응답 대상을 고정하고 마감 타이머를 만들지 않는다")
+    @DisplayName("참가자 목록 발행 전에 응답 대상을 고정하고 30초 미응답 타이머를 만든다")
     void opensChoicesBeforePublishingParticipants() {
         invokeScheduleSessionEnd();
 
@@ -66,7 +69,7 @@ class BlindDateSessionSchedulerImplTest {
         order.verify(participantStorage).openChoices(SESSION_ID);
         order.verify(messagingTemplate).convertAndSend(
                 eq(BlindDateTopic.participants(SESSION_ID)), any(Object.class));
-        verifyNoInteractions(taskScheduler);
+        verify(taskScheduler).schedule(any(Runnable.class), eq(30_000L));
     }
 
     @Test
@@ -79,7 +82,7 @@ class BlindDateSessionSchedulerImplTest {
         assertThatCode(this::invokeScheduleSessionEnd).doesNotThrowAnyException();
 
         verify(eventQueue).openChoices(eq(SESSION_ID), any(BooleanSupplier.class));
-        verifyNoInteractions(taskScheduler);
+        verify(taskScheduler).schedule(any(Runnable.class), eq(30_000L));
     }
 
     @AfterEach
@@ -92,6 +95,23 @@ class BlindDateSessionSchedulerImplTest {
         when(sessionStorage.isProcessing(SESSION_ID)).thenReturn(false);
         invokeScheduleSessionEnd();
         verifyNoInteractions(participantStorage, messagingTemplate, taskScheduler);
+    }
+
+    @Test
+    void timeoutTaskDelegatesToSharedChoiceFinalization() {
+        invokeScheduleSessionEnd();
+        ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
+        verify(taskScheduler).schedule(task.capture(), eq(30_000L));
+        task.getValue().run();
+        verify(choiceHandler).timeout(SESSION_ID);
+    }
+
+    @Test
+    void failedTimerRegistrationFinalizesInsteadOfLeavingSessionOpen() {
+        doThrow(new IllegalStateException("scheduler unavailable"))
+                .when(taskScheduler).schedule(any(Runnable.class), eq(30_000L));
+        assertThatCode(this::invokeScheduleSessionEnd).doesNotThrowAnyException();
+        verify(choiceHandler).timeout(SESSION_ID);
     }
 
     private void invokeScheduleSessionEnd() {

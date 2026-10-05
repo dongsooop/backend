@@ -170,6 +170,22 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
         }
     }
 
+    @Override
+    public boolean completeChoices(String sessionId) {
+        ChoiceRound round = choiceRounds.get(sessionId);
+        if (round == null) {
+            return false;
+        }
+        synchronized (round) {
+            if (round.processing) {
+                return false;
+            }
+            round.participantIds.forEach(memberId -> round.responses.putIfAbsent(memberId, null));
+            round.processing = true;
+            return true;
+        }
+    }
+
     private void validateChoice(ChoiceRound round, Long choicerId, Long targetId) {
         if (choicerId == null || !round.participantIds.contains(choicerId)) {
             throw new InvalidBlindDateChoiceException(

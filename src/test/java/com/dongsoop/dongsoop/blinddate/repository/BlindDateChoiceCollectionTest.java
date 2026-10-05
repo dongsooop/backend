@@ -75,6 +75,33 @@ class BlindDateChoiceCollectionTest {
     }
 
     @Test
+    void timeoutAndFinalResponseRaceClaimProcessingOnlyOnce() throws Exception {
+        var storage = storage(3);
+        storage.recordChoice("session", 1L, 2L);
+        storage.recordChoice("session", 2L, 1L);
+        var workers = Executors.newFixedThreadPool(2);
+        var start = new CountDownLatch(1);
+        try {
+            Future<Boolean> response = workers.submit(() -> {
+                assertThat(start.await(5, TimeUnit.SECONDS)).isTrue();
+                return storage.recordChoice("session", 3L, null);
+            });
+            Future<Boolean> timeout = workers.submit(() -> {
+                assertThat(start.await(5, TimeUnit.SECONDS)).isTrue();
+                return storage.completeChoices("session");
+            });
+            start.countDown();
+            boolean responseClaim = response.get(5, TimeUnit.SECONDS);
+            boolean timeoutClaim = timeout.get(5, TimeUnit.SECONDS);
+            assertThat(responseClaim ^ timeoutClaim).isTrue();
+            assertThat(storage.getChoices("session")).hasSize(3)
+                    .containsEntry(1L, 2L).containsEntry(2L, 1L).containsEntry(3L, null);
+        } finally {
+            workers.shutdownNow();
+        }
+    }
+
+    @Test
     void simultaneousDuplicateResponsesClaimProcessingExactlyOnce() throws Exception {
         var storage = storage(4);
         var workers = Executors.newFixedThreadPool(12);

@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.blinddate.scheduler;
 import com.dongsoop.dongsoop.blinddate.config.BlindDateMessageProvider;
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
+import com.dongsoop.dongsoop.blinddate.handler.BlindDateChoiceHandler;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import java.util.List;
@@ -22,6 +23,7 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
     private static final long SUBSCRIPTION_DELAY = 1000;
     private static final long START_MESSAGE_DELAY = 2000;
     private static final long MESSAGE_WAITING_TIME = 4000;
+    private static final long CHOICE_TIMEOUT = 30_000L;
     private static final long CHATTING_TIME = 3 * 60 * 1000L; // 3분
 
     private final BlindDateParticipantStorage participantStorage;
@@ -30,6 +32,7 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
     private final SimpMessagingTemplate messagingTemplate;
     private final BlindDateTaskScheduler taskScheduler;
     private final BlindDateEventQueue eventQueue;
+    private final BlindDateChoiceHandler choiceHandler;
 
     @Value("${blinddate.event-message-amount}")
     private int eventMessageAmount;
@@ -164,6 +167,12 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
         } catch (Exception e) {
             // 접수는 유지하고 참가자 목록 전송 실패를 기록한다
             log.error("[BlindDate] Error sending participants list for session: {}", sessionId, e);
+        }
+        try {
+            taskScheduler.schedule(() -> choiceHandler.timeout(sessionId), CHOICE_TIMEOUT);
+        } catch (Exception e) {
+            log.error("[BlindDate] Failed to schedule choice timeout: sessionId={}", sessionId, e);
+            choiceHandler.timeout(sessionId);
         }
     }
 

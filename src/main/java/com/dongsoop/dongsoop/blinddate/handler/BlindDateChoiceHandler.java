@@ -33,6 +33,14 @@ public class BlindDateChoiceHandler {
         eventQueue.submitChoice(sessionId, () -> handle(sessionId, choicerId, targetId));
     }
 
+    public void timeout(String sessionId) {
+        eventQueue.submitChoice(sessionId, () -> {
+            if (sessionStorage.isProcessing(sessionId) && participantStorage.completeChoices(sessionId)) {
+                eventQueue.closeChoices(sessionId, () -> finalizeSession(sessionId));
+            }
+        });
+    }
+
     private void handle(String sessionId, Long choicerId, Long targetId) {
         if (!sessionStorage.isProcessing(sessionId)) {
             return;

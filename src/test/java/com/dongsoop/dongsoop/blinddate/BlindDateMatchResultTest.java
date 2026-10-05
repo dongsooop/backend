@@ -202,6 +202,46 @@ class BlindDateMatchResultTest {
         assertThat(sessions.getState(sessionId)).isNull();
     }
 
+    @Test
+    void timeoutCompletesMissingResponsesAndPreservesSubmittedMutualChoices() {
+        handler.execute(sessionId, 1L, 2L);
+        handler.execute(sessionId, 2L, 1L);
+        queue.awaitIdle();
+        assertThat(events).isEmpty();
+        handler.timeout(sessionId);
+        handler.timeout(sessionId);
+        queue.awaitIdle();
+        handler.execute(sessionId, 3L, 1L);
+        handler.timeout(sessionId);
+        queue.awaitIdle();
+        assertThat(pairs).containsExactly(List.of(1L, 2L));
+        assertThat(events).containsExactly(success(1L, "room-1"), success(2L, "room-1"), failure(3L));
+        assertThat(sessions.getState(sessionId)).isNull();
+    }
+
+    @Test
+    void timeoutWithoutResponsesFailsEveryoneAndRejectsLateChoices() {
+        handler.timeout(sessionId);
+        queue.awaitIdle();
+        handler.execute(sessionId, 1L, 2L);
+        handler.execute(sessionId, 2L, 1L);
+        queue.awaitIdle();
+        assertThat(pairs).isEmpty();
+        assertThat(events).containsExactlyInAnyOrder(failure(1L), failure(2L), failure(3L));
+        assertThat(sessions.getState(sessionId)).isNull();
+    }
+
+    @Test
+    void completedResponsesThenTimeoutDoNotRepeatResults() {
+        handler.execute(sessionId, 1L, 2L);
+        handler.execute(sessionId, 2L, 1L);
+        handler.execute(sessionId, 3L, null);
+        handler.timeout(sessionId);
+        queue.awaitIdle();
+        assertThat(pairs).hasSize(1);
+        assertThat(events).hasSize(3);
+    }
+
     private Event success(long member, String room) {
         return new Event(BlindDateTopic.chatRoomCreated(sessionId, member), Map.of("chatRoomId", room));
     }
