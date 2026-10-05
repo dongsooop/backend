@@ -153,8 +153,6 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
         }
         log.info("[BlindDate] Sending participants list for session: {}", sessionId);
 
-        eventQueue.openChoices(sessionId, CHOICE_TIME);
-
         try {
             // 사랑의 작대기를 위해 사용자에게 사용자 목록 이벤트 발행
             this.sendParticipantsList(sessionId);
@@ -163,6 +161,7 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
             log.error("[BlindDate] Error sending participants list for session: {}", sessionId, e);
         }
 
+        eventQueue.openChoices(sessionId, CHOICE_TIME);
         taskScheduler.schedule(() -> eventQueue.closeChoices(sessionId, () -> finalizeSession(sessionId)), CHOICE_TIME);
     }
 
