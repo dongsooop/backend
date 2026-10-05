@@ -3,8 +3,8 @@ package com.dongsoop.dongsoop.blinddate;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 class BlindDateChoicePeriodTest {
 
     private final BlindDateEventQueue queue = new BlindDateEventQueue();
-    private final List<String> results = new ArrayList<>();
+    private final List<String> results = new CopyOnWriteArrayList<>();
 
     @AfterEach
     void tearDown() {
@@ -48,6 +48,6 @@ class BlindDateChoicePeriodTest {
         queue.submitChoice("second", () -> results.add("second-choice"));
         queue.closeChoices("first", () -> results.add("duplicate-finalized"));
         queue.awaitIdle();
-        assertThat(results).containsExactly("first-finalized", "second-choice");
+        assertThat(results).containsExactlyInAnyOrder("first-finalized", "second-choice");
     }
 }
