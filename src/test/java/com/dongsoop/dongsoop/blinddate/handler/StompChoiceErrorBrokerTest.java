@@ -1,13 +1,9 @@
-package com.dongsoop.dongsoop.common.handler.websocket;
+package com.dongsoop.dongsoop.blinddate.handler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 
 import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
-import com.dongsoop.dongsoop.chat.session.WebSocketSessionManager;
-import com.dongsoop.dongsoop.jwt.JwtUtil;
-import com.dongsoop.dongsoop.jwt.JwtValidator;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -73,11 +69,7 @@ class StompChoiceErrorBrokerTest {
                         if (SimpMessageHeaderAccessor.getMessageType(message.getHeaders())
                                 == SimpMessageType.MESSAGE) delivered.add(message);
                     });
-            inbound.addInterceptor(
-                    new StompHandler(
-                            mock(JwtValidator.class),
-                            mock(JwtUtil.class),
-                            mock(WebSocketSessionManager.class)));
+            inbound.addInterceptor(new BlindDateStompAuthorizationInterceptor());
             broker = new SimpleBrokerMessageHandler(inbound, outbound, internal, List.of("/topic"));
             broker.start();
         }

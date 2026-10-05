@@ -1,13 +1,9 @@
-package com.dongsoop.dongsoop.common.handler.websocket;
+package com.dongsoop.dongsoop.blinddate.handler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 
 import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
-import com.dongsoop.dongsoop.chat.session.WebSocketSessionManager;
-import com.dongsoop.dongsoop.jwt.JwtUtil;
-import com.dongsoop.dongsoop.jwt.JwtValidator;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -22,11 +18,8 @@ import java.security.Principal;
 import java.util.List;
 
 class StompChoiceErrorSubscriptionTest {
-    private final StompHandler handler =
-            new StompHandler(
-                    mock(JwtValidator.class),
-                    mock(JwtUtil.class),
-                    mock(WebSocketSessionManager.class));
+    private final BlindDateStompAuthorizationInterceptor interceptor =
+            new BlindDateStompAuthorizationInterceptor();
     private static final String OWN_TOPIC =
             "/topic/blinddate/session/session-1/member/1/choice-error";
 
@@ -92,7 +85,7 @@ class StompChoiceErrorSubscriptionTest {
         headers.setLeaveMutable(true);
         assertThatThrownBy(
                         () ->
-                                handler.preSend(
+                                interceptor.preSend(
                                         MessageBuilder.createMessage(
                                                 new byte[0], headers.getMessageHeaders()),
                                         null))
@@ -107,7 +100,7 @@ class StompChoiceErrorSubscriptionTest {
         headers.setUser(authenticated(1L));
         headers.setLeaveMutable(true);
         var result =
-                handler.preSend(
+                interceptor.preSend(
                         MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders()),
                         null);
         assertThat(StompHeaderAccessor.wrap(result).getDestination()).isEqualTo(destination);
@@ -118,14 +111,14 @@ class StompChoiceErrorSubscriptionTest {
     }
 
     private void assertAllowed(String destination, Principal principal) {
-        var result = handler.preSend(subscription(destination, principal), null);
+        var result = interceptor.preSend(subscription(destination, principal), null);
         var headers = StompHeaderAccessor.wrap(result);
         assertThat(headers.getCommand()).isEqualTo(StompCommand.SUBSCRIBE);
         assertThat(headers.getDestination()).isEqualTo(destination);
     }
 
     private void assertDenied(String destination, Principal principal) {
-        assertThatThrownBy(() -> handler.preSend(subscription(destination, principal), null))
+        assertThatThrownBy(() -> interceptor.preSend(subscription(destination, principal), null))
                 .isInstanceOf(UnauthorizedChatAccessException.class);
     }
 
