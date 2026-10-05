@@ -175,6 +175,35 @@ class BlindDateEventQueueTest {
                 .doesNotThrowAnyException();
     }
 
+    @Test
+    @DisplayName("초기화 중에는 접수를 다시 열지 않고 초기화 후 상태를 다시 검사한다")
+    void cleanupBlocksReopeningUntilStorageCleanupCompletes() throws Exception {
+        CountDownLatch cleanupStarted = new CountDownLatch(1);
+        CountDownLatch releaseCleanup = new CountDownLatch(1);
+        List<String> events = new CopyOnWriteArrayList<>();
+        queue.submitCleanup(() -> {
+            cleanupStarted.countDown();
+            await(releaseCleanup);
+        });
+        try {
+            assertThat(cleanupStarted.await(3, TimeUnit.SECONDS)).isTrue();
+            assertThat(queue.openChoices("old", () -> {
+                events.add("stale-initialization");
+                return true;
+            })).isFalse();
+            queue.submitChoice("old", () -> events.add("stale-choice"));
+        } finally {
+            releaseCleanup.countDown();
+        }
+        queue.awaitIdle();
+        assertThat(queue.openChoices("old", () -> false)).isFalse();
+        queue.submitChoice("old", () -> events.add("stale-choice"));
+        assertThat(queue.openChoices("new", () -> true)).isTrue();
+        queue.submitChoice("new", () -> events.add("new-choice"));
+        queue.awaitIdle();
+        assertThat(events).containsExactly("new-choice");
+    }
+
     private void await(CountDownLatch latch) {
         try {
             if (!latch.await(3, TimeUnit.SECONDS)) {

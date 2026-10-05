@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -18,6 +19,8 @@ import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,7 +37,7 @@ class BlindDateSessionSchedulerImplTest {
     private final BlindDateSessionStorage sessionStorage = mock(BlindDateSessionStorage.class);
     private final SimpMessagingTemplate messagingTemplate = mock(SimpMessagingTemplate.class);
     private final BlindDateTaskScheduler taskScheduler = mock(BlindDateTaskScheduler.class);
-    private final BlindDateEventQueue eventQueue = mock(BlindDateEventQueue.class);
+    private final BlindDateEventQueue eventQueue = spy(new BlindDateEventQueue());
 
     private BlindDateSessionSchedulerImpl scheduler;
 
@@ -59,8 +62,8 @@ class BlindDateSessionSchedulerImplTest {
         invokeScheduleSessionEnd();
 
         InOrder order = inOrder(participantStorage, eventQueue, messagingTemplate);
+        order.verify(eventQueue).openChoices(eq(SESSION_ID), any(BooleanSupplier.class));
         order.verify(participantStorage).openChoices(SESSION_ID);
-        order.verify(eventQueue).openChoices(SESSION_ID);
         order.verify(messagingTemplate).convertAndSend(
                 eq(BlindDateTopic.participants(SESSION_ID)), any(Object.class));
         verifyNoInteractions(taskScheduler);
@@ -75,8 +78,20 @@ class BlindDateSessionSchedulerImplTest {
 
         assertThatCode(this::invokeScheduleSessionEnd).doesNotThrowAnyException();
 
-        verify(eventQueue).openChoices(SESSION_ID);
+        verify(eventQueue).openChoices(eq(SESSION_ID), any(BooleanSupplier.class));
         verifyNoInteractions(taskScheduler);
+    }
+
+    @AfterEach
+    void tearDown() {
+        eventQueue.shutdown();
+    }
+
+    @Test
+    void terminatedSessionDoesNotReopenOrPublishParticipants() {
+        when(sessionStorage.isProcessing(SESSION_ID)).thenReturn(false);
+        invokeScheduleSessionEnd();
+        verifyNoInteractions(participantStorage, messagingTemplate, taskScheduler);
     }
 
     private void invokeScheduleSessionEnd() {

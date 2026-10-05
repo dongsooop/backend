@@ -3,15 +3,16 @@ package com.dongsoop.dongsoop.blinddate.executor;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
+import java.util.function.BooleanSupplier;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.HashSet;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -26,6 +27,7 @@ public class BlindDateEventQueue {
     private final ExecutorService sessionWorkers;
     private final Map<String, SerialExecutor> sessionExecutors = new HashMap<>();
     private final Set<String> openChoiceSessions = new HashSet<>();
+    private int pendingCleanups;
 
     public BlindDateEventQueue() {
         this(SESSION_WORKER_COUNT);
@@ -38,7 +40,16 @@ public class BlindDateEventQueue {
 
     /** 시간 제한 없이 전원 응답을 기다린다. */
     public synchronized void openChoices(String sessionId) {
+        openChoices(sessionId, () -> true);
+    }
+
+    /** 초기화와 접수 개설을 같은 잠금에서 검사한다. initialize는 저장소 상태만 변경한다. */
+    public synchronized boolean openChoices(String sessionId, BooleanSupplier initialize) {
+        if (pendingCleanups > 0 || !initialize.getAsBoolean()) {
+            return false;
+        }
         openChoiceSessions.add(sessionId);
+        return true;
     }
 
     /** 접수 확인과 세션 큐 삽입을 마감 처리와 같은 잠금으로 묶는다. */
@@ -87,6 +98,7 @@ public class BlindDateEventQueue {
 
     /** 새 선택 접수를 닫고, 이미 제출된 세션 작업이 끝난 뒤 전체 상태 정리를 실행한다. */
     public synchronized void submitCleanup(Runnable cleanup) {
+        pendingCleanups++;
         openChoiceSessions.clear();
 
         Map<String, SerialExecutor> executorsToClean = new HashMap<>(sessionExecutors);
@@ -96,16 +108,22 @@ public class BlindDateEventQueue {
 
         try {
             participantExecutor.execute(wrap(() -> {
-                sessionBarriers.forEach(this::await);
                 try {
+                    sessionBarriers.forEach(this::await);
                     cleanup.run();
                 } finally {
-                    executorsToClean.forEach(this::removeSessionExecutor);
+                    completeCleanup(executorsToClean);
                 }
             }));
         } catch (Exception e) {
+            pendingCleanups--;
             log.error("[BlindDate] Failed to submit cleanup", e);
         }
+    }
+
+    private synchronized void completeCleanup(Map<String, SerialExecutor> executorsToClean) {
+        executorsToClean.forEach(this::removeSessionExecutor);
+        pendingCleanups--;
     }
 
     private Runnable wrap(Runnable event) {

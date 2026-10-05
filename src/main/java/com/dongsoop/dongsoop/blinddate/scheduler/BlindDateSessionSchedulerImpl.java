@@ -146,22 +146,25 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
      * @param sessionId 종료할 세션 id
      */
     private void scheduleSessionEnd(String sessionId) {
-        if (!sessionStorage.isProcessing(sessionId)) {
+        boolean opened = eventQueue.openChoices(sessionId, () -> {
+            if (!sessionStorage.isProcessing(sessionId)) {
+                return false;
+            }
+            participantStorage.openChoices(sessionId);
+            return true;
+        });
+        if (!opened) {
             return;
         }
         log.info("[BlindDate] Sending participants list for session: {}", sessionId);
-
-        participantStorage.openChoices(sessionId);
-        eventQueue.openChoices(sessionId);
 
         try {
             // 사랑의 작대기를 위해 사용자에게 사용자 목록 이벤트 발행
             this.sendParticipantsList(sessionId);
         } catch (Exception e) {
-            // 세션 종료처리를 위해 로그만 남기고 계속 진행
+            // 접수는 유지하고 참가자 목록 전송 실패를 기록한다
             log.error("[BlindDate] Error sending participants list for session: {}", sessionId, e);
         }
-
     }
 
     /**
