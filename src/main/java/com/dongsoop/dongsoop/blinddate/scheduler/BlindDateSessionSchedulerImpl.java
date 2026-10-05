@@ -7,7 +7,6 @@ import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,7 +23,6 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
     private static final long START_MESSAGE_DELAY = 2000;
     private static final long MESSAGE_WAITING_TIME = 4000;
     private static final long CHATTING_TIME = 3 * 60 * 1000L; // 3분
-    private static final long CHOICE_TIME = 10 * 1000L;
 
     private final BlindDateParticipantStorage participantStorage;
     private final BlindDateSessionStorage sessionStorage;
@@ -153,6 +151,9 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
         }
         log.info("[BlindDate] Sending participants list for session: {}", sessionId);
 
+        participantStorage.openChoices(sessionId);
+        eventQueue.openChoices(sessionId);
+
         try {
             // 사랑의 작대기를 위해 사용자에게 사용자 목록 이벤트 발행
             this.sendParticipantsList(sessionId);
@@ -161,36 +162,6 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
             log.error("[BlindDate] Error sending participants list for session: {}", sessionId, e);
         }
 
-        eventQueue.openChoices(sessionId, CHOICE_TIME);
-        taskScheduler.schedule(() -> eventQueue.closeChoices(sessionId, () -> finalizeSession(sessionId)), CHOICE_TIME);
-    }
-
-    /**
-     * 세션 최종 종료 처리
-     *
-     * @param sessionId 종료할 세션 id
-     */
-    private void finalizeSession(String sessionId) {
-        try {
-            if (this.sessionStorage.getState(sessionId) == null) {
-                log.warn("[BlindDate] Session already terminated: {}", sessionId);
-                return;
-            }
-
-            log.info("[BlindDate] Finalizing session: {}", sessionId);
-
-            // 큐에서 앞선 매칭 성공 처리를 마친 뒤, 나머지 미매칭 참가자에게 FAILED 이벤트
-            sendFailedToUnmatched(sessionId);
-
-            // 회원 정보는 재 접속 방지를 위해 제거하지 않음
-
-        } catch (Exception e) {
-            log.error("Error finalizing session: {}", sessionId, e);
-        } finally {
-            // 접수는 이미 닫혔고 앞선 성공 이벤트 처리도 완료됐다. 실패 전송 예외에도 세션을 종료한다.
-            sessionStorage.terminate(sessionId);
-            log.info("Session ended: {}", sessionId);
-        }
     }
 
     /**
@@ -208,27 +179,6 @@ public class BlindDateSessionSchedulerImpl implements BlindDateSessionScheduler 
         } catch (Exception e) {
             log.error("Failed to send START event", e);
             throw e;
-        }
-    }
-
-    /**
-     * 매치 실패 이벤트 발행
-     *
-     * @param sessionId 대상 세션 id
-     */
-    private void sendFailedToUnmatched(String sessionId) {
-        Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
-        // 모두 매치되었다면 이벤트를 발행하지 않음
-        if (notMatched.isEmpty()) {
-            return;
-        }
-
-        // 매치되지 않은 사람이 존재하는 경우 매칭 실패 이벤트 발행
-        for (Long memberId : notMatched) {
-            messagingTemplate.convertAndSend(
-                    BlindDateTopic.matchFailed(sessionId, memberId),
-                    Map.of("message", "매칭에 실패했습니다.")
-            );
         }
     }
 

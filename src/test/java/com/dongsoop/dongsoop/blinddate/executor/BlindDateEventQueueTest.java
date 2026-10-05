@@ -24,7 +24,7 @@ class BlindDateEventQueueTest {
     @DisplayName("같은 세션의 선택과 마감은 제출 순서대로 하나씩 실행한다")
     void serializesChoicesAndCloseWithinSession() throws Exception {
         String sessionId = "session-a";
-        queue.openChoices(sessionId, 10_000);
+        queue.openChoices(sessionId);
         List<String> order = new CopyOnWriteArrayList<>();
         CountDownLatch firstStarted = new CountDownLatch(1);
         CountDownLatch releaseFirst = new CountDownLatch(1);
@@ -54,8 +54,8 @@ class BlindDateEventQueueTest {
     @Test
     @DisplayName("서로 다른 세션은 공용 worker에서 병렬 실행한다")
     void runsDifferentSessionsInParallel() throws Exception {
-        queue.openChoices("session-a", 10_000);
-        queue.openChoices("session-b", 10_000);
+        queue.openChoices("session-a");
+        queue.openChoices("session-b");
         CountDownLatch firstSessionStarted = new CountDownLatch(1);
         CountDownLatch releaseFirstSession = new CountDownLatch(1);
         CountDownLatch secondSessionCompleted = new CountDownLatch(1);
@@ -81,7 +81,7 @@ class BlindDateEventQueueTest {
         CountDownLatch participantStarted = new CountDownLatch(1);
         CountDownLatch releaseParticipant = new CountDownLatch(1);
         CountDownLatch choiceCompleted = new CountDownLatch(1);
-        queue.openChoices("session-a", 10_000);
+        queue.openChoices("session-a");
 
         queue.submit(() -> {
             participantStarted.countDown();
@@ -105,7 +105,7 @@ class BlindDateEventQueueTest {
         CountDownLatch thirdSessionStarted = new CountDownLatch(1);
 
         for (String sessionId : List.of("session-a", "session-b", "session-c")) {
-            queue.openChoices(sessionId, 10_000);
+            queue.openChoices(sessionId);
         }
         queue.submitChoice("session-a", () -> {
             twoWorkersStarted.countDown();
@@ -132,7 +132,7 @@ class BlindDateEventQueueTest {
     @DisplayName("전체 정리는 새 선택을 차단하고 이미 접수된 세션 작업 뒤에 실행한다")
     void cleanupWaitsForAcceptedSessionTasks() throws Exception {
         String sessionId = "session-a";
-        queue.openChoices(sessionId, 10_000);
+        queue.openChoices(sessionId);
         List<String> order = new CopyOnWriteArrayList<>();
         CountDownLatch choiceStarted = new CountDownLatch(1);
         CountDownLatch releaseChoice = new CountDownLatch(1);
@@ -161,7 +161,7 @@ class BlindDateEventQueueTest {
     @Test
     @DisplayName("종료된 실행기에 작업을 제출해도 호출자에게 예외를 전파하지 않는다")
     void ignoresSubmissionsAfterShutdown() {
-        queue.openChoices("session-a", 10_000);
+        queue.openChoices("session-a");
         queue.shutdown();
 
         org.assertj.core.api.Assertions.assertThatCode(

@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.blinddate.repository;
 import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
 import com.dongsoop.dongsoop.blinddate.exception.InvalidBlindDateChoiceException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,11 +26,8 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
     // sessionId -> 익명 번호 카운터
     private final Map<String, AtomicInteger> nameCounters = new ConcurrentHashMap<>();
 
-    // sessionId -> (choicerId -> targetId)
-    private final Map<String, Map<Long, Long>> choices = new ConcurrentHashMap<>();
-
-    // sessionId -> Set<matchedMemberId>
-    private final Map<String, Set<Long>> matches = new ConcurrentHashMap<>();
+    // 응답과 처리 중 멱등 상태는 sessionId별 한 곳에서 관리한다.
+    private final Map<String, ChoiceRound> choiceRounds = new ConcurrentHashMap<>();
 
     /**
      * 참여자 추가 또는 소켓 추가
@@ -142,72 +140,83 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
                 ));
     }
 
-    /**
-     * 선택 기록
-     */
+    @Override
+    public void openChoices(String sessionId) {
+        choiceRounds.computeIfAbsent(sessionId,
+                id -> new ChoiceRound(getParticipantsIdAndName(id).keySet()));
+    }
+
+    @Override
     public boolean recordChoice(String sessionId, Long choicerId, Long targetId) {
-        validateChoice(sessionId, choicerId, targetId);
-        Map<Long, Long> sessionChoices = choices.computeIfAbsent(sessionId, k -> new ConcurrentHashMap<>());
-
-        // 이미 선택했는지 확인 + 반영을 원자적으로 처리 (확인과 반영 사이 공백 제거)
-        if (sessionChoices.putIfAbsent(choicerId, targetId) != null) {
-            log.warn("Already chosen: sessionId={}, choicerId={}", sessionId, choicerId);
+        ChoiceRound round = choiceRounds.get(sessionId);
+        if (round == null) {
             return false;
         }
-
-        log.info("Choice recorded: sessionId={}, choicerId={} -> targetId={}", sessionId, choicerId, targetId);
-
-        // 매칭 확인
-        Long reverseChoice = sessionChoices.get(targetId);
-        // 상대가 아직 선택하지 않았거나, 다른 사람을 선택한 경우
-        if (reverseChoice == null || !reverseChoice.equals(choicerId)) {
-            return false;
+        synchronized (round) {
+            if (round.processing) {
+                return false;
+            }
+            validateChoice(round, choicerId, targetId);
+            if (round.responses.containsKey(choicerId)) {
+                return false;
+            }
+            // HashMap은 null을 지원한다. containsKey로 미선택과 미응답을 구분한다.
+            round.responses.put(choicerId, targetId);
+            if (round.responses.size() != round.participantIds.size()) {
+                return false;
+            }
+            round.processing = true;
+            return true;
         }
-
-        // 서로 선택함 → 매칭 성공
-        Set<Long> sessionMatches = matches.computeIfAbsent(sessionId, k -> ConcurrentHashMap.newKeySet());
-        sessionMatches.add(choicerId);
-        sessionMatches.add(targetId);
-
-        log.info("🎉 Match found: sessionId={}, member1={}, member2={}", sessionId, choicerId, targetId);
-        return true;
     }
 
-    private void validateChoice(String sessionId, Long choicerId, Long targetId) {
-        validateChooserParticipation(sessionId, choicerId);
-        validateTargetId(choicerId, targetId);
-        validateTargetParticipation(sessionId, targetId);
-    }
-
-    private void validateChooserParticipation(String sessionId, Long choicerId) {
-        ParticipantInfo choicer = choicerId == null ? null : participants.get(choicerId);
-        if (choicer == null || !choicer.getSessionId().equals(sessionId)) {
+    private void validateChoice(ChoiceRound round, Long choicerId, Long targetId) {
+        if (choicerId == null || !round.participantIds.contains(choicerId)) {
             throw new InvalidBlindDateChoiceException(
                     403, "CHOICE_FORBIDDEN", "해당 세션의 참가자만 선택할 수 있습니다.");
         }
-    }
-
-    private void validateTargetId(Long choicerId, Long targetId) {
-        if (targetId == null || choicerId.equals(targetId)) {
-            throw new InvalidBlindDateChoiceException(
-                    400, "INVALID_CHOICE", "자신을 선택할 수 없으며 선택 대상이 필요합니다.");
+        if (targetId == null) {
+            return;
         }
-    }
-
-    private void validateTargetParticipation(String sessionId, Long targetId) {
-        ParticipantInfo target = participants.get(targetId);
-        if (target == null || !target.getSessionId().equals(sessionId)) {
+        if (choicerId.equals(targetId)) {
+            throw new InvalidBlindDateChoiceException(
+                    400, "INVALID_CHOICE", "자신을 선택할 수 없습니다.");
+        }
+        if (!round.participantIds.contains(targetId)) {
             throw new InvalidBlindDateChoiceException(
                     404, "CHOICE_TARGET_NOT_FOUND", "해당 세션에서 선택 대상을 찾을 수 없습니다.");
         }
     }
 
-    /**
-     * 매칭 확인
-     */
+    @Override
+    public Map<Long, Long> getChoices(String sessionId) {
+        ChoiceRound round = choiceRounds.get(sessionId);
+        if (round == null) {
+            return Map.of();
+        }
+        synchronized (round) {
+            if (!round.processing) {
+                return Map.of();
+            }
+            return Collections.unmodifiableMap(new HashMap<>(round.responses));
+        }
+    }
+
+    /** 상호 선택 판정은 전원 응답이 확정된 이후에만 노출한다. */
     public boolean isMatched(String sessionId, Long memberId) {
-        Set<Long> sessionMatches = matches.get(sessionId);
-        return sessionMatches != null && sessionMatches.contains(memberId);
+        Map<Long, Long> choices = getChoices(sessionId);
+        Long targetId = choices.get(memberId);
+        return targetId != null && memberId.equals(choices.get(targetId));
+    }
+
+    private static final class ChoiceRound {
+        private final Set<Long> participantIds;
+        private final Map<Long, Long> responses = new HashMap<>();
+        private boolean processing;
+
+        private ChoiceRound(Set<Long> participantIds) {
+            this.participantIds = Set.copyOf(participantIds);
+        }
     }
 
     /**
@@ -217,8 +226,7 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
         participants.clear();
         socketIdToMemberId.clear();
         nameCounters.clear();
-        choices.clear();
-        matches.clear();
+        choiceRounds.clear();
 
         log.info("[BlindDate] All participant data cleared");
     }
@@ -252,8 +260,7 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
                 .map(ParticipantInfo::getMemberId)
                 .collect(Collectors.toSet());
 
-        Set<Long> matched = matches.getOrDefault(sessionId, Collections.emptySet());
-        allMemberIds.removeAll(matched);
+        allMemberIds.removeIf(memberId -> isMatched(sessionId, memberId));
 
         return allMemberIds;
     }

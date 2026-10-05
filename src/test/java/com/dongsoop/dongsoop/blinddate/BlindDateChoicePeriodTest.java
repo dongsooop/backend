@@ -29,20 +29,20 @@ class BlindDateChoicePeriodTest {
     }
 
     @Test
-    @DisplayName("마감 타이머 실행이 늦어져도 기한이 지난 선택은 접수하지 않는다")
-    void expiredPeriodRejectsChoicesBeforeTimerRuns() {
-        queue.openChoices("session", 0);
+    @DisplayName("접수는 명시적으로 닫힐 때까지 유지된다")
+    void choicesRemainOpenUntilExplicitlyClosed() {
+        queue.openChoices("session");
         queue.submitChoice("session", () -> results.add("choice"));
         queue.closeChoices("session", () -> results.add("finalized"));
         queue.awaitIdle();
-        assertThat(results).containsExactly("finalized");
+        assertThat(results).containsExactly("choice", "finalized");
     }
 
     @Test
     @DisplayName("한 세션의 마감은 다른 세션의 선택 접수를 막지 않는다")
     void closingOneSessionDoesNotCloseAnother() {
-        queue.openChoices("first", 10_000);
-        queue.openChoices("second", 10_000);
+        queue.openChoices("first");
+        queue.openChoices("second");
         queue.closeChoices("first", () -> results.add("first-finalized"));
         queue.submitChoice("first", () -> results.add("first-choice"));
         queue.submitChoice("second", () -> results.add("second-choice"));

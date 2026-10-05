@@ -9,6 +9,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.blinddate.config.BlindDateMessageProvider;
@@ -28,7 +29,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 class BlindDateSessionSchedulerImplTest {
 
     private static final String SESSION_ID = "session-1";
-    private static final long CHOICE_TIME = 10_000L;
 
     private final BlindDateParticipantStorage participantStorage = mock(BlindDateParticipantStorage.class);
     private final BlindDateSessionStorage sessionStorage = mock(BlindDateSessionStorage.class);
@@ -54,19 +54,20 @@ class BlindDateSessionSchedulerImplTest {
     }
 
     @Test
-    @DisplayName("참가자 목록 이벤트 발행 후 선택 창을 열고 10초 뒤 마감한다")
-    void opensChoicePeriodAfterPublishingParticipants() {
+    @DisplayName("참가자 목록 발행 전에 응답 대상을 고정하고 마감 타이머를 만들지 않는다")
+    void opensChoicesBeforePublishingParticipants() {
         invokeScheduleSessionEnd();
 
-        InOrder order = inOrder(messagingTemplate, eventQueue, taskScheduler);
+        InOrder order = inOrder(participantStorage, eventQueue, messagingTemplate);
+        order.verify(participantStorage).openChoices(SESSION_ID);
+        order.verify(eventQueue).openChoices(SESSION_ID);
         order.verify(messagingTemplate).convertAndSend(
                 eq(BlindDateTopic.participants(SESSION_ID)), any(Object.class));
-        order.verify(eventQueue).openChoices(SESSION_ID, CHOICE_TIME);
-        order.verify(taskScheduler).schedule(any(Runnable.class), eq(CHOICE_TIME));
+        verifyNoInteractions(taskScheduler);
     }
 
     @Test
-    @DisplayName("참가자 목록 이벤트 발행에 실패해도 선택 창과 마감 타이머를 연다")
+    @DisplayName("참가자 목록 발행 실패에도 열린 접수 상태를 유지한다")
     void opensChoicePeriodWhenPublishingParticipantsFails() {
         doThrow(new IllegalStateException("publish failed"))
                 .when(messagingTemplate)
@@ -74,8 +75,8 @@ class BlindDateSessionSchedulerImplTest {
 
         assertThatCode(this::invokeScheduleSessionEnd).doesNotThrowAnyException();
 
-        verify(eventQueue).openChoices(SESSION_ID, CHOICE_TIME);
-        verify(taskScheduler).schedule(any(Runnable.class), eq(CHOICE_TIME));
+        verify(eventQueue).openChoices(SESSION_ID);
+        verifyNoInteractions(taskScheduler);
     }
 
     private void invokeScheduleSessionEnd() {
