@@ -168,8 +168,8 @@ class NoticeKeywordLegacyCompatibilityTest {
         noticeKeywordService.addKeywordByMember(
                 new NoticeKeywordRequest("장학", NoticeKeywordType.INCLUDE));
 
-        assertThatThrownBy(() -> noticeKeywordService.addKeywordByMember(
-                new NoticeKeywordRequest("장학", NoticeKeywordType.INCLUDE)))
+        NoticeKeywordRequest duplicateRequest = new NoticeKeywordRequest("장학", NoticeKeywordType.INCLUDE);
+        assertThatThrownBy(() -> noticeKeywordService.addKeywordByMember(duplicateRequest))
                 .isInstanceOf(DuplicateNoticeKeywordException.class);
     }
 }
