@@ -16,6 +16,8 @@ import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.service.FCMService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -50,43 +52,10 @@ class MemberLoginTest {
     @MockitoBean
     private DeviceUtil deviceUtil;
 
-    @Test
-    @DisplayName("비밀번호가 8자 미만일 경우 예외 발생")
-    void throws_an_exception_if_the_password_length_less_than_8() throws Exception {
-        String password = "abc!@12"; // 8자 미만
-
-        postToLogin(null, password);
-    }
-
-    @Test
-    @DisplayName("비밀번호가 20자 초과일 경우 예외 발생")
-    void throws_an_exception_if_the_password_length_more_than_20() throws Exception {
-        String password = "abc!@121asvc:ryd2@&a2"; // 20자 이상
-
-        postToLogin(null, password);
-    }
-
-    @Test
-    @DisplayName("비밀번호에 특수문자가 포함되어 있지 않으면 예외 발생")
-    void throws_an_exception_if_the_password_does_not_contain_special_characters() throws Exception {
-        String password = "abcd1234"; // 특수문자가 없는 8글자 이상 비밀번호
-
-        postToLogin(null, password);
-    }
-
-    @Test
-    @DisplayName("비밀번호에 숫자가 포함되어 있지 않으면 예외 발생")
-    void throws_an_exception_if_the_password_does_not_contain_numbers() throws Exception {
-        String password = "abcd!@#$"; // 숫자가 없는 8글자 이상 비밀번호
-
-        postToLogin(null, password);
-    }
-
-    @Test
-    @DisplayName("비밀번호에 알파벳이 포함되어 있지 않으면 예외 발생")
-    void throws_an_exception_if_the_password_does_not_contain_alphabet() throws Exception {
-        String password = "1234!@#$"; // 알파벳이 없는 8글자 이상 비밀번호
-
+    @ParameterizedTest
+    @ValueSource(strings = {"abc!@12", "abc!@121asvc:ryd2@&a2", "abcd1234", "abcd!@#$", "1234!@#$"})
+    @DisplayName("길이·특수문자·숫자·영문 조건을 만족하지 않는 비밀번호는 400")
+    void rejectsInvalidPassword(String password) throws Exception {
         postToLogin(null, password);
     }
 
