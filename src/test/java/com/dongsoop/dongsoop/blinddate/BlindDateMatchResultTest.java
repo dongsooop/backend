@@ -158,7 +158,7 @@ class BlindDateMatchResultTest {
                 .thenReturn(ChatRoom.builder().roomId("room-1").build());
         var blocked = new CountDownLatch(1);
         var release = new CountDownLatch(1);
-        eventQueue.submit(() -> awaitRelease(blocked, release));
+        eventQueue.submitChoice(sessionId, () -> awaitRelease(blocked, release));
         try {
             assertThat(blocked.await(5, TimeUnit.SECONDS)).isTrue();
             choiceHandler.execute(sessionId, 1L, 2L);
@@ -179,7 +179,7 @@ class BlindDateMatchResultTest {
                 .thenReturn(ChatRoom.builder().roomId("room-1").build());
         var blocked = new CountDownLatch(1);
         var release = new CountDownLatch(1);
-        eventQueue.submit(() -> awaitRelease(blocked, release));
+        eventQueue.submitChoice(sessionId, () -> awaitRelease(blocked, release));
         try {
             assertThat(blocked.await(5, TimeUnit.SECONDS)).isTrue();
             timers.remove().run();
