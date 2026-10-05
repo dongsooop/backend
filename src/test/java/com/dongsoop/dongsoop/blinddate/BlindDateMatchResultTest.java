@@ -130,12 +130,12 @@ class BlindDateMatchResultTest {
     void delayedRoomCreationAndDuplicateFinalResponsesDoNotRunTwice() throws Exception {
         var started = new CountDownLatch(1);
         var release = new CountDownLatch(1);
-        when(rooms.createOneToOneChatRoom(anyLong(), anyLong(), anyString())).thenAnswer(call -> {
+        doAnswer(call -> {
             started.countDown();
             assertThat(release.await(5, TimeUnit.SECONDS)).isTrue();
             pairs.add(List.of(call.getArgument(0), call.getArgument(1)));
             return ChatRoom.builder().roomId("room-1").build();
-        });
+        }).when(rooms).createOneToOneChatRoom(anyLong(), anyLong(), anyString());
         try {
             handler.execute(sessionId, 1L, 2L);
             handler.execute(sessionId, 2L, 1L);
@@ -187,11 +187,10 @@ class BlindDateMatchResultTest {
 
     @Test
     void roomCreationFailureProducesFailuresWithoutRepeatingCreation() {
-        when(rooms.createOneToOneChatRoom(anyLong(), anyLong(), anyString()))
-                .thenAnswer(call -> {
+        doAnswer(call -> {
                     pairs.add(List.of(call.getArgument(0), call.getArgument(1)));
                     throw new IllegalStateException("room failed");
-                });
+                }).when(rooms).createOneToOneChatRoom(anyLong(), anyLong(), anyString());
         handler.execute(sessionId, 1L, 2L);
         handler.execute(sessionId, 2L, 1L);
         handler.execute(sessionId, 3L, null);
