@@ -16,7 +16,7 @@ public abstract class RecruitmentApplyNotification {
     private final NotificationSendService notificationSendService;
     private final MemberRepository memberRepository;
 
-    public RecruitmentApplyNotification(NotificationSaveService notificationSaveService,
+    protected RecruitmentApplyNotification(NotificationSaveService notificationSaveService,
                                         NotificationSendService notificationSendService,
                                         MemberRepository memberRepository) {
         this.notificationSaveService = notificationSaveService;
