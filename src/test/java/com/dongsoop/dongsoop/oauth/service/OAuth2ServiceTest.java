@@ -15,6 +15,7 @@ import com.dongsoop.dongsoop.member.dto.LoginResponse;
 import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
+import com.dongsoop.dongsoop.oauth.dto.UnlinkSocialAccountRequest;
 import com.dongsoop.dongsoop.oauth.entity.MemberSocialAccount;
 import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
 import com.dongsoop.dongsoop.oauth.exception.InvalidProviderTypeException;
@@ -141,7 +142,7 @@ class OAuth2ServiceTest {
         oAuth2Service.unlinkMemberWithProviderType(
                 MEMBER_ID,
                 OAuthProviderType.GOOGLE,
-                new com.dongsoop.dongsoop.oauth.dto.UnlinkSocialAccountRequest("token")
+                new UnlinkSocialAccountRequest("token")
         );
 
         // then
@@ -157,8 +158,7 @@ class OAuth2ServiceTest {
                 .thenReturn(Optional.empty());
         when(oAuth2UserParser.extractProvider("google")).thenReturn(null);
 
-        com.dongsoop.dongsoop.oauth.dto.UnlinkSocialAccountRequest request =
-                new com.dongsoop.dongsoop.oauth.dto.UnlinkSocialAccountRequest("token");
+        UnlinkSocialAccountRequest request = new UnlinkSocialAccountRequest("token");
 
         // when & then
         assertThatThrownBy(() -> oAuth2Service.unlinkMemberWithProviderType(
