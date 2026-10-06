@@ -18,6 +18,7 @@ import com.dongsoop.dongsoop.blinddate.handler.BlindDateConnectHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateDisconnectHandler;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
+import com.dongsoop.dongsoop.blinddate.notification.BlindDateMatchNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
@@ -146,7 +147,8 @@ class BlindDateIntegrationTest {
                 sessionStorage,
                 messagingTemplate,
                 chatRoomService,
-                eventQueue
+                eventQueue,
+                mock(BlindDateMatchNotification.class)
         );
     }
 

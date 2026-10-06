@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
+import com.dongsoop.dongsoop.blinddate.notification.BlindDateMatchNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
@@ -35,6 +36,8 @@ class BlindDateChoiceHandlerTest {
     private SimpMessagingTemplate messagingTemplate;
     @Mock
     private ChatRoomService chatRoomService;
+    @Mock
+    private BlindDateMatchNotification matchNotification;
 
     private BlindDateEventQueue eventQueue;
     private BlindDateChoiceHandler handler;
@@ -43,7 +46,7 @@ class BlindDateChoiceHandlerTest {
     void setUp() {
         eventQueue = new BlindDateEventQueue();
         handler = new BlindDateChoiceHandler(
-                participantStorage, sessionStorage, messagingTemplate, chatRoomService, eventQueue);
+                participantStorage, sessionStorage, messagingTemplate, chatRoomService, eventQueue, matchNotification);
     }
 
     @AfterEach

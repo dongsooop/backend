@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.blinddate.handler;
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.exception.InvalidBlindDateChoiceException;
+import com.dongsoop.dongsoop.blinddate.notification.BlindDateMatchNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
@@ -28,6 +29,7 @@ public class BlindDateChoiceHandler {
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatRoomService chatRoomService;
     private final BlindDateEventQueue eventQueue;
+    private final BlindDateMatchNotification matchNotification;
 
     public void execute(String sessionId, Long choicerId, Long targetId) {
         eventQueue.submitChoice(sessionId, () -> handle(sessionId, choicerId, targetId));
@@ -63,16 +65,23 @@ public class BlindDateChoiceHandler {
             }
             Map<Long, Long> choices = participantStorage.getChoices(sessionId);
             Map<Long, String> rooms = createMatchedRooms(sessionId, choices);
-            // 모든 매칭 연산과 채팅방 생성이 끝난 후 기존 개인별 토픽에 결과를 일괄 발행한다.
+            // 성공만 발행한다. 실패·마감 이벤트를 기다리지 않고 선택 UI를 종료할 수 있다.
             rooms.forEach((memberId, roomId) -> sendResult(
                     BlindDateTopic.chatRoomCreated(sessionId, memberId), Map.of("chatRoomId", roomId)));
-            choices.keySet().stream()
-                    .filter(memberId -> !rooms.containsKey(memberId))
-                    .forEach(memberId -> sendResult(BlindDateTopic.matchFailed(sessionId, memberId),
-                            Map.of("message", "매칭에 실패했습니다.")));
+            rooms.forEach((memberId, roomId) -> notifyMatch(sessionId, memberId, roomId));
         } finally {
             // 멱등 상태는 초기화까지 유지한다. 전송 실패가 있어도 결과를 재실행하지 않는다.
             sessionStorage.terminate(sessionId);
+        }
+    }
+
+    private void notifyMatch(String sessionId, Long memberId, String roomId) {
+        try {
+            matchNotification.send(memberId, roomId);
+        } catch (Exception e) {
+            // 소켓/푸시 실패로 성공한 매칭을 뒤집거나 다른 회원의 알림을 중단하지 않는다.
+            log.error("[BlindDate] Failed to notify match: sessionId={}, memberId={}, roomId={}",
+                    sessionId, memberId, roomId, e);
         }
     }
 
