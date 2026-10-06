@@ -151,6 +151,26 @@ flowchart TD
 현재 안내에 포함된 “15분간 진행”, “총 3개의 질문”은 고정 문자열이므로 실제 시간 또는
 변경된 a와 일치한다고 보장하지 않는다. 이 문서 PR에서는 해당 문구나 운영 코드를 바꾸지 않는다.
 
+### 참가 기록 초기화 REST API
+
+프론트에서 전달한 `method=DELETE`, `endpoint=/participants`는 컨트롤러의
+`/blinddate` 기본 경로를 합치면 **`DELETE /blinddate/participants`**다.
+소켓의 선택 목록 이벤트 `/topic/blinddate/session/{sessionId}/participants`와는 별개다.
+
+| 항목 | 현재 계약 |
+| --- | --- |
+| 권한 | 관리자 (`ADMIN_ROLE`) |
+| 요청 본문 | 없음 |
+| 정상 응답 | `204 No Content`, 응답 본문 없음 |
+| 초기화 범위 | 특정 회원이 아니라 전체 Session·참가 기록·Choice Round·대기 Session 포인터 |
+| 유지되는 정보 | 과팅 운영 상태·정원·개최 만료 시각·자동 종료 예약 |
+| 처리 시점 | 정리 큐에 작업 제출 후 응답; 204가 전체 정리 완료를 뜻하지 않음 |
+| 기존 호환 경로 | `POST /blinddate/participants`도 같은 동작으로 지원 |
+
+종료된 Session의 참가 기록도 초기화하므로 정리 완료 후 운영 중인 경우 다시 참가할 수 있다.
+개별 회원의 자발적 퇴장 API로 사용하지 않는다. 진행 중인 Session도 정리 대상이며,
+이미 실행 중인 결과 처리의 외부 채팅방 생성은 취소하거나 롤백하지 않는다.
+
 ### 소켓 방향과 의미
 
 아래 Session 토픽은 `/topic/blinddate/session/{sessionId}`에 상대 경로를 붙인다.
@@ -282,7 +302,7 @@ ID는 문서 시나리오 ID이며 테스트 메서드 이름에 결합하지 �
 | --- | --- | --- |
 | O01 | 개최 만료 시각 도달 | 신규 입장 가용성을 끄고 기존 Session은 즉시 전체 삭제하지 않음 |
 | O02 | 만료 후 30분 경과 | 운영 정보 닫기, 선택 접수 차단·세션 작업 대기·전체 Session/참가 기록 정리, 예약 작업 취소 |
-| O03 | 운영 중 관리자 참가 기록 초기화 | 운영 상태·자동 종료 예약 유지, 포인터·Session·참가/응답 기록 정리 |
+| O03 | 운영 중 관리자 `DELETE /blinddate/participants` 호출 | 본문 없는 204 응답, 정리 큐에 제출; 운영 상태·자동 종료 예약 유지, 전체 포인터·Session·참가/응답 기록 정리 |
 | O04 | 초기화와 Choice Round 개설 경합 | 초기화 대기·실행 중 개설 거부; 이후 현재 Session 상태를 다시 검사 |
 | O05 | 초기화와 결과 처리 경합 | 이미 실행 중인 세션 작업 완료를 기다림; 외부 채팅방 생성을 취소하거나 롤백하지 않음 |
 | O06 | 초기화 후 오래된 choice·타임아웃 요청 | 기존 접수·Session 상태가 사라져 새 매칭을 생성하지 않음 |
@@ -336,6 +356,7 @@ ID는 문서 시나리오 ID이며 테스트 메서드 이름에 결합하지 �
 | 잘못된 입력 개인 오류 | `BlindDateChoiceHandler` | `BlindDateChoiceErrorScenarioTest` |
 | 성공·실패·타임아웃·부분 실패 | `BlindDateChoiceHandler` | `BlindDateMatchResultTest` |
 | 초기화·큐 실행 순서 | `BlindDateEventQueue`, `BlindDateServiceImpl` | `executor/BlindDateEventQueueTest`, `service/BlindDateServiceTest` |
+| 초기화 REST 계약 | `controller/BlindDateController` | `controller/BlindDateControllerTest`는 POST/DELETE 경로의 204 응답·서비스 호출 검증 |
 | 실제 모바일 UI·네트워크 전달 | 이 저장소에서는 m초 UI·수신 시각·수신 ACK를 검증하지 않음 | 수동·E2E QA 필요. 문서의 시나리오 목록과 자동 테스트 커버리지는 동일하지 않음 |
 
 ### 후속 검토가 필요한 보장
