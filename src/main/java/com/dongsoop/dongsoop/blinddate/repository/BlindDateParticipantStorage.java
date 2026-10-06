@@ -43,10 +43,19 @@ public interface BlindDateParticipantStorage {
      */
     Map<Long, String> getParticipantsIdAndName(String sessionId);
 
+    /** 선택 대상 참가자 목록을 고정한다. 반복 호출로 기존 응답을 초기화하지 않는다. */
+    void openChoices(String sessionId);
+
+    /** 전원 응답 후 확정된 선택을 반환한다. null은 미선택이다. */
+    Map<Long, Long> getChoices(String sessionId);
+
     /**
-     * 선택 기록
+     * 최초 유효 응답을 기록한다. 전원 응답 후 처리 권한을 획득한 한 호출만 true를 반환한다.
      */
     boolean recordChoice(String sessionId, Long choicerId, Long targetId);
+
+    /** 미응답을 미선택으로 채우고 처리 권한을 한 번만 획득한다. */
+    boolean completeChoices(String sessionId);
 
     /**
      * 매칭 확인

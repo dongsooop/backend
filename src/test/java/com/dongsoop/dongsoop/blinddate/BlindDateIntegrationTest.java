@@ -574,7 +574,8 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-2", 2L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
-            eventQueue.openChoices(sessionId, 10_000);
+            participantStorage.openChoices(sessionId);
+            eventQueue.openChoices(sessionId);
 
             // when
             choiceHandler.execute(sessionId, 1L, 2L);
@@ -600,7 +601,8 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-2", 2L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
-            eventQueue.openChoices(sessionId, 10_000);
+            participantStorage.openChoices(sessionId);
+            eventQueue.openChoices(sessionId);
 
             // when
             choiceHandler.execute(sessionId, 1L, 2L);
@@ -623,7 +625,8 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-2", 2L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
-            eventQueue.openChoices(sessionId, 10_000);
+            participantStorage.openChoices(sessionId);
+            eventQueue.openChoices(sessionId);
             sessionStorage.terminate(sessionId);
 
             choiceHandler.execute(sessionId, 1L, 2L);
@@ -645,7 +648,8 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-3", 3L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
-            eventQueue.openChoices(sessionId, 10_000);
+            participantStorage.openChoices(sessionId);
+            eventQueue.openChoices(sessionId);
 
             // when - 1→2, 2→3, 3→1
             choiceHandler.execute(sessionId, 1L, 2L);
@@ -670,7 +674,8 @@ class BlindDateIntegrationTest {
             }
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
-            eventQueue.openChoices(sessionId, 10_000);
+            participantStorage.openChoices(sessionId);
+            eventQueue.openChoices(sessionId);
 
             // when - 1↔2, 3↔4, 5 혼자
             choiceHandler.execute(sessionId, 1L, 2L);
@@ -707,11 +712,15 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-3", 3L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
-            eventQueue.openChoices(sessionId, 10_000);
+            participantStorage.openChoices(sessionId);
+            eventQueue.openChoices(sessionId);
 
             // 3. 사랑의 작대기 - 1↔2 매칭
             choiceHandler.execute(sessionId, 1L, 2L);
             choiceHandler.execute(sessionId, 2L, 1L);
+            eventQueue.awaitIdle();
+
+            choiceHandler.execute(sessionId, 3L, null);
             eventQueue.awaitIdle();
 
             // 4. 매칭 결과 확인

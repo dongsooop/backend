@@ -3,14 +3,16 @@ package com.dongsoop.dongsoop.blinddate.executor;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
+import java.util.function.BooleanSupplier;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +26,8 @@ public class BlindDateEventQueue {
     private final ExecutorService participantExecutor;
     private final ExecutorService sessionWorkers;
     private final Map<String, SerialExecutor> sessionExecutors = new HashMap<>();
-    private final Map<String, Long> choiceDeadlines = new HashMap<>();
+    private final Set<String> openChoiceSessions = new HashSet<>();
+    private int pendingCleanups;
 
     public BlindDateEventQueue() {
         this(SESSION_WORKER_COUNT);
@@ -35,16 +38,23 @@ public class BlindDateEventQueue {
         sessionWorkers = Executors.newFixedThreadPool(sessionWorkerCount);
     }
 
-    /** 선택 단계에서만 접수한다. 경과 시간은 시스템 시계 변경의 영향을 받지 않는다. */
-    public synchronized void openChoices(String sessionId, long durationMillis) {
-        choiceDeadlines.putIfAbsent(sessionId,
-                System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(durationMillis));
+    /** 시간 제한 없이 전원 응답을 기다린다. */
+    public synchronized void openChoices(String sessionId) {
+        openChoices(sessionId, () -> true);
+    }
+
+    /** 초기화와 접수 개설을 같은 잠금에서 검사한다. initialize는 저장소 상태만 변경한다. */
+    public synchronized boolean openChoices(String sessionId, BooleanSupplier initialize) {
+        if (pendingCleanups > 0 || !initialize.getAsBoolean()) {
+            return false;
+        }
+        openChoiceSessions.add(sessionId);
+        return true;
     }
 
     /** 접수 확인과 세션 큐 삽입을 마감 처리와 같은 잠금으로 묶는다. */
     public synchronized void submitChoice(String sessionId, Runnable choice) {
-        Long deadline = choiceDeadlines.get(sessionId);
-        if (deadline == null || System.nanoTime() - deadline >= 0) {
+        if (!openChoiceSessions.contains(sessionId)) {
             log.info("[BlindDate] Ignore choice outside choice period: sessionId={}", sessionId);
             return;
         }
@@ -58,7 +68,7 @@ public class BlindDateEventQueue {
 
     /** 접수를 먼저 닫고, 같은 세션에서 이미 접수한 선택들 뒤에 결과 확정 작업을 넣는다. */
     public synchronized void closeChoices(String sessionId, Runnable finalizeSession) {
-        if (choiceDeadlines.remove(sessionId) == null) {
+        if (!openChoiceSessions.remove(sessionId)) {
             return;
         }
 
@@ -88,20 +98,32 @@ public class BlindDateEventQueue {
 
     /** 새 선택 접수를 닫고, 이미 제출된 세션 작업이 끝난 뒤 전체 상태 정리를 실행한다. */
     public synchronized void submitCleanup(Runnable cleanup) {
-        choiceDeadlines.clear();
+        pendingCleanups++;
+        openChoiceSessions.clear();
 
-        List<CompletableFuture<Void>> sessionBarriers = sessionExecutors.values().stream()
+        Map<String, SerialExecutor> executorsToClean = new HashMap<>(sessionExecutors);
+        List<CompletableFuture<Void>> sessionBarriers = executorsToClean.values().stream()
                 .map(SerialExecutor::barrier)
                 .toList();
 
         try {
             participantExecutor.execute(wrap(() -> {
-                sessionBarriers.forEach(this::await);
-                cleanup.run();
+                try {
+                    sessionBarriers.forEach(this::await);
+                    cleanup.run();
+                } finally {
+                    completeCleanup(executorsToClean);
+                }
             }));
         } catch (Exception e) {
+            pendingCleanups--;
             log.error("[BlindDate] Failed to submit cleanup", e);
         }
+    }
+
+    private synchronized void completeCleanup(Map<String, SerialExecutor> executorsToClean) {
+        executorsToClean.forEach(this::removeSessionExecutor);
+        pendingCleanups--;
     }
 
     private Runnable wrap(Runnable event) {
@@ -139,7 +161,7 @@ public class BlindDateEventQueue {
         List<CompletableFuture<Void>> barriers;
         synchronized (this) {
             barriers = new ArrayList<>(sessionExecutors.size());
-            sessionExecutors.values().forEach(executor -> barriers.add(executor.barrier()));
+            sessionExecutors.values().forEach(executor -> barriers.add(executor.idle()));
         }
         barriers.forEach(this::await);
     }
@@ -172,6 +194,7 @@ public class BlindDateEventQueue {
         private final Queue<Runnable> tasks = new ArrayDeque<>();
         private final Executor backend;
         private Runnable active;
+        private final List<CompletableFuture<Void>> idleWaiters = new ArrayList<>();
 
         private SerialExecutor(Executor backend) {
             this.backend = backend;
@@ -196,9 +219,21 @@ public class BlindDateEventQueue {
             return barrier;
         }
 
+        private synchronized CompletableFuture<Void> idle() {
+            if (active == null) {
+                return CompletableFuture.completedFuture(null);
+            }
+            CompletableFuture<Void> waiter = new CompletableFuture<>();
+            idleWaiters.add(waiter);
+            return waiter;
+        }
+
         private synchronized void scheduleNext() {
             active = tasks.poll();
-            if (active != null) {
+            if (active == null) {
+                idleWaiters.forEach(waiter -> waiter.complete(null));
+                idleWaiters.clear();
+            } else {
                 try {
                     backend.execute(active);
                 } catch (RuntimeException e) {

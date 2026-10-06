@@ -6,7 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
-import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
@@ -28,8 +28,7 @@ class BlindDateChoiceHandlerTest {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
-    @Mock
-    private BlindDateParticipantStorage participantStorage;
+    private final BlindDateParticipantStorageImpl participantStorage = new BlindDateParticipantStorageImpl();
     @Mock
     private BlindDateSessionStorage sessionStorage;
     @Mock
@@ -56,13 +55,16 @@ class BlindDateChoiceHandlerTest {
     @DisplayName("매칭 채팅방 제목은 과팅 접두사와 KST 기준 날짜를 포함한다")
     void matchedChatRoom_UsesBlindDatePrefixAndDateTitle() {
         when(sessionStorage.isProcessing("session-1")).thenReturn(true);
-        when(participantStorage.recordChoice("session-1", 1L, 2L)).thenReturn(true);
+        participantStorage.addParticipant("session-1", 1L, "one");
+        participantStorage.addParticipant("session-1", 2L, "two");
+        participantStorage.openChoices("session-1");
         when(chatRoomService.createOneToOneChatRoom(eq(1L), eq(2L),
                 org.mockito.ArgumentMatchers.anyString()))
                 .thenReturn(ChatRoom.builder().roomId("room-1").title("title").build());
 
-        eventQueue.openChoices("session-1", 10_000);
+        eventQueue.openChoices("session-1");
         handler.execute("session-1", 1L, 2L);
+        handler.execute("session-1", 2L, 1L);
         eventQueue.awaitIdle();
 
         ArgumentCaptor<String> titleCaptor = ArgumentCaptor.forClass(String.class);

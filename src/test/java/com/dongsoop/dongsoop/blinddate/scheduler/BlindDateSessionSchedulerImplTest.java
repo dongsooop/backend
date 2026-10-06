@@ -8,19 +8,25 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.blinddate.config.BlindDateMessageProvider;
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
+import com.dongsoop.dongsoop.blinddate.handler.BlindDateChoiceHandler;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
+import org.mockito.ArgumentCaptor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -28,13 +34,13 @@ import org.springframework.test.util.ReflectionTestUtils;
 class BlindDateSessionSchedulerImplTest {
 
     private static final String SESSION_ID = "session-1";
-    private static final long CHOICE_TIME = 10_000L;
 
     private final BlindDateParticipantStorage participantStorage = mock(BlindDateParticipantStorage.class);
     private final BlindDateSessionStorage sessionStorage = mock(BlindDateSessionStorage.class);
     private final SimpMessagingTemplate messagingTemplate = mock(SimpMessagingTemplate.class);
     private final BlindDateTaskScheduler taskScheduler = mock(BlindDateTaskScheduler.class);
-    private final BlindDateEventQueue eventQueue = mock(BlindDateEventQueue.class);
+    private final BlindDateChoiceHandler choiceHandler = mock(BlindDateChoiceHandler.class);
+    private final BlindDateEventQueue eventQueue = spy(new BlindDateEventQueue());
 
     private BlindDateSessionSchedulerImpl scheduler;
 
@@ -46,7 +52,7 @@ class BlindDateSessionSchedulerImplTest {
                 mock(BlindDateMessageProvider.class),
                 messagingTemplate,
                 taskScheduler,
-                eventQueue);
+                eventQueue, choiceHandler);
 
         when(sessionStorage.isProcessing(SESSION_ID)).thenReturn(true);
         when(participantStorage.getParticipantsIdAndName(SESSION_ID))
@@ -54,19 +60,20 @@ class BlindDateSessionSchedulerImplTest {
     }
 
     @Test
-    @DisplayName("참가자 목록 이벤트 발행 후 선택 창을 열고 10초 뒤 마감한다")
-    void opensChoicePeriodAfterPublishingParticipants() {
+    @DisplayName("참가자 목록 발행 전에 응답 대상을 고정하고 30초 미응답 타이머를 만든다")
+    void opensChoicesBeforePublishingParticipants() {
         invokeScheduleSessionEnd();
 
-        InOrder order = inOrder(messagingTemplate, eventQueue, taskScheduler);
+        InOrder order = inOrder(participantStorage, eventQueue, messagingTemplate);
+        order.verify(eventQueue).openChoices(eq(SESSION_ID), any(BooleanSupplier.class));
+        order.verify(participantStorage).openChoices(SESSION_ID);
         order.verify(messagingTemplate).convertAndSend(
                 eq(BlindDateTopic.participants(SESSION_ID)), any(Object.class));
-        order.verify(eventQueue).openChoices(SESSION_ID, CHOICE_TIME);
-        order.verify(taskScheduler).schedule(any(Runnable.class), eq(CHOICE_TIME));
+        verify(taskScheduler).schedule(any(Runnable.class), eq(30_000L));
     }
 
     @Test
-    @DisplayName("참가자 목록 이벤트 발행에 실패해도 선택 창과 마감 타이머를 연다")
+    @DisplayName("참가자 목록 발행 실패에도 열린 접수 상태를 유지한다")
     void opensChoicePeriodWhenPublishingParticipantsFails() {
         doThrow(new IllegalStateException("publish failed"))
                 .when(messagingTemplate)
@@ -74,8 +81,37 @@ class BlindDateSessionSchedulerImplTest {
 
         assertThatCode(this::invokeScheduleSessionEnd).doesNotThrowAnyException();
 
-        verify(eventQueue).openChoices(SESSION_ID, CHOICE_TIME);
-        verify(taskScheduler).schedule(any(Runnable.class), eq(CHOICE_TIME));
+        verify(eventQueue).openChoices(eq(SESSION_ID), any(BooleanSupplier.class));
+        verify(taskScheduler).schedule(any(Runnable.class), eq(30_000L));
+    }
+
+    @AfterEach
+    void tearDown() {
+        eventQueue.shutdown();
+    }
+
+    @Test
+    void terminatedSessionDoesNotReopenOrPublishParticipants() {
+        when(sessionStorage.isProcessing(SESSION_ID)).thenReturn(false);
+        invokeScheduleSessionEnd();
+        verifyNoInteractions(participantStorage, messagingTemplate, taskScheduler);
+    }
+
+    @Test
+    void timeoutTaskDelegatesToSharedChoiceFinalization() {
+        invokeScheduleSessionEnd();
+        ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
+        verify(taskScheduler).schedule(task.capture(), eq(30_000L));
+        task.getValue().run();
+        verify(choiceHandler).timeout(SESSION_ID);
+    }
+
+    @Test
+    void failedTimerRegistrationFinalizesInsteadOfLeavingSessionOpen() {
+        doThrow(new IllegalStateException("scheduler unavailable"))
+                .when(taskScheduler).schedule(any(Runnable.class), eq(30_000L));
+        assertThatCode(this::invokeScheduleSessionEnd).doesNotThrowAnyException();
+        verify(choiceHandler).timeout(SESSION_ID);
     }
 
     private void invokeScheduleSessionEnd() {

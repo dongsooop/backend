@@ -12,7 +12,6 @@ class BlindDateChoiceValidationTest {
     @ParameterizedTest
     @CsvSource({
         "1, 1, 400, INVALID_CHOICE",
-        "1, , 400, INVALID_CHOICE",
         "99, 1, 403, CHOICE_FORBIDDEN",
         "3, 1, 403, CHOICE_FORBIDDEN",
         "1, 99, 404, CHOICE_TARGET_NOT_FOUND",
@@ -24,6 +23,8 @@ class BlindDateChoiceValidationTest {
         storage.addParticipant("session", 1L, "one");
         storage.addParticipant("session", 2L, "two");
         storage.addParticipant("other", 3L, "three");
+
+        storage.openChoices("session");
 
         assertThatThrownBy(() -> storage.recordChoice("session", chooser, target))
                 .isInstanceOfSatisfying(

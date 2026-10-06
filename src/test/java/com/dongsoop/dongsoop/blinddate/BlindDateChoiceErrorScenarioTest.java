@@ -29,7 +29,6 @@ class BlindDateChoiceErrorScenarioTest {
     @ParameterizedTest
     @CsvSource({
         "1, 1, 400, INVALID_CHOICE",
-        "1, , 400, INVALID_CHOICE",
         "99, 1, 403, CHOICE_FORBIDDEN",
         "3, 1, 403, CHOICE_FORBIDDEN",
         "1, 99, 404, CHOICE_TARGET_NOT_FOUND",
@@ -63,7 +62,8 @@ class BlindDateChoiceErrorScenarioTest {
                             });
             var handler =
                     new BlindDateChoiceHandler(participants, sessions, messaging, rooms, queue);
-            queue.openChoices("session", 60_000);
+            participants.openChoices("session");
+            queue.openChoices("session");
 
             handler.execute("session", chooser, target);
             queue.awaitIdle();
