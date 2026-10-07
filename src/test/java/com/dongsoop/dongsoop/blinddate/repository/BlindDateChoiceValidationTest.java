@@ -36,7 +36,7 @@ class BlindDateChoiceValidationTest {
         assertThat(storage.getNotMatched("session")).containsExactlyInAnyOrder(1L, 2L);
         assertThat(storage.getNotMatched("other")).containsExactly(3L);
 
-        assertThat(storage.recordChoice("session", 1L, 2L)).isFalse();
+        assertThat(storage.recordChoice("session", 1L, 2L)).isTrue();
         assertThat(storage.recordChoice("session", 2L, 1L)).isTrue();
         assertThat(storage.getNotMatched("session")).isEmpty();
         assertThat(storage.getNotMatched("other")).containsExactly(3L);
