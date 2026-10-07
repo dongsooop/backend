@@ -99,7 +99,7 @@ class BlindDateSessionSchedulerImplTest {
                 BlindDateTopic.sessionStart(id), BlindDateTopic.freeze(id), BlindDateTopic.system(id), BlindDateTopic.freeze(id),
                 BlindDateTopic.system(id), BlindDateTopic.thaw(id), BlindDateTopic.participants(id));
         assertThat(events).filteredOn(e -> e.destination().equals(BlindDateTopic.system(id)))
-                .extracting(e -> ((Map<?, ?>) e.payload()).get("message"))
+                .extracting(e -> (String) ((Map<?, ?>) e.payload()).get("message"))
                 .containsExactly("안내", "주제");
         assertThat(events).filteredOn(e -> e.destination().equals(BlindDateTopic.participants(id)))
                 .extracting(Event::payload)
