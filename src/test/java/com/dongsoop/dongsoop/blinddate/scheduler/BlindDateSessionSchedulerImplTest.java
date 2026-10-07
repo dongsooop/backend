@@ -95,7 +95,7 @@ class BlindDateSessionSchedulerImplTest {
         respondOnParticipants = true;
         reachChoicePeriod();
         assertThat(events).extracting(Event::destination).startsWith(
-                BlindDateTopic.start(id), BlindDateTopic.freeze(id), BlindDateTopic.freeze(id),
+                BlindDateTopic.sessionStart(id), BlindDateTopic.freeze(id), BlindDateTopic.freeze(id),
                 BlindDateTopic.system(id), BlindDateTopic.thaw(id), BlindDateTopic.participants(id));
         assertThat(events).filteredOn(e -> e.destination().equals(BlindDateTopic.participants(id)))
                 .extracting(Event::payload)
