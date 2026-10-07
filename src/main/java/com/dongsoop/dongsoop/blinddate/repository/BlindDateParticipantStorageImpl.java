@@ -4,6 +4,7 @@ import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
 import com.dongsoop.dongsoop.blinddate.exception.InvalidBlindDateChoiceException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,7 +27,7 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
     // sessionId -> 익명 번호 카운터
     private final Map<String, AtomicInteger> nameCounters = new ConcurrentHashMap<>();
 
-    // 응답과 처리 중 멱등 상태는 sessionId별 한 곳에서 관리한다.
+    // 최종 응답과 쌍별 처리 권한은 sessionId별 한 곳에서 관리한다.
     private final Map<String, ChoiceRound> choiceRounds = new ConcurrentHashMap<>();
 
     /**
@@ -153,36 +154,32 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
             return false;
         }
         synchronized (round) {
-            if (round.processing) {
-                return false;
-            }
             validateChoice(round, choicerId, targetId);
             if (round.responses.containsKey(choicerId)) {
                 return false;
             }
             // HashMap은 null을 지원한다. containsKey로 미선택과 미응답을 구분한다.
             round.responses.put(choicerId, targetId);
-            if (round.responses.size() != round.participantIds.size()) {
-                return false;
-            }
-            round.processing = true;
             return true;
         }
     }
 
     @Override
-    public boolean completeChoices(String sessionId) {
+    public Long claimMutualChoice(String sessionId, Long memberId) {
         ChoiceRound round = choiceRounds.get(sessionId);
         if (round == null) {
-            return false;
+            return null;
         }
         synchronized (round) {
-            if (round.processing) {
-                return false;
+            Long targetId = round.responses.get(memberId);
+            if (targetId == null || !memberId.equals(round.responses.get(targetId))
+                    || round.claimedMembers.contains(memberId) || round.claimedMembers.contains(targetId)) {
+                return null;
             }
-            round.participantIds.forEach(memberId -> round.responses.putIfAbsent(memberId, null));
-            round.processing = true;
-            return true;
+            // 채팅방 생성 실패 여부와 무관하게 동일 쌍을 다시 실행하지 않는다.
+            round.claimedMembers.add(memberId);
+            round.claimedMembers.add(targetId);
+            return targetId;
         }
     }
 
@@ -211,14 +208,11 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
             return Map.of();
         }
         synchronized (round) {
-            if (!round.processing) {
-                return Map.of();
-            }
             return Collections.unmodifiableMap(new HashMap<>(round.responses));
         }
     }
 
-    /** 상호 선택 판정은 전원 응답이 확정된 이후에만 노출한다. */
+    /** 다른 참가자의 응답과 무관하게 접수된 최종 선택으로 상호 선택을 판정한다. */
     public boolean isMatched(String sessionId, Long memberId) {
         Map<Long, Long> choices = getChoices(sessionId);
         Long targetId = choices.get(memberId);
@@ -228,7 +222,7 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
     private static final class ChoiceRound {
         private final Set<Long> participantIds;
         private final Map<Long, Long> responses = new HashMap<>();
-        private boolean processing;
+        private final Set<Long> claimedMembers = new HashSet<>();
 
         private ChoiceRound(Set<Long> participantIds) {
             this.participantIds = Set.copyOf(participantIds);
