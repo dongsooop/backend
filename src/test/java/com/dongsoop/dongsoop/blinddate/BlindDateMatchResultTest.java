@@ -16,6 +16,11 @@ import com.dongsoop.dongsoop.blinddate.notification.BlindDateMatchNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorageImpl;
 import com.dongsoop.dongsoop.blinddate.service.BlindDateService;
+import com.dongsoop.dongsoop.blinddate.service.BlindDateServiceImpl;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateStorageImpl;
+import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
+import com.dongsoop.dongsoop.blinddate.support.ManualBlindDateTaskScheduler;
+import java.time.LocalDateTime;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import java.util.List;
@@ -329,6 +334,61 @@ class BlindDateMatchResultTest {
         handler.timeout(other);
         queue.awaitIdle();
         assertThat(sessions.getState(other)).isNull();
+    }
+
+    @Test
+    void resetDuringMatchFinishesAcceptedResultThenClearsRecordsAndRejectsLateChoices() throws Exception {
+        var operation = new BlindDateStorageImpl();
+        operation.start(3, LocalDateTime.now().plusHours(1));
+        operation.setPointer(sessionId);
+        var service = new BlindDateServiceImpl(participants, operation, mock(BlindDateNotification.class),
+                sessions, messaging, new ManualBlindDateTaskScheduler(), queue);
+        var started = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        doAnswer(call -> {
+            started.countDown();
+            assertThat(release.await(5, TimeUnit.SECONDS)).isTrue();
+            pairs.add(List.of(call.getArgument(0), call.getArgument(1)));
+            return ChatRoom.builder().roomId("room-1").build();
+        }).when(rooms).createOneToOneChatRoom(anyLong(), anyLong(), anyString());
+        try {
+            handler.execute(sessionId, 1L, 2L);
+            handler.execute(sessionId, 2L, 1L);
+            assertThat(started.await(5, TimeUnit.SECONDS)).isTrue();
+            service.resetParticipants();
+            handler.execute(sessionId, 3L, 1L);
+            assertThat(sessions.isProcessing(sessionId)).isTrue();
+            assertThat(events).isEmpty();
+        } finally {
+            release.countDown();
+        }
+        queue.awaitIdle();
+        assertThat(pairs).containsExactly(List.of(1L, 2L));
+        assertThat(events).containsExactlyInAnyOrder(success(sessionId, 1L, "room-1"), success(sessionId, 2L, "room-1"));
+        assertThat(notifications).containsExactlyInAnyOrder(new Event("member-1", "room-1"), new Event("member-2", "room-1"));
+        assertThat(sessions.getState(sessionId)).isNull();
+        assertThat(operation.getPointer()).isNull();
+        assertThat(operation.isAvailable()).isTrue();
+        assertThat(operation.getMaxSessionMemberCount()).isEqualTo(3);
+        for (long member = 1; member <= 3; member++) {
+            assertThat(participants.getByMemberId(member)).isNull();
+            assertThat(participants.getBySocketId("socket-" + member)).isNull();
+        }
+        assertThat(participants.getChoices(sessionId)).isEmpty();
+        handler.execute(sessionId, 1L, 2L);
+        handler.execute(sessionId, 2L, 1L);
+        handler.timeout(sessionId);
+        queue.awaitIdle();
+        assertThat(pairs).hasSize(1);
+        assertThat(events).hasSize(2);
+        assertThat(notifications).hasSize(2);
+        String fresh = openSession(1, 3);
+        handler.execute(fresh, 1L, 2L);
+        handler.execute(fresh, 2L, 1L);
+        queue.awaitIdle();
+        assertThat(pairs).containsExactly(List.of(1L, 2L), List.of(1L, 2L));
+        assertThat(events).contains(success(fresh, 1L, "room-1"), success(fresh, 2L, "room-1"));
+        assertThat(notifications).hasSize(4);
     }
 
     private Event success(String id, long member, String room) {

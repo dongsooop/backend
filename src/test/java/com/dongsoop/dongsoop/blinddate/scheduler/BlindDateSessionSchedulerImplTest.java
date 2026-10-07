@@ -26,6 +26,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 @Timeout(15)
@@ -46,6 +48,7 @@ class BlindDateSessionSchedulerImplTest {
     private String id;
     private boolean failParticipants;
     private boolean respondOnParticipants;
+    private String failedDestination;
 
     @BeforeEach
     void setUp() {
@@ -63,6 +66,9 @@ class BlindDateSessionSchedulerImplTest {
         });
         doAnswer(call -> {
             String destination = call.getArgument(0);
+            if (destination.equals(failedDestination)) {
+                throw new IllegalStateException("delivery failed");
+            }
             if (destination.equals(BlindDateTopic.participants(id))) {
                 if (failParticipants) {
                     throw new IllegalStateException("delivery failed");
@@ -166,6 +172,60 @@ class BlindDateSessionSchedulerImplTest {
         assertThat(createdRooms).isEmpty();
         assertThat(participants.getChoices(id)).isEmpty();
         assertThat(events).filteredOn(e -> e.destination().endsWith("/chatroom") || e.destination().endsWith("/failed")).isEmpty();
+    }
+
+    @Test
+    void multipleTopicsAllowFullConversationBeforeOpeningChoices() {
+        when(messages.getRandomEventMessages(anyInt())).thenReturn(List.of("첫 주제", "마지막 주제"));
+        respondOnParticipants = true;
+        scheduler.start(id);
+        time.advanceBy(3_999);
+        assertThat(events).filteredOn(e -> e.destination().equals(BlindDateTopic.thaw(id))).isEmpty();
+        time.advanceBy(1);
+        assertThat(events).filteredOn(e -> e.destination().equals(BlindDateTopic.thaw(id))).hasSize(1);
+        time.advanceBy(179_999);
+        assertThat(events).filteredOn(e -> e.destination().equals(BlindDateTopic.system(id)))
+                .extracting(e -> (String) ((Map<?, ?>) e.payload()).get("message"))
+                .containsExactly("첫 주제");
+        time.advanceBy(1);
+        assertThat(events).filteredOn(e -> e.destination().equals(BlindDateTopic.system(id)))
+                .extracting(e -> (String) ((Map<?, ?>) e.payload()).get("message"))
+                .containsExactly("첫 주제", "마지막 주제");
+        choices.execute(id, 1L, null);
+        queue.awaitIdle();
+        assertThat(participants.getChoices(id)).isEmpty();
+        time.advanceBy(3_999);
+        assertThat(events).filteredOn(e -> e.destination().equals(BlindDateTopic.thaw(id))).hasSize(1);
+        time.advanceBy(1);
+        assertThat(events).filteredOn(e -> e.destination().equals(BlindDateTopic.thaw(id))).hasSize(2);
+        time.advanceBy(179_999);
+        assertThat(events).filteredOn(e -> e.destination().equals(BlindDateTopic.participants(id))).isEmpty();
+        assertThat(createdRooms).isEmpty();
+        time.advanceBy(1);
+        queue.awaitIdle();
+        assertThat(events).filteredOn(e -> e.destination().equals(BlindDateTopic.participants(id))).hasSize(1);
+        assertThat(createdRooms).hasSize(1);
+        assertThat(events).filteredOn(e -> e.destination().endsWith("/chatroom")).hasSize(2);
+        time.advanceBy(30_000);
+        queue.awaitIdle();
+        assertThat(sessions.getState(id)).isNull();
+        assertThat(createdRooms).hasSize(1);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"start", "system"})
+    void progressDeliveryFailureEndsSessionWithoutOpeningChoices(String eventType) {
+        failedDestination = BlindDateTopic.sessionEvent(id, eventType);
+        scheduler.start(id);
+        queue.awaitIdle();
+        time.advanceBy(4_000 + 180_000 + 30_000);
+        choices.execute(id, 1L, 2L);
+        choices.execute(id, 2L, 1L);
+        queue.awaitIdle();
+        assertThat(sessions.getState(id)).isNull();
+        assertThat(participants.getChoices(id)).isEmpty();
+        assertThat(createdRooms).isEmpty();
+        assertThat(events).filteredOn(e -> e.destination().equals(BlindDateTopic.participants(id))).isEmpty();
     }
 
     private record Event(String destination, Object payload) {}
