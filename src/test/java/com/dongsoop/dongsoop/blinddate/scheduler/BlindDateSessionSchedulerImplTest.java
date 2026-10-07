@@ -92,11 +92,15 @@ class BlindDateSessionSchedulerImplTest {
 
     @Test
     void publicStartPublishesGuidanceConversationAndReadyChoicesInOrder() {
+        when(messages.getStartMessages()).thenReturn(List.of("안내"));
         respondOnParticipants = true;
         reachChoicePeriod();
         assertThat(events).extracting(Event::destination).startsWith(
-                BlindDateTopic.sessionStart(id), BlindDateTopic.freeze(id), BlindDateTopic.freeze(id),
+                BlindDateTopic.sessionStart(id), BlindDateTopic.freeze(id), BlindDateTopic.system(id), BlindDateTopic.freeze(id),
                 BlindDateTopic.system(id), BlindDateTopic.thaw(id), BlindDateTopic.participants(id));
+        assertThat(events).filteredOn(e -> e.destination().equals(BlindDateTopic.system(id)))
+                .extracting(e -> ((Map<?, ?>) e.payload()).get("message"))
+                .containsExactly("안내", "주제");
         assertThat(events).filteredOn(e -> e.destination().equals(BlindDateTopic.participants(id)))
                 .extracting(Event::payload)
                 .containsExactly(Map.of("participants", participants.getParticipantsIdAndName(id)));
