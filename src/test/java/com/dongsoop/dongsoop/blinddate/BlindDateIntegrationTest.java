@@ -4,10 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.blinddate.dto.StartBlindDateRequest;
@@ -18,6 +17,7 @@ import com.dongsoop.dongsoop.blinddate.handler.BlindDateConnectHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateDisconnectHandler;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
+import com.dongsoop.dongsoop.blinddate.notification.BlindDateMatchNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
@@ -46,7 +46,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -73,6 +72,7 @@ class BlindDateIntegrationTest {
     private BlindDateTaskScheduler taskScheduler;
     private BlindDateEventQueue eventQueue;
     private SimpMessagingTemplate messagingTemplate;
+    private final List<JoinResponse> joinResponses = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     @BeforeEach
     void setUp() {
@@ -86,6 +86,10 @@ class BlindDateIntegrationTest {
 
         // Mock 초기화
         messagingTemplate = mock(SimpMessagingTemplate.class);
+        doAnswer(call -> {
+            joinResponses.add(new JoinResponse(call.getArgument(0), call.getArgument(1), call.getArgument(2)));
+            return null;
+        }).when(messagingTemplate).convertAndSendToUser(anyString(), anyString(), any(Object.class));
         BlindDateNotification notification = mock(BlindDateNotification.class);
         sessionScheduler = mock(BlindDateSessionScheduler.class);
         ChatRoomService chatRoomService = mock(ChatRoomService.class);
@@ -146,7 +150,8 @@ class BlindDateIntegrationTest {
                 sessionStorage,
                 messagingTemplate,
                 chatRoomService,
-                eventQueue
+                eventQueue,
+                mock(BlindDateMatchNotification.class)
         );
     }
 
@@ -199,14 +204,9 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-1", 1L, new HashMap<>());
             eventQueue.awaitIdle();
 
-            @SuppressWarnings("unchecked")
-            ArgumentCaptor<Map<String, Object>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
-            verify(messagingTemplate).convertAndSendToUser(
-                    eq("1"),
-                    eq("/queue/blinddate/join"),
-                    payloadCaptor.capture()
-            );
-            assertThat(payloadCaptor.getValue()).containsEntry("maxCount", 5);
+            assertThat(joinResponses).filteredOn(response -> response.member().equals("1"))
+                    .extracting(JoinResponse::destination).containsExactly("/queue/blinddate/join");
+            assertThat(joinResponses.get(0).payload()).containsEntry("maxCount", 5);
         }
 
         @Test
@@ -290,14 +290,8 @@ class BlindDateIntegrationTest {
             assertThat(getParticipantCount(session1)).isEqualTo(1); // 인원 증가 안 함
             assertThat(participantStorage.getByMemberId(1L).getAnonymousName()).isEqualTo(originalName);
 
-            @SuppressWarnings("unchecked")
-            ArgumentCaptor<Map<String, Object>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
-            verify(messagingTemplate, times(2)).convertAndSendToUser(
-                    eq("1"),
-                    eq("/queue/blinddate/join"),
-                    payloadCaptor.capture()
-            );
-            Map<String, Object> reconnectPayload = payloadCaptor.getAllValues().get(1);
+            assertThat(joinResponses).hasSize(2);
+            Map<String, Object> reconnectPayload = joinResponses.get(1).payload();
             assertThat(reconnectPayload)
                     .containsEntry("state", "PROCESSING")
                     .containsEntry("name", originalName);
@@ -732,4 +726,5 @@ class BlindDateIntegrationTest {
             assertThat(participantStorage.isMatched(sessionId, 3L)).isFalse();
         }
     }
+    private record JoinResponse(String member, String destination, Map<String, Object> payload) {}
 }

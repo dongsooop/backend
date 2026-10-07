@@ -38,7 +38,7 @@ public class BlindDateEventQueue {
         sessionWorkers = Executors.newFixedThreadPool(sessionWorkerCount);
     }
 
-    /** 시간 제한 없이 전원 응답을 기다린다. */
+    /** 선택 접수를 연다. 마감 시점은 세션 스케줄러가 관리한다. */
     public synchronized void openChoices(String sessionId) {
         openChoices(sessionId, () -> true);
     }
@@ -66,7 +66,7 @@ public class BlindDateEventQueue {
         }
     }
 
-    /** 접수를 먼저 닫고, 같은 세션에서 이미 접수한 선택들 뒤에 결과 확정 작업을 넣는다. */
+    /** 접수를 먼저 닫고, 같은 세션에서 이미 접수한 선택들 뒤에 종료 작업을 넣는다. */
     public synchronized void closeChoices(String sessionId, Runnable finalizeSession) {
         if (!openChoiceSessions.remove(sessionId)) {
             return;

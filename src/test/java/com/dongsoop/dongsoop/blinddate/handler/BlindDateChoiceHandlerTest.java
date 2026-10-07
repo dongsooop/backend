@@ -1,76 +1,58 @@
 package com.dongsoop.dongsoop.blinddate.handler;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
+import com.dongsoop.dongsoop.blinddate.notification.BlindDateMatchNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
-import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
+import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorageImpl;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
-@ExtendWith(MockitoExtension.class)
-@DisplayName("BlindDateChoiceHandler 단위 테스트")
 class BlindDateChoiceHandlerTest {
-
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
-
-    private final BlindDateParticipantStorageImpl participantStorage = new BlindDateParticipantStorageImpl();
-    @Mock
-    private BlindDateSessionStorage sessionStorage;
-    @Mock
-    private SimpMessagingTemplate messagingTemplate;
-    @Mock
-    private ChatRoomService chatRoomService;
-
-    private BlindDateEventQueue eventQueue;
-    private BlindDateChoiceHandler handler;
-
-    @BeforeEach
-    void setUp() {
-        eventQueue = new BlindDateEventQueue();
-        handler = new BlindDateChoiceHandler(
-                participantStorage, sessionStorage, messagingTemplate, chatRoomService, eventQueue);
-    }
+    private final BlindDateParticipantStorageImpl participants = new BlindDateParticipantStorageImpl();
+    private final BlindDateSessionStorageImpl sessions = new BlindDateSessionStorageImpl();
+    private final ChatRoomService rooms = mock(ChatRoomService.class);
+    private final BlindDateEventQueue queue = new BlindDateEventQueue();
+    private final List<ChatRoom> created = new CopyOnWriteArrayList<>();
+    private final BlindDateChoiceHandler handler = new BlindDateChoiceHandler(
+            participants, sessions, mock(SimpMessagingTemplate.class), rooms, queue, mock(BlindDateMatchNotification.class));
 
     @AfterEach
     void tearDown() {
-        eventQueue.shutdown();
+        queue.shutdown();
     }
 
     @Test
-    @DisplayName("매칭 채팅방 제목은 과팅 접두사와 KST 기준 날짜를 포함한다")
-    void matchedChatRoom_UsesBlindDatePrefixAndDateTitle() {
-        when(sessionStorage.isProcessing("session-1")).thenReturn(true);
-        participantStorage.addParticipant("session-1", 1L, "one");
-        participantStorage.addParticipant("session-1", 2L, "two");
-        participantStorage.openChoices("session-1");
-        when(chatRoomService.createOneToOneChatRoom(eq(1L), eq(2L),
-                org.mockito.ArgumentMatchers.anyString()))
-                .thenReturn(ChatRoom.builder().roomId("room-1").title("title").build());
-
-        eventQueue.openChoices("session-1");
-        handler.execute("session-1", 1L, 2L);
-        handler.execute("session-1", 2L, 1L);
-        eventQueue.awaitIdle();
-
-        ArgumentCaptor<String> titleCaptor = ArgumentCaptor.forClass(String.class);
-        verify(chatRoomService).createOneToOneChatRoom(eq(1L), eq(2L), titleCaptor.capture());
-        assertThat(titleCaptor.getValue())
-                .isEqualTo("[과팅] " + LocalDate.now(KST))
-                .matches("\\[과팅] \\d{4}-\\d{2}-\\d{2}");
+    void mutualChoiceCreatesRoomWithBlindDatePrefixAndKstDate() {
+        String id = sessions.create().getSessionId();
+        sessions.start(id);
+        participants.addParticipant(id, 1L, "one");
+        participants.addParticipant(id, 2L, "two");
+        participants.openChoices(id);
+        queue.openChoices(id);
+        when(rooms.createOneToOneChatRoom(anyLong(), anyLong(), anyString())).thenAnswer(call -> {
+            ChatRoom room = ChatRoom.builder().roomId("room").title(call.getArgument(2)).build();
+            created.add(room);
+            return room;
+        });
+        LocalDate before = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        handler.execute(id, 1L, 2L);
+        handler.execute(id, 2L, 1L);
+        queue.awaitIdle();
+        LocalDate after = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        assertThat(created).hasSize(1);
+        assertThat(created.get(0).getTitle()).isIn("[과팅] " + before, "[과팅] " + after);
     }
 }

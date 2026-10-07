@@ -27,9 +27,9 @@ class BlindDateChoiceCollectionTest {
     @Test
     void missingAndExplicitNoChoiceAreDifferentAndFirstResponseIsImmutable() {
         var storage = storage(2);
-        assertThat(storage.recordChoice("session", 1L, null)).isFalse();
+        assertThat(storage.recordChoice("session", 1L, null)).isTrue();
         assertThat(storage.recordChoice("session", 1L, 2L)).isFalse();
-        assertThat(storage.getChoices("session")).isEmpty();
+        assertThat(storage.getChoices("session")).containsOnlyKeys(1L).containsEntry(1L, null);
         assertThat(storage.recordChoice("session", 2L, 1L)).isTrue();
         assertThat(storage.getChoices("session")).containsEntry(1L, null).containsEntry(2L, 1L);
         assertThat(storage.recordChoice("session", 2L, null)).isFalse();
@@ -37,7 +37,7 @@ class BlindDateChoiceCollectionTest {
     }
 
     @Test
-    void repeatedOpenDoesNotClearResponsesOrReleaseProcessingKey() {
+    void repeatedOpenDoesNotClearResponsesOrReleasePairClaim() {
         var storage = storage(2);
         storage.recordChoice("session", 1L, null);
         storage.openChoices("session");
@@ -45,6 +45,17 @@ class BlindDateChoiceCollectionTest {
         storage.openChoices("session");
         assertThat(storage.recordChoice("session", 2L, 1L)).isFalse();
         assertThat(storage.getChoices("session")).hasSize(2).containsEntry(1L, null);
+    }
+
+    @Test
+    void repeatedOpenDoesNotReleaseClaimedMutualPair() {
+        var storage = storage(3);
+        storage.recordChoice("session", 1L, 2L);
+        storage.recordChoice("session", 2L, 1L);
+        assertThat(storage.claimMutualChoice("session", 1L)).isEqualTo(2L);
+        storage.openChoices("session");
+        assertThat(storage.claimMutualChoice("session", 1L)).isNull();
+        assertThat(storage.claimMutualChoice("session", 2L)).isNull();
     }
 
     @Test
@@ -56,13 +67,13 @@ class BlindDateChoiceCollectionTest {
                 .isInstanceOf(InvalidBlindDateChoiceException.class);
         assertThatThrownBy(() -> storage.recordChoice("session", 1L, 3L))
                 .isInstanceOf(InvalidBlindDateChoiceException.class);
-        assertThat(storage.recordChoice("session", 1L, null)).isFalse();
+        assertThat(storage.recordChoice("session", 1L, null)).isTrue();
         assertThat(storage.recordChoice("session", 2L, null)).isTrue();
         assertThat(storage.getChoices("session")).containsOnlyKeys(1L, 2L);
     }
 
     @Test
-    void clearDropsResponsesAndProcessingKey() {
+    void clearDropsResponsesAndPairClaims() {
         var storage = storage(2);
         storage.recordChoice("session", 1L, null);
         storage.recordChoice("session", 2L, null);
@@ -75,34 +86,36 @@ class BlindDateChoiceCollectionTest {
     }
 
     @Test
-    void timeoutAndFinalResponseRaceClaimProcessingOnlyOnce() throws Exception {
+    void mutualPairCanBeClaimedOnlyOnceFromEitherMemberBeforeAllResponses() throws Exception {
         var storage = storage(3);
         storage.recordChoice("session", 1L, 2L);
         storage.recordChoice("session", 2L, 1L);
         var workers = Executors.newFixedThreadPool(2);
         var start = new CountDownLatch(1);
         try {
-            Future<Boolean> response = workers.submit(() -> {
+            Future<Long> first = workers.submit(() -> {
                 assertThat(start.await(5, TimeUnit.SECONDS)).isTrue();
-                return storage.recordChoice("session", 3L, null);
+                return storage.claimMutualChoice("session", 1L);
             });
-            Future<Boolean> timeout = workers.submit(() -> {
+            Future<Long> second = workers.submit(() -> {
                 assertThat(start.await(5, TimeUnit.SECONDS)).isTrue();
-                return storage.completeChoices("session");
+                return storage.claimMutualChoice("session", 2L);
             });
             start.countDown();
-            boolean responseClaim = response.get(5, TimeUnit.SECONDS);
-            boolean timeoutClaim = timeout.get(5, TimeUnit.SECONDS);
-            assertThat(responseClaim ^ timeoutClaim).isTrue();
-            assertThat(storage.getChoices("session")).hasSize(3)
-                    .containsEntry(1L, 2L).containsEntry(2L, 1L).containsEntry(3L, null);
+            Long firstClaim = first.get(5, TimeUnit.SECONDS);
+            Long secondClaim = second.get(5, TimeUnit.SECONDS);
+            assertThat((firstClaim != null) ^ (secondClaim != null)).isTrue();
+            assertThat(storage.getChoices("session")).hasSize(2)
+                    .containsEntry(1L, 2L).containsEntry(2L, 1L).doesNotContainKey(3L);
+            assertThat(storage.claimMutualChoice("session", 1L)).isNull();
+            assertThat(storage.claimMutualChoice("session", 2L)).isNull();
         } finally {
             workers.shutdownNow();
         }
     }
 
     @Test
-    void simultaneousDuplicateResponsesClaimProcessingExactlyOnce() throws Exception {
+    void simultaneousDuplicateResponsesStoreEachMemberOnlyOnce() throws Exception {
         var storage = storage(4);
         var workers = Executors.newFixedThreadPool(12);
         var start = new CountDownLatch(1);
@@ -122,7 +135,7 @@ class BlindDateChoiceCollectionTest {
                     claims++;
                 }
             }
-            assertThat(claims).isEqualTo(1);
+            assertThat(claims).isEqualTo(4);
             assertThat(storage.getChoices("session")).hasSize(4);
         } finally {
             workers.shutdownNow();
