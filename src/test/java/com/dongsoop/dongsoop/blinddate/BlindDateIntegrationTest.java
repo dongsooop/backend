@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -15,6 +17,7 @@ import com.dongsoop.dongsoop.blinddate.handler.BlindDateConnectHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateDisconnectHandler;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
+import com.dongsoop.dongsoop.blinddate.notification.BlindDateMatchNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
@@ -69,6 +72,7 @@ class BlindDateIntegrationTest {
     private BlindDateTaskScheduler taskScheduler;
     private BlindDateEventQueue eventQueue;
     private SimpMessagingTemplate messagingTemplate;
+    private final List<JoinResponse> joinResponses = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     @BeforeEach
     void setUp() {
@@ -82,6 +86,10 @@ class BlindDateIntegrationTest {
 
         // Mock 초기화
         messagingTemplate = mock(SimpMessagingTemplate.class);
+        doAnswer(call -> {
+            joinResponses.add(new JoinResponse(call.getArgument(0), call.getArgument(1), call.getArgument(2)));
+            return null;
+        }).when(messagingTemplate).convertAndSendToUser(anyString(), anyString(), any(Object.class));
         BlindDateNotification notification = mock(BlindDateNotification.class);
         sessionScheduler = mock(BlindDateSessionScheduler.class);
         ChatRoomService chatRoomService = mock(ChatRoomService.class);
@@ -139,8 +147,11 @@ class BlindDateIntegrationTest {
 
         choiceHandler = new BlindDateChoiceHandler(
                 participantStorage,
+                sessionStorage,
                 messagingTemplate,
-                chatRoomService
+                chatRoomService,
+                eventQueue,
+                mock(BlindDateMatchNotification.class)
         );
     }
 
@@ -183,6 +194,19 @@ class BlindDateIntegrationTest {
             ParticipantInfo participant = participantStorage.getByMemberId(1L);
             assertThat(participant).isNotNull();
             assertThat(participant.getAnonymousName()).isEqualTo("익명1");
+        }
+
+        @Test
+        @DisplayName("입장 응답에 세션 정원을 포함한다")
+        void joinResponse_IncludesMaxCount() {
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+
+            connectHandler.execute("socket-1", 1L, new HashMap<>());
+            eventQueue.awaitIdle();
+
+            assertThat(joinResponses).filteredOn(response -> response.member().equals("1"))
+                    .extracting(JoinResponse::destination).containsExactly("/queue/blinddate/join");
+            assertThat(joinResponses.get(0).payload()).containsEntry("maxCount", 5);
         }
 
         @Test
@@ -236,7 +260,7 @@ class BlindDateIntegrationTest {
         }
 
         @Test
-        @DisplayName("재연결 - 기존 세션으로 복귀, 인원 증가 안 함")
+        @DisplayName("진행 중 연결 해제 후 재접속 - 기존 세션 상태와 닉네임으로 복귀")
         void reconnect_ReturnsToExistingSession() {
             // given
             blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
@@ -244,8 +268,18 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-1", 1L, attr1);
             eventQueue.awaitIdle();
             String session1 = (String) attr1.get("sessionId");
+            String originalName = participantStorage.getByMemberId(1L).getAnonymousName();
+            sessionStorage.start(session1);
 
-            // when - 같은 memberId로 재연결
+            disconnectHandler.execute("socket-1", 1L, session1);
+            eventQueue.awaitIdle();
+
+            ParticipantInfo disconnected = participantStorage.getByMemberId(1L);
+            assertThat(disconnected).isNotNull();
+            assertThat(disconnected.getAnonymousName()).isEqualTo(originalName);
+            assertThat(disconnected.getSocketIds()).isEmpty();
+
+            // when - 같은 memberId로 실제 재접속
             Map<String, Object> attr2 = new HashMap<>();
             connectHandler.execute("socket-2", 1L, attr2);
             eventQueue.awaitIdle();
@@ -254,6 +288,13 @@ class BlindDateIntegrationTest {
             // then
             assertThat(session2).isEqualTo(session1);
             assertThat(getParticipantCount(session1)).isEqualTo(1); // 인원 증가 안 함
+            assertThat(participantStorage.getByMemberId(1L).getAnonymousName()).isEqualTo(originalName);
+
+            assertThat(joinResponses).hasSize(2);
+            Map<String, Object> reconnectPayload = joinResponses.get(1).payload();
+            assertThat(reconnectPayload)
+                    .containsEntry("state", "PROCESSING")
+                    .containsEntry("name", originalName);
         }
 
         @Test
@@ -527,10 +568,13 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-2", 2L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
+            participantStorage.openChoices(sessionId);
+            eventQueue.openChoices(sessionId);
 
             // when
             choiceHandler.execute(sessionId, 1L, 2L);
             choiceHandler.execute(sessionId, 2L, 1L);
+            eventQueue.awaitIdle();
 
             // then
             Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
@@ -551,13 +595,37 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-2", 2L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
+            participantStorage.openChoices(sessionId);
+            eventQueue.openChoices(sessionId);
 
             // when
             choiceHandler.execute(sessionId, 1L, 2L);
+            eventQueue.awaitIdle();
 
             // then
             Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
             assertThat(notMatched).containsExactlyInAnyOrder(1L, 2L);
+
+            assertThat(participantStorage.isMatched(sessionId, 1L)).isFalse();
+            assertThat(participantStorage.isMatched(sessionId, 2L)).isFalse();
+        }
+
+        @Test
+        @DisplayName("세션 종료 후 도착한 선택은 매칭하지 않는다")
+        void choiceAfterTermination_IsIgnored() {
+            blindDateStorage.start(2, LocalDateTime.now().plusHours(1));
+            Map<String, Object> attr = new HashMap<>();
+            connectHandler.execute("socket-1", 1L, attr);
+            connectHandler.execute("socket-2", 2L, attr);
+            eventQueue.awaitIdle();
+            String sessionId = (String) attr.get("sessionId");
+            participantStorage.openChoices(sessionId);
+            eventQueue.openChoices(sessionId);
+            sessionStorage.terminate(sessionId);
+
+            choiceHandler.execute(sessionId, 1L, 2L);
+            choiceHandler.execute(sessionId, 2L, 1L);
+            eventQueue.awaitIdle();
 
             assertThat(participantStorage.isMatched(sessionId, 1L)).isFalse();
             assertThat(participantStorage.isMatched(sessionId, 2L)).isFalse();
@@ -574,11 +642,14 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-3", 3L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
+            participantStorage.openChoices(sessionId);
+            eventQueue.openChoices(sessionId);
 
             // when - 1→2, 2→3, 3→1
             choiceHandler.execute(sessionId, 1L, 2L);
             choiceHandler.execute(sessionId, 2L, 3L);
             choiceHandler.execute(sessionId, 3L, 1L);
+            eventQueue.awaitIdle();
 
             // then
             Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
@@ -597,6 +668,8 @@ class BlindDateIntegrationTest {
             }
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
+            participantStorage.openChoices(sessionId);
+            eventQueue.openChoices(sessionId);
 
             // when - 1↔2, 3↔4, 5 혼자
             choiceHandler.execute(sessionId, 1L, 2L);
@@ -604,6 +677,7 @@ class BlindDateIntegrationTest {
             choiceHandler.execute(sessionId, 3L, 4L);
             choiceHandler.execute(sessionId, 4L, 3L);
             choiceHandler.execute(sessionId, 5L, 1L);
+            eventQueue.awaitIdle();
 
             // then
             Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
@@ -632,10 +706,16 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-3", 3L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
+            participantStorage.openChoices(sessionId);
+            eventQueue.openChoices(sessionId);
 
             // 3. 사랑의 작대기 - 1↔2 매칭
             choiceHandler.execute(sessionId, 1L, 2L);
             choiceHandler.execute(sessionId, 2L, 1L);
+            eventQueue.awaitIdle();
+
+            choiceHandler.execute(sessionId, 3L, null);
+            eventQueue.awaitIdle();
 
             // 4. 매칭 결과 확인
             Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
@@ -646,4 +726,5 @@ class BlindDateIntegrationTest {
             assertThat(participantStorage.isMatched(sessionId, 3L)).isFalse();
         }
     }
+    private record JoinResponse(String member, String destination, Map<String, Object> payload) {}
 }

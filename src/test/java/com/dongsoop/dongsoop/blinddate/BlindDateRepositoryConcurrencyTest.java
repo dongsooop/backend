@@ -309,13 +309,17 @@ class BlindDateStorageConcurrencyTest {
 
         assertThat(exceptions).isEmpty();
 
-        // 모든 소켓이 제거되었으므로 참여자도 제거되어야 함
+        // 소켓 수명과 참가자 수명은 분리된다. 세션 상태를 아는 핸들러가 참가자 제거를 결정한다.
         ParticipantInfo afterRemoval = participantStorage.getByMemberId(memberId);
-        assertThat(afterRemoval).as("모든 소켓 제거 후 참여자도 제거되어야 함").isNull();
+        assertThat(afterRemoval).as("모든 소켓 제거 후에도 참가자 정보는 유지되어야 함").isNotNull();
+        assertThat(afterRemoval.getSocketIds()).isEmpty();
 
         // 대부분의 제거 시도는 성공해야 함
         long successCount = removeResults.stream().filter(Boolean::booleanValue).count();
         log.info("Successfully removed {} out of {} sockets", successCount, socketCount);
         assertThat(successCount).as("최소 1개 이상의 소켓이 제거되어야 함").isGreaterThan(0);
+
+        participantStorage.removeParticipant(memberId);
+        assertThat(participantStorage.getByMemberId(memberId)).isNull();
     }
 }

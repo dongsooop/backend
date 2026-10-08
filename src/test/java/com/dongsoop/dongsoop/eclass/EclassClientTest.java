@@ -76,6 +76,7 @@ class EclassClientTest {
         assertThat(assignments.get(0).assignId()).isEqualTo(501L);
         assertThat(assignments.get(0).courseModuleId()).isEqualTo(9001L);
         assertThat(assignments.get(2).name()).isEqualTo("3주차_과제");
+        assertThat(assignments.get(2).timeModified()).isEqualTo(1663000000L);
     }
 
     @Test

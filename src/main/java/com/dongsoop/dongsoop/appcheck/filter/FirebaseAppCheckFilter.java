@@ -45,15 +45,7 @@ public class FirebaseAppCheckFilter extends OncePerRequestFilter {
         try {
             String deviceToken = extractDeviceAuthTokenFromHeader(request);
 
-            try {
-                firebaseAppCheck.validate(deviceToken);
-                log.debug("Firebase AppCheck validation successful");
-            } catch (UnknownFirebaseFetchJWKException e) {
-                log.warn("Firebase AppCheck validation failed, retrying after cache update: {}", e.getMessage());
-                updateCacheSafely();
-                firebaseAppCheck.validate(deviceToken);
-                log.debug("Firebase AppCheck validation successful after cache update");
-            }
+            validateWithCacheRefresh(deviceToken);
         } catch (TokenNotFoundException e) {
             log.warn("Firebase AppCheck token not found: {}", e.getMessage());
             exceptionResolver.resolveException(request, response, null, e);
@@ -69,6 +61,18 @@ public class FirebaseAppCheckFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void validateWithCacheRefresh(String deviceToken) throws UnknownFirebaseFetchJWKException {
+        try {
+            firebaseAppCheck.validate(deviceToken);
+            log.debug("Firebase AppCheck validation successful");
+        } catch (UnknownFirebaseFetchJWKException e) {
+            log.warn("Firebase AppCheck validation failed, retrying after cache update: {}", e.getMessage());
+            updateCacheSafely();
+            firebaseAppCheck.validate(deviceToken);
+            log.debug("Firebase AppCheck validation successful after cache update");
+        }
     }
 
     @Override

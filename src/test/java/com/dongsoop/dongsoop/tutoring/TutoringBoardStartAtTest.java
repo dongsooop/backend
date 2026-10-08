@@ -19,6 +19,7 @@ import com.dongsoop.dongsoop.recruitment.board.tutoring.entity.TutoringBoard;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.service.TutoringBoardServiceImpl;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -38,6 +39,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 @WebMvcTest(controllers = TutoringBoardController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class TutoringBoardStartAtTest {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final JSONObject json = new JSONObject();
 
@@ -102,16 +105,16 @@ class TutoringBoardStartAtTest {
                 .title("title")
                 .content("content")
                 .tags("tags")
-                .startAt(LocalDate.now().atStartOfDay())
-                .endAt(LocalDate.now().atStartOfDay())
+                .startAt(LocalDate.now(KST).atStartOfDay())
+                .endAt(LocalDate.now(KST).atStartOfDay())
                 .department(department)
                 .build();
 
         when(tutoringBoardService.create(any(CreateTutoringBoardRequest.class)))
                 .thenReturn(tutoringBoard);
 
-        json.put("startAt", LocalDate.now().atStartOfDay());
-        json.put("endAt", LocalDate.now().atStartOfDay().plusDays(1));
+        json.put("startAt", LocalDate.now(KST).atStartOfDay());
+        json.put("endAt", LocalDate.now(KST).atStartOfDay().plusDays(1));
 
         // when
         MockHttpServletRequestBuilder httpContent = post(REQUEST_URL)

@@ -42,7 +42,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 @WebMvcTest(controllers = MemberBlockController.class)
 @Import(MemberBlockServiceImpl.class)
 @AutoConfigureMockMvc(addFilters = false)
-public class MemberBlockTest {
+class MemberBlockTest {
 
     @MockitoBean
     private MemberService memberService;

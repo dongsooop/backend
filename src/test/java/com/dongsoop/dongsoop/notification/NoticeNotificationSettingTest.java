@@ -36,7 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-public class NoticeNotificationSettingTest extends AbstractIntegrationTest {
+class NoticeNotificationSettingTest extends AbstractIntegrationTest {
 
     @Autowired
     MemberDeviceService memberDeviceService;

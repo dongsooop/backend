@@ -1,7 +1,10 @@
 package com.dongsoop.dongsoop.blinddate.repository;
 
 import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
+import com.dongsoop.dongsoop.blinddate.exception.InvalidBlindDateChoiceException;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,11 +27,8 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
     // sessionId -> 익명 번호 카운터
     private final Map<String, AtomicInteger> nameCounters = new ConcurrentHashMap<>();
 
-    // sessionId -> (choicerId -> targetId)
-    private final Map<String, Map<Long, Long>> choices = new ConcurrentHashMap<>();
-
-    // sessionId -> Set<matchedMemberId>
-    private final Map<String, Set<Long>> matches = new ConcurrentHashMap<>();
+    // 최종 응답과 쌍별 처리 권한은 sessionId별 한 곳에서 관리한다.
+    private final Map<String, ChoiceRound> choiceRounds = new ConcurrentHashMap<>();
 
     /**
      * 참여자 추가 또는 소켓 추가
@@ -79,7 +79,7 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
     }
 
     /**
-     * 소켓 제거 (연결 해제) 모든 소켓이 제거되면 참여자도 제거
+     * 소켓 제거 (연결 해제). 참가자 제거 여부는 세션 상태를 아는 호출자가 결정한다.
      */
     public boolean removeSocket(String socketId) throws IllegalArgumentException {
         // socketId -> memberId 인덱스로 O(1) 조회
@@ -101,16 +101,7 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
         log.info("[BlindDate] Socket removed: memberId={}, socketId={}, remainingSockets={}",
                 participant.getMemberId(), socketId, participant.getSocketIds().size());
 
-        // 모든 소켓이 제거되면 참여자도 제거
-        if (participant.hasNoSockets()) {
-            participants.remove(participant.getMemberId());
-            log.info("Participant fully removed: memberId={}, sessionId={}",
-                    participant.getMemberId(), participant.getSessionId());
-
-            return true;
-        }
-
-        return false;
+        return participant.hasNoSockets();
     }
 
     /**
@@ -150,42 +141,92 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
                 ));
     }
 
-    /**
-     * 선택 기록
-     */
-    public boolean recordChoice(String sessionId, Long choicerId, Long targetId) {
-        Map<Long, Long> sessionChoices = choices.computeIfAbsent(sessionId, k -> new ConcurrentHashMap<>());
-
-        // 이미 선택했는지 확인 + 반영을 원자적으로 처리 (확인과 반영 사이 공백 제거)
-        if (sessionChoices.putIfAbsent(choicerId, targetId) != null) {
-            log.warn("Already chosen: sessionId={}, choicerId={}", sessionId, choicerId);
-            return false;
-        }
-
-        log.info("Choice recorded: sessionId={}, choicerId={} -> targetId={}", sessionId, choicerId, targetId);
-
-        // 매칭 확인
-        Long reverseChoice = sessionChoices.get(targetId);
-        // 상대가 아직 선택하지 않았거나, 다른 사람을 선택한 경우
-        if (reverseChoice == null || !reverseChoice.equals(choicerId)) {
-            return false;
-        }
-
-        // 서로 선택함 → 매칭 성공
-        Set<Long> sessionMatches = matches.computeIfAbsent(sessionId, k -> ConcurrentHashMap.newKeySet());
-        sessionMatches.add(choicerId);
-        sessionMatches.add(targetId);
-
-        log.info("🎉 Match found: sessionId={}, member1={}, member2={}", sessionId, choicerId, targetId);
-        return true;
+    @Override
+    public void openChoices(String sessionId) {
+        choiceRounds.computeIfAbsent(sessionId,
+                id -> new ChoiceRound(getParticipantsIdAndName(id).keySet()));
     }
 
-    /**
-     * 매칭 확인
-     */
+    @Override
+    public boolean recordChoice(String sessionId, Long choicerId, Long targetId) {
+        ChoiceRound round = choiceRounds.get(sessionId);
+        if (round == null) {
+            return false;
+        }
+        synchronized (round) {
+            validateChoice(round, choicerId, targetId);
+            if (round.responses.containsKey(choicerId)) {
+                return false;
+            }
+            // HashMap은 null을 지원한다. containsKey로 미선택과 미응답을 구분한다.
+            round.responses.put(choicerId, targetId);
+            return true;
+        }
+    }
+
+    @Override
+    public Long claimMutualChoice(String sessionId, Long memberId) {
+        ChoiceRound round = choiceRounds.get(sessionId);
+        if (round == null) {
+            return null;
+        }
+        synchronized (round) {
+            Long targetId = round.responses.get(memberId);
+            if (targetId == null || !memberId.equals(round.responses.get(targetId))
+                    || round.claimedMembers.contains(memberId) || round.claimedMembers.contains(targetId)) {
+                return null;
+            }
+            // 채팅방 생성 실패 여부와 무관하게 동일 쌍을 다시 실행하지 않는다.
+            round.claimedMembers.add(memberId);
+            round.claimedMembers.add(targetId);
+            return targetId;
+        }
+    }
+
+    private void validateChoice(ChoiceRound round, Long choicerId, Long targetId) {
+        if (choicerId == null || !round.participantIds.contains(choicerId)) {
+            throw new InvalidBlindDateChoiceException(
+                    403, "CHOICE_FORBIDDEN", "해당 세션의 참가자만 선택할 수 있습니다.");
+        }
+        if (targetId == null) {
+            return;
+        }
+        if (choicerId.equals(targetId)) {
+            throw new InvalidBlindDateChoiceException(
+                    400, "INVALID_CHOICE", "자신을 선택할 수 없습니다.");
+        }
+        if (!round.participantIds.contains(targetId)) {
+            throw new InvalidBlindDateChoiceException(
+                    404, "CHOICE_TARGET_NOT_FOUND", "해당 세션에서 선택 대상을 찾을 수 없습니다.");
+        }
+    }
+
+    @Override
+    public Map<Long, Long> getChoices(String sessionId) {
+        ChoiceRound round = choiceRounds.get(sessionId);
+        if (round == null) {
+            return Map.of();
+        }
+        synchronized (round) {
+            return Collections.unmodifiableMap(new HashMap<>(round.responses));
+        }
+    }
+
+    /** 다른 참가자의 응답과 무관하게 접수된 최종 선택으로 상호 선택을 판정한다. */
     public boolean isMatched(String sessionId, Long memberId) {
-        Set<Long> sessionMatches = matches.get(sessionId);
-        return sessionMatches != null && sessionMatches.contains(memberId);
+        Map<Long, Long> choices = getChoices(sessionId);
+        Long targetId = choices.get(memberId);
+        return targetId != null && memberId.equals(choices.get(targetId));
+    }
+
+    private static final class ChoiceRound {
+        private final Set<Long> participantIds;
+        private final Map<Long, Long> responses = new HashMap<>();
+        private final Set<Long> claimedMembers = new HashSet<>();
+
+        private ChoiceRound(Set<Long> participantIds) {
+            this.participantIds = Set.copyOf(participantIds);
+        }
     }
 
     /**
@@ -195,8 +236,7 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
         participants.clear();
         socketIdToMemberId.clear();
         nameCounters.clear();
-        choices.clear();
-        matches.clear();
+        choiceRounds.clear();
 
         log.info("[BlindDate] All participant data cleared");
     }
@@ -230,8 +270,7 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
                 .map(ParticipantInfo::getMemberId)
                 .collect(Collectors.toSet());
 
-        Set<Long> matched = matches.getOrDefault(sessionId, Collections.emptySet());
-        allMemberIds.removeAll(matched);
+        allMemberIds.removeIf(memberId -> isMatched(sessionId, memberId));
 
         return allMemberIds;
     }

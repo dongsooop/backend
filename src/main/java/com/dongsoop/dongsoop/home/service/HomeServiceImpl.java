@@ -82,7 +82,7 @@ public class HomeServiceImpl implements HomeService {
         // 결과 조합
         List<HomeTimetable> timetable = fTimetable.join();
         List<HomeSchedule> schedules = Stream.of(fMemberSchedules, fOfficialSchedules)
-                .flatMap((f) -> f.join().stream())
+                .flatMap(f -> f.join().stream())
                 .sorted(Comparator.comparing(HomeSchedule::startAt).thenComparing(HomeSchedule::endAt))
                 .toList();
         List<HomeNotice> notices = fNotices.join();

@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-public class NoticeKeywordFilterTest {
+class NoticeKeywordFilterTest {
 
     @Autowired
     private NoticeKeywordService noticeKeywordService;

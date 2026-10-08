@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -55,5 +56,15 @@ public class BlindDateController {
         blindDateService.startBlindDate(request);
 
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    /**
+     * 참가자 입장 기록 즉시 초기화
+     */
+    @Secured(RoleType.ADMIN_ROLE)
+    @RequestMapping(path = "/participants", method = {RequestMethod.POST, RequestMethod.DELETE})
+    public ResponseEntity<Void> resetParticipants() {
+        blindDateService.resetParticipants();
+        return ResponseEntity.noContent().build();
     }
 }

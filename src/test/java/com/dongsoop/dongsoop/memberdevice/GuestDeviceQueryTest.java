@@ -136,7 +136,7 @@ class GuestDeviceQueryTest {
     @Test
     @DisplayName("WEB 타입 기기는 푸시 대상에서 제외된다")
     void excludes_web_type_device() {
-        MemberDevice webDevice = saveDevice("token-q-7", DepartmentType.DEPT_2001, MemberDeviceType.WEB);
+        saveDevice("token-q-7", DepartmentType.DEPT_2001, MemberDeviceType.WEB);
 
         List<MemberDevice> result = memberDeviceRepository.searchDevicesByDepartments(List.of(DepartmentType.DEPT_2001));
 

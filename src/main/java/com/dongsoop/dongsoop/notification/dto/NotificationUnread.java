@@ -11,16 +11,12 @@ public final class NotificationUnread {
     public NotificationUnread(Long memberId, Long unreadCount) {
         this.memberId = memberId;
 
-        int unread = unreadCount.intValue();
-
         if (unreadCount == null || unreadCount < 0) {
-            unread = 0;
+            this.unreadCount = 0;
+        } else if (unreadCount > Integer.MAX_VALUE) {
+            this.unreadCount = Integer.MAX_VALUE;
+        } else {
+            this.unreadCount = unreadCount.intValue();
         }
-
-        if (unreadCount > Integer.MAX_VALUE) {
-            unread = Integer.MAX_VALUE;
-        }
-
-        this.unreadCount = unread;
     }
 }

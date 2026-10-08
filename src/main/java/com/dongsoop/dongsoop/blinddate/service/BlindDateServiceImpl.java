@@ -70,6 +70,18 @@ public class BlindDateServiceImpl implements BlindDateService {
     }
 
     /**
+     * 과팅 운영 상태와 자동 종료 예약은 유지하면서 참가자 입장 기록을 초기화한다.
+     */
+    @Override
+    public void resetParticipants() {
+        eventQueue.submitCleanup(() -> {
+            blindDateStorage.setPointer(null);
+            sessionStorage.clear();
+            participantStorage.clear();
+        });
+    }
+
+    /**
      * 자동 종료 스케줄링 (TaskScheduler 사용)
      */
     private void scheduleAutoClose() {
@@ -81,7 +93,7 @@ public class BlindDateServiceImpl implements BlindDateService {
             blindDateStorage.close();
 
             // 세션/참가자 데이터 정리는 큐를 통해 순서대로 처리
-            eventQueue.submit(() -> {
+            eventQueue.submitCleanup(() -> {
                 // 모든 세션 정보 삭제
                 sessionStorage.clear();
 

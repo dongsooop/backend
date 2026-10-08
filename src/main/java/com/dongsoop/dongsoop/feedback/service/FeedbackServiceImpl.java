@@ -48,7 +48,7 @@ public class FeedbackServiceImpl implements FeedbackService {
         Feedback feedback = feedbackRepository.save(feedbackBuilder.build());
         List<FeedbackServiceFeature> feedbackServiceFeature = request.feature()
                 .stream()
-                .map((feature) -> new FeedbackServiceFeature(feedback, feature))
+                .map(feature -> new FeedbackServiceFeature(feedback, feature))
                 .toList();
 
         feedbackServiceFeatureRepository.saveAll(feedbackServiceFeature);

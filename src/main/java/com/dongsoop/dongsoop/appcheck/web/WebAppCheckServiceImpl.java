@@ -24,6 +24,8 @@ import org.springframework.web.client.RestTemplate;
 @RequiredArgsConstructor
 public class WebAppCheckServiceImpl implements WebAppCheckService {
 
+    private static final String TOKEN_KEY = "token";
+
     private static final String FIREBASE_APP_CHECK_SCOPE = "https://www.googleapis.com/auth/firebase.appcheck";
     private static final String GENERATE_TOKEN_URL_TEMPLATE =
             "https://firebaseappcheck.googleapis.com/v1/projects/%s/apps/%s:generateAppCheckToken";
@@ -74,10 +76,10 @@ public class WebAppCheckServiceImpl implements WebAppCheckService {
 
         Map<?, ?> response = restTemplate.postForObject(url, request, Map.class);
 
-        if (response == null || !(response.get("token") instanceof String token) || token.isBlank()) {
+        if (response == null || !(response.get(TOKEN_KEY) instanceof String token) || token.isBlank()) {
             log.error("Firebase App Check token generation failed. tokenKeyPresent: {}, tokenType: {}",
-                    response != null && response.containsKey("token"),
-                    response != null ? response.get("token") == null ? "null" : response.get("token").getClass().getSimpleName() : "N/A");
+                    response != null && response.containsKey(TOKEN_KEY),
+                    response != null ? response.get(TOKEN_KEY) == null ? "null" : response.get(TOKEN_KEY).getClass().getSimpleName() : "N/A");
             throw new WebAppCheckTokenIssuanceException(new IllegalStateException("앱 체크 토큰 응답이 올바르지 않습니다."));
         }
 

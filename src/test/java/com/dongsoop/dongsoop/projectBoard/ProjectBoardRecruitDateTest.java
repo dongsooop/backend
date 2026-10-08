@@ -20,6 +20,7 @@ import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRe
 import com.dongsoop.dongsoop.recruitment.board.project.service.ProjectBoardService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -42,6 +43,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 @WebMvcTest(controllers = ProjectBoardController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class ProjectBoardRecruitDateTest {
+
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private static LocalDateTime standardDateTime;
 
@@ -71,7 +74,7 @@ class ProjectBoardRecruitDateTest {
 
     @BeforeAll
     static void setUp() {
-        standardDateTime = LocalDate.now()
+        standardDateTime = LocalDate.now(KST)
                 .atStartOfDay()
                 .plusDays(1);
     }
@@ -184,7 +187,7 @@ class ProjectBoardRecruitDateTest {
     @DisplayName("모집 기간이 하루인 경우 생성 상태를 응답한다")
     void startRecruitment_WhenDateIsADay_ResponseCreated() throws Exception {
         // given
-        LocalDateTime startAt = LocalDate.now().atStartOfDay()
+        LocalDateTime startAt = LocalDate.now(KST).atStartOfDay()
                 .plusHours(14); // 오늘 14시 시작
         LocalDateTime endAt = startAt.plusDays(1); // 다음날 13시 종료
 
@@ -202,7 +205,7 @@ class ProjectBoardRecruitDateTest {
     @DisplayName("모집 기간이 4주인 경우 생성 상태를 응답한다")
     void startRecruitment_WhenDateIsFourWeeks_ResponseCreated() throws Exception {
         // given
-        LocalDateTime startAt = LocalDate.now().atStartOfDay(); // 오늘 00시 시작
+        LocalDateTime startAt = LocalDate.now(KST).atStartOfDay(); // 오늘 00시 시작
         LocalDateTime endAt = startAt.plusWeeks(4); // 4주 후 00시 종료
 
         String jsonString = getJsonStringWithDate(startAt, endAt);
@@ -219,7 +222,7 @@ class ProjectBoardRecruitDateTest {
     @DisplayName("모집 시작일이 3개월이 지난 경우 예외를 던진다")
     void startRecruitment_WhenStartDateAfterThanThreeMonth_ThrowsMethodArgumentNotValidException() throws Exception {
         // given
-        LocalDateTime startAt = LocalDateTime.now()
+        LocalDateTime startAt = LocalDateTime.now(KST)
                 .plusMonths(3)
                 .plusDays(1); // 3개월 + 1일 후 시작
         LocalDateTime endAt = startAt.plusDays(1); // 시작일 다음날 종료
@@ -237,7 +240,7 @@ class ProjectBoardRecruitDateTest {
     @DisplayName("모집 시작일이 정확히 3개월만 지난 경우 생성 상태를 응답한다")
     void startRecruitment_WhenStartDateAfterThreeMonth_ResponseCreated() throws Exception {
         // given
-        LocalDateTime startAt = LocalDateTime.now()
+        LocalDateTime startAt = LocalDateTime.now(KST)
                 .plusMonths(3); // 3개월 후 시작
         LocalDateTime endAt = startAt.plusDays(1); // 시작일 다음날 종료
 

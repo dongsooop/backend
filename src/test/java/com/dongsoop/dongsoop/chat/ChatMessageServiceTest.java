@@ -115,9 +115,10 @@ class ChatMessageServiceTest {
 
         Map<String, String> result = chatMessageService.getLastMessageTextsBatch(List.of("room1", "room2"));
 
-        assertThat(result).hasSize(2);
-        assertThat(result.get("room1")).isEqualTo("msg1");
-        assertThat(result.get("room2")).isEqualTo("msg2");
+        assertThat(result)
+                .hasSize(2)
+                .containsEntry("room1", "msg1")
+                .containsEntry("room2", "msg2");
     }
 
     @Test

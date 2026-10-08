@@ -44,6 +44,7 @@ public class NotificationBadgeServiceImpl implements NotificationBadgeService {
             return;
         }
 
-        fcmService.updateNotificationBadge(devices, resolveByMemberId(memberId));
+        int unreadCount = notificationRepository.findUnreadCountByMemberId(memberId);
+        fcmService.updateNotificationBadge(devices, unreadCount);
     }
 }

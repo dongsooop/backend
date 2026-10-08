@@ -17,7 +17,9 @@ public interface BlindDateParticipantStorage {
     ParticipantInfo addParticipant(String sessionId, Long memberId, String socketId);
 
     /**
-     * 소켓 제거 (연결 해제) 모든 소켓이 제거되면 참여자도 제거
+     * 소켓 제거 (연결 해제)
+     *
+     * @return 제거 후 연결된 소켓이 하나도 없으면 true
      */
     boolean removeSocket(String socketId);
 
@@ -41,10 +43,19 @@ public interface BlindDateParticipantStorage {
      */
     Map<Long, String> getParticipantsIdAndName(String sessionId);
 
+    /** 선택 대상 참가자 목록을 고정한다. 반복 호출로 기존 응답을 초기화하지 않는다. */
+    void openChoices(String sessionId);
+
+    /** 접수된 최종 선택의 스냅샷을 반환한다. null은 미선택이다. */
+    Map<Long, Long> getChoices(String sessionId);
+
     /**
-     * 선택 기록
+     * 최초 유효 응답을 기록한다. 새 응답을 접수한 경우에만 true를 반환한다.
      */
     boolean recordChoice(String sessionId, Long choicerId, Long targetId);
+
+    /** 상호 선택 쌍의 처리 권한을 한 번만 획득한다. 없거나 이미 처리한 쌍이면 null이다. */
+    Long claimMutualChoice(String sessionId, Long memberId);
 
     /**
      * 매칭 확인
