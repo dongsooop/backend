@@ -84,7 +84,6 @@ authentication:
     admin:
       /admin,
       /reports/admin,
-      /reports/message,
       /reports/sanctions,
       /reports/*/dismiss
   origins:

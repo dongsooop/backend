@@ -41,24 +41,8 @@ class ReportAdminAuthorizationTest {
     private static final String APP_CHECK_HEADER = "X-Firebase-AppCheck";
     private static final String APP_CHECK_TOKEN = "app-check-token";
 
-    private static final String SERVER_MESSAGE_REPORT_BODY = """
-            {
-              "reportType": "BLINDDATE_MESSAGE",
-              "reporterId": 11,
-              "targetMemberId": 42,
-              "roomId": "session-1",
-              "messageId": "m1",
-              "messageContent": "신고된 메시지",
-              "messageSentAt": "2026-09-28T21:13:40",
-              "reason": "HATE_SPEECH"
-            }
-            """;
-
     private static final List<Supplier<MockHttpServletRequestBuilder>> ADMIN_REQUESTS = List.of(
             () -> get("/reports/admin"),
-            () -> post("/reports/message")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(SERVER_MESSAGE_REPORT_BODY),
             () -> post("/reports/sanctions").contentType(MediaType.APPLICATION_JSON).content("{}"),
             () -> post("/reports/7/dismiss")
     );
@@ -115,20 +99,21 @@ class ReportAdminAuthorizationTest {
     }
 
     @Test
-    @DisplayName("ADMIN 토큰으로 서버 간 메시지 신고를 보내면 201을 반환한다")
-    void adminToken_OnServerMessageReport_ReturnsCreated() throws Exception {
-        mockMvc.perform(post("/reports/message")
-                        .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
-                        .header("Authorization", "Bearer " + accessToken(RoleType.ADMIN_ROLE))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(SERVER_MESSAGE_REPORT_BODY))
-                .andExpect(status().isCreated());
-    }
-
-    @Test
     @DisplayName("USER 토큰으로 사용자 채팅 신고 경로를 호출하면 403이 아니다")
     void userToken_OnChatReport_IsNotForbidden() throws Exception {
         mockMvc.perform(post("/reports/chat")
+                        .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
+                        .header("Authorization", "Bearer " + accessToken(RoleType.USER_ROLE))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(result -> assertThat(result.getResponse().getStatus())
+                        .isNotIn(401, 403));
+    }
+
+    @Test
+    @DisplayName("USER 토큰으로 과팅 신고 경로를 호출하면 401·403이 아니다")
+    void userToken_OnBlindDateReport_IsNotForbidden() throws Exception {
+        mockMvc.perform(post("/reports/blinddate")
                         .header(APP_CHECK_HEADER, APP_CHECK_TOKEN)
                         .header("Authorization", "Bearer " + accessToken(RoleType.USER_ROLE))
                         .contentType(MediaType.APPLICATION_JSON)

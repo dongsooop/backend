@@ -5,7 +5,7 @@ import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import com.dongsoop.dongsoop.report.controller.ReportController;
-import com.dongsoop.dongsoop.report.dto.CreateServerMessageReportRequest;
+import com.dongsoop.dongsoop.report.dto.CreateBlindDateReportRequest;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
 import com.dongsoop.dongsoop.report.service.ReportService;
 import org.junit.jupiter.api.DisplayName;
@@ -122,76 +122,49 @@ class ReportControllerTest {
     }
 
     @Test
-    @DisplayName("서버 간 메시지 신고는 관리자 전용이고 서비스로 넘겨 201을 반환한다")
-    void createServerMessageReport_ReturnsCreated() throws Exception {
-        mockMvc.perform(post("/reports/message")
+    @DisplayName("과팅 신고 요청은 서비스로 넘겨 201을 반환한다")
+    void createBlindDateReport_ReturnsCreated() throws Exception {
+        mockMvc.perform(post("/reports/blinddate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {
-                                  "reportType": "BLINDDATE_MESSAGE",
-                                  "reporterId": 11,
-                                  "targetMemberId": 42,
-                                  "roomId": "session-1",
-                                  "messageId": "m1",
-                                  "messageContent": "신고된 메시지",
-                                  "messageSentAt": "2026-09-28T21:13:40.123",
-                                  "context": [
-                                    { "senderId": 11, "content": "직전 메시지", "sentAt": "2026-09-28T21:12:10" }
-                                  ],
-                                  "reason": "HATE_SPEECH"
-                                }
+                                { "sessionId": "session-1", "messageId": "m1", "reason": "HATE_SPEECH",
+                                  "description": "욕설" }
                                 """))
                 .andExpect(status().isCreated());
 
-        ArgumentCaptor<CreateServerMessageReportRequest> captor =
-                ArgumentCaptor.forClass(CreateServerMessageReportRequest.class);
-        verify(reportService).createServerMessageReport(captor.capture());
-        assertThat(captor.getValue().messageSentAt()).isEqualTo(LocalDateTime.of(2026, 9, 28, 21, 13, 40, 123_000_000));
-        assertThat(captor.getValue().context()).hasSize(1);
+        ArgumentCaptor<CreateBlindDateReportRequest> captor =
+                ArgumentCaptor.forClass(CreateBlindDateReportRequest.class);
+        verify(reportService).createBlindDateReport(captor.capture());
+        assertThat(captor.getValue().sessionId()).isEqualTo("session-1");
+        assertThat(captor.getValue().messageId()).isEqualTo("m1");
+        assertThat(captor.getValue().description()).isEqualTo("욕설");
     }
 
     @Test
-    @DisplayName("서버 간 메시지 신고에 필수값이 없으면 400을 반환하고 서비스를 부르지 않는다")
-    void createServerMessageReport_WithoutRequiredField_ReturnsBadRequest() throws Exception {
-        mockMvc.perform(post("/reports/message")
+    @DisplayName("과팅 신고에 세션 ID가 없으면 400을 반환하고 서비스를 부르지 않는다")
+    void createBlindDateReport_WithoutSessionId_ReturnsBadRequest() throws Exception {
+        mockMvc.perform(post("/reports/blinddate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {
-                                  "reportType": "BLINDDATE_MESSAGE",
-                                  "reporterId": 11,
-                                  "targetMemberId": 42,
-                                  "roomId": "session-1",
-                                  "messageContent": "신고된 메시지",
-                                  "messageSentAt": "2026-09-28T21:13:40",
-                                  "reason": "HATE_SPEECH"
-                                }
+                                { "messageId": "m1", "reason": "HATE_SPEECH" }
                                 """))
                 .andExpect(status().isBadRequest());
 
-        verify(reportService, never()).createServerMessageReport(any());
+        verify(reportService, never()).createBlindDateReport(any());
     }
 
     @Test
-    @DisplayName("서버 간 메시지 신고의 맥락 메시지에 필수값이 없으면 400을 반환한다")
-    void createServerMessageReport_InvalidContext_ReturnsBadRequest() throws Exception {
-        mockMvc.perform(post("/reports/message")
+    @DisplayName("과팅 신고 내용이 500자를 넘으면 400을 반환한다")
+    void createBlindDateReport_TooLongDescription_ReturnsBadRequest() throws Exception {
+        mockMvc.perform(post("/reports/blinddate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {
-                                  "reportType": "BLINDDATE_MESSAGE",
-                                  "reporterId": 11,
-                                  "targetMemberId": 42,
-                                  "roomId": "session-1",
-                                  "messageId": "m1",
-                                  "messageContent": "신고된 메시지",
-                                  "messageSentAt": "2026-09-28T21:13:40",
-                                  "context": [ { "content": "발신자 없음", "sentAt": "2026-09-28T21:12:10" } ],
-                                  "reason": "HATE_SPEECH"
-                                }
-                                """))
+                                { "sessionId": "session-1", "messageId": "m1", "reason": "HATE_SPEECH",
+                                  "description": "%s" }
+                                """.formatted("가".repeat(501))))
                 .andExpect(status().isBadRequest());
 
-        verify(reportService, never()).createServerMessageReport(any());
+        verify(reportService, never()).createBlindDateReport(any());
     }
 
     @Test

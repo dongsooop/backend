@@ -1,8 +1,11 @@
 package com.dongsoop.dongsoop.blinddate.repository;
 
+import com.dongsoop.dongsoop.blinddate.entity.BlindDateMessage;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo.SessionState;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
@@ -92,5 +95,29 @@ public class BlindDateSessionStorageImpl implements BlindDateSessionStorage {
         }
 
         return sessionInfo.isProcessing();
+    }
+
+    @Override
+    public void recordMessage(String sessionId, BlindDateMessage message) {
+        SessionInfo sessionInfo = this.sessions.get(sessionId);
+        if (sessionInfo != null) {
+            sessionInfo.recordMessage(message);
+        }
+    }
+
+    @Override
+    public Optional<BlindDateMessage> findMessage(String sessionId, String messageId) {
+        return Optional.ofNullable(this.sessions.get(sessionId))
+                .flatMap(sessionInfo -> sessionInfo.findMessage(messageId));
+    }
+
+    @Override
+    public List<BlindDateMessage> findMessagesBefore(String sessionId, String messageId, int limit) {
+        SessionInfo sessionInfo = this.sessions.get(sessionId);
+        if (sessionInfo == null) {
+            return List.of();
+        }
+
+        return sessionInfo.findMessagesBefore(messageId, limit);
     }
 }
