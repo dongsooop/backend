@@ -34,8 +34,10 @@
 
 ### 맥락 메시지
 
-- 의미: 신고된 메시지 직전의 사용자 메시지를 최대 10개까지 복사한 것. 관리자가 앞뒤 맥락을 보고 판단하도록 돕는다. 입장·퇴장 시스템 메시지는 포함하지 않는다.
-- 코드: `Report.messageContext`(`ChatMessageSnapshots`)
+- 의미: 신고된 메시지 앞뒤의 사용자 메시지를 각각 최대 10개까지 모은 것. 관리자가 앞뒤 맥락을 보고 판단하도록 돕는다. 입장·퇴장 시스템 메시지는 포함하지 않는다.
+  - 직전 맥락: 신고 접수 시점에 복사해 둔다.
+  - 뒤쪽 맥락: 일반 채팅은 관리자 조회 시점에 원문에서 가져오고, 과팅은 세션 종료 직전에 복사해 둔다.
+- 코드: `Report.messageContext`(직전), `Report.messageContextAfter`(과팅 뒤쪽 저장본), `ChatMessageSnapshots`
 
 ### 자동 판정
 
@@ -82,6 +84,32 @@ POST /reports/blinddate { sessionId, messageId, reason, description }   (신고�
   ↓
 관리자가 GET /reports/admin에서 확인 후 POST /reports/sanctions 또는 기각으로 처리
 ```
+
+과팅 신고의 뒤쪽 맥락 보존. 과팅 메시지 기록은 세션이 지워지면 사라지므로 그 직전에 복사한다:
+
+```text
+과팅 세션 종료(terminate) 또는 전체 초기화(clear) → BlindDateSessionClosedEvent(sessionId, 메시지 기록 사본)
+  ↓ (비동기)
+BlindDateContextAfterRecorder: BLINDDATE_MESSAGE이고 chat_room_id = sessionId이며 message_context_after가 비어 있는 신고마다
+  ↓
+신고된 메시지 다음 메시지 최대 10개(오래된 순)를 message_context_after에 저장. 기록에 신고 메시지가 없으면 빈 목록
+```
+
+관리자 맥락 조회:
+
+```text
+GET /reports/{reportId}/context   (ADMIN)
+  ↓
+없는 신고 404, 게시판·회원 신고 400(UnsupportedReportTypeException)
+  ↓
+before = 저장된 message_context
+after  = CHAT_MESSAGE: 원문(Redis → chat_messages 백업)에서 신고 메시지 다음 사용자 메시지 최대 10개 → LIVE, 원문에 없으면 UNAVAILABLE
+         BLINDDATE_MESSAGE: message_context_after 저장본 → SAVED, 없고 세션이 살아 있으면 세션 메모리 → LIVE, 둘 다 없으면 UNAVAILABLE
+  ↓
+{ messageId, messageContent, before: [{senderId, content, sentAt}], after: [...], afterSource }
+```
+
+관리자 목록(`GET /reports/admin`)에는 뒤쪽 맥락을 넣지 않는다. 일반 채팅은 방 전체 메시지를 읽어야 해서 목록 한 번에 신고 수만큼 무거운 조회가 생기기 때문이다.
 
 과팅 신고 거절 응답(검사 순서대로):
 
@@ -142,6 +170,23 @@ POST /reports/blinddate { sessionId, messageId, reason, description }   (신고�
 - 세션이 종료되거나 서버가 재시작되면 기록이 사라져 그 세션의 메시지는 더 이상 신고할 수 없다. 진행 중에만 신고할 수 있다.
 - 신고된 메시지는 접수 시점에 `Report`로 복사되므로 세션 종료 후에도 관리자는 증거를 볼 수 있다.
 
+### 뒤쪽 맥락은 채팅은 조회 시점에, 과팅은 세션 종료 때 확보한다
+
+#### 선택
+
+일반 채팅의 뒤쪽 맥락은 저장하지 않고 `GET /reports/{reportId}/context` 호출 때 원문에서 읽는다. 과팅은 세션 종료·전체 초기화 때 과팅 도메인이 발행하는 `BlindDateSessionClosedEvent`를 받아 `message_context_after`에 저장한다.
+
+#### 이유
+
+신고 접수 시점에는 뒤쪽 대화가 아직 없다. 일반 채팅 원문은 Redis(30일)와 `chat_messages` 백업에 남으므로 조회 때 읽으면 된다. 과팅 기록은 세션 메모리에만 있어 세션이 지워지면 다시 얻을 수 없으므로 지워지기 직전에 복사해야 한다. 과팅 도메인이 신고를 알지 않도록 이벤트로 연결한다.
+
+#### 영향 / Trade-offs
+
+- 리스너는 기본 `@Async` 실행기(Spring Boot 자동 실행기가 다른 실행기 빈 때문에 꺼져 있어 작업마다 새 스레드)에서 돈다. `autoSanctionExecutor`는 큐가 10이라 거절 시 예외가 과팅 종료 스레드로 올라오므로 쓰지 않는다. 리스너 예외는 Spring 기본 비동기 예외 처리기가 로그로만 남긴다.
+- 세션 종료와 신고 저장 커밋이 겹치면(신고 검증은 통과했지만 커밋 전에 세션이 지워짐) 리스너가 그 신고를 못 보고 지나가 뒤쪽 맥락이 `UNAVAILABLE`로 남을 수 있다.
+- 서버 재시작으로 메모리가 사라질 때는 이벤트가 발행되지 않아 뒤쪽 맥락이 저장되지 않는다.
+- 일반 채팅 원문이 만료·삭제되면 뒤쪽 맥락은 `UNAVAILABLE`이 된다.
+
 ### 욕설이 아닌 채팅 신고는 닫지 않는다
 
 #### 선택
@@ -196,6 +241,7 @@ POST /reports/blinddate { sessionId, messageId, reason, description }   (신고�
 - 자동 판정은 욕설 필터 HTTP 호출을 트랜잭션 밖에서 한다. 호출 전에 잠금 없이 한 번 읽어 이미 처리된 신고는 건너뛰고, 필터 결과를 받은 뒤 새 트랜잭션에서 잠금 조회로 다시 읽어 미처리일 때만 제재·처리 완료·`is_auto_reviewed` 표시를 한다. 필터 대기(최대 약 8초) 동안 DB 커넥션과 행 잠금을 잡지 않고, 그사이 관리자가 기각한 신고에 자동 경고가 덧씌워지지 않는다.
 - 욕설로 판정돼도 같은 메시지에 `WARNING` 제재가 연결된 다른 신고가 이미 있으면 새 경고를 만들지 않고 제재 없이 처리 완료로 닫는다. 같은 메시지로 경고가 쌓여 자동 정지가 잘못 붙는 것을 막기 위함이다.
 - 모든 제재(관리자 제재, 자동 게시글 삭제·경고, 누적 자동 정지)는 `SanctionExecutor.issue` 한 곳에서 만들고 저장한다. 제재 행을 먼저 flush한 뒤 효과(게시글 삭제·채팅방 추방·경고 누적 검사)를 실행해, DB 제약 오류가 되돌릴 수 없는 Redis 추방보다 먼저 드러나게 한다.
+- 과팅 뒤쪽 맥락 저장은 `message_context_after`가 이미 있으면 건너뛴다(`Report.recordContextAfter`). 세션은 저장소에서 한 번만 지워지므로 같은 세션의 종료 이벤트도 한 번만 발행되고, 그래서 같은 신고를 두 트랜잭션이 동시에 갱신하는 경합은 생기지 않는다(이 검사는 메모리 확인이라 동시 갱신 자체를 막지는 못한다).
 - 활성 제재는 회원당 여러 건 있을 수 있다고 가정한다(`SanctionRepository.findActiveSanctionsByMemberId`가 `List` 반환). 정지 우선순위 계산과 만료 처리는 애플리케이션에서 필터링·정렬한다.
 
 ## 알려진 한계 / 후속 작업
@@ -217,4 +263,5 @@ POST /reports/blinddate { sessionId, messageId, reason, description }   (신고�
 - 경고 누적 기준이나 자동 정지 기간이 바뀔 때
 - 자동제재 스케줄러의 조회 대상이나 처리 주기가 바뀔 때
 - `Report`의 저장 구조(메시지 스냅샷·맥락 컬럼)가 바뀔 때
+- 신고 맥락 조회 API의 응답이나 뒤쪽 맥락 확보 방식이 바뀔 때
 - 과팅 신고 고도화(3번 안)가 구현돼 "알려진 한계"가 해소될 때

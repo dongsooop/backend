@@ -80,6 +80,10 @@ public class Report extends BaseEntity {
     @Column(name = "message_context", columnDefinition = "text")
     private ChatMessageSnapshots messageContext;
 
+    @Convert(converter = ChatMessageSnapshotsConverter.class)
+    @Column(name = "message_context_after", columnDefinition = "text")
+    private ChatMessageSnapshots messageContextAfter;
+
     // 기존 행이 있는 운영 테이블에 ddl-auto가 NOT NULL 컬럼을 추가하려면 기본값이 필요하다
     @Column(name = "is_auto_reviewed", nullable = false)
     @ColumnDefault("false")
@@ -128,6 +132,12 @@ public class Report extends BaseEntity {
 
         this.admin = admin;
         this.isProcessed = true;
+    }
+
+    public void recordContextAfter(ChatMessageSnapshots contextAfter) {
+        if (this.messageContextAfter == null) {
+            this.messageContextAfter = contextAfter;
+        }
     }
 
     public void markAutoReviewed() {

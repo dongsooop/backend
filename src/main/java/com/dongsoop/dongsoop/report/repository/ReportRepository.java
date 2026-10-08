@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.entity.SanctionType;
 import jakarta.persistence.LockModeType;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -23,6 +24,8 @@ public interface ReportRepository extends JpaRepository<Report, Long>, ReportRep
 
     boolean existsByReporterIdAndReportTypeAndChatRoomIdAndTargetMemberId(
             Long reporterId, ReportType reportType, String chatRoomId, Long targetMemberId);
+
+    List<Report> findByReportTypeAndChatRoomIdAndMessageContextAfterIsNull(ReportType reportType, String chatRoomId);
 
     boolean existsByMessageIdAndSanctionSanctionType(String messageId, SanctionType sanctionType);
 

@@ -106,6 +106,39 @@ class ChatReportTargetResolverTest {
     }
 
     @Test
+    @DisplayName("뒤쪽 맥락은 신고 메시지 다음 사용자 메시지만 오래된 순으로 최대 10개다")
+    void findContextAfter_ReturnsFollowingUserMessages() {
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(message("before", 1L, 0, MessageType.CHAT));
+        messages.add(message("target", 2L, 1, MessageType.CHAT));
+        messages.add(message("leave", 1L, 2, MessageType.LEAVE));
+        for (int i = 1; i <= 12; i++) {
+            messages.add(message("a" + i, 1L, 2 + i, MessageType.CHAT));
+        }
+        when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(messages);
+
+        assertThat(resolver.findContextAfter(ROOM_ID, "target")).hasValueSatisfying(after ->
+                assertThat(after.messages()).extracting(snapshot -> snapshot.content())
+                        .containsExactly("내용a1", "내용a2", "내용a3", "내용a4", "내용a5",
+                                "내용a6", "내용a7", "내용a8", "내용a9", "내용a10"));
+    }
+
+    @Test
+    @DisplayName("뒤쪽 맥락은 Redis에 없으면 DB 백업에서 찾고, 둘 다 없으면 비어 있다")
+    void findContextAfter_FallsBackToDatabaseOrEmpty() {
+        when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(List.of());
+        when(chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(ROOM_ID)).thenReturn(List.of(
+                ChatMessageEntity.builder().messageId("old").roomId(ROOM_ID).senderId(2L)
+                        .content("옛날 욕").timestamp(BASE).type(MessageType.CHAT).build(),
+                ChatMessageEntity.builder().messageId("reply").roomId(ROOM_ID).senderId(1L)
+                        .content("답장").timestamp(BASE.plusMinutes(1)).type(MessageType.CHAT).build()));
+
+        assertThat(resolver.findContextAfter(ROOM_ID, "old")).hasValueSatisfying(after ->
+                assertThat(after.messages()).extracting(snapshot -> snapshot.content()).containsExactly("답장"));
+        assertThat(resolver.findContextAfter(ROOM_ID, "nope")).isEmpty();
+    }
+
+    @Test
     @DisplayName("Redis에 없는 메시지는 DB 백업에서 찾는다")
     void resolve_FallsBackToDatabase() {
         when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(List.of());

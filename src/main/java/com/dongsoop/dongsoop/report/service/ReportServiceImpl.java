@@ -18,6 +18,10 @@ import com.dongsoop.dongsoop.report.dto.CreateChatReportRequest;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
 import com.dongsoop.dongsoop.report.dto.MessageReportDraft;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
+import com.dongsoop.dongsoop.report.dto.ReportContextResponse;
+import com.dongsoop.dongsoop.report.dto.ReportContextResponse.AfterSource;
+import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshot;
+import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshots;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
 import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
@@ -45,6 +49,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -131,6 +136,34 @@ public class ReportServiceImpl implements ReportService {
             return reportRepository.findSummaryReportsByFilter(filterType, pageable);
         }
         return reportRepository.findDetailedReportsByFilter(filterType, pageable);
+    }
+
+    @Override
+    public ReportContextResponse getReportContext(Long reportId) {
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new ReportNotFoundException(reportId));
+        if (!report.getReportType().isMessageReport()) {
+            throw new UnsupportedReportTypeException();
+        }
+
+        Optional<ChatMessageSnapshots> after;
+        AfterSource source = AfterSource.LIVE;
+        if (report.getReportType() == ReportType.CHAT_MESSAGE) {
+            after = chatReportTargetResolver.findContextAfter(report.getChatRoomId(), report.getMessageId());
+        } else if (report.getMessageContextAfter() != null) {
+            after = Optional.of(report.getMessageContextAfter());
+            source = AfterSource.SAVED;
+        } else {
+            after = blindDateReportTargetResolver.findLiveContextAfter(report.getChatRoomId(), report.getMessageId());
+        }
+
+        return new ReportContextResponse(report.getMessageId(), report.getMessageContent(),
+                messagesOf(report.getMessageContext()), messagesOf(after.orElse(null)),
+                after.isPresent() ? source : AfterSource.UNAVAILABLE);
+    }
+
+    private static List<ChatMessageSnapshot> messagesOf(ChatMessageSnapshots snapshots) {
+        return snapshots == null ? List.of() : snapshots.messages();
     }
 
     private void createMessageReport(Member reporter, MessageReportDraft draft, ReportReason reason,

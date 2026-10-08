@@ -3,18 +3,23 @@ package com.dongsoop.dongsoop.blinddate.repository;
 import com.dongsoop.dongsoop.blinddate.entity.BlindDateMessage;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo.SessionState;
+import com.dongsoop.dongsoop.blinddate.event.BlindDateSessionClosedEvent;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Repository;
 
 @Slf4j
 @Repository
+@RequiredArgsConstructor
 public class BlindDateSessionStorageImpl implements BlindDateSessionStorage {
 
     private final Map<String, SessionInfo> sessions = new ConcurrentHashMap<>();
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 세션 생성
@@ -62,10 +67,10 @@ public class BlindDateSessionStorageImpl implements BlindDateSessionStorage {
      */
     @Override
     public void terminate(String sessionId) {
-        SessionInfo session = sessions.get(sessionId);
+        SessionInfo session = this.sessions.remove(sessionId); // 종료된 세션 정보 제거
         if (session != null) {
-            this.sessions.remove(sessionId); // 종료된 세션 정보 제거
             log.info("[BlindDate] Session terminated: sessionId={}", sessionId);
+            publishClosed(session);
         }
     }
 
@@ -74,7 +79,26 @@ public class BlindDateSessionStorageImpl implements BlindDateSessionStorage {
      */
     @Override
     public void clear() {
-        this.sessions.clear();
+        for (String sessionId : this.sessions.keySet()) {
+            SessionInfo session = this.sessions.remove(sessionId);
+            if (session != null) {
+                publishClosed(session);
+            }
+        }
+    }
+
+    // 세션 종료·초기화가 이벤트 발행 실패로 중단되면 안 된다
+    private void publishClosed(SessionInfo session) {
+        List<BlindDateMessage> messages = session.messages();
+        if (messages.isEmpty()) {
+            return;
+        }
+
+        try {
+            eventPublisher.publishEvent(new BlindDateSessionClosedEvent(session.getSessionId(), messages));
+        } catch (RuntimeException e) {
+            log.error("[BlindDate] Session closed event failed: sessionId={}", session.getSessionId(), e);
+        }
     }
 
     @Override
@@ -119,5 +143,15 @@ public class BlindDateSessionStorageImpl implements BlindDateSessionStorage {
         }
 
         return sessionInfo.findMessagesBefore(messageId, limit);
+    }
+
+    @Override
+    public List<BlindDateMessage> findMessagesAfter(String sessionId, String messageId, int limit) {
+        SessionInfo sessionInfo = this.sessions.get(sessionId);
+        if (sessionInfo == null) {
+            return List.of();
+        }
+
+        return sessionInfo.findMessagesAfter(messageId, limit);
     }
 }

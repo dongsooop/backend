@@ -21,6 +21,7 @@ import com.dongsoop.dongsoop.report.exception.ReportTargetNotFoundException;
 import com.dongsoop.dongsoop.report.exception.SelfReportException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -40,6 +41,9 @@ public class ChatReportTargetResolver {
 
         List<ChatMessage> messages = loadMessages(request.roomId(), request.messageId());
         int targetIndex = indexOf(messages, request.messageId());
+        if (targetIndex < 0) {
+            throw new ReportTargetNotFoundException(ReportType.CHAT_MESSAGE.name(), request.messageId());
+        }
         ChatMessage target = messages.get(targetIndex);
         validateTarget(target, reporterId);
 
@@ -49,6 +53,23 @@ public class ChatReportTargetResolver {
         return new MessageReportDraft(ReportType.CHAT_MESSAGE, request.roomId(), "/chat/room/" + request.roomId(),
                 targetMember, target.getMessageId(), ChatMessageSnapshot.truncate(target.getContent()),
                 target.getTimestamp(), buildContext(messages, targetIndex));
+    }
+
+    /**
+     * 신고된 메시지 다음의 사용자 메시지를 최대 10개 반환한다. 원문에서 신고된 메시지를 찾지 못하면 비어 있다.
+     */
+    public Optional<ChatMessageSnapshots> findContextAfter(String roomId, String messageId) {
+        List<ChatMessage> messages = loadMessages(roomId, messageId);
+        int targetIndex = indexOf(messages, messageId);
+        if (targetIndex < 0) {
+            return Optional.empty();
+        }
+
+        return Optional.of(new ChatMessageSnapshots(messages.subList(targetIndex + 1, messages.size()).stream()
+                .filter(ChatReportTargetResolver::isUserMessage)
+                .limit(CONTEXT_SIZE)
+                .map(ChatReportTargetResolver::toSnapshot)
+                .toList()));
     }
 
     private void validateParticipant(ChatRoom room, Long reporterId) {
@@ -64,14 +85,9 @@ public class ChatReportTargetResolver {
             return cached;
         }
 
-        List<ChatMessage> backedUp = chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(roomId).stream()
+        return chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(roomId).stream()
                 .map(ChatMessageEntity::toChatMessage)
                 .toList();
-        if (indexOf(backedUp, messageId) < 0) {
-            throw new ReportTargetNotFoundException(ReportType.CHAT_MESSAGE.name(), messageId);
-        }
-
-        return backedUp;
     }
 
     private static int indexOf(List<ChatMessage> messages, String messageId) {
@@ -98,11 +114,14 @@ public class ChatReportTargetResolver {
         return message.getType() != MessageType.ENTER && message.getType() != MessageType.LEAVE;
     }
 
+    private static ChatMessageSnapshot toSnapshot(ChatMessage message) {
+        return ChatMessageSnapshot.of(message.getSenderId(), message.getContent(), message.getTimestamp());
+    }
+
     private static ChatMessageSnapshots buildContext(List<ChatMessage> messages, int targetIndex) {
         List<ChatMessageSnapshot> before = messages.subList(0, targetIndex).stream()
                 .filter(ChatReportTargetResolver::isUserMessage)
-                .map(message -> ChatMessageSnapshot.of(
-                        message.getSenderId(), message.getContent(), message.getTimestamp()))
+                .map(ChatReportTargetResolver::toSnapshot)
                 .toList();
 
         return new ChatMessageSnapshots(before.subList(Math.max(0, before.size() - CONTEXT_SIZE), before.size()));

@@ -85,7 +85,8 @@ authentication:
       /admin,
       /reports/admin,
       /reports/sanctions,
-      /reports/*/dismiss
+      /reports/*/dismiss,
+      /reports/*/context
   origins:
     http://localhost:3000,
     http://dongsoop.site,

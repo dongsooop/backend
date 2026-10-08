@@ -6,6 +6,10 @@ import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
 import com.dongsoop.dongsoop.report.controller.ReportController;
 import com.dongsoop.dongsoop.report.dto.CreateBlindDateReportRequest;
+import com.dongsoop.dongsoop.report.dto.ReportContextResponse;
+import com.dongsoop.dongsoop.report.dto.ReportContextResponse.AfterSource;
+import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshot;
+import com.dongsoop.dongsoop.report.exception.ReportNotFoundException;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
 import com.dongsoop.dongsoop.report.service.ReportService;
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +23,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -174,5 +179,33 @@ class ReportControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(reportService).dismissReport(7L);
+    }
+
+    @Test
+    @DisplayName("신고 맥락 조회는 원문·앞뒤 맥락·뒤쪽 출처를 반환한다")
+    void getReportContext_ReturnsContext() throws Exception {
+        LocalDateTime sentAt = LocalDateTime.of(2026, 9, 28, 21, 0);
+        when(reportService.getReportContext(7L)).thenReturn(new ReportContextResponse("m1", "욕설",
+                List.of(ChatMessageSnapshot.of(1L, "앞말", sentAt)),
+                List.of(ChatMessageSnapshot.of(2L, "뒷말", sentAt.plusMinutes(1))), AfterSource.SAVED));
+
+        mockMvc.perform(get("/reports/7/context"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.messageId").value("m1"))
+                .andExpect(jsonPath("$.messageContent").value("욕설"))
+                .andExpect(jsonPath("$.before[0].senderId").value(1))
+                .andExpect(jsonPath("$.before[0].content").value("앞말"))
+                .andExpect(jsonPath("$.after[0].content").value("뒷말"))
+                .andExpect(jsonPath("$.after[0].sentAt").exists())
+                .andExpect(jsonPath("$.afterSource").value("SAVED"));
+    }
+
+    @Test
+    @DisplayName("없는 신고의 맥락 조회는 404를 반환한다")
+    void getReportContext_Missing_ReturnsNotFound() throws Exception {
+        when(reportService.getReportContext(9L)).thenThrow(new ReportNotFoundException(9L));
+
+        mockMvc.perform(get("/reports/9/context"))
+                .andExpect(status().isNotFound());
     }
 }

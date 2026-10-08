@@ -131,6 +131,44 @@ class ReportPersistenceIntegrationTest extends AbstractIntegrationTest {
         Integer checkConstraints = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM pg_constraint WHERE conname = 'report_report_type_check'", Integer.class);
         assertThat(checkConstraints).isZero();
+        Integer contextAfterColumns = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns"
+                        + " WHERE table_name = 'report' AND column_name = 'message_context_after'", Integer.class);
+        assertThat(contextAfterColumns).isOne();
+    }
+
+    @Test
+    @Sql(scripts = {"classpath:migration/417_chat_report.sql", "classpath:migration/417_blinddate_report.sql"})
+    @DisplayName("뒤쪽 맥락이 없는 과팅 신고만 세션 ID로 찾고, 저장한 뒤쪽 맥락은 다시 읽힌다")
+    void blindDateContextAfter_FindsOnlyMissingAndPersists() {
+        Member reporter = saveMember("rep10");
+        Member target = saveMember("tgt10");
+        Member other = saveMember("oth10");
+        Report missing = reportRepository.save(blindDateReport(reporter, target, "s10", "m10"));
+        Report filled = reportRepository.save(blindDateReport(reporter, other, "s10", "m11"));
+        filled.recordContextAfter(new ChatMessageSnapshots(List.of(ChatMessageSnapshot.of(other.getId(), "뒤", null))));
+        reportRepository.save(blindDateReport(target, reporter, "other-session", "m12"));
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(reportRepository.findByReportTypeAndChatRoomIdAndMessageContextAfterIsNull(
+                ReportType.BLINDDATE_MESSAGE, "s10")).extracting(Report::getId).containsExactly(missing.getId());
+        assertThat(reportRepository.findById(filled.getId()).orElseThrow().getMessageContextAfter().messages())
+                .extracting(ChatMessageSnapshot::content).containsExactly("뒤");
+    }
+
+    private static Report blindDateReport(Member reporter, Member target, String sessionId, String messageId) {
+        return Report.builder()
+                .reporter(reporter)
+                .reportType(ReportType.BLINDDATE_MESSAGE)
+                .targetId(target.getId())
+                .targetMember(target)
+                .reportReason(ReportReason.INAPPROPRIATE_CONTENT)
+                .targetUrl("/blinddate/session/" + sessionId)
+                .chatRoomId(sessionId)
+                .messageId(messageId)
+                .messageContent("무례한 말")
+                .build();
     }
 
     @Test

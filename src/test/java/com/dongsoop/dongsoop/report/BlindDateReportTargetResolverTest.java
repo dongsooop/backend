@@ -34,7 +34,7 @@ class BlindDateReportTargetResolverTest {
     private static final LocalDateTime SENT_AT = LocalDateTime.of(2026, 9, 28, 21, 0);
 
     private final MemberRepository memberRepository = mock(MemberRepository.class);
-    private final BlindDateSessionStorageImpl sessions = new BlindDateSessionStorageImpl();
+    private final BlindDateSessionStorageImpl sessions = new BlindDateSessionStorageImpl(event -> {});
     private final BlindDateParticipantStorageImpl participants = new BlindDateParticipantStorageImpl();
     private final BlindDateReportTargetResolver resolver =
             new BlindDateReportTargetResolver(memberRepository, participants, sessions);
@@ -57,6 +57,20 @@ class BlindDateReportTargetResolverTest {
 
     private CreateBlindDateReportRequest request(String messageId) {
         return new CreateBlindDateReportRequest(sessionId, messageId, ReportReason.INAPPROPRIATE_CONTENT, null);
+    }
+
+    @Test
+    @DisplayName("진행 중 세션의 뒤쪽 맥락은 신고 메시지 다음 10개, 세션이 없으면 비어 있다")
+    void findLiveContextAfter_ReturnsFollowingOrEmpty() {
+        record("target", SENDER_ID, "무례한 말");
+        IntStream.range(0, 12).forEach(i -> record("a" + i, REPORTER_ID, "뒤" + i));
+
+        assertThat(resolver.findLiveContextAfter(sessionId, "target")).hasValueSatisfying(after ->
+                assertThat(after.messages()).extracting(ChatMessageSnapshot::content)
+                        .containsExactly("뒤0", "뒤1", "뒤2", "뒤3", "뒤4", "뒤5", "뒤6", "뒤7", "뒤8", "뒤9"));
+
+        sessions.terminate(sessionId);
+        assertThat(resolver.findLiveContextAfter(sessionId, "target")).isEmpty();
     }
 
     @Test

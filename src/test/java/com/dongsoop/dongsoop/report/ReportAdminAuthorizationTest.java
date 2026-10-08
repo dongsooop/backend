@@ -44,7 +44,8 @@ class ReportAdminAuthorizationTest {
     private static final List<Supplier<MockHttpServletRequestBuilder>> ADMIN_REQUESTS = List.of(
             () -> get("/reports/admin"),
             () -> post("/reports/sanctions").contentType(MediaType.APPLICATION_JSON).content("{}"),
-            () -> post("/reports/7/dismiss")
+            () -> post("/reports/7/dismiss"),
+            () -> get("/reports/7/context")
     );
 
     @Autowired

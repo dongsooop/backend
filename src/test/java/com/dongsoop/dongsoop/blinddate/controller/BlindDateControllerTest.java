@@ -25,7 +25,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 class BlindDateControllerTest {
     private final BlindDateParticipantStorageImpl participants = new BlindDateParticipantStorageImpl();
-    private final BlindDateSessionStorageImpl sessions = new BlindDateSessionStorageImpl();
+    private final BlindDateSessionStorageImpl sessions = new BlindDateSessionStorageImpl(event -> {});
     private final BlindDateStorageImpl operation = new BlindDateStorageImpl();
     private final BlindDateEventQueue queue = new BlindDateEventQueue();
     private final BlindDateServiceImpl service = new BlindDateServiceImpl(

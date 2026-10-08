@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
@@ -73,6 +74,34 @@ public class SessionInfo {
             before.add(message);
         }
         return List.of();
+    }
+
+    /**
+     * 지정한 메시지 다음의 메시지를 오래된 순으로 최대 limit개 반환한다. 지정한 메시지가 없으면 빈 목록이다.
+     */
+    public synchronized List<BlindDateMessage> findMessagesAfter(String messageId, int limit) {
+        return messagesAfter(messages, messageId, limit);
+    }
+
+    public synchronized List<BlindDateMessage> messages() {
+        return List.copyOf(messages);
+    }
+
+    public static List<BlindDateMessage> messagesAfter(Collection<BlindDateMessage> messages, String messageId,
+                                                       int limit) {
+        List<BlindDateMessage> after = new ArrayList<>();
+        boolean found = false;
+        for (BlindDateMessage message : messages) {
+            if (found) {
+                if (after.size() == limit) {
+                    break;
+                }
+                after.add(message);
+            } else if (message.messageId().equals(messageId)) {
+                found = true;
+            }
+        }
+        return List.copyOf(after);
     }
 
     public enum SessionState {

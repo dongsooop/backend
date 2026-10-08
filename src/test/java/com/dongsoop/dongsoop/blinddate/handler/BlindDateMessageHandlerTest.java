@@ -21,7 +21,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 class BlindDateMessageHandlerTest {
 
-    private final BlindDateSessionStorageImpl sessions = new BlindDateSessionStorageImpl();
+    private final BlindDateSessionStorageImpl sessions = new BlindDateSessionStorageImpl(event -> {});
     private final BlindDateParticipantStorageImpl participants = new BlindDateParticipantStorageImpl();
     private final SimpMessagingTemplate messagingTemplate = mock(SimpMessagingTemplate.class);
     private final BlindDateMessageHandler handler =
