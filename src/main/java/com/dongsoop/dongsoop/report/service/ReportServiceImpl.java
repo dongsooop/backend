@@ -254,8 +254,9 @@ public class ReportServiceImpl implements ReportService {
         }
     }
 
+    // 관리자 제재·기각·자동 판정이 같은 신고를 동시에 처리하지 않도록 행을 잠근 뒤 처리 여부를 검사한다
     private Report findReportById(Long reportId) {
-        return reportRepository.findById(reportId)
+        return reportRepository.findByIdForUpdate(reportId)
                 .orElseThrow(() -> new ReportNotFoundException(reportId));
     }
 

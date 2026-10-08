@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.task.TaskRejectedException;
 
 @ExtendWith(MockitoExtension.class)
 class AutoSanctionSchedulerTest {
@@ -53,6 +54,20 @@ class AutoSanctionSchedulerTest {
                 .thenReturn(List.of(chatReport(1L, "m1"), chatReport(2L, "m2")));
         when(asyncAutoSanctionService.processReportAsync(any())).thenReturn(CompletableFuture.completedFuture(null));
 
+        scheduler.processAutoSanctions();
+
+        verify(asyncAutoSanctionService, times(2)).processReportAsync(any());
+    }
+
+    @Test
+    @DisplayName("실행기가 제출을 거절해도 처리 중 키를 비워 다음 주기에 같은 메시지를 다시 처리한다")
+    void processAutoSanctions_SubmissionRejected_ReleasesKey() {
+        when(reportRepository.findUnprocessedReports(any())).thenReturn(List.of(chatReport(1L, "m1")));
+        when(asyncAutoSanctionService.processReportAsync(any()))
+                .thenThrow(new TaskRejectedException("queue full"))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        scheduler.processAutoSanctions();
         scheduler.processAutoSanctions();
 
         verify(asyncAutoSanctionService, times(2)).processReportAsync(any());

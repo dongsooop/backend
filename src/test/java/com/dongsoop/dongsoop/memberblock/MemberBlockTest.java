@@ -6,6 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
@@ -30,6 +31,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -167,5 +169,25 @@ class MemberBlockTest {
 
         verify(chatService).sendBlockStatusToUser("room1", 1L, BlockStatus.I_BLOCKED);
         verify(chatService).sendBlockStatusToUser("room1", 2L, BlockStatus.BLOCKED_BY_OTHER);
+    }
+
+    @Test
+    @DisplayName("동시 차단 요청으로 키 중복이 나면 이미 차단한 유저로 400을 준다")
+    void block_WhenConcurrentDuplicate_ReturnsBadRequest() throws Exception {
+        when(memberService.getMemberIdByAuthentication()).thenReturn(1L);
+        when(memberRepository.existsById(2L)).thenReturn(true);
+        when(memberRepository.getReferenceById(any(Long.class)))
+                .thenAnswer(invocation -> Member.builder().id(invocation.getArgument(0, Long.class)).build());
+        when(memberBlockRepository.save(any())).thenThrow(new DataIntegrityViolationException("duplicate key"));
+
+        mockMvc.perform(post("/member-block")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "blockedMemberId": 2 }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("이미 차단한 유저입니다."));
+
+        verify(redisChatRepository, never()).findRoomByParticipants(any(), any());
     }
 }

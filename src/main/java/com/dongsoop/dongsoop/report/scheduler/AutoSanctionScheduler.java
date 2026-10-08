@@ -52,9 +52,14 @@ public class AutoSanctionScheduler {
                 continue;
             }
 
-            CompletableFuture<Void> future = asyncAutoSanctionService.processReportAsync(report)
-                    .whenComplete((result, throwable) -> processingTargets.remove(targetKey));
-            futures.add(future);
+            // 실행기 큐가 차서 제출이 거절되면 whenComplete가 붙지 않으므로 키를 직접 지운다
+            try {
+                futures.add(asyncAutoSanctionService.processReportAsync(report)
+                        .whenComplete((result, throwable) -> processingTargets.remove(targetKey)));
+            } catch (RuntimeException e) {
+                processingTargets.remove(targetKey);
+                log.error("Auto sanction submission failed - Report ID: {}", report.getId(), e);
+            }
         }
 
         log.info("Reports after duplicate filtering: {}", futures.size());

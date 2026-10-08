@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.report;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
@@ -54,7 +55,7 @@ class ReportSanctionProcessTest {
     @BeforeEach
     void setUp() {
         report = Report.builder().id(1L).reportType(ReportType.MEMBER).targetId(2L).build();
-        when(reportRepository.findById(1L)).thenReturn(Optional.of(report));
+        when(reportRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(report));
         // 이미 처리된 신고는 회원 조회 전에 거절돼 두 스텁이 쓰이지 않는다
         lenient().when(memberRepository.findById(2L)).thenReturn(Optional.of(target));
         lenient().when(memberService.getMemberReferenceByContext()).thenReturn(admin);
@@ -74,7 +75,7 @@ class ReportSanctionProcessTest {
     @DisplayName("이미 처리된 신고에 제재를 요청하면 409로 거절한다")
     void processSanction_AlreadyProcessed_Throws() {
         Report processed = Report.builder().id(1L).reportType(ReportType.MEMBER).targetId(2L).isProcessed(true).build();
-        when(reportRepository.findById(1L)).thenReturn(Optional.of(processed));
+        when(reportRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(processed));
         ProcessSanctionRequest request = new ProcessSanctionRequest(1L, 2L, SanctionType.WARNING, null, null);
 
         assertThatThrownBy(() -> reportService.processSanction(request))
@@ -97,7 +98,7 @@ class ReportSanctionProcessTest {
     private void stubChatMessageReport(Member reportedMember) {
         Report chatReport = Report.builder().id(1L).reportType(ReportType.CHAT_MESSAGE).targetId(reportedMember.getId())
                 .targetMember(reportedMember).messageId("m1").build();
-        when(reportRepository.findById(1L)).thenReturn(Optional.of(chatReport));
+        when(reportRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(chatReport));
     }
 
     @Test
@@ -120,5 +121,18 @@ class ReportSanctionProcessTest {
         assertThatThrownBy(() -> reportService.processSanction(request))
                 .isInstanceOf(UnsupportedSanctionTypeException.class);
         verify(sanctionExecutor, never()).issue(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("잠금 조회한 신고가 이미 처리됐으면 기각도 409로 거절한다")
+    void dismissReport_AlreadyProcessed_Throws() {
+        Report processed = Report.builder().id(1L).reportType(ReportType.CHAT_MESSAGE).targetId(2L).isProcessed(true)
+                .build();
+        when(reportRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(processed));
+
+        assertThatThrownBy(() -> reportService.dismissReport(1L))
+                .isInstanceOf(ReportAlreadyProcessedException.class)
+                .hasMessage("이미 처리된 신고입니다. ID : 1");
+        assertThat(processed.getAdmin()).isNull();
     }
 }

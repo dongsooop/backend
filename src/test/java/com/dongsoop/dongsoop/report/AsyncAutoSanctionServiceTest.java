@@ -2,6 +2,8 @@ package com.dongsoop.dongsoop.report;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -16,12 +18,16 @@ import com.dongsoop.dongsoop.report.service.BoardContentService;
 import com.dongsoop.dongsoop.report.service.SanctionExecutor;
 import com.dongsoop.dongsoop.report.service.TextFilteringService;
 import java.util.Optional;
+import java.util.function.Consumer;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @ExtendWith(MockitoExtension.class)
 class AsyncAutoSanctionServiceTest {
@@ -38,12 +44,28 @@ class AsyncAutoSanctionServiceTest {
     @Mock
     private SanctionExecutor sanctionExecutor;
 
+    @Mock
+    private TransactionTemplate transactionTemplate;
+
     private final Member target = Member.builder().id(2L).build();
+
+    @BeforeEach
+    void runTransactionCallbackInline() {
+        lenient().doAnswer(invocation -> {
+            invocation.<Consumer<TransactionStatus>>getArgument(0).accept(null);
+            return null;
+        }).when(transactionTemplate).executeWithoutResult(any());
+    }
+
+    private void stubReads(Report report) {
+        when(reportRepository.findById(1L)).thenReturn(Optional.of(report));
+        lenient().when(reportRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(report));
+    }
 
     private Report boardReport() {
         Report report = Report.builder().id(1L).reportType(ReportType.PROJECT_BOARD).targetId(10L)
                 .targetMember(target).build();
-        when(reportRepository.findById(1L)).thenReturn(Optional.of(report));
+        stubReads(report);
         when(boardContentService.getTitle(10L, ReportType.PROJECT_BOARD)).thenReturn("제목");
         when(boardContentService.getContent(10L, ReportType.PROJECT_BOARD)).thenReturn("본문");
         return report;
@@ -78,7 +100,7 @@ class AsyncAutoSanctionServiceTest {
     void processReportAsync_ChatProfanity_IssuesWarning() {
         Report report = Report.builder().id(1L).reportType(ReportType.CHAT_MESSAGE).targetId(2L)
                 .targetMember(target).messageId("m1").messageContent("욕설").build();
-        when(reportRepository.findById(1L)).thenReturn(Optional.of(report));
+        stubReads(report);
         when(textFilteringService.hasProfanity("", "", "욕설")).thenReturn(true);
 
         asyncAutoSanctionService.processReportAsync(report);
@@ -91,7 +113,7 @@ class AsyncAutoSanctionServiceTest {
     void processReportAsync_ChatClean_LeavesForAdmin() {
         Report report = Report.builder().id(1L).reportType(ReportType.CHAT_MESSAGE).targetId(2L)
                 .targetMember(target).messageContent("안녕").build();
-        when(reportRepository.findById(1L)).thenReturn(Optional.of(report));
+        stubReads(report);
         when(textFilteringService.hasProfanity("", "", "안녕")).thenReturn(false);
 
         asyncAutoSanctionService.processReportAsync(report);
@@ -106,7 +128,7 @@ class AsyncAutoSanctionServiceTest {
     void processReportAsync_ChatProfanityAlreadyWarned_ClosesWithoutWarning() {
         Report report = Report.builder().id(1L).reportType(ReportType.CHAT_MESSAGE).targetId(2L)
                 .targetMember(target).messageId("m1").messageContent("욕설").build();
-        when(reportRepository.findById(1L)).thenReturn(Optional.of(report));
+        stubReads(report);
         when(textFilteringService.hasProfanity("", "", "욕설")).thenReturn(true);
         when(reportRepository.existsByMessageIdAndSanctionSanctionType("m1", SanctionType.WARNING))
                 .thenReturn(true);
@@ -130,6 +152,23 @@ class AsyncAutoSanctionServiceTest {
         asyncAutoSanctionService.processReportAsync(detached);
 
         verify(textFilteringService, never()).hasProfanity(any(), any(), any());
+        verify(sanctionExecutor, never()).issueBySystem(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("필터를 기다리는 동안 관리자가 기각했으면 잠금 조회에서 처리됨을 보고 자동 제재하지 않는다")
+    void processReportAsync_DismissedDuringFiltering_SkipsSanction() {
+        Report unprocessed = Report.builder().id(1L).reportType(ReportType.CHAT_MESSAGE).targetId(2L)
+                .targetMember(target).messageId("m1").messageContent("욕설").build();
+        Report dismissed = Report.builder().id(1L).reportType(ReportType.CHAT_MESSAGE).targetId(2L)
+                .targetMember(target).messageId("m1").messageContent("욕설").isProcessed(true).build();
+        when(reportRepository.findById(1L)).thenReturn(Optional.of(unprocessed));
+        when(reportRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(dismissed));
+        when(textFilteringService.hasProfanity("", "", "욕설")).thenReturn(true);
+
+        asyncAutoSanctionService.processReportAsync(unprocessed);
+
+        assertThat(dismissed.getIsAutoReviewed()).isFalse();
         verify(sanctionExecutor, never()).issueBySystem(any(), any(), any(), any());
     }
 }

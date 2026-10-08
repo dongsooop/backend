@@ -57,12 +57,14 @@ getBlockStatus(roomId, senderId) — 그룹방이면 NONE, 1:1이면 상대와�
 NONE이 아니면(I_BLOCKED 또는 BLOCKED_BY_OTHER) 메시지를 브로드캐스트하지 않고 조용히 무시
 ```
 
+오프라인 메시지 동기화(`POST /chat/room/{roomId}/messages/sync-offline`)도 같은 규칙을 따른다. `getBlockStatus`가 `NONE`이 아니면 메시지를 저장하지 않고, 거절 사유 없이 처리 0건(`processedCount: 0`, 빈 `processedMessages`)으로 응답한다.
+
 ## Domain Rules
 
 - 차단은 로그인한 회원 기준으로만 수행한다. 요청 본문의 `blockerId`는 읽지 않는다(기존 앱과의 필드 호환을 위해 필드 자체는 남겨 둔다).
 - 자기 자신은 차단할 수 없다(400). 존재하지 않는 대상은 404다.
 - 차단 해제 기록이 없는데 해제를 요청하면 404다.
-- 1:1 채팅방에서는 `I_BLOCKED`와 `BLOCKED_BY_OTHER` 중 어느 쪽이어도 전송을 막는다. 어느 한쪽이 차단하면 양방향 모두 전송이 막힌다.
+- 1:1 채팅방에서는 `I_BLOCKED`와 `BLOCKED_BY_OTHER` 중 어느 쪽이어도 전송을 막는다. 어느 한쪽이 차단하면 양방향 모두 전송이 막힌다. 소켓 전송과 오프라인 동기화, 즉 모든 전송 경로에 같은 검사를 적용한다.
 - 그룹 채팅방은 차단으로 인한 전송 제한이 없다(`getBlockStatus`가 그룹방에 대해 항상 `NONE`을 반환).
 - 차단 상태는 저장하지 않고, 조회 시점에 `MemberBlock` 관계를 다시 계산해서 반환한다. 차단·해제·메시지 전송 어느 경로든 항상 같은 계산 로직(`getBlockStatus`)을 거친다.
 - 게시판 목록 필터는 로그인 회원이 차단한 회원의 글만 제외한다. 인증되지 않은 요청에는 필터를 적용하지 않는다.
@@ -91,7 +93,7 @@ NONE이 아니면(I_BLOCKED 또는 BLOCKED_BY_OTHER) 메시지를 브로드캐�
 
 ## Concurrency / Consistency
 
-- `MemberBlock`은 `(blocker, blockedMember)` 복합키라 같은 관계를 두 번 저장할 수 없다. 중복 차단 요청은 저장 전 `existsById` 조회로 막는다.
+- `MemberBlock`은 `(blocker, blockedMember)` 복합키라 같은 관계를 두 번 저장할 수 없다. 중복 차단 요청은 저장 전 `existsById` 조회로 막고, 연타로 두 요청이 동시에 조회를 통과해 키 중복(`DataIntegrityViolationException`)이 나면 같은 `AlreadyBlockedByBlockerException`(400)으로 바꾼다. `blockMember`에는 메서드 트랜잭션이 없어 `save`가 자체 트랜잭션에서 커밋하므로 위반은 `save` 호출 안에서 드러난다.
 - 차단 상태는 저장된 값이 아니라 조회 시점 계산 결과이므로, 차단·해제 사이의 짧은 경합에서도 별도의 동기화 없이 항상 최신 관계를 반영한다.
 
 ## Related Documents

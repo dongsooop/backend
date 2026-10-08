@@ -8,13 +8,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 @Slf4j
 public class AsyncAutoSanctionService {
 
@@ -25,7 +24,9 @@ public class AsyncAutoSanctionService {
     private final TextFilteringService textFilteringService;
     private final ReportRepository reportRepository;
     private final SanctionExecutor sanctionExecutor;
+    private final TransactionTemplate transactionTemplate;
 
+    // 필터 HTTP 호출은 트랜잭션 밖에서 해 DB 커넥션과 행 잠금을 잡지 않고, 결과 반영만 잠금 조회 후 한 트랜잭션에서 한다
     @Async("autoSanctionExecutor")
     public CompletableFuture<Void> processReportAsync(Report detachedReport) {
         Long reportId = detachedReport.getId();
@@ -38,11 +39,10 @@ public class AsyncAutoSanctionService {
                 return CompletableFuture.completedFuture(null);
             }
 
-            if (ReportType.CHAT_MESSAGE.equals(report.getReportType())) {
-                judgeChatMessage(report);
-            } else {
-                checkProfanityAndExecute(report);
-            }
+            boolean hasProfanity = hasProfanity(report);
+            log.info("Profanity filtering result - Report ID: {}, HasProfanity: {}", reportId, hasProfanity);
+
+            transactionTemplate.executeWithoutResult(status -> applyResult(reportId, hasProfanity));
 
             log.info("Auto sanction completed - Report ID: {}", reportId);
 
@@ -53,14 +53,32 @@ public class AsyncAutoSanctionService {
         return CompletableFuture.completedFuture(null);
     }
 
-    private void checkProfanityAndExecute(Report report) {
+    private boolean hasProfanity(Report report) {
+        if (ReportType.CHAT_MESSAGE.equals(report.getReportType())) {
+            return textFilteringService.hasProfanity("", "", report.getMessageContent());
+        }
+
         String title = boardContentService.getTitle(report.getTargetId(), report.getReportType());
         String content = boardContentService.getContent(report.getTargetId(), report.getReportType());
+        return textFilteringService.hasProfanity(title, "", content);
+    }
 
-        boolean hasProfanity = textFilteringService.hasProfanity(title, "", content);
+    // 필터를 기다리는 동안 관리자가 제재·기각했을 수 있어 잠금 조회로 다시 확인한다
+    private void applyResult(Long reportId, boolean hasProfanity) {
+        Report report = reportRepository.findByIdForUpdate(reportId).orElse(null);
+        if (report == null || report.getIsProcessed()) {
+            log.info("Report processed during filtering - Report ID: {}", reportId);
+            return;
+        }
 
-        log.info("Profanity filtering result - Report ID: {}, HasProfanity: {}", report.getId(), hasProfanity);
+        if (ReportType.CHAT_MESSAGE.equals(report.getReportType())) {
+            judgeChatMessage(report, hasProfanity);
+        } else {
+            judgeBoard(report, hasProfanity);
+        }
+    }
 
+    private void judgeBoard(Report report, boolean hasProfanity) {
         if (!hasProfanity) {
             log.info("No profanity detected - Report ID: {}", report.getId());
             report.markAsProcessedWithoutSanction();
@@ -72,10 +90,7 @@ public class AsyncAutoSanctionService {
     }
 
     // 욕설이 아니거나 필터 호출이 실패하면 닫지 않는다. 스팸·사기 같은 사유는 욕설 필터로 판단할 수 없다
-    private void judgeChatMessage(Report report) {
-        boolean hasProfanity = textFilteringService.hasProfanity("", "", report.getMessageContent());
-        log.info("Chat profanity result - Report ID: {}, HasProfanity: {}", report.getId(), hasProfanity);
-
+    private void judgeChatMessage(Report report, boolean hasProfanity) {
         if (!hasProfanity) {
             report.markAutoReviewed();
             return;

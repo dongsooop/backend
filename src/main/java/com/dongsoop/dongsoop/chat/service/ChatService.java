@@ -221,6 +221,10 @@ public class ChatService {
 
     public List<ChatMessage> syncOfflineMessages(String roomId, Long userId, List<ChatMessage> offlineMessages) {
         chatValidator.validateUserForRoom(roomId, userId);
+        // 소켓 전송과 같은 규칙. 거절 사유를 따로 알리지 않고 처리 0건으로 응답한다
+        if (getBlockStatus(roomId, userId) != BlockStatus.NONE) {
+            return List.of();
+        }
         return chatMessageService.processOfflineMessages(roomId, userId, offlineMessages);
     }
 
