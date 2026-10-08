@@ -208,4 +208,23 @@ class ChatServiceTest {
         assertThat(result).isEqualTo(room);
         verify(chatParticipantService).kickUserFromRoom("room1", 1L, 2L);
     }
+
+    @Test
+    @DisplayName("syncOfflineMessages - 1:1 방에서 차단 관계가 있으면 저장하지 않고 빈 목록을 반환한다")
+    void syncOfflineMessages_blocked_skipsSave() {
+        ChatRoom room = ChatRoom.builder()
+                .roomId("room1")
+                .isGroupChat(false)
+                .participants(new HashSet<>(Set.of(1L, 2L)))
+                .build();
+        when(chatRoomService.getChatRoomById("room1")).thenReturn(room);
+        when(memberBlockRepository.existsByBlockerIdAndBlockedId(1L, 2L)).thenReturn(false);
+        when(memberBlockRepository.existsByBlockerIdAndBlockedId(2L, 1L)).thenReturn(true);
+
+        List<ChatMessage> result = chatService.syncOfflineMessages("room1", 1L,
+                List.of(ChatMessage.builder().content("hi").build()));
+
+        assertThat(result).isEmpty();
+        verify(chatMessageService, never()).processOfflineMessages(any(), any(), any());
+    }
 }

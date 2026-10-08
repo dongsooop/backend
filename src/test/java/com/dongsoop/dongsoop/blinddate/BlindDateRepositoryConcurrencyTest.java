@@ -45,7 +45,7 @@ class BlindDateStorageConcurrencyTest {
     @BeforeEach
     void setUp() {
         participantStorage = new BlindDateParticipantStorageImpl();
-        sessionStorage = new BlindDateSessionStorageImpl();
+        sessionStorage = new BlindDateSessionStorageImpl(event -> {});
         blindDateStorage = new BlindDateStorageImpl();
     }
 

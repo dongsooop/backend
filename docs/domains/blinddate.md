@@ -73,6 +73,17 @@
 실패 토픽은 더 이상 발행하지 않으며 별도 마감 이벤트도 추가하지 않는다. 입력 검증의 choice-error는 유지한다.
 성공 이벤트는 개인별로 발행하며 Session 전체 일괄 결과 확정은 하지 않는다.
 
+사용자 메시지는 `BlindDateMessageHandler`가 UUID `messageId`를 붙여 방송 전에 `SessionInfo`의 메시지 기록에
+`{messageId, senderId, content, sentAt}`으로 남긴다. 세션당 최근 1,000개만 유지하며 `SessionInfo` 단위 잠금으로
+기록·조회한다. Session이 없으면(종료·초기화) 기록하지 않고, 종료·초기화로 Session을 지울 때 함께 사라진다.
+방송 동작과 기존 필드는 그대로이며 기록은 메시지 신고의 근거로만 쓴다. 신고 정책은 `report.md`가 결정한다.
+
+`BlindDateSessionStorageImpl`은 종료(`terminate`)·전체 초기화(`clear`)로 Session을 지울 때, 그 Session에 메시지 기록이
+있으면 기록 사본을 담은 `BlindDateSessionClosedEvent(sessionId, messages)`를 발행한다. 기록이 없으면 발행하지 않는다.
+종료 경로(타임아웃·진행 실패·관리자 초기화·운영 종료 정리)가 모두 저장소의 두 메서드를 거치므로 발행 위치를 저장소에 둔다.
+과팅은 이벤트를 누가 받는지 모르며 신고를 호출하지 않는다. 발행이 실패해도 로그만 남기고 Session 삭제는 그대로 끝난다.
+서버 재시작처럼 저장소를 거치지 않고 메모리가 사라지는 경우에는 발행되지 않는다.
+
 ## 화면 종료와 성공 알림 계약
 
 프론트는 선택 시작 안내와 로컬 10초 타이머를 관리하고, 종료 후 최종 선택 또는 null을 제출한다.
@@ -216,7 +227,7 @@ flowchart TD
 | 서버 → Session | `/freeze`, `/thaw` | UI 대화 비활성화·활성화, `type` |
 | 서버 → Session | `/system` | 안내·주제, message, senderId=0, senderName, timestamp |
 | 클라이언트 SEND | `/app/blinddate/message` | 사용자 대화, message |
-| 서버 → Session | `/message` | 사용자 대화, message, senderId, senderName, timestamp |
+| 서버 → Session | `/message` | 사용자 대화, messageId, message, senderId, senderName, timestamp |
 | 서버 → Session | `/participants` | **선택 UI 시작 신호**, participants(회원 ID → 익명 이름) |
 | 클라이언트 SEND | `/app/blinddate/choice` | **최종 선택 응답**, `targetId` 또는 null; 서버가 보낸 choice 이벤트 아님 |
 | 서버 → 개인 | `/member/{memberId}/choice-error` | 잘못된 입력, status/code/message; 최종 실패 아님 |

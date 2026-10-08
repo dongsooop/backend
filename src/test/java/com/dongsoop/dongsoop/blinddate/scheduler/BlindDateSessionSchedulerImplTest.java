@@ -33,7 +33,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 @Timeout(15)
 class BlindDateSessionSchedulerImplTest {
     private final BlindDateParticipantStorageImpl participants = new BlindDateParticipantStorageImpl();
-    private final BlindDateSessionStorageImpl sessions = new BlindDateSessionStorageImpl();
+    private final BlindDateSessionStorageImpl sessions = new BlindDateSessionStorageImpl(event -> {});
     private final BlindDateEventQueue queue = new BlindDateEventQueue();
     private final ManualBlindDateTaskScheduler time = new ManualBlindDateTaskScheduler();
     private final SimpMessagingTemplate messaging = mock(SimpMessagingTemplate.class);

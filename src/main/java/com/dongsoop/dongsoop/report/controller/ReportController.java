@@ -1,7 +1,10 @@
 package com.dongsoop.dongsoop.report.controller;
 
+import com.dongsoop.dongsoop.report.dto.CreateBlindDateReportRequest;
+import com.dongsoop.dongsoop.report.dto.CreateChatReportRequest;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
 import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
+import com.dongsoop.dongsoop.report.dto.ReportContextResponse;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
 import com.dongsoop.dongsoop.report.service.ReportService;
@@ -30,6 +33,20 @@ public class ReportController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
+    @PostMapping("/chat")
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<Void> createChatReport(@RequestBody @Valid CreateChatReportRequest request) {
+        reportService.createChatReport(request);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PostMapping("/blinddate")
+    @Secured(RoleType.USER_ROLE)
+    public ResponseEntity<Void> createBlindDateReport(@RequestBody @Valid CreateBlindDateReportRequest request) {
+        reportService.createBlindDateReport(request);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
     @GetMapping("/sanction-status")
     public ResponseEntity<SanctionStatusResponse> checkSanctionStatus() {
         SanctionStatusResponse response = reportService.checkAndUpdateSanctionStatus();
@@ -41,6 +58,19 @@ public class ReportController {
     public ResponseEntity<Void> processSanction(@RequestBody @Valid ProcessSanctionRequest request) {
         reportService.processSanction(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PostMapping("/{reportId}/dismiss")
+    @Secured(RoleType.ADMIN_ROLE)
+    public ResponseEntity<Void> dismissReport(@PathVariable("reportId") Long reportId) {
+        reportService.dismissReport(reportId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{reportId}/context")
+    @Secured(RoleType.ADMIN_ROLE)
+    public ResponseEntity<ReportContextResponse> getReportContext(@PathVariable("reportId") Long reportId) {
+        return ResponseEntity.ok(reportService.getReportContext(reportId));
     }
 
     @GetMapping("/admin")

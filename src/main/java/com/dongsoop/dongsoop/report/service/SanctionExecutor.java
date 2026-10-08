@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.report.service;
 
+import com.dongsoop.dongsoop.chat.service.ChatParticipantService;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.report.entity.*;
@@ -8,12 +9,14 @@ import com.dongsoop.dongsoop.report.repository.ReportRepository;
 import com.dongsoop.dongsoop.report.repository.SanctionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 @Service
@@ -43,9 +46,45 @@ public class SanctionExecutor {
     private final MemberRepository memberRepository;
     private final ContentDeletionHandler contentDeletionHandler;
     private final SanctionRepository sanctionRepository;
+    private final ChatParticipantService chatParticipantService;
+    @Value("${admin.id}")
+    private Long systemAdminId;
 
     @Transactional
-    public void executeSanction(Report report) {
+    public Sanction issue(Report report, Member admin, Member targetMember, SanctionType type,
+                          String reason, LocalDateTime requestedEndAt, String description) {
+        report.ensureNotProcessed();
+
+        LocalDateTime now = LocalDateTime.now(KST);
+        Sanction sanction = Sanction.builder()
+                .member(targetMember)
+                .admin(admin)
+                .targetMember(targetMember)
+                .report(report)
+                .sanctionType(type)
+                .reason(Objects.requireNonNullElse(reason, type.getDescription()))
+                .startDate(now)
+                .endDate(type.resolveEndDate(requestedEndAt, now))
+                .description(Objects.requireNonNullElse(description, type.getDescription()))
+                .build();
+
+        // 효과 실행(Redis 추방 등)보다 먼저 flush해 DB 제약 오류가 먼저 드러나게 한다
+        sanctionRepository.saveAndFlush(sanction);
+        report.processSanction(admin, targetMember, sanction);
+        executeSanction(report);
+        return sanction;
+    }
+
+    @Transactional
+    public Sanction issueBySystem(Report report, SanctionType type, String reason, String description) {
+        return issue(report, systemAdmin(), report.getTargetMember(), type, reason, null, description);
+    }
+
+    private Member systemAdmin() {
+        return memberRepository.getReferenceById(systemAdminId);
+    }
+
+    private void executeSanction(Report report) {
         SanctionType sanctionType = report.getSanction().getSanctionType();
         getSanctionExecutors()
                 .getOrDefault(sanctionType, this::handleUnsupportedSanctionType)
@@ -57,7 +96,8 @@ public class SanctionExecutor {
                 SanctionType.WARNING, this::executeWarning,
                 SanctionType.TEMPORARY_BAN, this::executeTemporaryBan,
                 SanctionType.PERMANENT_BAN, this::executePermanentBan,
-                SanctionType.CONTENT_DELETION, this::executeContentDeletion
+                SanctionType.CONTENT_DELETION, this::executeContentDeletion,
+                SanctionType.CHAT_KICK, this::executeChatKick
         );
     }
 
@@ -81,6 +121,11 @@ public class SanctionExecutor {
         log.info("게시글 삭제 제재 실행: {}", report.getId());
     }
 
+    private void executeChatKick(Report report) {
+        log.info("채팅방 추방 제재 실행: {}", report.getId());
+        chatParticipantService.kickUserByAdmin(report.getChatRoomId(), report.getTargetMember().getId());
+    }
+
     private void handleUnsupportedSanctionType(Report report) {
         SanctionType sanctionType = report.getSanction().getSanctionType();
         log.error("지원되지 않는 제재 타입: {}, 신고 ID: {}", sanctionType, report.getId());
@@ -99,57 +144,31 @@ public class SanctionExecutor {
 
     private void executeAutoSuspensionWhen(Long warningCount, Member member) {
         if (warningCount == WARNING_THRESHOLD_7) {
-            createAutoSuspension30Days(member.getId());
+            createAutoSuspension(member, SUSPENSION_DAYS_7, AUTO_SUSPENSION_DESCRIPTION_7);
             return;
         }
 
         if (warningCount == WARNING_THRESHOLD_5) {
-            createAutoSuspension14Days(member.getId());
+            createAutoSuspension(member, SUSPENSION_DAYS_5, AUTO_SUSPENSION_DESCRIPTION_5);
             return;
         }
 
         if (warningCount == WARNING_THRESHOLD_3) {
-            createAutoSuspension3Days(member.getId());
+            createAutoSuspension(member, SUSPENSION_DAYS_3, AUTO_SUSPENSION_DESCRIPTION_3);
         }
     }
 
-    private void createAutoSuspension3Days(Long memberId) {
-        log.info("경고 3회 누적으로 인한 자동 3일 정지 실행: {}", memberId);
-        Member memberRef = memberRepository.getReferenceById(memberId);
-        Sanction sanction = createAutoSuspensionSanction(memberRef, SUSPENSION_DAYS_3,
-                AUTO_SUSPENSION_DESCRIPTION_3, AUTO_SUSPENSION_DESCRIPTION_3);
-        sanctionRepository.save(sanction);
+    private void createAutoSuspension(Member member, int suspensionDays, String description) {
+        log.info("{} 실행: {}", description, member.getId());
 
-        Report autoSuspensionReport = buildAutoSuspensionReport(memberRef, sanction, AUTO_SUSPENSION_DESCRIPTION_3);
-        reportRepository.save(autoSuspensionReport);
-        log.info("자동 3일 정지 제재 생성 완료: 회원 ID {}", memberId);
+        // Sanction.report가 NOT NULL이라 신고를 먼저 저장하고 제재를 연결한다
+        Report report = reportRepository.save(buildAutoSuspensionReport(member, description));
+        issue(report, systemAdmin(), member, SanctionType.TEMPORARY_BAN, description,
+                LocalDateTime.now(KST).plusDays(suspensionDays), description);
+        log.info("{} 생성 완료: 회원 ID {}", description, member.getId());
     }
 
-    private void createAutoSuspension14Days(Long memberId) {
-        log.info("경고 5회 누적으로 인한 자동 14일 정지 실행: {}", memberId);
-        Member memberRef = memberRepository.getReferenceById(memberId);
-        Sanction sanction = createAutoSuspensionSanction(memberRef, SUSPENSION_DAYS_5,
-                AUTO_SUSPENSION_DESCRIPTION_5, AUTO_SUSPENSION_DESCRIPTION_5);
-        sanctionRepository.save(sanction);
-
-        Report autoSuspensionReport = buildAutoSuspensionReport(memberRef, sanction, AUTO_SUSPENSION_DESCRIPTION_5);
-        reportRepository.save(autoSuspensionReport);
-        log.info("자동 14일 정지 제재 생성 완료: 회원 ID {}", memberId);
-    }
-
-    private void createAutoSuspension30Days(Long memberId) {
-        log.info("경고 7회 누적으로 인한 자동 30일 정지 실행: {}", memberId);
-        Member memberRef = memberRepository.getReferenceById(memberId);
-        Sanction sanction = createAutoSuspensionSanction(memberRef, SUSPENSION_DAYS_7,
-                AUTO_SUSPENSION_DESCRIPTION_7, AUTO_SUSPENSION_DESCRIPTION_7);
-        sanctionRepository.save(sanction);
-
-        Report autoSuspensionReport = buildAutoSuspensionReport(memberRef, sanction, AUTO_SUSPENSION_DESCRIPTION_7);
-        reportRepository.save(autoSuspensionReport);
-        log.info("자동 30일 정지 제재 생성 완료: 회원 ID {}", memberId);
-    }
-
-    private Report buildAutoSuspensionReport(Member member, Sanction sanction, String description) {
+    private Report buildAutoSuspensionReport(Member member, String description) {
         return Report.builder()
                 .reporter(member)
                 .reportType(ReportType.MEMBER)
@@ -157,21 +176,7 @@ public class SanctionExecutor {
                 .reportReason(ReportReason.OTHER)
                 .description(description)
                 .targetUrl("/member/" + member.getId())
-                .admin(member)
                 .targetMember(member)
-                .sanction(sanction)
-                .isProcessed(true)
-                .build();
-    }
-
-    private Sanction createAutoSuspensionSanction(Member member, int suspensionDays, String reason, String description) {
-        return Sanction.builder()
-                .member(member)
-                .sanctionType(SanctionType.TEMPORARY_BAN)
-                .reason(reason)
-                .startDate(LocalDateTime.now(KST))
-                .endDate(LocalDateTime.now(KST).plusDays(suspensionDays))
-                .description(description)
                 .build();
     }
 }

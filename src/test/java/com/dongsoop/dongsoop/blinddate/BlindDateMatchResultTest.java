@@ -40,7 +40,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 class BlindDateMatchResultTest {
     private final BlindDateEventQueue queue = new BlindDateEventQueue();
     private final BlindDateParticipantStorageImpl participants = new BlindDateParticipantStorageImpl();
-    private final BlindDateSessionStorageImpl sessions = new BlindDateSessionStorageImpl();
+    private final BlindDateSessionStorageImpl sessions = new BlindDateSessionStorageImpl(event -> {});
     private final ChatRoomService rooms = mock(ChatRoomService.class);
     private final SimpMessagingTemplate messaging = mock(SimpMessagingTemplate.class);
     private final BlindDateMatchNotification notification = mock(BlindDateMatchNotification.class);
