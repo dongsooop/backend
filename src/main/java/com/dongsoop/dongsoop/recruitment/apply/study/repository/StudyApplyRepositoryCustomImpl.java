@@ -29,8 +29,8 @@ public class StudyApplyRepositoryCustomImpl implements StudyApplyRepositoryCusto
     public boolean existsByBoardIdAndMemberId(Long boardId, Long memberId) {
         return queryFactory.selectOne()
                 .from(studyApply)
-                .where(studyApply.id.studyBoard.id.eq(boardId)
-                        .and(studyApply.id.member.id.eq(memberId)))
+                .where(studyApply.studyBoard.id.eq(boardId)
+                        .and(studyApply.member.id.eq(memberId)))
                 .fetchFirst() != null;
     }
 
@@ -38,11 +38,11 @@ public class StudyApplyRepositoryCustomImpl implements StudyApplyRepositoryCusto
     public Optional<ApplyDetails> findApplyDetailsByBoardIdAndApplierId(Long boardId, Long applierId) {
         ApplyDetails result = queryFactory.select(studyRecruitmentApplyProjection.getApplyDetailsExpression())
                 .from(studyApply)
-                .leftJoin(studyApply.id.studyBoard, studyBoard)
-                .leftJoin(studyApply.id.member, member)
+                .leftJoin(studyApply.studyBoard, studyBoard)
+                .leftJoin(studyApply.member, member)
                 .leftJoin(member.department, department)
-                .where(studyApply.id.studyBoard.id.eq(boardId)
-                        .and(studyApply.id.member.id.eq(applierId)))
+                .where(studyApply.studyBoard.id.eq(boardId)
+                        .and(studyApply.member.id.eq(applierId)))
                 .fetchOne();
 
         return Optional.ofNullable(result);
@@ -51,8 +51,8 @@ public class StudyApplyRepositoryCustomImpl implements StudyApplyRepositoryCusto
     @Override
     public Optional<StudyApply> findByBoardIdAndApplierId(Long boardId, Long applierId) {
         StudyApply result = queryFactory.selectFrom(studyApply)
-                .where(studyApply.id.studyBoard.id.eq(boardId)
-                        .and(studyApply.id.member.id.eq(applierId)))
+                .where(studyApply.studyBoard.id.eq(boardId)
+                        .and(studyApply.member.id.eq(applierId)))
                 .fetchOne();
 
         return Optional.ofNullable(result);

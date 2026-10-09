@@ -9,10 +9,10 @@ import org.springframework.data.repository.query.Param;
 
 public interface MarketplaceImageRepository extends JpaRepository<MarketplaceImage, MarketplaceImageId> {
 
-    @Query("SELECT COUNT(mi) FROM MarketplaceImage mi WHERE mi.id.marketplaceBoard.id = :boardId")
+    @Query("SELECT COUNT(mi) FROM MarketplaceImage mi WHERE mi.marketplaceBoard = :boardId")
     Integer countByMarketplaceBoardId(@Param("boardId") Long boardId);
 
     @Modifying
-    @Query("UPDATE MarketplaceImage mi SET mi.isDeleted = true WHERE mi.id.marketplaceBoard.id = :boardId")
+    @Query("UPDATE MarketplaceImage mi SET mi.isDeleted = true WHERE mi.marketplaceBoard = :boardId")
     void deleteByMarketplaceBoardId(@Param("boardId") Long boardId);
 }

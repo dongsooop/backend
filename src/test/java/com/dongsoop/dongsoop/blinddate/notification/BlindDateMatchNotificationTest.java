@@ -55,10 +55,10 @@ class BlindDateMatchNotificationTest {
         notification.send(1L, "room-1");
         assertThat(saved).hasSize(1);
         MemberNotification result = saved.get(0);
-        assertThat(result.getId().getMember().getId()).isEqualTo(1L);
-        assertThat(result.getId().getDetails().getType()).isEqualTo(NotificationType.CHAT);
-        assertThat(result.getId().getDetails().getValue()).isEqualTo("room-1");
-        assertThat(result.getId().getDetails().getTitle()).contains("매칭");
+        assertThat(result.getMember().getId()).isEqualTo(1L);
+        assertThat(result.getDetails().getType()).isEqualTo(NotificationType.CHAT);
+        assertThat(result.getDetails().getValue()).isEqualTo("room-1");
+        assertThat(result.getDetails().getTitle()).contains("매칭");
         assertThat(result.isRead()).isFalse();
         assertThat(sent).containsExactly(result);
     }
@@ -71,7 +71,7 @@ class BlindDateMatchNotificationTest {
         assertThatThrownBy(() -> notification.send(1L, "room-1"))
                 .isInstanceOf(IllegalStateException.class);
         assertThat(saved).hasSize(1);
-        assertThat(saved.get(0).getId().getDetails().getValue()).isEqualTo("room-1");
+        assertThat(saved.get(0).getDetails().getValue()).isEqualTo("room-1");
     }
 
     @Test

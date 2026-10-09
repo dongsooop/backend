@@ -36,10 +36,10 @@ public class MemberSocialAccountRepositoryCustomImpl implements MemberSocialAcco
                 .select(member,
                         memberSocialAccount.id.providerId,
                         memberSocialAccount.id.providerType,
-                        memberRole.id.role)
+                        memberRole.role)
                 .from(memberSocialAccount)
                 .leftJoin(memberSocialAccount.member, member)
-                .leftJoin(memberRole).on(memberRole.id.member.eq(member))
+                .leftJoin(memberRole).on(memberRole.member.eq(member))
                 .where(memberSocialAccount.id.providerId.eq(providerId)
                         .and(memberSocialAccount.id.providerType.eq(providerType)))
                 .fetch();
@@ -50,7 +50,7 @@ public class MemberSocialAccountRepositoryCustomImpl implements MemberSocialAcco
 
         Tuple firstRow = rows.get(0);
         List<RoleType> roles = rows.stream()
-                .map(t -> t.get(memberRole.id.role))
+                .map(t -> t.get(memberRole.role))
                 .filter(Objects::nonNull)
                 .map(Role::getRoleType)
                 .distinct()

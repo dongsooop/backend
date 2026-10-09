@@ -17,7 +17,6 @@ import com.dongsoop.dongsoop.recruitment.board.dto.RecruitmentOverview;
 import com.dongsoop.dongsoop.recruitment.board.project.dto.CreateProjectBoardRequest;
 import com.dongsoop.dongsoop.recruitment.board.project.entity.ProjectBoard;
 import com.dongsoop.dongsoop.recruitment.board.project.entity.ProjectBoardDepartment;
-import com.dongsoop.dongsoop.recruitment.board.project.entity.ProjectBoardDepartment.ProjectBoardDepartmentId;
 import com.dongsoop.dongsoop.recruitment.board.project.exception.ProjectBoardNotFound;
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepository;
@@ -52,10 +51,7 @@ public class ProjectBoardServiceImpl implements ProjectBoardService {
         createAndLinkChatRoom(savedBoard);
 
         List<ProjectBoardDepartment> projectBoardDepartmentList = departmentList.stream()
-                .map(department -> {
-                    ProjectBoardDepartmentId projectBoardDepartmentId = new ProjectBoardDepartmentId(savedBoard, department);
-                    return new ProjectBoardDepartment(projectBoardDepartmentId);
-                })
+                .map(department -> new ProjectBoardDepartment(savedBoard, department))
                 .toList();
 
         projectBoardDepartmentRepository.saveAll(projectBoardDepartmentList);

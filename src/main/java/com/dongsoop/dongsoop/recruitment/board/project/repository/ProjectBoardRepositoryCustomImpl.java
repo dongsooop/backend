@@ -55,9 +55,9 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                 .select(projection.getRecruitmentOverviewExpression())
                 .from(projectBoard)
                 .leftJoin(projectApply)
-                .on(hasMatchingProjectBoardId(projectApply.id.projectBoard.id))
+                .on(hasMatchingProjectBoardId(projectApply.projectBoard.id))
                 .leftJoin(projectBoardDepartment)
-                .on(hasMatchingProjectBoardId(projectBoardDepartment.id.projectBoard.id))
+                .on(hasMatchingProjectBoardId(projectBoardDepartment.projectBoard.id))
                 .where(recruitmentRepositoryUtils.isRecruiting(projectBoard.startAt, projectBoard.endAt)
                         .and(projectBoard.id.in(includeDepartmentType(departmentType))))
                 .offset(pageable.getOffset())
@@ -83,9 +83,9 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                 .select(projection.getRecruitmentDetailsExpression(viewType, isAlreadyApplied))
                 .from(projectBoard)
                 .leftJoin(projectApply)
-                .on(hasMatchingProjectBoardId(projectApply.id.projectBoard.id))
+                .on(hasMatchingProjectBoardId(projectApply.projectBoard.id))
                 .leftJoin(projectBoardDepartment)
-                .on(hasMatchingProjectBoardId(projectBoardDepartment.id.projectBoard.id))
+                .on(hasMatchingProjectBoardId(projectBoardDepartment.projectBoard.id))
                 .groupBy(
                         projectBoard.id,
                         projectBoard.title,
@@ -115,9 +115,9 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                 .select(projection.getRecruitmentOverviewExpression())
                 .from(projectBoard)
                 .leftJoin(projectApply)
-                .on(hasMatchingProjectBoardId(projectApply.id.projectBoard.id))
+                .on(hasMatchingProjectBoardId(projectApply.projectBoard.id))
                 .leftJoin(projectBoardDepartment)
-                .on(hasMatchingProjectBoardId(projectBoardDepartment.id.projectBoard.id))
+                .on(hasMatchingProjectBoardId(projectBoardDepartment.projectBoard.id))
                 .where(recruitmentRepositoryUtils.isRecruiting(projectBoard.startAt, projectBoard.endAt))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -133,7 +133,7 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
     private JPQLQuery<Long> includeDepartmentType(DepartmentType departmentType) {
         return JPAExpressions.select(projectBoard.id)
                 .leftJoin(projectBoardDepartment)
-                .where(projectBoard.id.eq(projectBoardDepartment.id.projectBoard.id)
-                        .and(projectBoardDepartment.id.department.id.eq(departmentType)));
+                .where(projectBoard.id.eq(projectBoardDepartment.projectBoard.id)
+                        .and(projectBoardDepartment.department.id.eq(departmentType)));
     }
 }

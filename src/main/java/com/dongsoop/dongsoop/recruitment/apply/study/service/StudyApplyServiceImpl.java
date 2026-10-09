@@ -11,7 +11,6 @@ import com.dongsoop.dongsoop.recruitment.apply.dto.UpdateApplyStatusRequest;
 import com.dongsoop.dongsoop.recruitment.apply.entity.RecruitmentApplyStatus;
 import com.dongsoop.dongsoop.recruitment.apply.study.dto.ApplyStudyBoardRequest;
 import com.dongsoop.dongsoop.recruitment.apply.study.entity.StudyApply;
-import com.dongsoop.dongsoop.recruitment.apply.study.entity.StudyApply.StudyApplyKey;
 import com.dongsoop.dongsoop.recruitment.apply.study.exception.StudyApplyNotFoundException;
 import com.dongsoop.dongsoop.recruitment.apply.study.exception.StudyOwnerCannotApplyException;
 import com.dongsoop.dongsoop.recruitment.apply.study.exception.StudyRecruitmentAlreadyAppliedException;
@@ -63,9 +62,9 @@ public class StudyApplyServiceImpl implements StudyApplyService {
 
         validateDepartment(studyBoardDepartmentList, member);
 
-        StudyApplyKey key = new StudyApplyKey(studyBoard, member);
         StudyApply studyApplication = StudyApply.builder()
-                .id(key)
+                .studyBoard(studyBoard)
+                .member(member)
                 .introduction(request.introduction())
                 .motivation(request.motivation())
                 .build();

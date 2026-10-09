@@ -65,14 +65,14 @@ public class RestaurantServiceImpl implements RestaurantService {
         Member member = memberRepository.getReferenceById(memberId);
 
         RestaurantLike.RestaurantLikeKey key = RestaurantLike.RestaurantLikeKey.builder()
-                .restaurantId(restaurantId)
-                .memberId(memberId)
+                .restaurant(restaurantId)
+                .member(memberId)
                 .build();
 
         boolean isCurrentlyLiked = restaurantLikeRepository.existsById(key);
 
         if (isAdding && !isCurrentlyLiked) {
-            addLike(key, restaurant, member);
+            addLike(restaurant, member);
             return;
         }
 
@@ -81,9 +81,8 @@ public class RestaurantServiceImpl implements RestaurantService {
         }
     }
 
-    private void addLike(RestaurantLike.RestaurantLikeKey key, Restaurant restaurant, Member member) {
+    private void addLike(Restaurant restaurant, Member member) {
         RestaurantLike restaurantLike = RestaurantLike.builder()
-                .id(key)
                 .restaurant(restaurant)
                 .member(member)
                 .build();

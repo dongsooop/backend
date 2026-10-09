@@ -1,26 +1,22 @@
 package com.dongsoop.dongsoop.memberblock.entity;
 
-import com.dongsoop.dongsoop.member.entity.Member;
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
-@Embeddable
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-public class MemberBlockId {
+public class MemberBlockId implements Serializable {
 
-    @JoinColumn(name = "blocker_id")
-    @ManyToOne
-    private Member blocker;
+    @Serial
+    private static final long serialVersionUID = 1L;
 
-    @JoinColumn(name = "blocked_member_id")
-    @ManyToOne
-    private Member blockedMember;
+    private Long blocker;
+
+    private Long blockedMember;
 
     @Override
     public boolean equals(Object o) {

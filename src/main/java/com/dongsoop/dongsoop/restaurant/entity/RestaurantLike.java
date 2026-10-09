@@ -9,25 +9,22 @@ import java.io.Serial;
 import java.io.Serializable;
 
 @Entity
+@IdClass(RestaurantLike.RestaurantLikeKey.class)
 @SuperBuilder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@ToString(exclude = "id")
+@ToString(exclude = {"restaurant", "member"})
 public class RestaurantLike {
 
-    @EmbeddedId
-    private RestaurantLikeKey id;
-
-    @MapsId("restaurantId")
+    @Id
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = false, name = "restaurant_id", updatable = false)
     private Restaurant restaurant;
 
-    @MapsId("memberId")
+    @Id
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = false, name = "member_id", updatable = false)
     private Member member;
 
-    @Embeddable
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
@@ -39,10 +36,8 @@ public class RestaurantLike {
         @Serial
         private static final long serialVersionUID = 1L;
 
-        @Column(name = "restaurant_id")
-        private Long restaurantId;
+        private Long restaurant;
 
-        @Column(name = "member_id")
-        private Long memberId;
+        private Long member;
     }
 }

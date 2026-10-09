@@ -43,10 +43,10 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
                         member.nickname.as("nickname"),
                         member.email.as("email"),
                         member.department.id.as("departmentType"),
-                        Expressions.stringTemplate("string_agg({0}, '" + ROLE_DELIMITER + "')", memberRole.id.role.roleType)))
+                        Expressions.stringTemplate("string_agg({0}, '" + ROLE_DELIMITER + "')", memberRole.role.roleType)))
                 .from(member)
                 .leftJoin(memberRole)
-                .on(memberRole.id.member.eq(member))
+                .on(memberRole.member.eq(member))
                 .where(eqId(id))
                 .groupBy(member)
                 .fetchOne();
@@ -81,8 +81,8 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
                 .innerJoin(memberDevice)
                 .on(memberDevice.member.eq(member))
                 .innerJoin(memberRole)
-                .on(memberRole.id.member.eq(member))
-                .where(memberRole.id.role.roleType.eq(roleType)
+                .on(memberRole.member.eq(member))
+                .where(memberRole.role.roleType.eq(roleType)
                         .and(member.isDeleted.isFalse()))
                 .distinct()
                 .fetch();

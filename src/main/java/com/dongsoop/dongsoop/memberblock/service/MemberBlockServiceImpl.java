@@ -42,7 +42,7 @@ public class MemberBlockServiceImpl implements MemberBlockService {
 
         Member blocker = memberRepository.getReferenceById(blockerId);
         Member blockedMember = memberRepository.getReferenceById(request.blockedMemberId());
-        MemberBlockId memberBlockId = new MemberBlockId(blocker, blockedMember);
+        MemberBlockId memberBlockId = new MemberBlockId(blocker.getId(), blockedMember.getId());
 
         if (memberBlockRepository.existsById(memberBlockId)) {
             throw new AlreadyBlockedByBlockerException();
@@ -50,7 +50,7 @@ public class MemberBlockServiceImpl implements MemberBlockService {
 
         // 메서드 트랜잭션이 없어 save가 자체 트랜잭션에서 커밋하므로 연타 경합의 키 중복은 여기서 드러난다
         try {
-            memberBlockRepository.save(new MemberBlock(memberBlockId));
+            memberBlockRepository.save(new MemberBlock(blocker, blockedMember));
         } catch (DataIntegrityViolationException e) {
             throw new AlreadyBlockedByBlockerException();
         }
@@ -68,7 +68,7 @@ public class MemberBlockServiceImpl implements MemberBlockService {
 
         Member blocker = memberRepository.getReferenceById(blockerId);
         Member blockedMember = memberRepository.getReferenceById(request.blockedMemberId());
-        MemberBlockId memberBlockId = new MemberBlockId(blocker, blockedMember);
+        MemberBlockId memberBlockId = new MemberBlockId(blocker.getId(), blockedMember.getId());
 
         if (!memberBlockRepository.existsById(memberBlockId)) {
             throw new BlockNotFoundException();
