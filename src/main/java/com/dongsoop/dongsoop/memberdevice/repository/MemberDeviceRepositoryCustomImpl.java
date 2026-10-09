@@ -71,7 +71,7 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
                 .leftJoin(notificationSetting)
                 .on(notificationSettingEq(NotificationType.NOTICE))
                 .leftJoin(deviceNoticePreference)
-                .on(deviceNoticePreference.id.device.id.eq(memberDevice.id))
+                .on(deviceNoticePreference.device.id.eq(memberDevice.id))
                 .where(memberDevice.deviceToken.isNotNull()
                         .and(isNotWebDevice())
                         .and(departmentPreferenceIn(departmentTypes))
@@ -87,10 +87,10 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
         }
 
         return queryFactory.select(Projections.constructor(DeviceSubscription.class,
-                        deviceNoticePreference.id.device.id,
-                        deviceNoticePreference.id.department.id))
+                        deviceNoticePreference.device.id,
+                        deviceNoticePreference.department.id))
                 .from(deviceNoticePreference)
-                .where(deviceNoticePreference.id.device.id.in(deviceIds))
+                .where(deviceNoticePreference.device.id.in(deviceIds))
                 .fetch();
     }
 
@@ -134,7 +134,7 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     }
 
     private BooleanExpression notificationSettingEq(NotificationType notificationType) {
-        return notificationSetting.id.device.eq(memberDevice)
+        return notificationSetting.device.eq(memberDevice)
                 .and(notificationSetting.id.notificationType.eq(notificationType));
     }
 
@@ -149,7 +149,7 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
             return null;
         }
 
-        return deviceNoticePreference.id.department.id.in(departmentTypes);
+        return deviceNoticePreference.department.id.in(departmentTypes);
     }
 
     @Override

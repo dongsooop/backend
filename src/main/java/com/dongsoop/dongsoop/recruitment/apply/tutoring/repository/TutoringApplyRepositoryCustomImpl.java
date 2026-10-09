@@ -29,8 +29,8 @@ public class TutoringApplyRepositoryCustomImpl implements TutoringApplyRepositor
     public boolean existsByBoardIdAndMemberId(Long boardId, Long memberId) {
         return queryFactory.selectOne()
                 .from(tutoringApply)
-                .where(tutoringApply.id.tutoringBoard.id.eq(boardId)
-                        .and(tutoringApply.id.member.id.eq(memberId)))
+                .where(tutoringApply.tutoringBoard.id.eq(boardId)
+                        .and(tutoringApply.member.id.eq(memberId)))
                 .fetchFirst() != null;
     }
 
@@ -38,11 +38,11 @@ public class TutoringApplyRepositoryCustomImpl implements TutoringApplyRepositor
     public Optional<ApplyDetails> findApplyDetailsByBoardIdAndApplierId(Long boardId, Long applierId) {
         ApplyDetails result = queryFactory.select(tutoringRecruitmentApplyProjection.getApplyDetailsExpression())
                 .from(tutoringApply)
-                .leftJoin(tutoringApply.id.tutoringBoard, tutoringBoard)
-                .leftJoin(tutoringApply.id.member, member)
+                .leftJoin(tutoringApply.tutoringBoard, tutoringBoard)
+                .leftJoin(tutoringApply.member, member)
                 .leftJoin(member.department, department)
-                .where(tutoringApply.id.tutoringBoard.id.eq(boardId)
-                        .and(tutoringApply.id.member.id.eq(applierId)))
+                .where(tutoringApply.tutoringBoard.id.eq(boardId)
+                        .and(tutoringApply.member.id.eq(applierId)))
                 .fetchOne();
 
         return Optional.ofNullable(result);
@@ -51,8 +51,8 @@ public class TutoringApplyRepositoryCustomImpl implements TutoringApplyRepositor
     @Override
     public Optional<TutoringApply> findByBoardIdAndApplierId(Long boardId, Long applierId) {
         TutoringApply result = queryFactory.selectFrom(tutoringApply)
-                .where(tutoringApply.id.tutoringBoard.id.eq(boardId)
-                        .and(tutoringApply.id.member.id.eq(applierId)))
+                .where(tutoringApply.tutoringBoard.id.eq(boardId)
+                        .and(tutoringApply.member.id.eq(applierId)))
                 .fetchOne();
 
         return Optional.ofNullable(result);

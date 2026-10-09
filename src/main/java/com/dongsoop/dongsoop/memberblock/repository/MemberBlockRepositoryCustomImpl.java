@@ -26,8 +26,8 @@ public class MemberBlockRepositoryCustomImpl implements MemberBlockRepositoryCus
                         member.nickname
                 ))
                 .from(memberBlock)
-                .leftJoin(memberBlock.id.blockedMember, member)
-                .where(memberBlock.id.blocker.id.eq(blockerId))
+                .leftJoin(memberBlock.blockedMember, member)
+                .where(memberBlock.blocker.id.eq(blockerId))
                 .fetch();
     }
 }

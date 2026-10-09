@@ -15,31 +15,31 @@ import org.springframework.data.jpa.repository.Query;
 public interface NoticeRepository extends JpaRepository<Notice, NoticeKey>, NoticeRepositoryCustom {
 
     @Query("""
-            SELECT d AS department, COALESCE(MAX(n.id.noticeDetails.id), 0) AS recentId
+            SELECT d AS department, COALESCE(MAX(n.noticeDetails.id), 0) AS recentId
             FROM Department d
-            LEFT JOIN Notice n ON n.id.department = d
+            LEFT JOIN Notice n ON n.department = d
             GROUP BY d
             """)
     List<NoticeRecentIdByDepartment> findRecentIdGroupByType();
 
-    @Query("SELECT n.id.noticeDetails.id AS id,"
-            + "n.id.noticeDetails.link AS link,"
-            + "n.id.noticeDetails.createdAt AS createdAt,"
-            + "n.id.noticeDetails.title AS title,"
-            + "n.id.noticeDetails.writer AS writer "
+    @Query("SELECT n.noticeDetails.id AS id,"
+            + "n.noticeDetails.link AS link,"
+            + "n.noticeDetails.createdAt AS createdAt,"
+            + "n.noticeDetails.title AS title,"
+            + "n.noticeDetails.writer AS writer "
             + "FROM Notice n "
-            + "WHERE n.id.department = :department "
+            + "WHERE n.department = :department "
             + "AND n.deletedAt IS NULL")
     Page<NoticeListResponse> findAllByDepartment(Department department, Pageable pageable);
 
-    @Query("SELECT n.id.noticeDetails.id AS id,"
-            + "n.id.noticeDetails.link AS link,"
-            + "n.id.noticeDetails.createdAt AS createdAt,"
-            + "n.id.noticeDetails.title AS title,"
-            + "n.id.noticeDetails.writer AS writer "
+    @Query("SELECT n.noticeDetails.id AS id,"
+            + "n.noticeDetails.link AS link,"
+            + "n.noticeDetails.createdAt AS createdAt,"
+            + "n.noticeDetails.title AS title,"
+            + "n.noticeDetails.writer AS writer "
             + "FROM Notice n "
-            + "WHERE n.id.department IN :departments "
+            + "WHERE n.department IN :departments "
             + "AND n.deletedAt IS NULL "
-            + "ORDER BY n.id.noticeDetails.id DESC")
+            + "ORDER BY n.noticeDetails.id DESC")
     Page<NoticeListResponse> findAllByDepartmentIn(Collection<Department> departments, Pageable pageable);
 }

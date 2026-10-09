@@ -89,7 +89,7 @@ class MemberUnblockTest {
                 .id(2L)
                 .build();
 
-        MemberBlock answer = new MemberBlock(new MemberBlockId(blocker, blockedMember));
+        MemberBlock answer = new MemberBlock(blocker, blockedMember);
 
         when(memberBlockRepository.getReferenceById(any(MemberBlockId.class)))
                 .thenReturn(answer);

@@ -22,7 +22,6 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.memberblock.constant.BlockStatus;
 import com.dongsoop.dongsoop.memberblock.controller.MemberBlockController;
 import com.dongsoop.dongsoop.memberblock.entity.MemberBlock;
-import com.dongsoop.dongsoop.memberblock.entity.MemberBlockId;
 import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepository;
 import com.dongsoop.dongsoop.memberblock.repository.MemberBlockRepositoryCustom;
 import com.dongsoop.dongsoop.memberblock.service.MemberBlockService;
@@ -91,7 +90,7 @@ class MemberBlockTest {
                 .id(2L)
                 .build();
 
-        MemberBlock answer = new MemberBlock(new MemberBlockId(blocker, blockedMember));
+        MemberBlock answer = new MemberBlock(blocker, blockedMember);
 
         // when
         MockHttpServletRequestBuilder request = post("/member-block")

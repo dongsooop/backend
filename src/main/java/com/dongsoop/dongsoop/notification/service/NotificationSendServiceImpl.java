@@ -33,7 +33,7 @@ public class NotificationSendServiceImpl implements NotificationSendService {
     public void sendAll(List<MemberNotification> memberNotificationList, NotificationType notificationType) {
         // 알림을 보낼 대상 회원들
         List<Long> memberIds = memberNotificationList.stream()
-                .map(notification -> notification.getId().getMember().getId())
+                .map(notification -> notification.getMember().getId())
                 .distinct()
                 .toList();
 
@@ -59,7 +59,7 @@ public class NotificationSendServiceImpl implements NotificationSendService {
     public void sendAllToDevices(List<MemberNotification> memberNotificationList, List<MemberDevice> targetDevices) {
         // 알림을 보낼 대상 회원들
         List<Long> memberIds = memberNotificationList.stream()
-                .map(notification -> notification.getId().getMember().getId())
+                .map(notification -> notification.getMember().getId())
                 .distinct()
                 .toList();
 
@@ -105,9 +105,9 @@ public class NotificationSendServiceImpl implements NotificationSendService {
 
     private Map<NotificationDetails, List<Long>> listToMap(List<MemberNotification> memberNotificationList) {
         return memberNotificationList.stream().collect(Collectors.groupingBy(
-                notification -> notification.getId().getDetails(),
+                notification -> notification.getDetails(),
                 Collectors.mapping(
-                        notification -> notification.getId().getMember().getId(),
+                        notification -> notification.getMember().getId(),
                         Collectors.toList()
                 )));
     }
@@ -131,8 +131,7 @@ public class NotificationSendServiceImpl implements NotificationSendService {
     @Transactional(readOnly = true)
     public void send(MemberNotification memberNotification) {
         // 알림을 보낼 대상 회원
-        Long memberId = memberNotification.getId()
-                .getMember()
+        Long memberId = memberNotification.getMember()
                 .getId();
 
         List<String> deviceByMemberId = memberDeviceService.getDeviceByMemberId(memberId);
@@ -140,8 +139,7 @@ public class NotificationSendServiceImpl implements NotificationSendService {
             return;
         }
 
-        NotificationDetails details = memberNotification.getId()
-                .getDetails();
+        NotificationDetails details = memberNotification.getDetails();
 
         int unreadCount = notificationBadgeService.resolveByMemberId(memberId);
 

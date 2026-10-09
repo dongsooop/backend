@@ -56,9 +56,9 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .select(projection.getRecruitmentOverviewExpression())
                 .from(studyBoard)
                 .leftJoin(studyApply)
-                .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
+                .on(hasMatchingStudyBoardId(studyApply.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
-                .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
+                .on(hasMatchingStudyBoardId(studyBoardDepartment.studyBoard.id))
                 .where(recruitmentRepositoryUtils.isRecruiting(studyBoard.startAt, studyBoard.endAt)
                         .and(studyBoard.id.in(includeDepartmentType(departmentType))))
                 .offset(pageable.getOffset())
@@ -84,9 +84,9 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .select(projection.getRecruitmentDetailsExpression(viewType, isAlreadyApplied))
                 .from(studyBoard)
                 .leftJoin(studyApply)
-                .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
+                .on(hasMatchingStudyBoardId(studyApply.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
-                .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
+                .on(hasMatchingStudyBoardId(studyBoardDepartment.studyBoard.id))
                 .groupBy(
                         studyBoard.id,
                         studyBoard.title,
@@ -116,9 +116,9 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .select(projection.getRecruitmentOverviewExpression())
                 .from(studyBoard)
                 .leftJoin(studyApply)
-                .on(hasMatchingStudyBoardId(studyApply.id.studyBoard.id))
+                .on(hasMatchingStudyBoardId(studyApply.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
-                .on(hasMatchingStudyBoardId(studyBoardDepartment.id.studyBoard.id))
+                .on(hasMatchingStudyBoardId(studyBoardDepartment.studyBoard.id))
                 .where(recruitmentRepositoryUtils.isRecruiting(studyBoard.startAt, studyBoard.endAt))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -134,7 +134,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
     private JPQLQuery<Long> includeDepartmentType(DepartmentType departmentType) {
         return JPAExpressions.select(studyBoard.id)
                 .leftJoin(studyBoardDepartment)
-                .where(studyBoard.id.eq(studyBoardDepartment.id.studyBoard.id)
-                        .and(studyBoardDepartment.id.department.id.eq(departmentType)));
+                .where(studyBoard.id.eq(studyBoardDepartment.studyBoard.id)
+                        .and(studyBoardDepartment.department.id.eq(departmentType)));
     }
 }

@@ -19,7 +19,7 @@
 ### Block (차단)
 
 - 의미: 한 회원(차단자)이 다른 회원(피차단자)을 차단한 단방향 관계 한 건.
-- 코드: `MemberBlock` 엔티티, `MemberBlockId(blocker, blockedMember)`
+- 코드: `MemberBlock` 엔티티의 `blocker`, `blockedMember` 연관관계와 이를 식별하는 `MemberBlockId`
 
 ### BlockStatus (차단 상태)
 
@@ -70,6 +70,12 @@ NONE이 아니면(I_BLOCKED 또는 BLOCKED_BY_OTHER) 메시지를 브로드캐�
 - 게시판 목록 필터는 로그인 회원이 차단한 회원의 글만 제외한다. 인증되지 않은 요청에는 필터를 적용하지 않는다.
 
 ## Decisions
+
+### 차단 관계의 복합키는 `IdClass`로 매핑한다
+
+`MemberBlockId`는 독립적인 도메인 값이 아니라 두 회원 간 관계를 식별하기 위한 키다. 따라서 엔티티에는
+`blocker`, `blockedMember` 연관관계를 직접 두고, 두 회원 ID로 구성된 `MemberBlockId`를 `IdClass`로 사용한다.
+DB의 `(blocker_id, blocked_member_id)` 복합키 구조는 유지한다.
 
 ### 차단 상태를 저장하지 않고 매번 다시 계산한다
 

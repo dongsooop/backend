@@ -8,5 +8,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface DeviceNoticePreferenceRepository extends
         JpaRepository<DeviceNoticePreference, DeviceNoticePreferenceId> {
 
-    List<DeviceNoticePreference> findAllByIdDeviceId(Long memberDeviceId);
+    List<DeviceNoticePreference> findAllByDeviceId(Long memberDeviceId);
 }

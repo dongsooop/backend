@@ -17,9 +17,9 @@ public interface ProjectApplyRepository extends JpaRepository<ProjectApply, Proj
                         pa.status AS status,
                         m.department.name AS departmentName
                     FROM ProjectApply pa
-                    JOIN Member m ON pa.id.member.id = m.id
-                    WHERE pa.id.projectBoard.id = :boardId
-                        AND pa.id.projectBoard.author.id = :authorId
+                    JOIN Member m ON pa.member.id = m.id
+                    WHERE pa.projectBoard.id = :boardId
+                        AND pa.projectBoard.author.id = :authorId
                     """
     )
     List<RecruitmentApplyOverview> findApplyOverviewByBoardId(@Param("boardId") Long boardId,

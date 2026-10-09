@@ -35,12 +35,12 @@ public class NoticePreferenceServiceImpl implements NoticePreferenceService {
         // 이 디바이스가 현재 구독 중인 학과 목록을 불러온다
         List<DeviceNoticePreference> existing = getDepartments(device);
         Set<DepartmentType> existingTypes = existing.stream()
-                .map(preference -> preference.getId().getDepartment().getId())
+                .map(preference -> preference.getDepartment().getId())
                 .collect(Collectors.toSet());
 
         // 기존 구독 중 새 요청에 없는 학과 = 제거 대상
         List<DeviceNoticePreference> toRemove = existing.stream()
-                .filter(preference -> !departmentTypes.contains(preference.getId().getDepartment().getId()))
+                .filter(preference -> !departmentTypes.contains(preference.getDepartment().getId()))
                 .toList();
         if (!toRemove.isEmpty()) {
             preferenceRepository.deleteAll(toRemove);
@@ -62,11 +62,11 @@ public class NoticePreferenceServiceImpl implements NoticePreferenceService {
         MemberDevice device = deviceResolver.resolve(fid, deviceToken);
 
         return getDepartments(device).stream()
-                .map(preference -> preference.getId().getDepartment().getId())
+                .map(preference -> preference.getDepartment().getId())
                 .toList();
     }
 
     private List<DeviceNoticePreference> getDepartments(MemberDevice device) {
-        return preferenceRepository.findAllByIdDeviceId(device.getId());
+        return preferenceRepository.findAllByDeviceId(device.getId());
     }
 }

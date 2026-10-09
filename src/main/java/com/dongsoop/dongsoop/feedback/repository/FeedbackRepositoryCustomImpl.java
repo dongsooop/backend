@@ -51,9 +51,9 @@ public class FeedbackRepositoryCustomImpl implements FeedbackRepositoryCustom {
         }
 
         List<ServiceFeature> serviceFeatureList = queryFactory
-                .select(feedbackServiceFeature.id.serviceFeature)
+                .select(feedbackServiceFeature.serviceFeature)
                 .from(feedbackServiceFeature)
-                .where(feedbackServiceFeature.id.feedback.id.eq(id))
+                .where(feedbackServiceFeature.feedback.id.eq(id))
                 .fetch();
 
         FeedbackDetail result = base.fromBase(serviceFeatureList);
@@ -65,11 +65,11 @@ public class FeedbackRepositoryCustomImpl implements FeedbackRepositoryCustom {
     public FeedbackOverview searchFeedbackOverview() {
         List<ServiceFeatureFeedback> serviceFeatureList = queryFactory
                 .select(
-                        feedbackServiceFeature.id.serviceFeature,
-                        feedbackServiceFeature.id.serviceFeature.count()
+                        feedbackServiceFeature.serviceFeature,
+                        feedbackServiceFeature.serviceFeature.count()
                 )
                 .from(feedbackServiceFeature)
-                .groupBy(feedbackServiceFeature.id.serviceFeature)
+                .groupBy(feedbackServiceFeature.serviceFeature)
                 .fetch()
                 .stream()
                 .map(this::parseServiceFeature)

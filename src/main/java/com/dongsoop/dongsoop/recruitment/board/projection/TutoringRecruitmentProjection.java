@@ -20,7 +20,7 @@ public class TutoringRecruitmentProjection implements RecruitmentProjection {
     public ConstructorExpression<RecruitmentOverview> getRecruitmentOverviewExpression() {
         return Projections.constructor(RecruitmentOverview.class,
                 board.id,
-                apply.id.member.countDistinct().intValue(),
+                apply.member.countDistinct().intValue(),
                 board.startAt,
                 board.endAt,
                 board.title,
@@ -44,7 +44,7 @@ public class TutoringRecruitmentProjection implements RecruitmentProjection {
                 board.author.nickname,
                 board.createdAt.as("createdAt"),
                 board.updatedAt.as("updatedAt"),
-                apply.id.member.countDistinct().intValue(),
+                apply.member.countDistinct().intValue(),
                 Expressions.constant(viewType),
                 Expressions.constant(isAlreadyApplied));
     }
