@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -21,7 +20,6 @@ import java.util.function.Consumer;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 @Slf4j
 public class SanctionExecutor {
 
@@ -50,19 +48,8 @@ public class SanctionExecutor {
     @Value("${admin.id}")
     private Long systemAdminId;
 
-    @Transactional
     public Sanction issue(Report report, Member admin, Member targetMember, SanctionType type,
                           String reason, LocalDateTime requestedEndAt, String description) {
-        return issueInternal(report, admin, targetMember, type, reason, requestedEndAt, description);
-    }
-
-    @Transactional
-    public Sanction issueBySystem(Report report, SanctionType type, String reason, String description) {
-        return issueInternal(report, systemAdmin(), report.getTargetMember(), type, reason, null, description);
-    }
-
-    private Sanction issueInternal(Report report, Member admin, Member targetMember, SanctionType type,
-                                   String reason, LocalDateTime requestedEndAt, String description) {
         report.ensureNotProcessed();
 
         LocalDateTime now = LocalDateTime.now(KST);
@@ -83,6 +70,10 @@ public class SanctionExecutor {
         report.processSanction(admin, targetMember, sanction);
         executeSanction(report);
         return sanction;
+    }
+
+    public Sanction issueBySystem(Report report, SanctionType type, String reason, String description) {
+        return issue(report, systemAdmin(), report.getTargetMember(), type, reason, null, description);
     }
 
     private Member systemAdmin() {
@@ -168,7 +159,7 @@ public class SanctionExecutor {
 
         // Sanction.report가 NOT NULL이라 신고를 먼저 저장하고 제재를 연결한다
         Report report = reportRepository.save(buildAutoSuspensionReport(member, description));
-        issueInternal(report, systemAdmin(), member, SanctionType.TEMPORARY_BAN, description,
+        issue(report, systemAdmin(), member, SanctionType.TEMPORARY_BAN, description,
                 LocalDateTime.now(KST).plusDays(suspensionDays), description);
         log.info("{} 생성 완료: 회원 ID {}", description, member.getId());
     }
