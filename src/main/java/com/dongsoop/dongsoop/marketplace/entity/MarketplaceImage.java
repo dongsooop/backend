@@ -36,7 +36,7 @@ public class MarketplaceImage extends BaseEntity {
     @Column(name = "url", nullable = false, updatable = false)
     String url;
 
-    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    @NoArgsConstructor
     @AllArgsConstructor
     public static class MarketplaceImageId implements Serializable {
 

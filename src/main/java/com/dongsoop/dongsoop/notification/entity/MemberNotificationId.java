@@ -3,13 +3,12 @@ package com.dongsoop.dongsoop.notification.entity;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 @AllArgsConstructor
 public class MemberNotificationId implements Serializable {
 

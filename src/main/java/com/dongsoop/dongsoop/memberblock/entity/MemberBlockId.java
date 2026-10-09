@@ -3,11 +3,10 @@ package com.dongsoop.dongsoop.memberblock.entity;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 @AllArgsConstructor
 public class MemberBlockId implements Serializable {
 

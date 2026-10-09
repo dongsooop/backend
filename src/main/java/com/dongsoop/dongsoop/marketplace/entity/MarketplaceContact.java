@@ -32,7 +32,7 @@ public class MarketplaceContact extends BaseEntity {
     @JoinColumn(name = "applicant", nullable = false, updatable = false)
     private Member applicant;
 
-    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    @NoArgsConstructor
     @AllArgsConstructor
     public static class MarketplaceContactId implements Serializable {
 
