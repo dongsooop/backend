@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 @Entity
@@ -16,21 +17,32 @@ public class RestaurantLike {
     @EmbeddedId
     private RestaurantLikeKey id;
 
+    @MapsId("restaurantId")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "restaurant_id", updatable = false)
+    private Restaurant restaurant;
+
+    @MapsId("memberId")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "member_id", updatable = false)
+    private Member member;
+
     @Embeddable
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     @Getter
     @EqualsAndHashCode
-    @ToString(exclude = {"restaurant", "member"})
+    @ToString
     public static class RestaurantLikeKey implements Serializable {
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(nullable = false, name = "restaurant_id", updatable = false)
-        private Restaurant restaurant;
+        @Serial
+        private static final long serialVersionUID = 1L;
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(nullable = false, name = "member_id", updatable = false)
-        private Member member;
+        @Column(name = "restaurant_id")
+        private Long restaurantId;
+
+        @Column(name = "member_id")
+        private Long memberId;
     }
 }

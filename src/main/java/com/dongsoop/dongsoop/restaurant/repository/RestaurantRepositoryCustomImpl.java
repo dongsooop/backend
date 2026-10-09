@@ -81,8 +81,8 @@ public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCusto
         return JPAExpressions
                 .selectOne()
                 .from(restaurantLike)
-                .where(restaurantLike.id.restaurant.id.eq(restaurant.id),
-                        restaurantLike.id.member.id.eq(memberId))
+                .where(restaurantLike.id.restaurantId.eq(restaurant.id),
+                        restaurantLike.id.memberId.eq(memberId))
                 .exists();
     }
 
@@ -90,7 +90,7 @@ public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCusto
         return ExpressionUtils.as(
                 JPAExpressions.select(restaurantLike.count())
                         .from(restaurantLike)
-                        .where(restaurantLike.id.restaurant.id.eq(restaurant.id)),
+                        .where(restaurantLike.id.restaurantId.eq(restaurant.id)),
                 "likeCount"
         );
     }
