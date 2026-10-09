@@ -8,9 +8,9 @@ import com.dongsoop.dongsoop.chat.exception.ManagerKickAttemptException;
 import com.dongsoop.dongsoop.chat.exception.ManagerLeaveRestrictedException;
 import com.dongsoop.dongsoop.chat.exception.SelfChatException;
 import com.dongsoop.dongsoop.chat.exception.UnauthorizedManagerActionException;
+import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
 import com.dongsoop.dongsoop.chat.exception.UserKickedException;
 import com.dongsoop.dongsoop.chat.exception.UserNotInRoomException;
-import com.dongsoop.dongsoop.chat.repository.ChatRepository;
 import com.dongsoop.dongsoop.chat.service.ChatSyncService;
 import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
 import com.dongsoop.dongsoop.chat.util.ChatMessageUtils;
@@ -18,7 +18,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Objects;
 import java.util.Optional;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -26,16 +25,11 @@ import org.springframework.util.StringUtils;
 public class ChatValidator {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
-    private static final Long ANONYMOUS_USER_ID = -1L;
-
-    private final ChatRepository chatRepository;
     private final ChatSyncService chatSyncService;
     private final ChatCommonUtils chatCommonUtils;
 
-    public ChatValidator(@Qualifier("redisChatRepository") ChatRepository chatRepository,
-                         ChatSyncService chatSyncService,
+    public ChatValidator(ChatSyncService chatSyncService,
                          ChatCommonUtils chatCommonUtils) {
-        this.chatRepository = chatRepository;
         this.chatSyncService = chatSyncService;
         this.chatCommonUtils = chatCommonUtils;
     }
@@ -44,7 +38,7 @@ public class ChatValidator {
         ChatRoom room = chatSyncService.findRoomOrRestore(roomId);
 
         validateUserNotKicked(room, userId);
-        addUserToRoomIfNeeded(room, userId);
+        validateUserHasAccess(room, userId);
     }
 
     public void validateSelfChat(Long user1, Long user2) {
@@ -77,30 +71,10 @@ public class ChatValidator {
         }
     }
 
-    private void addUserToRoomIfNeeded(ChatRoom room, Long userId) {
-        if (shouldAddUserToRoom(userId, room)) {
-            addUserToRoom(room, userId);
+    private void validateUserHasAccess(ChatRoom room, Long userId) {
+        if (!room.getParticipants().contains(userId)) {
+            throw new UnauthorizedChatAccessException();
         }
-    }
-
-    private boolean shouldAddUserToRoom(Long userId, ChatRoom room) {
-        if (isAnonymousUser(userId)) {
-            return false;
-        }
-        return !isUserAlreadyInRoom(userId, room);
-    }
-
-    private boolean isAnonymousUser(Long userId) {
-        return ANONYMOUS_USER_ID.equals(userId);
-    }
-
-    private boolean isUserAlreadyInRoom(Long userId, ChatRoom room) {
-        return room.getParticipants().contains(userId);
-    }
-
-    private void addUserToRoom(ChatRoom room, Long userId) {
-        room.addNewParticipant(userId);
-        chatRepository.saveRoom(room);
     }
 
     private void validateMessageRequirements(ChatMessage message) {

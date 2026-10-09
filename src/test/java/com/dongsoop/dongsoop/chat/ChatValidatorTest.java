@@ -3,7 +3,6 @@ package com.dongsoop.dongsoop.chat;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.exception.*;
-import com.dongsoop.dongsoop.chat.repository.ChatRepository;
 import com.dongsoop.dongsoop.chat.service.ChatSyncService;
 import com.dongsoop.dongsoop.chat.util.ChatCommonUtils;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
@@ -24,8 +23,6 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ChatValidatorTest {
 
-    @Mock
-    private ChatRepository chatRepository;
     @Mock
     private ChatSyncService chatSyncService;
     @Mock
@@ -150,5 +147,34 @@ class ChatValidatorTest {
 
         assertThatThrownBy(() -> chatValidator.validateUserForRoom("room1", 2L))
                 .isInstanceOf(UserKickedException.class);
+    }
+
+    @Test
+    @DisplayName("validateUserForRoom - 참여자가 아니면 UnauthorizedChatAccessException")
+    void validateUserForRoom_throwsForNonParticipant() {
+        ChatRoom room = ChatRoom.builder()
+                .roomId("room1")
+                .participants(new HashSet<>(Set.of(1L)))
+                .kickedUsers(new HashSet<>())
+                .build();
+        when(chatSyncService.findRoomOrRestore("room1")).thenReturn(room);
+
+        assertThatThrownBy(() -> chatValidator.validateUserForRoom("room1", 2L))
+                .isInstanceOf(UnauthorizedChatAccessException.class);
+
+        assertThat(room.getParticipants()).containsExactly(1L);
+    }
+
+    @Test
+    @DisplayName("validateUserForRoom - 참여자이면 성공")
+    void validateUserForRoom_succeedsForParticipant() {
+        ChatRoom room = ChatRoom.builder()
+                .roomId("room1")
+                .participants(new HashSet<>(Set.of(1L)))
+                .kickedUsers(new HashSet<>())
+                .build();
+        when(chatSyncService.findRoomOrRestore("room1")).thenReturn(room);
+
+        chatValidator.validateUserForRoom("room1", 1L);
     }
 }
