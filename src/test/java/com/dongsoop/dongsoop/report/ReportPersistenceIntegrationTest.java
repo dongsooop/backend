@@ -193,14 +193,14 @@ class ReportPersistenceIntegrationTest extends AbstractIntegrationTest {
     void findUnprocessedReports_SkipsBlindDateReports() {
         Member reporter = saveMember("rep9");
         Member target = saveMember("tgt9");
-        Report blindDateReport = saveReport(reporter, target, ReportType.BLINDDATE_MESSAGE);
+        saveReport(reporter, target, ReportType.BLINDDATE_MESSAGE);
         entityManager.flush();
 
         List<Long> ids = reportRepository.findUnprocessedReports(PageRequest.of(0, 50)).stream()
                 .map(Report::getId)
                 .toList();
 
-        assertThat(ids).doesNotContain(blindDateReport.getId());
+        assertThat(ids).isEmpty();
     }
 
     @Test
