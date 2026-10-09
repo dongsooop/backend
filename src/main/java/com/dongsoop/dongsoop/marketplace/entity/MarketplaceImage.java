@@ -45,7 +45,6 @@ public class MarketplaceImage extends BaseEntity {
 
         Long marketplaceBoard;
 
-        @Column(name = "url", nullable = false, updatable = false)
         String url;
 
         @Override
@@ -57,7 +56,7 @@ public class MarketplaceImage extends BaseEntity {
                 return false;
             }
             MarketplaceImageId thatId = (MarketplaceImageId) that;
-            return marketplaceBoard.equals(thatId.marketplaceBoard) && url.equals(thatId.url);
+            return Objects.equals(marketplaceBoard, thatId.marketplaceBoard) && Objects.equals(url, thatId.url);
         }
 
         @Override
