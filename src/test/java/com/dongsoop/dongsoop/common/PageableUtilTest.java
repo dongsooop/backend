@@ -22,7 +22,7 @@ class PageableUtilTest {
         PathBuilder<Object> path = new PathBuilder<>(Object.class, "entity");
         JPAQuery<Object> expected = new JPAQuery<>().select(entity).from(entity)
                 .orderBy(path.get("owner").getString("name").desc(), path.getNumber("id", Long.class).asc());
-        assertThat(query.toString()).isEqualTo(expected.toString());
+        assertThat(query).hasToString(expected.toString());
     }
 
     @Test
@@ -32,6 +32,6 @@ class PageableUtilTest {
 
         pageableUtil.applySort(query, Sort.unsorted(), entity);
 
-        assertThat(query.toString()).isEqualTo(original);
+        assertThat(query).hasToString(original);
     }
 }
