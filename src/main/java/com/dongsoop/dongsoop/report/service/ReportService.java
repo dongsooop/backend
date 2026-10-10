@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.report.service;
 
+import com.dongsoop.dongsoop.report.dto.ReportListItem;
 import com.dongsoop.dongsoop.report.dto.CreateBlindDateReportRequest;
 import com.dongsoop.dongsoop.report.dto.CreateChatReportRequest;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
@@ -23,7 +24,7 @@ public interface ReportService {
 
     void dismissReport(Long reportId);
 
-    List<?> getReports(ReportFilterType filterType, Pageable pageable);
+    List<ReportListItem> getReports(ReportFilterType filterType, Pageable pageable);
 
     ReportContextResponse getReportContext(Long reportId);
 

@@ -1,32 +1,40 @@
 package com.dongsoop.dongsoop.notification.repository;
 
-import static com.dongsoop.dongsoop.notification.entity.QNotificationDetails.notificationDetails;
-import static com.dongsoop.dongsoop.notification.entity.QMemberNotification.memberNotification;
 import static com.dongsoop.dongsoop.member.entity.QMember.member;
-import com.dongsoop.dongsoop.common.PageableUtil;
+import static com.dongsoop.dongsoop.notification.entity.QMemberNotification.memberNotification;
+import static com.dongsoop.dongsoop.notification.entity.QNotificationDetails.notificationDetails;
+
 import com.dongsoop.dongsoop.notification.dto.NotificationList;
 import com.dongsoop.dongsoop.notification.dto.NotificationUnread;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.PathBuilder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.EntityManager;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.support.Querydsl;
 import org.springframework.stereotype.Repository;
 
 @Repository
-@RequiredArgsConstructor
 public class NotificationRepositoryCustomImpl implements NotificationRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
-    private final PageableUtil pageableUtil;
+    private final Querydsl querydsl;
+
+    public NotificationRepositoryCustomImpl(EntityManager entityManager,
+            JPAQueryFactory queryFactory) {
+        this.queryFactory = queryFactory;
+        this.querydsl = new Querydsl(entityManager,
+                new PathBuilder<>(notificationDetails.getType(), notificationDetails.getMetadata()));
+    }
 
 
     @Override
     public List<NotificationList> getMemberNotifications(Long memberId, Pageable pageable) {
-        return queryFactory.select(Projections.constructor(NotificationList.class,
+        return querydsl.applyPagination(pageable, queryFactory.select(Projections.constructor(NotificationList.class,
                         notificationDetails.id,
                         notificationDetails.title,
                         notificationDetails.body,
@@ -35,12 +43,9 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
                         memberNotification.isRead,
                         notificationDetails.createdAt))
                 .from(memberNotification)
-                .innerJoin(memberNotification.id.details, notificationDetails)
-                .where(memberNotification.id.member.id.eq(memberId)
-                        .and(notificationDetails.isDeleted.eq(false)))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), notificationDetails))
+                .innerJoin(memberNotification.details, notificationDetails)
+                .where(memberNotification.member.id.eq(memberId)
+                        .and(notificationDetails.isDeleted.eq(false))))
                 .fetch();
     }
 
@@ -48,9 +53,9 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
     public int findUnreadCountByMemberId(Long memberId) {
         Long count = queryFactory.select(memberNotification.count())
                 .from(memberNotification)
-                .where(memberNotification.id.member.id.eq(memberId)
+                .where(memberNotification.member.id.eq(memberId)
                         .and(memberNotification.isRead.eq(false))
-                        .and(memberNotification.id.details.isDeleted.eq(false)))
+                        .and(memberNotification.details.isDeleted.eq(false)))
                 .fetchOne();
 
         if (count == null) {
@@ -70,9 +75,9 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
                         member.id, memberNotification.count()))
                 .from(member)
                 .leftJoin(memberNotification)
-                .on(member.eq(memberNotification.id.member)
+                .on(member.eq(memberNotification.member)
                         .and(memberNotification.isRead.eq(false))
-                        .and(memberNotification.id.details.isDeleted.eq(false)))
+                        .and(memberNotification.details.isDeleted.eq(false)))
                 .where(member.id.in(memberIds))
                 .groupBy(member.id)
                 .fetch();
@@ -81,8 +86,8 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
     @Override
     public Optional<MemberNotification> findByMemberIdAndNotificationId(Long memberId, Long notificationId) {
         MemberNotification result = queryFactory.selectFrom(memberNotification)
-                .where(memberNotification.id.member.id.eq(memberId)
-                        .and(memberNotification.id.details.id.eq(notificationId)))
+                .where(memberNotification.member.id.eq(memberId)
+                        .and(memberNotification.details.id.eq(notificationId)))
                 .fetchOne();
 
         return Optional.ofNullable(result);
@@ -92,9 +97,9 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
     public void updateAllAsRead(Long memberId) {
         queryFactory.update(memberNotification)
                 .set(memberNotification.isRead, true)
-                .where(memberNotification.id.member.id.eq(memberId)
+                .where(memberNotification.member.id.eq(memberId)
                         .and(memberNotification.isRead.eq(false))
-                        .and(memberNotification.id.details.isDeleted.eq(false)))
+                        .and(memberNotification.details.isDeleted.eq(false)))
                 .execute();
     }
 }

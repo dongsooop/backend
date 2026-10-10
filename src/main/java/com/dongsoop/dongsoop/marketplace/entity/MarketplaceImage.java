@@ -2,12 +2,14 @@ package com.dongsoop.dongsoop.marketplace.entity;
 
 import com.dongsoop.dongsoop.common.BaseEntity;
 import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -17,6 +19,7 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
+@IdClass(MarketplaceImage.MarketplaceImageId.class)
 @SuperBuilder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -24,19 +27,24 @@ import org.hibernate.annotations.SQLRestriction;
 @SQLDelete(sql = "UPDATE marketplace_image SET is_deleted = true WHERE marketplace_board_id = ? AND url = ?")
 public class MarketplaceImage extends BaseEntity {
 
-    @EmbeddedId
-    private MarketplaceImageId id;
+    @Id
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "marketplace_board_id", nullable = false, updatable = false)
+    MarketplaceBoard marketplaceBoard;
 
-    @Embeddable
-    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    @Id
+    @Column(name = "url", nullable = false, updatable = false)
+    String url;
+
+    @NoArgsConstructor
     @AllArgsConstructor
-    public static class MarketplaceImageId {
+    public static class MarketplaceImageId implements Serializable {
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(name = "marketplace_board_id", nullable = false, updatable = false)
-        MarketplaceBoard marketplaceBoard;
+        @Serial
+        private static final long serialVersionUID = 1L;
 
-        @Column(name = "url", nullable = false, updatable = false)
+        Long marketplaceBoard;
+
         String url;
 
         @Override
@@ -48,12 +56,12 @@ public class MarketplaceImage extends BaseEntity {
                 return false;
             }
             MarketplaceImageId thatId = (MarketplaceImageId) that;
-            return marketplaceBoard.equals(thatId.marketplaceBoard) && url.equals(thatId.url);
+            return Objects.equals(marketplaceBoard, thatId.marketplaceBoard) && Objects.equals(url, thatId.url);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(marketplaceBoard.getId(), url);
+            return Objects.hash(marketplaceBoard, url);
         }
     }
 }

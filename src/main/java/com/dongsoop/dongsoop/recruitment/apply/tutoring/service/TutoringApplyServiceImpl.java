@@ -10,7 +10,6 @@ import com.dongsoop.dongsoop.recruitment.apply.dto.UpdateApplyStatusRequest;
 import com.dongsoop.dongsoop.recruitment.apply.entity.RecruitmentApplyStatus;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.dto.ApplyTutoringBoardRequest;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.entity.TutoringApply;
-import com.dongsoop.dongsoop.recruitment.apply.tutoring.entity.TutoringApply.TutoringApplyKey;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.exception.TutoringApplyNotFoundException;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.exception.TutoringOwnerCannotApplyException;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.exception.TutoringRecruitmentAlreadyAppliedException;
@@ -52,9 +51,9 @@ public class TutoringApplyServiceImpl implements TutoringApplyService {
 
         validateDepartment(tutoringBoard, member);
 
-        TutoringApplyKey key = new TutoringApplyKey(tutoringBoard, member);
         TutoringApply tutoringApply = TutoringApply.builder()
-                .id(key)
+                .tutoringBoard(tutoringBoard)
+                .member(member)
                 .build();
 
         tutoringApplyRepository.save(tutoringApply);

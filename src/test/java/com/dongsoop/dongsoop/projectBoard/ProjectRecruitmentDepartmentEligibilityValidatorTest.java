@@ -20,7 +20,6 @@ import com.dongsoop.dongsoop.recruitment.apply.project.repository.ProjectApplyRe
 import com.dongsoop.dongsoop.recruitment.apply.project.service.ProjectApplyServiceImpl;
 import com.dongsoop.dongsoop.recruitment.board.project.entity.ProjectBoard;
 import com.dongsoop.dongsoop.recruitment.board.project.entity.ProjectBoardDepartment;
-import com.dongsoop.dongsoop.recruitment.board.project.entity.ProjectBoardDepartment.ProjectBoardDepartmentId;
 import com.dongsoop.dongsoop.recruitment.board.project.exception.ProjectBoardDepartmentMismatchException;
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepository;
@@ -146,11 +145,7 @@ class ProjectRecruitmentDepartmentEligibilityValidatorTest {
      * @return ProjectBoardDepartment 객체
      */
     private ProjectBoardDepartment getProjectBoardDepartment(Department department, ProjectBoard projectBoard) {
-        ProjectBoardDepartmentId projectBoardDepartmentId = new ProjectBoardDepartmentId(
-                projectBoard,
-                department
-        );
-        return new ProjectBoardDepartment(projectBoardDepartmentId);
+        return new ProjectBoardDepartment(projectBoard, department);
     }
 
     private Member getAuthor() {

@@ -9,7 +9,6 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.service.DepartmentService;
 import com.dongsoop.dongsoop.notice.entity.Notice;
-import com.dongsoop.dongsoop.notice.entity.Notice.NoticeKey;
 import com.dongsoop.dongsoop.notice.notification.NoticeNotification;
 import com.dongsoop.dongsoop.notice.repository.NoticeDetailsRepository;
 import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
@@ -19,7 +18,6 @@ import com.dongsoop.dongsoop.notice.service.NoticeService;
 import com.dongsoop.dongsoop.notice.util.NoticeCrawl;
 import com.dongsoop.dongsoop.notice.util.NoticeLinkParser;
 import com.dongsoop.dongsoop.notice.util.NoticeParser;
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,7 +28,6 @@ import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.util.ReflectionUtils;
 
 @SpringBootTest(classes = {
         NoticeCrawl.class,
@@ -75,7 +72,7 @@ class NoticeCrawlingTest {
     private NoticeSchedulerImpl noticeScheduler;
 
     @Test
-    void get_at_least_one_notice_from_each_department() throws NoSuchFieldException, SecurityException {
+    void get_at_least_one_notice_from_each_department() {
         // given
         when(departmentService.getAllDepartments())
                 .thenReturn(TEST_DEPARTMENT_LIST);
@@ -89,23 +86,14 @@ class NoticeCrawlingTest {
         // when
         noticeScheduler.scheduled();
 
-        Field idField = Notice.class.getDeclaredField("id");
-        Field departmentField = NoticeKey.class.getDeclaredField("department");
-
-        idField.setAccessible(true);
-        departmentField.setAccessible(true);
-
         // then
         verify(noticeRepository, atLeast(MIN_NUMBER_OF_INVOCATIONS)).saveAll(
-                argThat(notices -> validateSavedNoticeByDepartment(notices, idField, departmentField)));
+                argThat(this::validateSavedNoticeByDepartment));
     }
 
-    boolean validateSavedNoticeByDepartment(Iterable<Notice> notices, Field idField, Field departmentField) {
+    boolean validateSavedNoticeByDepartment(Iterable<Notice> notices) {
         Set<Department> departmentSet = StreamSupport.stream(notices.spliterator(), false)
-                .map(notice -> {
-                    NoticeKey noticeKey = (NoticeKey) ReflectionUtils.getField(idField, notice);
-                    return (Department) ReflectionUtils.getField(departmentField, noticeKey);
-                })
+                .map(Notice::getDepartment)
                 .collect(Collectors.toSet());
 
         return departmentSet.size() == TEST_DEPARTMENT_LIST.size();

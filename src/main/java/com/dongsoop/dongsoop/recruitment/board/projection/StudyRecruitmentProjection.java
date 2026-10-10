@@ -22,14 +22,14 @@ public class StudyRecruitmentProjection implements RecruitmentProjection {
     public ConstructorExpression<RecruitmentOverview> getRecruitmentOverviewExpression() {
         return Projections.constructor(RecruitmentOverview.class,
                 board.id,
-                apply.id.member.countDistinct().intValue(),
+                apply.member.countDistinct().intValue(),
                 board.startAt,
                 board.endAt,
                 board.title,
                 board.content,
                 board.tags,
                 Expressions.stringTemplate("string_agg({0}, ',')",
-                        boardDepartment.id.department.id));
+                        boardDepartment.department.id));
     }
 
     @Override
@@ -43,11 +43,11 @@ public class StudyRecruitmentProjection implements RecruitmentProjection {
                 board.tags,
                 board.startAt,
                 board.endAt,
-                Expressions.stringTemplate("string_agg({0}, ',')", boardDepartment.id.department.id),
+                Expressions.stringTemplate("string_agg({0}, ',')", boardDepartment.department.id),
                 board.author.nickname,
                 board.createdAt,
                 board.updatedAt,
-                apply.id.member.countDistinct().intValue(),
+                apply.member.countDistinct().intValue(),
                 Expressions.constant(viewType),
                 Expressions.constant(isAlreadyApplied));
     }

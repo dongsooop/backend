@@ -53,10 +53,6 @@ public class ChatRoomService {
         return filterAccessibleRooms(allRooms, userId);
     }
 
-    public void enterChatRoom(String roomId, Long userId) {
-        chatValidator.validateUserForRoom(roomId, userId);
-    }
-
     public ChatRoom saveRoom(ChatRoom room) {
         return redisChatRepository.saveRoom(room);
     }
