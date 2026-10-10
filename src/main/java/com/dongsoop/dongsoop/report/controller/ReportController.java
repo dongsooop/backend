@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.report.controller;
 
+import com.dongsoop.dongsoop.report.dto.ReportListItem;
 import com.dongsoop.dongsoop.report.dto.CreateBlindDateReportRequest;
 import com.dongsoop.dongsoop.report.dto.CreateChatReportRequest;
 import com.dongsoop.dongsoop.report.dto.CreateReportRequest;
@@ -75,10 +76,10 @@ public class ReportController {
 
     @GetMapping("/admin")
     @Secured("ROLE_ADMIN")
-    public ResponseEntity<List<?>> getReports(
+    public ResponseEntity<List<ReportListItem>> getReports(
             @RequestParam(defaultValue = "ALL") ReportFilterType filter,
             Pageable pageable) {
-        List<?> reports = reportService.getReports(filter, pageable);
+        List<ReportListItem> reports = reportService.getReports(filter, pageable);
         return ResponseEntity.ok(reports);
     }
 }

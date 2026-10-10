@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.report.service;
 
+import com.dongsoop.dongsoop.report.dto.ReportListItem;
 import com.dongsoop.dongsoop.chat.exception.GroupChatOnlyException;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoard;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepository;
@@ -47,6 +48,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -131,11 +133,11 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public List<?> getReports(ReportFilterType filterType, Pageable pageable) {
+    public List<ReportListItem> getReports(ReportFilterType filterType, Pageable pageable) {
         if (ReportFilterType.UNPROCESSED.equals(filterType)) {
-            return reportRepository.findSummaryReportsByFilter(filterType, pageable);
+            return new ArrayList<>(reportRepository.findSummaryReportsByFilter(filterType, pageable));
         }
-        return reportRepository.findDetailedReportsByFilter(filterType, pageable);
+        return new ArrayList<>(reportRepository.findDetailedReportsByFilter(filterType, pageable));
     }
 
     @Override
