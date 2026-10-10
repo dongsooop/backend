@@ -64,7 +64,7 @@ class QuerydslPaginationIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void unsortedFeedbackPageIsBoundedAndUnpagedSortReturnsAllRows() {
-        Member member = saveMember("feedback-owner");
+        Member member = saveMember("feedown");
         saveFeedback(member, "first");
         saveFeedback(member, "second");
         saveFeedback(member, "third");
@@ -80,8 +80,8 @@ class QuerydslPaginationIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void notificationsSortByJoinedDetailsAndKeepMemberFilterAndPageBoundaries() {
-        Member member = saveMember("notification-owner");
-        Member other = saveMember("other-owner");
+        Member member = saveMember("notiown");
+        Member other = saveMember("other");
         NotificationDetails first = saveNotification(member, "alpha");
         NotificationDetails second = saveNotification(member, "beta");
         NotificationDetails third = saveNotification(member, "alpha");
@@ -101,10 +101,10 @@ class QuerydslPaginationIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void reportProjectionsPreserveNestedSortingWithExistingJoinAliases() {
-        Member alpha = saveMember("report-alpha");
-        Member beta = saveMember("report-beta");
-        Member gamma = saveMember("report-gamma");
-        Member target = saveMember("report-target");
+        Member alpha = saveMember("ralpha");
+        Member beta = saveMember("rbeta");
+        Member gamma = saveMember("rgamma");
+        Member target = saveMember("rtarget");
         Report first = saveReport(alpha, target);
         saveReport(beta, target);
         Report third = saveReport(alpha, target);
