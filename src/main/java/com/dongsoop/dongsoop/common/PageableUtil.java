@@ -4,13 +4,18 @@ import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.EntityPathBase;
 import com.querydsl.core.types.dsl.PathBuilder;
+import com.querydsl.jpa.impl.JPAQuery;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 @Component
 public class PageableUtil {
 
-    public OrderSpecifier<?>[] getAllOrderSpecifiers(Sort sort, EntityPathBase<?> entityPathBase) {
+    public <T> JPAQuery<T> applySort(JPAQuery<T> query, Sort sort, EntityPathBase<?> entityPathBase) {
+        return query.orderBy(getAllOrderSpecifiers(sort, entityPathBase));
+    }
+
+    private OrderSpecifier<?>[] getAllOrderSpecifiers(Sort sort, EntityPathBase<?> entityPathBase) {
         return sort.stream()
                 .map(order -> toOrderSpecifier(order, entityPathBase))
                 .toArray(OrderSpecifier[]::new);

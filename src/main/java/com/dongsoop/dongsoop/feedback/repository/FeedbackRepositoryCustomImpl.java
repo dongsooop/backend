@@ -102,23 +102,23 @@ public class FeedbackRepositoryCustomImpl implements FeedbackRepositoryCustom {
 
     @Override
     public List<String> searchAllImprovementSuggestions(Pageable pageable) {
-        return queryFactory
+        return pageableUtil.applySort(queryFactory
                 .select(feedback.improvementSuggestions)
                 .from(feedback)
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), feedback))
                 .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
+                .limit(pageable.getPageSize()),
+                pageable.getSort(), feedback)
                 .fetch();
     }
 
     @Override
     public List<String> searchAllFeatureRequests(Pageable pageable) {
-        return queryFactory
+        return pageableUtil.applySort(queryFactory
                 .select(feedback.featureRequests)
                 .from(feedback)
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), feedback))
                 .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
+                .limit(pageable.getPageSize()),
+                pageable.getSort(), feedback)
                 .fetch();
     }
 

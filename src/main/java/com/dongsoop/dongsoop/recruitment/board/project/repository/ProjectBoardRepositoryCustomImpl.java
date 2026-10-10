@@ -51,7 +51,7 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
     @ApplyBlockFilter
     public List<RecruitmentOverview> findProjectBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
                                                                                       Pageable pageable) {
-        return queryFactory
+        return pageableUtil.applySort(queryFactory
                 .select(projection.getRecruitmentOverviewExpression())
                 .from(projectBoard)
                 .leftJoin(projectApply)
@@ -62,8 +62,8 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                         .and(projectBoard.id.in(includeDepartmentType(departmentType))))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
-                .groupBy(projectBoard.id)
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), projectBoard))
+                .groupBy(projectBoard.id),
+                pageable.getSort(), projectBoard)
                 .fetch();
     }
 
@@ -111,7 +111,7 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
     @Override
     @ApplyBlockFilter
     public List<RecruitmentOverview> findProjectBoardOverviewsByPage(Pageable pageable) {
-        return queryFactory
+        return pageableUtil.applySort(queryFactory
                 .select(projection.getRecruitmentOverviewExpression())
                 .from(projectBoard)
                 .leftJoin(projectApply)
@@ -121,8 +121,8 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                 .where(recruitmentRepositoryUtils.isRecruiting(projectBoard.startAt, projectBoard.endAt))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
-                .groupBy(projectBoard.id)
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), projectBoard))
+                .groupBy(projectBoard.id),
+                pageable.getSort(), projectBoard)
                 .fetch();
     }
 

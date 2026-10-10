@@ -52,7 +52,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
     @ApplyBlockFilter
     public List<RecruitmentOverview> findStudyBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
                                                                                     Pageable pageable) {
-        return queryFactory
+        return pageableUtil.applySort(queryFactory
                 .select(projection.getRecruitmentOverviewExpression())
                 .from(studyBoard)
                 .leftJoin(studyApply)
@@ -63,8 +63,8 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                         .and(studyBoard.id.in(includeDepartmentType(departmentType))))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
-                .groupBy(studyBoard.id)
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), studyBoard))
+                .groupBy(studyBoard.id),
+                pageable.getSort(), studyBoard)
                 .fetch();
     }
 
@@ -112,7 +112,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
     @Override
     @ApplyBlockFilter
     public List<RecruitmentOverview> findStudyBoardOverviewsByPage(Pageable pageable) {
-        return queryFactory
+        return pageableUtil.applySort(queryFactory
                 .select(projection.getRecruitmentOverviewExpression())
                 .from(studyBoard)
                 .leftJoin(studyApply)
@@ -122,8 +122,8 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .where(recruitmentRepositoryUtils.isRecruiting(studyBoard.startAt, studyBoard.endAt))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
-                .groupBy(studyBoard.id)
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), studyBoard))
+                .groupBy(studyBoard.id),
+                pageable.getSort(), studyBoard)
                 .fetch();
     }
 

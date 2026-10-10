@@ -44,7 +44,7 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
     @ApplyBlockFilter
     public List<RecruitmentOverview> findTutoringBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
                                                                                        Pageable pageable) {
-        return queryFactory.select(projection.getRecruitmentOverviewExpression())
+        return pageableUtil.applySort(queryFactory.select(projection.getRecruitmentOverviewExpression())
                 .from(tutoringBoard)
                 .leftJoin(tutoringApply)
                 .on(tutoringApply.tutoringBoard.id.eq(tutoringBoard.id))
@@ -52,8 +52,8 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
                         .and(recruitmentRepositoryUtils.isRecruiting(tutoringBoard.startAt, tutoringBoard.endAt)))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
-                .groupBy(tutoringBoard.id)
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), tutoringBoard))
+                .groupBy(tutoringBoard.id),
+                pageable.getSort(), tutoringBoard)
                 .fetch();
     }
 
@@ -90,15 +90,15 @@ public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositor
     @Override
     @ApplyBlockFilter
     public List<RecruitmentOverview> findTutoringBoardOverviewsByPage(Pageable pageable) {
-        return queryFactory.select(projection.getRecruitmentOverviewExpression())
+        return pageableUtil.applySort(queryFactory.select(projection.getRecruitmentOverviewExpression())
                 .from(tutoringBoard)
                 .leftJoin(tutoringApply)
                 .on(tutoringApply.tutoringBoard.id.eq(tutoringBoard.id))
                 .where(recruitmentRepositoryUtils.isRecruiting(tutoringBoard.startAt, tutoringBoard.endAt))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
-                .groupBy(tutoringBoard.id)
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), tutoringBoard))
+                .groupBy(tutoringBoard.id),
+                pageable.getSort(), tutoringBoard)
                 .fetch();
     }
 }

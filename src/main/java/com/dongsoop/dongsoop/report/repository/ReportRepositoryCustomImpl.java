@@ -55,10 +55,10 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     }
 
     private List<ReportSummaryResponse> applySummaryPaginationAndSorting(JPAQuery<ReportSummaryResponse> query, Pageable pageable) {
-        return query
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), report))
+        return pageableUtil.applySort(query
                 .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
+                .limit(pageable.getPageSize()),
+                pageable.getSort(), report)
                 .fetch();
     }
 
@@ -153,10 +153,10 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     }
 
     private List<ReportResponse> applyPaginationAndSorting(JPAQuery<ReportResponse> query, Pageable pageable) {
-        return query
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), report))
+        return pageableUtil.applySort(query
                 .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
+                .limit(pageable.getPageSize()),
+                pageable.getSort(), report)
                 .fetch();
     }
 

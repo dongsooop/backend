@@ -26,7 +26,7 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
 
     @Override
     public List<NotificationList> getMemberNotifications(Long memberId, Pageable pageable) {
-        return queryFactory.select(Projections.constructor(NotificationList.class,
+        return pageableUtil.applySort(queryFactory.select(Projections.constructor(NotificationList.class,
                         notificationDetails.id,
                         notificationDetails.title,
                         notificationDetails.body,
@@ -39,8 +39,8 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
                 .where(memberNotification.member.id.eq(memberId)
                         .and(notificationDetails.isDeleted.eq(false)))
                 .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), notificationDetails))
+                .limit(pageable.getPageSize()),
+                pageable.getSort(), notificationDetails)
                 .fetch();
     }
 
