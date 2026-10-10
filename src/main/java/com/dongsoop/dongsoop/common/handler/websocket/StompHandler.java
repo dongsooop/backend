@@ -33,7 +33,6 @@ public class StompHandler implements ChannelInterceptor {
 
     @Override
     @Nullable
-    @SuppressWarnings("java:S2638") // SONARJAVA-5865: Spring @NonNullApi and @Nullable override false positive
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
