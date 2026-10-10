@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.recruitment.board.project.repository;
 
-import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.memberblock.annotation.ApplyBlockFilter;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
@@ -13,17 +12,18 @@ import com.dongsoop.dongsoop.recruitment.board.projection.ProjectRecruitmentProj
 import com.dongsoop.dongsoop.recruitment.repository.RecruitmentRepositoryUtils;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.NumberPath;
+import com.querydsl.core.types.dsl.PathBuilder;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.JPQLQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.support.Querydsl;
 import org.springframework.stereotype.Repository;
 
 @Repository
-@RequiredArgsConstructor
 public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryCustom {
 
     private static final QProjectBoard projectBoard = QProjectBoard.projectBoard;
@@ -34,11 +34,22 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
 
     private final JPAQueryFactory queryFactory;
 
-    private final PageableUtil pageableUtil;
+    private final Querydsl querydsl;
 
     private final RecruitmentRepositoryUtils recruitmentRepositoryUtils;
 
     private final ProjectRecruitmentProjection projection;
+
+    public ProjectBoardRepositoryCustomImpl(EntityManager entityManager,
+            JPAQueryFactory queryFactory,
+            RecruitmentRepositoryUtils recruitmentRepositoryUtils,
+            ProjectRecruitmentProjection projection) {
+        this.queryFactory = queryFactory;
+        this.recruitmentRepositoryUtils = recruitmentRepositoryUtils;
+        this.projection = projection;
+        this.querydsl = new Querydsl(entityManager,
+                new PathBuilder<>(projectBoard.getType(), projectBoard.getMetadata()));
+    }
 
     /**
      * 학과별로 모집중인 상태의 프로젝트 모집 게시판 목록을 페이지 단위로 조회합니다.
@@ -51,7 +62,7 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
     @ApplyBlockFilter
     public List<RecruitmentOverview> findProjectBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
                                                                                       Pageable pageable) {
-        return pageableUtil.applySort(queryFactory
+        return querydsl.applyPagination(pageable, queryFactory
                 .select(projection.getRecruitmentOverviewExpression())
                 .from(projectBoard)
                 .leftJoin(projectApply)
@@ -60,10 +71,7 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                 .on(hasMatchingProjectBoardId(projectBoardDepartment.projectBoard.id))
                 .where(recruitmentRepositoryUtils.isRecruiting(projectBoard.startAt, projectBoard.endAt)
                         .and(projectBoard.id.in(includeDepartmentType(departmentType))))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .groupBy(projectBoard.id),
-                pageable.getSort(), projectBoard)
+                .groupBy(projectBoard.id))
                 .fetch();
     }
 
@@ -111,7 +119,7 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
     @Override
     @ApplyBlockFilter
     public List<RecruitmentOverview> findProjectBoardOverviewsByPage(Pageable pageable) {
-        return pageableUtil.applySort(queryFactory
+        return querydsl.applyPagination(pageable, queryFactory
                 .select(projection.getRecruitmentOverviewExpression())
                 .from(projectBoard)
                 .leftJoin(projectApply)
@@ -119,10 +127,7 @@ public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryC
                 .leftJoin(projectBoardDepartment)
                 .on(hasMatchingProjectBoardId(projectBoardDepartment.projectBoard.id))
                 .where(recruitmentRepositoryUtils.isRecruiting(projectBoard.startAt, projectBoard.endAt))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .groupBy(projectBoard.id),
-                pageable.getSort(), projectBoard)
+                .groupBy(projectBoard.id))
                 .fetch();
     }
 

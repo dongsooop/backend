@@ -1,32 +1,40 @@
 package com.dongsoop.dongsoop.notification.repository;
 
-import static com.dongsoop.dongsoop.notification.entity.QNotificationDetails.notificationDetails;
-import static com.dongsoop.dongsoop.notification.entity.QMemberNotification.memberNotification;
 import static com.dongsoop.dongsoop.member.entity.QMember.member;
-import com.dongsoop.dongsoop.common.PageableUtil;
+import static com.dongsoop.dongsoop.notification.entity.QMemberNotification.memberNotification;
+import static com.dongsoop.dongsoop.notification.entity.QNotificationDetails.notificationDetails;
+
 import com.dongsoop.dongsoop.notification.dto.NotificationList;
 import com.dongsoop.dongsoop.notification.dto.NotificationUnread;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.PathBuilder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.EntityManager;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.support.Querydsl;
 import org.springframework.stereotype.Repository;
 
 @Repository
-@RequiredArgsConstructor
 public class NotificationRepositoryCustomImpl implements NotificationRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
-    private final PageableUtil pageableUtil;
+    private final Querydsl querydsl;
+
+    public NotificationRepositoryCustomImpl(EntityManager entityManager,
+            JPAQueryFactory queryFactory) {
+        this.queryFactory = queryFactory;
+        this.querydsl = new Querydsl(entityManager,
+                new PathBuilder<>(notificationDetails.getType(), notificationDetails.getMetadata()));
+    }
 
 
     @Override
     public List<NotificationList> getMemberNotifications(Long memberId, Pageable pageable) {
-        return pageableUtil.applySort(queryFactory.select(Projections.constructor(NotificationList.class,
+        return querydsl.applyPagination(pageable, queryFactory.select(Projections.constructor(NotificationList.class,
                         notificationDetails.id,
                         notificationDetails.title,
                         notificationDetails.body,
@@ -37,10 +45,7 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
                 .from(memberNotification)
                 .innerJoin(memberNotification.details, notificationDetails)
                 .where(memberNotification.member.id.eq(memberId)
-                        .and(notificationDetails.isDeleted.eq(false)))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize()),
-                pageable.getSort(), notificationDetails)
+                        .and(notificationDetails.isDeleted.eq(false))))
                 .fetch();
     }
 
