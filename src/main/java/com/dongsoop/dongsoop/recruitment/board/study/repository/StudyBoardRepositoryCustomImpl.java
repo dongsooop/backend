@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.recruitment.board.study.repository;
 
-import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.memberblock.annotation.ApplyBlockFilter;
 import com.dongsoop.dongsoop.recruitment.RecruitmentViewType;
@@ -13,17 +12,18 @@ import com.dongsoop.dongsoop.recruitment.board.study.entity.QStudyBoardDepartmen
 import com.dongsoop.dongsoop.recruitment.repository.RecruitmentRepositoryUtils;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.NumberPath;
+import com.querydsl.core.types.dsl.PathBuilder;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.JPQLQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.support.Querydsl;
 import org.springframework.stereotype.Repository;
 
 @Repository
-@RequiredArgsConstructor
 public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCustom {
 
     private static final QStudyBoard studyBoard = QStudyBoard.studyBoard;
@@ -34,11 +34,22 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
 
     private final JPAQueryFactory queryFactory;
 
-    private final PageableUtil pageableUtil;
+    private final Querydsl querydsl;
 
     private final StudyRecruitmentProjection projection;
 
     private final RecruitmentRepositoryUtils recruitmentRepositoryUtils;
+
+    public StudyBoardRepositoryCustomImpl(EntityManager entityManager,
+            JPAQueryFactory queryFactory,
+            StudyRecruitmentProjection projection,
+            RecruitmentRepositoryUtils recruitmentRepositoryUtils) {
+        this.queryFactory = queryFactory;
+        this.projection = projection;
+        this.recruitmentRepositoryUtils = recruitmentRepositoryUtils;
+        this.querydsl = new Querydsl(entityManager,
+                new PathBuilder<>(studyBoard.getType(), studyBoard.getMetadata()));
+    }
 
     /**
      * 학과별로 모집중인 상태의 스터디 모집 게시판 목록을 페이지 단위로 조회합니다.
@@ -52,7 +63,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
     @ApplyBlockFilter
     public List<RecruitmentOverview> findStudyBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
                                                                                     Pageable pageable) {
-        return queryFactory
+        return querydsl.applyPagination(pageable, queryFactory
                 .select(projection.getRecruitmentOverviewExpression())
                 .from(studyBoard)
                 .leftJoin(studyApply)
@@ -61,10 +72,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .on(hasMatchingStudyBoardId(studyBoardDepartment.studyBoard.id))
                 .where(recruitmentRepositoryUtils.isRecruiting(studyBoard.startAt, studyBoard.endAt)
                         .and(studyBoard.id.in(includeDepartmentType(departmentType))))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .groupBy(studyBoard.id)
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), studyBoard))
+                .groupBy(studyBoard.id))
                 .fetch();
     }
 
@@ -112,7 +120,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
     @Override
     @ApplyBlockFilter
     public List<RecruitmentOverview> findStudyBoardOverviewsByPage(Pageable pageable) {
-        return queryFactory
+        return querydsl.applyPagination(pageable, queryFactory
                 .select(projection.getRecruitmentOverviewExpression())
                 .from(studyBoard)
                 .leftJoin(studyApply)
@@ -120,10 +128,7 @@ public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCusto
                 .leftJoin(studyBoardDepartment)
                 .on(hasMatchingStudyBoardId(studyBoardDepartment.studyBoard.id))
                 .where(recruitmentRepositoryUtils.isRecruiting(studyBoard.startAt, studyBoard.endAt))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .groupBy(studyBoard.id)
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), studyBoard))
+                .groupBy(studyBoard.id))
                 .fetch();
     }
 
