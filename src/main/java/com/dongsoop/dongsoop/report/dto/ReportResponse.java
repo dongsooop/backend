@@ -29,5 +29,5 @@ public record ReportResponse(
         String messageContent,
         LocalDateTime messageSentAt,
         ChatMessageSnapshots messageContext
-) {
+) implements ReportListItem {
 }
