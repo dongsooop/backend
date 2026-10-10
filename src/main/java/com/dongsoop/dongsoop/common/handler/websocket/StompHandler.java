@@ -8,6 +8,7 @@ import com.dongsoop.dongsoop.jwt.dto.AuthenticationInformationByToken;
 import io.jsonwebtoken.Claims;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.Nullable;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -31,6 +32,8 @@ public class StompHandler implements ChannelInterceptor {
     private final WebSocketSessionManager sessionManager;
 
     @Override
+    @Nullable
+    @SuppressWarnings("java:S2638") // SONARJAVA-5865: Spring @NonNullApi and @Nullable override false positive
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
