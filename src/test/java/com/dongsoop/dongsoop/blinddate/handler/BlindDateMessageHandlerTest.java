@@ -41,9 +41,9 @@ class BlindDateMessageHandlerTest {
         Map<String, Object> payload = (Map<String, Object>) event.getValue();
         assertThat(payload.keySet()).containsExactlyInAnyOrder(
                 "messageId", "message", "senderId", "senderName", "timestamp");
-        assertThat(payload.get("message")).isEqualTo("안녕");
-        assertThat(payload.get("senderId")).isEqualTo(2L);
-        assertThat(payload.get("senderName")).isEqualTo("익명1");
+        assertThat(payload).containsEntry("message", "안녕")
+                .containsEntry("senderId", 2L)
+                .containsEntry("senderName", "익명1");
         assertThat(payload.get("timestamp")).isInstanceOf(Long.class);
 
         String messageId = (String) payload.get("messageId");
@@ -66,7 +66,7 @@ class BlindDateMessageHandlerTest {
         ArgumentCaptor<Object> event = ArgumentCaptor.forClass(Object.class);
         verify(messagingTemplate).convertAndSend(eq(BlindDateTopic.message(sessionId)), event.capture());
         Map<String, Object> payload = (Map<String, Object>) event.getValue();
-        assertThat(payload.get("message")).isEqualTo(longMessage);
+        assertThat(payload).containsEntry("message", longMessage);
 
         BlindDateMessage recorded = sessions.findMessage(sessionId, (String) payload.get("messageId")).orElseThrow();
         assertThat(recorded.content()).isEqualTo("가".repeat(999));

@@ -1,7 +1,6 @@
 package com.dongsoop.dongsoop.chat;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -50,6 +49,6 @@ class ChatSocketControllerTest {
 
         chatSocketController.sendMessage(message, "room1", principal);
 
-        verify(chatService).processWebSocketMessage(eq(message), eq(2L), eq("room1"));
+        verify(chatService).processWebSocketMessage(message, 2L, "room1");
     }
 }

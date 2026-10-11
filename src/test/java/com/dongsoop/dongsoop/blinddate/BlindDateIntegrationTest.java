@@ -331,8 +331,7 @@ class BlindDateIntegrationTest {
             ParticipantInfo byMember = participantStorage.getByMemberId(1L);
             ParticipantInfo bySocket = participantStorage.getBySocketId("socket-1");
 
-            assertThat(byMember).isNotNull();
-            assertThat(byMember).isEqualTo(bySocket);
+            assertThat(byMember).isNotNull().isEqualTo(bySocket);
             assertThat(byMember.getSessionId()).isEqualTo(sessionId);
             assertThat(byMember.getMemberId()).isEqualTo(1L);
             assertThat(byMember.getSocketIds()).contains("socket-1");

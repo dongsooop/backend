@@ -25,14 +25,14 @@ class BlindDateSessionMessageTest {
         sessionId = sessions.create().getSessionId();
     }
 
-    private void record(String sessionId, String messageId) {
+    private void recordMessage(String sessionId, String messageId) {
         sessions.recordMessage(sessionId, new BlindDateMessage(messageId, 1L, "내용" + messageId, SENT_AT));
     }
 
     @Test
     @DisplayName("세션의 메시지를 ID로 조회한다")
     void findMessage_ReturnsRecorded() {
-        record(sessionId, "m1");
+        recordMessage(sessionId, "m1");
 
         assertThat(sessions.findMessage(sessionId, "m1")).map(BlindDateMessage::content).contains("내용m1");
         assertThat(sessions.findMessage(sessionId, "m2")).isEmpty();
@@ -41,7 +41,7 @@ class BlindDateSessionMessageTest {
     @Test
     @DisplayName("직전 메시지는 지정한 메시지 앞의 것만 오래된 순으로 최대 limit개 반환한다")
     void findMessagesBefore_ReturnsOnlyPrecedingInOrder() {
-        IntStream.range(0, 6).forEach(i -> record(sessionId, "m" + i));
+        IntStream.range(0, 6).forEach(i -> recordMessage(sessionId, "m" + i));
 
         assertThat(sessions.findMessagesBefore(sessionId, "m4", 3)).extracting(BlindDateMessage::messageId)
                 .containsExactly("m1", "m2", "m3");
@@ -52,7 +52,7 @@ class BlindDateSessionMessageTest {
     @Test
     @DisplayName("다음 메시지는 지정한 메시지 뒤의 것만 오래된 순으로 최대 limit개 반환한다")
     void findMessagesAfter_ReturnsOnlyFollowingInOrder() {
-        IntStream.range(0, 6).forEach(i -> record(sessionId, "m" + i));
+        IntStream.range(0, 6).forEach(i -> recordMessage(sessionId, "m" + i));
 
         assertThat(sessions.findMessagesAfter(sessionId, "m1", 3)).extracting(BlindDateMessage::messageId)
                 .containsExactly("m2", "m3", "m4");
@@ -64,7 +64,7 @@ class BlindDateSessionMessageTest {
     @Test
     @DisplayName("세션당 최근 1,000개만 남기고 오래된 메시지부터 버린다")
     void recordMessage_KeepsLatestThousand() {
-        IntStream.range(0, 1001).forEach(i -> record(sessionId, "m" + i));
+        IntStream.range(0, 1001).forEach(i -> recordMessage(sessionId, "m" + i));
 
         assertThat(sessions.findMessage(sessionId, "m0")).isEmpty();
         assertThat(sessions.findMessage(sessionId, "m1")).isPresent();
@@ -75,7 +75,7 @@ class BlindDateSessionMessageTest {
     @DisplayName("세션별로 따로 기록한다")
     void recordMessage_SeparatedBySession() {
         String otherSessionId = sessions.create().getSessionId();
-        record(otherSessionId, "m1");
+        recordMessage(otherSessionId, "m1");
 
         assertThat(sessions.findMessage(sessionId, "m1")).isEmpty();
         assertThat(sessions.findMessage(otherSessionId, "m1")).isPresent();
@@ -84,10 +84,10 @@ class BlindDateSessionMessageTest {
     @Test
     @DisplayName("세션이 종료되면 메시지 기록도 사라지고 이후 메시지는 기록하지 않는다")
     void terminate_RemovesMessages() {
-        record(sessionId, "m1");
+        recordMessage(sessionId, "m1");
 
         sessions.terminate(sessionId);
-        record(sessionId, "m2");
+        recordMessage(sessionId, "m2");
 
         assertThat(sessions.findMessage(sessionId, "m1")).isEmpty();
         assertThat(sessions.findMessage(sessionId, "m2")).isEmpty();
@@ -96,8 +96,8 @@ class BlindDateSessionMessageTest {
     @Test
     @DisplayName("기록이 있는 세션을 종료하면 지우기 전의 메시지 기록으로 종료 이벤트를 한 번 발행한다")
     void terminate_PublishesClosedEventWithMessages() {
-        record(sessionId, "m1");
-        record(sessionId, "m2");
+        recordMessage(sessionId, "m1");
+        recordMessage(sessionId, "m2");
 
         sessions.terminate(sessionId);
         sessions.terminate(sessionId);
@@ -121,8 +121,8 @@ class BlindDateSessionMessageTest {
     void clear_PublishesClosedEventPerSessionWithMessages() {
         String silentSessionId = sessions.create().getSessionId();
         String otherSessionId = sessions.create().getSessionId();
-        record(sessionId, "m1");
-        record(otherSessionId, "o1");
+        recordMessage(sessionId, "m1");
+        recordMessage(otherSessionId, "o1");
 
         sessions.clear();
 
@@ -150,7 +150,7 @@ class BlindDateSessionMessageTest {
     @Test
     @DisplayName("전체 초기화하면 메시지 기록도 사라진다")
     void clear_RemovesMessages() {
-        record(sessionId, "m1");
+        recordMessage(sessionId, "m1");
 
         sessions.clear();
 

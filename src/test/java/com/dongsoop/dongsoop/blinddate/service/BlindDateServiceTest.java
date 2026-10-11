@@ -69,8 +69,9 @@ class BlindDateServiceTest {
     @Test
     void timerFailureLeavesOperationClosed() {
         time.rejectAbsoluteSchedules();
-        assertThatThrownBy(() -> service.startBlindDate(
-                new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 5)))
+        StartBlindDateRequest request = new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 5);
+
+        assertThatThrownBy(() -> service.startBlindDate(request))
                 .isInstanceOf(RuntimeException.class);
         assertThat(service.isAvailable()).isFalse();
         assertThat(operation.getPointer()).isNull();
