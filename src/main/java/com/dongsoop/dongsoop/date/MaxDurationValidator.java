@@ -11,8 +11,8 @@ public class MaxDurationValidator extends DurationValidator<MaxDuration> {
     @Override
     public void initialize(MaxDuration constraintAnnotation) {
         this.value = constraintAnnotation.value();
-        this.startFieldName = constraintAnnotation.start();
-        this.endFieldName = constraintAnnotation.end();
+        this.startAccessorName = constraintAnnotation.start();
+        this.endAccessorName = constraintAnnotation.end();
     }
 
     @Override

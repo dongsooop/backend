@@ -11,8 +11,8 @@ public class MinDurationValidator extends DurationValidator<MinDuration> {
     @Override
     public void initialize(MinDuration constraintAnnotation) {
         this.value = constraintAnnotation.value();
-        this.startFieldName = constraintAnnotation.start();
-        this.endFieldName = constraintAnnotation.end();
+        this.startAccessorName = constraintAnnotation.start();
+        this.endAccessorName = constraintAnnotation.end();
     }
 
     @Override

@@ -3,7 +3,6 @@ package com.dongsoop.dongsoop.date;
 import com.dongsoop.dongsoop.date.exception.TimeTypeMismatchException;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
-import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import lombok.extern.slf4j.Slf4j;
@@ -11,27 +10,25 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class EndAtAfterStartAtValidator implements ConstraintValidator<EndAtAfterStartAt, Object> {
 
-    private String startFieldName;
+    private String startAccessorName;
 
-    private String endFieldName;
+    private String endAccessorName;
 
     @Override
     public void initialize(EndAtAfterStartAt constraintAnnotation) {
-        this.startFieldName = constraintAnnotation.start();
-        this.endFieldName = constraintAnnotation.end();
+        this.startAccessorName = constraintAnnotation.start();
+        this.endAccessorName = constraintAnnotation.end();
     }
 
     @Override
     public boolean isValid(Object object, ConstraintValidatorContext constraintValidatorContext) {
         try {
-            Field startField = object.getClass().getDeclaredField(startFieldName);
-            Field endField = object.getClass().getDeclaredField(endFieldName);
-
-            startField.setAccessible(true);
-            endField.setAccessible(true);
-
-            Object startAtObject = startField.get(object);
-            Object endAtObject = endField.get(object);
+            Object startAtObject = object.getClass()
+                    .getMethod(startAccessorName)
+                    .invoke(object);
+            Object endAtObject = object.getClass()
+                    .getMethod(endAccessorName)
+                    .invoke(object);
             if (startAtObject == null || endAtObject == null) {
                 return true; // null 검증은 @NotNull 에서 처리
             }
