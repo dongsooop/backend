@@ -18,6 +18,8 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 @RequiredArgsConstructor
 public class S3ServiceImpl implements S3Service {
 
+    private static final String KEY_DELIMITER = Character.toString('/');
+
     private final S3Client client;
 
     @Value("${cloud.aws.s3.bucket}")
@@ -42,7 +44,7 @@ public class S3ServiceImpl implements S3Service {
         }
         String extension = fileName.substring(separateIndex);
         String saveFileName = UUID.randomUUID() + extension;
-        String saveFilePath = dirName + "/" + boardId + "/" + saveFileName;
+        String saveFilePath = String.join(KEY_DELIMITER, dirName, String.valueOf(boardId), saveFileName);
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucket)

@@ -20,6 +20,8 @@ public final class RestaurantOverview {
     private final String externalMapId;
     private final String placeUrl;
 
+    // QueryDSL constructor projection requires one parameter for each selected response field.
+    @SuppressWarnings("java:S107")
     @QueryProjection
     public RestaurantOverview(Long id, String name, RestaurantCategory categoryEnum,
                               Double distance, String placeUrl,

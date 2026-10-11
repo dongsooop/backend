@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -15,11 +16,16 @@ public class UrlEncodingUtil {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd");
     private static final String ENCODING_PREFIX = "fnct1|@@|";
-    private static final String DIET_PATH_TEMPLATE = "/diet/dmu/13/view.do?monday=%s&week=%s&";
+
+    private final String dietPathTemplate;
+
+    public UrlEncodingUtil(@Value("${meal.crawler.diet-path-template}") String dietPathTemplate) {
+        this.dietPathTemplate = dietPathTemplate;
+    }
 
     public String buildWeekUrl(String baseUrl, LocalDate monday, String weekParam) {
         String mondayStr = monday.format(DATE_FORMATTER);
-        String pathOnly = String.format(DIET_PATH_TEMPLATE, mondayStr, weekParam);
+        String pathOnly = String.format(dietPathTemplate, mondayStr, weekParam);
 
         return createEncodedUrl(baseUrl, pathOnly);
     }
