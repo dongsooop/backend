@@ -13,8 +13,8 @@ import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.SignatureException;
 import java.security.PublicKey;
+import java.time.Instant;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
 import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
@@ -80,16 +80,15 @@ public class JwtUtil {
 
     public static final String DEVICE_ID_CLAIM = "did";
 
-    protected String issue(Date tokenExpiredTime, String id, List<String> roleList, JWTType type, Long deviceId) {
+    protected String issue(Instant tokenExpiredTime, String id, List<String> roleList, JWTType type, Long deviceId) {
         SecretKey key = jwtKeyManager.getSecretKey();
 
         JwtBuilder builder = Jwts.builder()
                 .subject(id)
                 .claim(roleClaimName, roleList)
                 .claim(typeClaimName, type.name())
-                .issuedAt(new Date())
-                .signWith(key)
-                .expiration(tokenExpiredTime);
+                .signWith(key);
+        builder = JwtDateAdapter.applyTimestamps(builder, Instant.now(), tokenExpiredTime);
 
         if (deviceId != null) {
             builder.claim(DEVICE_ID_CLAIM, deviceId);
