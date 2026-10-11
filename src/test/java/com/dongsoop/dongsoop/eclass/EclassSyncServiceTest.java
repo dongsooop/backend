@@ -34,6 +34,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -381,39 +383,27 @@ class EclassSyncServiceTest {
         assertThat(existing.getDueAt()).isEqualTo(NOW.plusDays(2));
     }
 
-    @Test
-    @DisplayName("마감이 미뤄지면 변경 알림을 보내지 않는다 — 리마인드가 새 일정으로 다시 나간다")
-    void doesNotNotifyWhenDueDatePostponed() {
-        EclassAssignment existing = existing(NOW.plusDays(2));
+    @ParameterizedTest(name = "기존 +{0}일, 수집 +{1}일, 제출={2}")
+    @CsvSource({
+            "2, 9, false",
+            "2, 2, false",
+            "9, 2, true"
+    })
+    @DisplayName("마감이 앞당겨지지 않거나 이미 제출한 과제에는 변경 알림을 보내지 않는다")
+    void doesNotNotifyWhenDueDateChangeIsNotRelevant(
+            int existingDueDays,
+            int fetchedDueDays,
+            boolean submitted
+    ) {
+        EclassAssignment existing = existing(NOW.plusDays(existingDueDays));
+        if (submitted) {
+            existing.updateSubmission(true, NOW.minusHours(1));
+        }
         givenExisting(existing);
-        givenFetched(moodleAssignment(601L, NOW.plusDays(9)));
-        givenSubmissionStatus(false);
-
-        syncService.syncLink(link);
-
-        verify(eclassNotification, never()).sendDueDateChanged(any(), any());
-    }
-
-    @Test
-    @DisplayName("마감이 그대로면 변경 알림을 보내지 않는다")
-    void doesNotNotifyWhenDueDateUnchanged() {
-        EclassAssignment existing = existing(NOW.plusDays(2));
-        givenExisting(existing);
-        givenFetched(moodleAssignment(601L, NOW.plusDays(2)));
-        givenSubmissionStatus(false);
-
-        syncService.syncLink(link);
-
-        verify(eclassNotification, never()).sendDueDateChanged(any(), any());
-    }
-
-    @Test
-    @DisplayName("이미 제출한 과제는 마감이 앞당겨져도 알리지 않는다")
-    void doesNotNotifySubmittedAssignment() {
-        EclassAssignment existing = existing(NOW.plusDays(9));
-        existing.updateSubmission(true, NOW.minusHours(1));
-        givenExisting(existing);
-        givenFetched(moodleAssignment(601L, NOW.plusDays(2)));
+        givenFetched(moodleAssignment(601L, NOW.plusDays(fetchedDueDays)));
+        if (!submitted) {
+            givenSubmissionStatus(false);
+        }
 
         syncService.syncLink(link);
 

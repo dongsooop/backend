@@ -16,6 +16,7 @@ import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.report.dto.CreateChatReportRequest;
 import com.dongsoop.dongsoop.report.dto.MessageReportDraft;
+import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshot;
 import com.dongsoop.dongsoop.report.entity.ReportReason;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.exception.NotReportableMessageException;
@@ -100,7 +101,7 @@ class ChatReportTargetResolverTest {
         assertThat(draft.messageSentAt()).isEqualTo(BASE.plusMinutes(13));
         assertThat(draft.targetUrl()).isEqualTo("/chat/room/" + ROOM_ID);
         assertThat(draft.messageContext().messages())
-                .extracting(snapshot -> snapshot.content())
+                .extracting(ChatMessageSnapshot::content)
                 .containsExactly("내용m3", "내용m4", "내용m5", "내용m6", "내용m7",
                         "내용m8", "내용m9", "내용m10", "내용m11", "내용m12");
     }
@@ -118,7 +119,7 @@ class ChatReportTargetResolverTest {
         when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(messages);
 
         assertThat(resolver.findContextAfter(ROOM_ID, "target")).hasValueSatisfying(after ->
-                assertThat(after.messages()).extracting(snapshot -> snapshot.content())
+                assertThat(after.messages()).extracting(ChatMessageSnapshot::content)
                         .containsExactly("내용a1", "내용a2", "내용a3", "내용a4", "내용a5",
                                 "내용a6", "내용a7", "내용a8", "내용a9", "내용a10"));
     }
@@ -134,7 +135,7 @@ class ChatReportTargetResolverTest {
                         .content("답장").timestamp(BASE.plusMinutes(1)).type(MessageType.CHAT).build()));
 
         assertThat(resolver.findContextAfter(ROOM_ID, "old")).hasValueSatisfying(after ->
-                assertThat(after.messages()).extracting(snapshot -> snapshot.content()).containsExactly("답장"));
+                assertThat(after.messages()).extracting(ChatMessageSnapshot::content).containsExactly("답장"));
         assertThat(resolver.findContextAfter(ROOM_ID, "nope")).isEmpty();
     }
 
@@ -160,7 +161,9 @@ class ChatReportTargetResolverTest {
     @Test
     @DisplayName("방 참여자가 아니면 신고할 수 없다")
     void resolve_NotParticipant_Throws() {
-        assertThatThrownBy(() -> resolver.resolve(3L, request("target")))
+        CreateChatReportRequest request = request("target");
+
+        assertThatThrownBy(() -> resolver.resolve(3L, request))
                 .isInstanceOf(UnauthorizedChatAccessException.class);
     }
 
@@ -169,8 +172,9 @@ class ChatReportTargetResolverTest {
     void resolve_UnknownMessage_Throws() {
         when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(List.of());
         when(chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(ROOM_ID)).thenReturn(List.of());
+        CreateChatReportRequest request = request("nope");
 
-        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request("nope")))
+        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
                 .isInstanceOf(ReportTargetNotFoundException.class);
     }
 
@@ -178,8 +182,9 @@ class ChatReportTargetResolverTest {
     @DisplayName("입장·퇴장 시스템 메시지는 신고할 수 없다")
     void resolve_SystemMessage_Throws() {
         when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(List.of(message("leave", 2L, 0, MessageType.LEAVE)));
+        CreateChatReportRequest request = request("leave");
 
-        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request("leave")))
+        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
                 .isInstanceOf(NotReportableMessageException.class);
     }
 
@@ -187,8 +192,9 @@ class ChatReportTargetResolverTest {
     @DisplayName("자기 메시지는 신고할 수 없다")
     void resolve_OwnMessage_Throws() {
         when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(List.of(message("mine", 1L, 0, MessageType.CHAT)));
+        CreateChatReportRequest request = request("mine");
 
-        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request("mine")))
+        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
                 .isInstanceOf(SelfReportException.class);
     }
 }

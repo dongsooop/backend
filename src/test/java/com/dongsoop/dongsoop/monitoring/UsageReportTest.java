@@ -134,8 +134,8 @@ class UsageReportTest {
         String line = "x".repeat(700) + "\n";
         List<String> chunks = DiscordWebhookClient.split(line.repeat(4));
 
-        assertThat(chunks).hasSize(2);
-        assertThat(chunks).allSatisfy(c -> assertThat(c.length()).isLessThanOrEqualTo(2000));
+        assertThat(chunks).hasSize(2)
+                .allSatisfy(c -> assertThat(c.length()).isLessThanOrEqualTo(2000));
     }
 
     @Test

@@ -51,7 +51,7 @@ class BlindDateReportTargetResolverTest {
         when(memberRepository.findById(SENDER_ID)).thenReturn(Optional.of(sender));
     }
 
-    private void record(String messageId, Long senderId, String content) {
+    private void recordMessage(String messageId, Long senderId, String content) {
         sessions.recordMessage(sessionId, new BlindDateMessage(messageId, senderId, content, SENT_AT));
     }
 
@@ -62,8 +62,8 @@ class BlindDateReportTargetResolverTest {
     @Test
     @DisplayName("진행 중 세션의 뒤쪽 맥락은 신고 메시지 다음 10개, 세션이 없으면 비어 있다")
     void findLiveContextAfter_ReturnsFollowingOrEmpty() {
-        record("target", SENDER_ID, "무례한 말");
-        IntStream.range(0, 12).forEach(i -> record("a" + i, REPORTER_ID, "뒤" + i));
+        recordMessage("target", SENDER_ID, "무례한 말");
+        IntStream.range(0, 12).forEach(i -> recordMessage("a" + i, REPORTER_ID, "뒤" + i));
 
         assertThat(resolver.findLiveContextAfter(sessionId, "target")).hasValueSatisfying(after ->
                 assertThat(after.messages()).extracting(ChatMessageSnapshot::content)
@@ -76,9 +76,9 @@ class BlindDateReportTargetResolverTest {
     @Test
     @DisplayName("신고한 메시지의 발신자를 대상으로, 세션 ID·원문·직전 맥락을 복사한다")
     void resolve_CopiesSnapshot() {
-        record("m1", REPORTER_ID, "안녕");
-        record("m2", SENDER_ID, "무례한 말");
-        record("m3", REPORTER_ID, "뒤의 말");
+        recordMessage("m1", REPORTER_ID, "안녕");
+        recordMessage("m2", SENDER_ID, "무례한 말");
+        recordMessage("m3", REPORTER_ID, "뒤의 말");
 
         MessageReportDraft draft = resolver.resolve(REPORTER_ID, request("m2"));
 
@@ -96,8 +96,8 @@ class BlindDateReportTargetResolverTest {
     @Test
     @DisplayName("맥락은 신고 메시지 직전 10개만 오래된 순으로 담는다")
     void resolve_KeepsLastTenBefore() {
-        IntStream.range(0, 15).forEach(i -> record("c" + i, REPORTER_ID, "말" + i));
-        record("target", SENDER_ID, "무례한 말");
+        IntStream.range(0, 15).forEach(i -> recordMessage("c" + i, REPORTER_ID, "말" + i));
+        recordMessage("target", SENDER_ID, "무례한 말");
 
         assertThat(resolver.resolve(REPORTER_ID, request("target")).messageContext().messages())
                 .extracting(ChatMessageSnapshot::content)
@@ -107,8 +107,8 @@ class BlindDateReportTargetResolverTest {
     @Test
     @DisplayName("1,000자를 넘는 원문과 맥락은 잘라서 복사한다")
     void resolve_TruncatesLongContent() {
-        record("m1", REPORTER_ID, "나".repeat(3000));
-        record("m2", SENDER_ID, "가".repeat(3000));
+        recordMessage("m1", REPORTER_ID, "나".repeat(3000));
+        recordMessage("m2", SENDER_ID, "가".repeat(3000));
 
         MessageReportDraft draft = resolver.resolve(REPORTER_ID, request("m2"));
 
@@ -119,9 +119,10 @@ class BlindDateReportTargetResolverTest {
     @Test
     @DisplayName("과팅 참가 기록이 없는 회원은 403")
     void resolve_NotParticipant_Throws() {
-        record("m2", SENDER_ID, "무례한 말");
+        recordMessage("m2", SENDER_ID, "무례한 말");
+        CreateBlindDateReportRequest request = request("m2");
 
-        assertThatThrownBy(() -> resolver.resolve(99L, request("m2")))
+        assertThatThrownBy(() -> resolver.resolve(99L, request))
                 .isInstanceOf(NotBlindDateParticipantException.class);
     }
 
@@ -130,26 +131,28 @@ class BlindDateReportTargetResolverTest {
     void resolve_ParticipantOfOtherSession_Throws() {
         String otherSessionId = sessions.create().getSessionId();
         participants.addParticipant(otherSessionId, 3L, "socket3");
-        record("m2", SENDER_ID, "무례한 말");
+        recordMessage("m2", SENDER_ID, "무례한 말");
+        CreateBlindDateReportRequest request = request("m2");
 
-        assertThatThrownBy(() -> resolver.resolve(3L, request("m2")))
+        assertThatThrownBy(() -> resolver.resolve(3L, request))
                 .isInstanceOf(NotBlindDateParticipantException.class);
     }
 
     @Test
     @DisplayName("대기 중 퇴장으로 참가 기록이 지워진 회원은 403")
     void resolve_RemovedParticipant_Throws() {
-        record("m2", SENDER_ID, "무례한 말");
+        recordMessage("m2", SENDER_ID, "무례한 말");
         participants.removeParticipant(REPORTER_ID);
+        CreateBlindDateReportRequest request = request("m2");
 
-        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request("m2")))
+        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
                 .isInstanceOf(NotBlindDateParticipantException.class);
     }
 
     @Test
     @DisplayName("진행 중 연결이 끊겨도 참가 기록이 남아 있으면 신고할 수 있다")
     void resolve_DisconnectedDuringProcessing_Allowed() {
-        record("m2", SENDER_ID, "무례한 말");
+        recordMessage("m2", SENDER_ID, "무례한 말");
         participants.removeSocket("socket1");
 
         assertThat(resolver.resolve(REPORTER_ID, request("m2")).messageId()).isEqualTo("m2");
@@ -158,10 +161,11 @@ class BlindDateReportTargetResolverTest {
     @Test
     @DisplayName("세션 종료 후에는 참가 기록이 남아도 410으로 거절한다")
     void resolve_TerminatedSession_Throws() {
-        record("m2", SENDER_ID, "무례한 말");
+        recordMessage("m2", SENDER_ID, "무례한 말");
         sessions.terminate(sessionId);
+        CreateBlindDateReportRequest request = request("m2");
 
-        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request("m2")))
+        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
                 .isInstanceOf(BlindDateSessionEndedException.class)
                 .hasMessage("종료된 과팅의 메시지는 신고할 수 없습니다.");
     }
@@ -169,18 +173,21 @@ class BlindDateReportTargetResolverTest {
     @Test
     @DisplayName("관리자 초기화로 세션과 참가 기록이 모두 지워져도 403이 아니라 410으로 거절한다")
     void resolve_ClearedByAdmin_ThrowsGone() {
-        record("m2", SENDER_ID, "무례한 말");
+        recordMessage("m2", SENDER_ID, "무례한 말");
         sessions.clear();
         participants.clear();
+        CreateBlindDateReportRequest request = request("m2");
 
-        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request("m2")))
+        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
                 .isInstanceOf(BlindDateSessionEndedException.class);
     }
 
     @Test
     @DisplayName("없는 메시지는 enum·ID를 노출하지 않는 문구로 404")
     void resolve_UnknownMessage_Throws() {
-        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request("missing")))
+        CreateBlindDateReportRequest request = request("missing");
+
+        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
                 .isInstanceOf(BlindDateMessageNotFoundException.class)
                 .hasMessage("신고할 메시지를 찾을 수 없습니다.");
     }
@@ -188,9 +195,10 @@ class BlindDateReportTargetResolverTest {
     @Test
     @DisplayName("자기 메시지는 신고할 수 없다")
     void resolve_SelfReport_Throws() {
-        record("m1", REPORTER_ID, "내 말");
+        recordMessage("m1", REPORTER_ID, "내 말");
+        CreateBlindDateReportRequest request = request("m1");
 
-        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request("m1")))
+        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
                 .isInstanceOf(SelfReportException.class);
     }
 }

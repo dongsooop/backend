@@ -233,7 +233,7 @@ class ReportPersistenceIntegrationTest extends AbstractIntegrationTest {
         });
         assertThat(summary).anySatisfy(report -> {
             assertThat(report.chatRoomId()).isEqualTo("room5");
-            assertThat(report.messageContext().messages()).extracting(snapshot -> snapshot.content())
+            assertThat(report.messageContext().messages()).extracting(ChatMessageSnapshot::content)
                     .containsExactly("앞말");
         });
     }

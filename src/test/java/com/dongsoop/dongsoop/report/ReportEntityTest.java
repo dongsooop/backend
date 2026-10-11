@@ -57,8 +57,9 @@ class ReportEntityTest {
     @DisplayName("이미 처리된 신고는 기각할 수 없다")
     void dismiss_AlreadyProcessed_Throws() {
         Report report = Report.builder().id(1L).reportType(ReportType.CHAT_MESSAGE).isProcessed(true).build();
+        Member admin = Member.builder().id(100L).build();
 
-        assertThatThrownBy(() -> report.dismiss(Member.builder().id(100L).build()))
+        assertThatThrownBy(() -> report.dismiss(admin))
                 .isInstanceOf(ReportAlreadyProcessedException.class);
     }
 
