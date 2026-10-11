@@ -105,7 +105,7 @@ public class NotificationSendServiceImpl implements NotificationSendService {
 
     private Map<NotificationDetails, List<Long>> listToMap(List<MemberNotification> memberNotificationList) {
         return memberNotificationList.stream().collect(Collectors.groupingBy(
-                notification -> notification.getDetails(),
+                MemberNotification::getDetails,
                 Collectors.mapping(
                         notification -> notification.getMember().getId(),
                         Collectors.toList()
