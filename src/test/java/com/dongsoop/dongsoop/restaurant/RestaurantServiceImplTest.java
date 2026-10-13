@@ -76,7 +76,8 @@ class RestaurantServiceImplTest {
     void rejectsDuplicateRestaurant() {
         when(restaurants.existsActiveByExternalMapId("map-1")).thenReturn(true);
 
-        assertThrows(RestaurantAlreadyExistsException.class, () -> service.registerRestaurant(request()));
+        RestaurantRegisterRequest request = request();
+        assertThrows(RestaurantAlreadyExistsException.class, () -> service.registerRestaurant(request));
 
         verify(restaurants, never()).save(any());
     }
