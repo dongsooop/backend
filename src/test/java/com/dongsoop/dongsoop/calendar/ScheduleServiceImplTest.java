@@ -112,8 +112,8 @@ class ScheduleServiceImplTest {
         assertEquals(START, result.toDetails().getStartAt());
         assertEquals(START.plusHours(1), result.toDetails().getEndAt());
         assertEquals("123ABC", result.toDetails().getColor());
-        assertThrows(ScheduleAlreadySetByMemberException.class,
-                () -> result.setMember(Member.builder().id(8L).build()));
+        Member replacement = Member.builder().id(8L).build();
+        assertThrows(ScheduleAlreadySetByMemberException.class, () -> result.setMember(replacement));
         assertSame(owner, result.getMember());
     }
 
@@ -165,9 +165,9 @@ class ScheduleServiceImplTest {
         MemberSchedule schedule = schedule(3L, "기존", START);
         when(personal.findById(3L)).thenReturn(Optional.of(schedule));
 
+        MemberScheduleUpdateRequest request = new MemberScheduleUpdateRequest("변경", null, null, null, null);
         assertThrows(NotScheduleOwnerException.class, () -> service.deleteMemberSchedule(3L, 8L));
-        assertThrows(NotScheduleOwnerException.class, () -> service.updateMemberSchedule(3L, 8L,
-                new MemberScheduleUpdateRequest("변경", null, null, null, null)));
+        assertThrows(NotScheduleOwnerException.class, () -> service.updateMemberSchedule(3L, 8L, request));
 
         assertEquals("기존", schedule.toDetails().getTitle());
         verify(personal, never()).save(any());
@@ -177,9 +177,9 @@ class ScheduleServiceImplTest {
     @Test
     @DisplayName("없는 일정 수정과 삭제는 저장소 변경 없이 실패한다")
     void missingScheduleCannotBeMutated() {
+        MemberScheduleUpdateRequest request = new MemberScheduleUpdateRequest("변경", null, null, null, null);
         assertThrows(MemberScheduleNotFoundException.class, () -> service.deleteMemberSchedule(3L, 7L));
-        assertThrows(MemberScheduleNotFoundException.class, () -> service.updateMemberSchedule(3L, 7L,
-                new MemberScheduleUpdateRequest("변경", null, null, null, null)));
+        assertThrows(MemberScheduleNotFoundException.class, () -> service.updateMemberSchedule(3L, 7L, request));
         verify(personal, never()).save(any());
         verify(personal, never()).deleteById(any());
     }
