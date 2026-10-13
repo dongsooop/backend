@@ -77,7 +77,8 @@ class TimetableServiceImplTest {
         when(repository.findOverlapWithinRange(7L, YEAR, SemesterType.FIRST, DayOfWeek.MONDAY, START, END))
                 .thenReturn(Optional.of(new OverlapTimetable(START, END)));
 
-        assertThrows(TimetableOverlapException.class, () -> service.createTimetable(create("수업", START, END)));
+        CreateTimetableRequest request = create("수업", START, END);
+        assertThrows(TimetableOverlapException.class, () -> service.createTimetable(request));
 
         verify(repository, never()).save(any());
     }
@@ -129,8 +130,9 @@ class TimetableServiceImplTest {
     void nonOwnerCannotMutateTimetable() {
         when(members.getMemberIdByAuthentication()).thenReturn(7L);
 
+        UpdateTimetableRequest request = update();
         assertThrows(TimetableNotOwnedException.class, () -> service.deleteTimetable(3L));
-        assertThrows(TimetableNotOwnedException.class, () -> service.updateTimetable(update()));
+        assertThrows(TimetableNotOwnedException.class, () -> service.updateTimetable(request));
 
         verify(repository, never()).deleteById(any());
         verify(repository, never()).findYearSemesterById(any());
@@ -174,7 +176,8 @@ class TimetableServiceImplTest {
         when(repository.findOverlapWithinRangeExcludingSelf(3L, 7L, YEAR, SemesterType.FIRST,
                 DayOfWeek.TUESDAY, START, END)).thenReturn(Optional.of(new OverlapTimetable(START, END)));
 
-        assertThrows(TimetableOverlapException.class, () -> service.updateTimetable(update()));
+        UpdateTimetableRequest request = update();
+        assertThrows(TimetableOverlapException.class, () -> service.updateTimetable(request));
 
         verify(repository, never()).findById(any());
     }
@@ -184,7 +187,8 @@ class TimetableServiceImplTest {
     void missingSemesterCannotBeUpdated() {
         when(members.getMemberIdByAuthentication()).thenReturn(7L);
         when(repository.existsByIdAndMemberId(3L, 7L)).thenReturn(true);
-        assertThrows(TimetableNotFoundException.class, () -> service.updateTimetable(update()));
+        UpdateTimetableRequest request = update();
+        assertThrows(TimetableNotFoundException.class, () -> service.updateTimetable(request));
         verify(repository, never()).findById(any());
     }
 
@@ -192,7 +196,8 @@ class TimetableServiceImplTest {
     @DisplayName("소유권 확인 이후 대상이 없어져도 찾을 수 없음 오류를 반환한다")
     void missingTimetableCannotBeUpdated() {
         stubOwnedYearSemester();
-        assertThrows(TimetableNotFoundException.class, () -> service.updateTimetable(update()));
+        UpdateTimetableRequest request = update();
+        assertThrows(TimetableNotFoundException.class, () -> service.updateTimetable(request));
     }
 
     private void stubOwnedYearSemester() {
