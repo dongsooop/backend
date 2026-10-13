@@ -65,8 +65,9 @@ class MailVerifierTest {
         when(hash.get(REDIS_KEY, "opportunity")).thenReturn(3);
         when(hash.get(REDIS_KEY, "code")).thenReturn(storedCode);
 
+        MailVerifier verifier = verifier(Purpose.REGISTER);
         assertThrows(VerifyMailCodeNotAvailableException.class,
-                () -> verifier(Purpose.REGISTER).validateVerificationCodeWithOpportunity(EMAIL, "ABC123"));
+                () -> verifier.validateVerificationCodeWithOpportunity(EMAIL, "ABC123"));
 
         verify(hash).increment(REDIS_KEY, "opportunity", -1L);
         verify(hash, never()).put(anyString(), any(), any());
@@ -85,8 +86,9 @@ class MailVerifierTest {
         when(redis.opsForHash()).thenReturn(hash);
         when(hash.get(REDIS_KEY, "opportunity")).thenReturn(opportunity);
 
+        MailVerifier verifier = verifier(Purpose.REGISTER);
         assertThrows(UsingAllMailVerifyOpportunityException.class,
-                () -> verifier(Purpose.REGISTER).validateVerificationCodeWithOpportunity(EMAIL, "ABC123"));
+                () -> verifier.validateVerificationCodeWithOpportunity(EMAIL, "ABC123"));
 
         verify(hash, never()).get(REDIS_KEY, "code");
         verify(hash, never()).increment(anyString(), any(), anyLong());
@@ -106,8 +108,8 @@ class MailVerifierTest {
         when(redis.opsForHash()).thenReturn(hash);
         when(hash.get(REDIS_KEY, "success")).thenReturn(success);
 
-        assertThrows(MissingMailVerifyException.class,
-                () -> verifier(Purpose.REGISTER).validateVerifySuccess(EMAIL));
+        MailVerifier verifier = verifier(Purpose.REGISTER);
+        assertThrows(MissingMailVerifyException.class, () -> verifier.validateVerifySuccess(EMAIL));
     }
 
     static Stream<Object> invalidSuccessFlags() {
