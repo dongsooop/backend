@@ -22,10 +22,13 @@ import com.dongsoop.dongsoop.home.dto.HomeDto;
 import com.dongsoop.dongsoop.home.dto.HomeEclassSummary;
 import com.dongsoop.dongsoop.home.exception.HomeAsyncException;
 import com.dongsoop.dongsoop.home.service.HomeServiceImpl;
+import com.dongsoop.dongsoop.notice.dto.HomeNotice;
 import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
+import com.dongsoop.dongsoop.recruitment.board.dto.HomeRecruitment;
 import com.dongsoop.dongsoop.recruitment.repository.RecruitmentRepository;
 import com.dongsoop.dongsoop.timetable.dto.HomeTimetable;
 import com.dongsoop.dongsoop.timetable.repository.TimetableRepository;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -72,16 +75,21 @@ class HomeServiceImplTest {
         HomeSchedule shorter = schedule("짧은 개인 일정", 9, 10, ScheduleType.MEMBER);
         List<HomeTimetable> timetable = List.of(new HomeTimetable("수업", LocalTime.NOON, LocalTime.of(13, 0)));
         HomeEclassSummary summary = HomeEclassSummary.unlinked();
+        List<HomeNotice> expectedNotices = noticeList();
+        List<HomeRecruitment> expectedRecruitments = recruitmentList();
         when(timetables.searchHomeTimetable(eq(7L), any(), any(), any())).thenReturn(timetable);
         when(officialSchedules.searchHomeSchedule(any())).thenReturn(List.of(later));
         when(memberSchedules.searchHomeSchedule(eq(7L), any())).thenReturn(List.of(longer, shorter));
         when(assignments.getHomeSummary(7L, "fid", "device")).thenReturn(summary);
+        when(notices.searchHomeNotices(DepartmentType.DEPT_2001)).thenReturn(expectedNotices);
+        when(recruitments.searchHomeRecruitment("DEPT_2001")).thenReturn(expectedRecruitments);
 
         HomeDto result = service.getHome(7L, DepartmentType.DEPT_2001, "fid", "device");
 
         assertEquals(List.of(shorter, longer, later), result.schedules());
         assertEquals(timetable, result.timetable());
         assertSame(summary, result.eclass_assignment());
+        assertHomeContent(result, expectedNotices, expectedRecruitments);
         verify(notices).searchHomeNotices(DepartmentType.DEPT_2001);
         verify(recruitments).searchHomeRecruitment("DEPT_2001");
     }
@@ -89,6 +97,10 @@ class HomeServiceImplTest {
     @Test
     @DisplayName("구독 학과가 없으면 모집을 학과 필터 없이 조회하고 시간표는 비워 둔다")
     void noSubscriptionsUsesUnfilteredRecruitment() {
+        List<HomeNotice> expectedNotices = noticeList();
+        List<HomeRecruitment> expectedRecruitments = recruitmentList();
+        when(notices.searchHomeNotices(Set.of())).thenReturn(expectedNotices);
+        when(recruitments.searchHomeRecruitment()).thenReturn(expectedRecruitments);
         when(assignments.getHomeSummary("fid", "device")).thenReturn(HomeEclassSummary.expired());
         HomeSchedule later = schedule("늦은 일정", 11, 12, ScheduleType.OFFICIAL);
         HomeSchedule earlier = schedule("이른 일정", 9, 10, ScheduleType.OFFICIAL);
@@ -99,6 +111,7 @@ class HomeServiceImplTest {
         assertEquals(List.of(earlier, later), result.schedules());
         assertEquals(List.of(), result.timetable());
         assertEquals(HomeEclassSummary.expired(), result.eclass_assignment());
+        assertHomeContent(result, expectedNotices, expectedRecruitments);
         verify(notices).searchHomeNotices(Set.of());
         verify(recruitments).searchHomeRecruitment();
         verify(recruitments, never()).searchHomeRecruitment(any(String.class));
@@ -110,9 +123,14 @@ class HomeServiceImplTest {
     void subscriptionsUseFirstDepartmentForRecruitment() {
         Set<DepartmentType> departments = new LinkedHashSet<>(
                 List.of(DepartmentType.DEPT_2002, DepartmentType.DEPT_2001));
+        List<HomeNotice> expectedNotices = noticeList();
+        List<HomeRecruitment> expectedRecruitments = recruitmentList();
+        when(notices.searchHomeNotices(departments)).thenReturn(expectedNotices);
+        when(recruitments.searchHomeRecruitment("DEPT_2002")).thenReturn(expectedRecruitments);
 
-        service.getHome(departments, "fid", "device");
+        HomeDto result = service.getHome(departments, "fid", "device");
 
+        assertHomeContent(result, expectedNotices, expectedRecruitments);
         verify(recruitments).searchHomeRecruitment("DEPT_2002");
         verify(recruitments, never()).searchHomeRecruitment();
         verify(notices).searchHomeNotices(departments);
@@ -142,6 +160,21 @@ class HomeServiceImplTest {
 
         HomeAsyncException wrapped = assertInstanceOf(HomeAsyncException.class, exception.getCause());
         assertSame(cause, wrapped.getCause().getCause());
+    }
+
+    private void assertHomeContent(HomeDto result, List<HomeNotice> expectedNotices,
+                                   List<HomeRecruitment> expectedRecruitments) {
+        assertEquals(expectedNotices, result.notices());
+        assertEquals(expectedRecruitments, result.popular_recruitments());
+    }
+
+    private List<HomeNotice> noticeList() {
+        return List.of(new HomeNotice(3L, "공지", "https://example.com/notice",
+                LocalDate.of(2026, 10, 13), DepartmentType.DEPT_1001));
+    }
+
+    private List<HomeRecruitment> recruitmentList() {
+        return List.of(new HomeRecruitment(5L, 2L, "모집", "모집 내용", "태그", "STUDY"));
     }
 
     private HomeSchedule schedule(String title, int startHour, int endHour, ScheduleType type) {
