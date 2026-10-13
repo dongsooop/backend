@@ -93,6 +93,10 @@ public class WebAppCheckServiceImpl implements WebAppCheckService {
         }
 
         Object token = response.get(TOKEN_KEY);
-        return token == null ? "null" : token.getClass().getSimpleName();
+        if (token == null) {
+            return "null";
+        }
+
+        return token.getClass().getSimpleName();
     }
 }

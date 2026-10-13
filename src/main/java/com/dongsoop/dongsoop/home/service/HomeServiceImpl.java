@@ -108,9 +108,13 @@ public class HomeServiceImpl implements HomeService {
         CompletableFuture<List<HomeSchedule>> fOfficialSchedules = call(
                 () -> officialScheduleRepository.searchHomeSchedule(today));
         CompletableFuture<List<HomeNotice>> fNotices = call(() -> noticeRepository.searchHomeNotices(departmentTypes));
-        Supplier<List<HomeRecruitment>> recruitmentSupplier = departmentTypes.isEmpty()
-                ? recruitmentRepository::searchHomeRecruitment
-                : () -> recruitmentRepository.searchHomeRecruitment(departmentTypes.iterator().next().name());
+        Supplier<List<HomeRecruitment>> recruitmentSupplier;
+        if (departmentTypes.isEmpty()) {
+            recruitmentSupplier = recruitmentRepository::searchHomeRecruitment;
+        } else {
+            recruitmentSupplier = () -> recruitmentRepository.searchHomeRecruitment(
+                    departmentTypes.iterator().next().name());
+        }
         CompletableFuture<List<HomeRecruitment>> fRecruitments = call(recruitmentSupplier);
         CompletableFuture<HomeEclassSummary> fEclass = call(
                 () -> eclassAssignmentService.getHomeSummary(fid, deviceToken));
