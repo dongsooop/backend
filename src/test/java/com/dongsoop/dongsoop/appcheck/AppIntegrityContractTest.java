@@ -41,7 +41,8 @@ class AppIntegrityContractTest {
     @NullAndEmptySource
     @ValueSource(strings = {" "})
     void appCheckRejectsMissingTokenBeforeKeyLookup(String token) {
-        assertThatThrownBy(() -> new FirebaseAppCheckImpl().validate(token)).isInstanceOf(TokenNotFoundException.class);
+        FirebaseAppCheckImpl service = new FirebaseAppCheckImpl();
+        assertThatThrownBy(() -> service.validate(token)).isInstanceOf(TokenNotFoundException.class);
     }
 
     @ParameterizedTest
