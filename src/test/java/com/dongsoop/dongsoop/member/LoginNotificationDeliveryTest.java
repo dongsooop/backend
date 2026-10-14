@@ -59,8 +59,8 @@ class LoginNotificationDeliveryTest {
         service.sendLoginNotification(7L, "member@example.com", "<script>ip</script>", "Browser & Device");
         verify(mail).send(message);
         assertThat(message.getSubject()).isEqualTo("[동숲] 계정 로그인 알림");
-        assertThat(message.getAllRecipients()[0].toString()).isEqualTo("member@example.com");
-        assertThat(message.getFrom()[0].toString()).isEqualTo("sender@example.com");
+        assertThat(message.getAllRecipients()[0]).hasToString("member@example.com");
+        assertThat(message.getFrom()[0]).hasToString("sender@example.com");
         String body = content(message.getContent());
         assertThat(body).contains("&lt;script&gt;ip&lt;/script&gt;", "Browser &amp; Device")
                 .doesNotContain("{{loginTime}}", "{{ipAddress}}", "{{deviceInfo}}", "<script>ip</script>");
