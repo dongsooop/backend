@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.restaurant.dto;
 
-import com.dongsoop.dongsoop.restaurant.entity.RestaurantCategory;
 import com.querydsl.core.annotations.QueryProjection;
 import lombok.Getter;
 
@@ -20,22 +19,17 @@ public final class RestaurantOverview {
     private final String externalMapId;
     private final String placeUrl;
 
-    // QueryDSL constructor projection requires one parameter for each selected response field.
-    @SuppressWarnings("java:S107")
     @QueryProjection
-    public RestaurantOverview(Long id, String name, RestaurantCategory categoryEnum,
-                              Double distance, String placeUrl,
-                              Long likeCount, String tags,
-                              String externalMapId, Boolean isLikedByMe) {
-        this.id = id;
-        this.name = name;
-        this.category = categoryEnum.getDisplayName();
-        this.distance = distance;
-        this.likeCount = likeCount;
-        this.isLikedByMe = isLikedByMe;
+    public RestaurantOverview(RestaurantInfo info, RestaurantStats stats, String tags) {
+        this.id = info.getId();
+        this.name = info.getName();
+        this.category = info.getCategory().getDisplayName();
+        this.distance = info.getDistance();
+        this.likeCount = stats.getLikeCount();
+        this.isLikedByMe = stats.getIsLikedByMe();
         this.tags = parseTags(tags);
-        this.externalMapId = externalMapId;
-        this.placeUrl = placeUrl;
+        this.externalMapId = info.getExternalMapId();
+        this.placeUrl = info.getPlaceUrl();
     }
 
     private static List<String> parseTags(String tags) {
