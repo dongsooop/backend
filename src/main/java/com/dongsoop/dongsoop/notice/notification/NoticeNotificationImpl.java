@@ -14,7 +14,7 @@ import com.dongsoop.dongsoop.notification.dto.NotificationSend;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.service.NotificationSaveService;
 import com.dongsoop.dongsoop.notification.service.NotificationSendService;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -97,7 +97,7 @@ public class NoticeNotificationImpl implements NoticeNotification {
                                                                       Set<DepartmentType> departmentTypes) {
         Map<Long, Set<DepartmentType>> subscribedDepartments = loadSubscribedDepartments(devices);
 
-        Map<DepartmentType, List<MemberDevice>> devicesByDepartment = new HashMap<>();
+        Map<DepartmentType, List<MemberDevice>> devicesByDepartment = new EnumMap<>(DepartmentType.class);
         for (DepartmentType departmentType : departmentTypes) {
             if (departmentType.isAllDepartment()) {
                 devicesByDepartment.put(departmentType, devices);

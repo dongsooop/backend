@@ -14,6 +14,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /** 과팅 참여 이벤트와 세션별 선택·마감 이벤트의 실행 순서를 관리한다. */
@@ -29,6 +30,7 @@ public class BlindDateEventQueue {
     private final Set<String> openChoiceSessions = new HashSet<>();
     private int pendingCleanups;
 
+    @Autowired
     public BlindDateEventQueue() {
         this(SESSION_WORKER_COUNT);
     }

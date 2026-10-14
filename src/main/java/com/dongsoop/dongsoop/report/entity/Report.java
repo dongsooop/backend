@@ -109,7 +109,7 @@ public class Report extends BaseEntity {
     }
 
     public void ensureNotProcessed() {
-        if (this.isProcessed) {
+        if (Boolean.TRUE.equals(this.isProcessed)) {
             throw new ReportAlreadyProcessedException(this.id);
         }
     }
