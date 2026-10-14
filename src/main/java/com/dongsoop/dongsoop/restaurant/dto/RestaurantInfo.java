@@ -13,5 +13,7 @@ public record RestaurantInfo(
         String externalMapId
 ) {
     @QueryProjection
-    public RestaurantInfo {}
+    public RestaurantInfo {
+        // @QueryProjection을 위해 생성자를 선언하며, 필드 대입은 record가 자동으로 수행한다.
+    }
 }
