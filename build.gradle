@@ -109,14 +109,10 @@ sonar {
         property 'sonar.exclusions', 'build/generated/**'
 
         // S4502(CSRF 비활성화)는 이 프로젝트에 해당하지 않는다. 사유는 SecurityConfig 주석 참고
-        property 'sonar.issue.ignore.multicriteria', 'csrfDisabled,legacyJwtDateApi'
+        property 'sonar.issue.ignore.multicriteria', 'csrfDisabled'
         property 'sonar.issue.ignore.multicriteria.csrfDisabled.ruleKey', 'java:S4502'
         property 'sonar.issue.ignore.multicriteria.csrfDisabled.resourceKey', '**/SecurityConfig.java'
 
-        // JJWT 0.12의 issuedAt/expiration/getIssuedAt 계약이 java.util.Date를 요구한다.
-        // 애플리케이션은 Instant를 사용하고 변환 경계인 이 어댑터만 예외로 둔다.
-        property 'sonar.issue.ignore.multicriteria.legacyJwtDateApi.ruleKey', 'java:S2143'
-        property 'sonar.issue.ignore.multicriteria.legacyJwtDateApi.resourceKey', '**/JwtDateAdapter.java'
 
         property 'sonar.coverage.jacoco.xmlReportPaths', 'build/reports/jacoco/test/jacocoTestReport.xml'
     }

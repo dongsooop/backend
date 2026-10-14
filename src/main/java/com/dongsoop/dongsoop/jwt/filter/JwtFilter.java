@@ -1,7 +1,6 @@
 package com.dongsoop.dongsoop.jwt.filter;
 
 import com.dongsoop.dongsoop.common.exception.CustomException;
-import com.dongsoop.dongsoop.jwt.JwtDateAdapter;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import com.dongsoop.dongsoop.jwt.exception.TokenNotFoundException;
@@ -66,7 +65,7 @@ public class JwtFilter extends OncePerRequestFilter {
             // deviceId claim이 있는 경우에만 블랙리스트 검사 (없으면 기존 토큰으로 간주하여 스킵)
             Long deviceId = claims.get(JwtUtil.DEVICE_ID_CLAIM, Long.class);
             if (deviceId != null) {
-                deviceBlacklistService.validateNotBlacklisted(deviceId, JwtDateAdapter.getIssuedAt(claims));
+                deviceBlacklistService.validateNotBlacklisted(deviceId, JwtUtil.getIssuedAt(claims));
             }
 
             setAuthentication(token, deviceId);

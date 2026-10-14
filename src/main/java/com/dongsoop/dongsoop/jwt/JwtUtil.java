@@ -15,6 +15,7 @@ import io.jsonwebtoken.security.SignatureException;
 import java.security.PublicKey;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
@@ -80,6 +81,8 @@ public class JwtUtil {
 
     public static final String DEVICE_ID_CLAIM = "did";
 
+    // JJWT의 issuedAt/expiration API가 Date를 요구하므로 이 경계에서만 변환한다.
+    @SuppressWarnings("java:S2143")
     protected String issue(Instant tokenExpiredTime, String id, List<String> roleList, JWTType type, Long deviceId) {
         SecretKey key = jwtKeyManager.getSecretKey();
 
@@ -87,14 +90,25 @@ public class JwtUtil {
                 .subject(id)
                 .claim(roleClaimName, roleList)
                 .claim(typeClaimName, type.name())
+                .issuedAt(Date.from(Instant.now()))
+                .expiration(Date.from(tokenExpiredTime))
                 .signWith(key);
-        builder = JwtDateAdapter.applyTimestamps(builder, Instant.now(), tokenExpiredTime);
 
         if (deviceId != null) {
             builder.claim(DEVICE_ID_CLAIM, deviceId);
         }
 
         return builder.compact();
+    }
+
+    // JJWT의 발급 시각 반환 타입은 Date이며, 애플리케이션에는 Instant를 전달한다.
+    @SuppressWarnings("java:S2143")
+    public static Instant getIssuedAt(Claims claims) {
+        Date issuedAt = claims.getIssuedAt();
+        if (issuedAt == null) {
+            return null;
+        }
+        return issuedAt.toInstant();
     }
 
     public AuthenticationInformationByToken getTokenInformation(String token) {

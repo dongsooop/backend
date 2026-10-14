@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.jwt.service;
 
-import com.dongsoop.dongsoop.jwt.JwtDateAdapter;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import com.dongsoop.dongsoop.jwt.TokenGenerator;
@@ -27,7 +26,7 @@ public class JwtServiceImpl implements JwtService {
         // deviceId가 있는 경우 블랙리스트 검사 (없으면 하위 호환을 위해 스킵)
         Long deviceId = claims.get(JwtUtil.DEVICE_ID_CLAIM, Long.class);
         if (deviceId != null) {
-            deviceBlacklistService.validateNotBlacklisted(deviceId, JwtDateAdapter.getIssuedAt(claims));
+            deviceBlacklistService.validateNotBlacklisted(deviceId, JwtUtil.getIssuedAt(claims));
         }
 
         Authentication authentication = jwtUtil.getAuthenticationByToken(refreshToken);
