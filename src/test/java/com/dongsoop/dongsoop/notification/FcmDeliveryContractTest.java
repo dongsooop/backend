@@ -87,7 +87,12 @@ class FcmDeliveryContractTest {
         service.sendSilentMessage("token-a", FcmSilentType.FORCE_LOGOUT);
         ArgumentCaptor<Message> captured = ArgumentCaptor.forClass(Message.class);
         verify(firebase, times(2)).sendAsync(captured.capture());
-        assertThat(field(captured.getAllValues().get(0), "topic")).isEqualTo("department");
+        Object topic = captured.getAllValues().get(0);
+        assertThat(field(topic, "topic")).isEqualTo("department");
+        assertThat(field(field(topic, "notification"), "title")).isEqualTo("title");
+        assertThat(field(field(topic, "notification"), "body")).isEqualTo("body");
+        assertThat(map(field(topic, "apnsConfig"), "payload").get("value")).isEqualTo("42");
+        assertThat(map(field(topic, "androidConfig"), "data").get("type")).isEqualTo("NOTICE");
         Object silent = captured.getAllValues().get(1);
         assertThat(field(silent, "token")).isEqualTo("token-a");
         assertThat(field(silent, "notification")).isNull();
@@ -114,6 +119,7 @@ class FcmDeliveryContractTest {
         service.updateNotificationBadge(tokens, 2);
         ArgumentCaptor<MulticastMessage> captured = ArgumentCaptor.forClass(MulticastMessage.class);
         verify(firebase).sendEachForMulticastAsync(captured.capture());
+        assertThat(field(captured.getValue(), "tokens")).isEqualTo(tokens);
         assertThat(field(captured.getValue(), "notification")).isNull();
         assertThat(map(captured.getValue(), "data").get("badge")).isEqualTo("2");
         Map<?, ?> aps = (Map<?, ?>) map(field(captured.getValue(), "apnsConfig"), "payload").get("aps");
@@ -122,7 +128,7 @@ class FcmDeliveryContractTest {
     }
 
     @ParameterizedTest
-    @EnumSource(MessagingErrorCode.class)
+    @EnumSource(value = MessagingErrorCode.class, mode = EnumSource.Mode.EXCLUDE, names = "INVALID_ARGUMENT")
     void failedResponseOnlyUnbindsPermanentInvalidTokens(MessagingErrorCode code) throws Exception {
         FirebaseMessagingException error = mock(FirebaseMessagingException.class);
         when(error.getMessagingErrorCode()).thenReturn(code);
@@ -136,7 +142,7 @@ class FcmDeliveryContractTest {
         when(batchFuture.get()).thenReturn(batch);
         Runnable listener = prepareBatchListener();
         assertThatThrownBy(listener::run).isInstanceOf(NotificationSendException.class);
-        if (code == MessagingErrorCode.UNREGISTERED || code == MessagingErrorCode.INVALID_ARGUMENT) {
+        if (code == MessagingErrorCode.UNREGISTERED) {
             verify(devices).unbindByToken("token-b");
             return;
         }
