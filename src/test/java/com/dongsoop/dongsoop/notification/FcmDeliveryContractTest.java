@@ -62,22 +62,22 @@ class FcmDeliveryContractTest {
         Object notification = field(message, "notification");
         assertThat(field(notification, "title")).isEqualTo("title");
         assertThat(field(notification, "body")).isEqualTo("body");
-        Map<?, ?> apns = map(field(message, "apnsConfig"), "payload");
-        assertThat(apns.get("type")).isEqualTo("NOTICE");
-        assertThat(apns.get("value")).isEqualTo("42");
-        assertThat(apns.get("id")).isEqualTo("9");
-        Map<?, ?> aps = (Map<?, ?>) apns.get("aps");
-        Map<?, ?> android = map(field(message, "androidConfig"), "data");
-        assertThat(android.get("type")).isEqualTo("NOTICE");
-        assertThat(android.get("id")).isEqualTo("9");
-        assertThat(android.get("value")).isEqualTo("42");
+        Map<String, Object> apns = map(field(message, "apnsConfig"), "payload");
+        assertThat(apns).containsEntry("type", "NOTICE");
+        assertThat(apns).containsEntry("value", "42");
+        assertThat(apns).containsEntry("id", "9");
+        Map<String, Object> aps = asMap(apns.get("aps"));
+        Map<String, Object> android = map(field(message, "androidConfig"), "data");
+        assertThat(android).containsEntry("type", "NOTICE");
+        assertThat(android).containsEntry("id", "9");
+        assertThat(android).containsEntry("value", "42");
         if (badge == null || badge < 0) {
             assertThat(aps.containsKey("badge")).isFalse();
             assertThat(android.containsKey("badge")).isFalse();
             return;
         }
-        assertThat(aps.get("badge")).isEqualTo(badge);
-        assertThat(android.get("badge")).isEqualTo(badge.toString());
+        assertThat(aps).containsEntry("badge", badge);
+        assertThat(android).containsEntry("badge", badge.toString());
     }
 
     @Test
@@ -91,15 +91,15 @@ class FcmDeliveryContractTest {
         assertThat(field(topic, "topic")).isEqualTo("department");
         assertThat(field(field(topic, "notification"), "title")).isEqualTo("title");
         assertThat(field(field(topic, "notification"), "body")).isEqualTo("body");
-        assertThat(map(field(topic, "apnsConfig"), "payload").get("value")).isEqualTo("42");
-        assertThat(map(field(topic, "androidConfig"), "data").get("type")).isEqualTo("NOTICE");
+        assertThat(map(field(topic, "apnsConfig"), "payload")).containsEntry("value", "42");
+        assertThat(map(field(topic, "androidConfig"), "data")).containsEntry("type", "NOTICE");
         Object silent = captured.getAllValues().get(1);
         assertThat(field(silent, "token")).isEqualTo("token-a");
         assertThat(field(silent, "notification")).isNull();
-        assertThat(map(silent, "data").get("type")).isEqualTo("FORCE_LOGOUT");
+        assertThat(map(silent, "data")).containsEntry("type", "FORCE_LOGOUT");
         assertThat(field(field(silent, "androidConfig"), "priority")).isEqualTo("high");
-        Map<?, ?> aps = (Map<?, ?>) map(field(silent, "apnsConfig"), "payload").get("aps");
-        assertThat(aps.get("content-available")).isEqualTo(1);
+        Map<String, Object> aps = asMap(map(field(silent, "apnsConfig"), "payload").get("aps"));
+        assertThat(aps).containsEntry("content-available", 1);
     }
 
     @ParameterizedTest
@@ -121,10 +121,10 @@ class FcmDeliveryContractTest {
         verify(firebase).sendEachForMulticastAsync(captured.capture());
         assertThat(field(captured.getValue(), "tokens")).isEqualTo(tokens);
         assertThat(field(captured.getValue(), "notification")).isNull();
-        assertThat(map(captured.getValue(), "data").get("badge")).isEqualTo("2");
-        Map<?, ?> aps = (Map<?, ?>) map(field(captured.getValue(), "apnsConfig"), "payload").get("aps");
-        assertThat(aps.get("badge")).isEqualTo(2);
-        assertThat(aps.get("content-available")).isEqualTo(1);
+        assertThat(map(captured.getValue(), "data")).containsEntry("badge", "2");
+        Map<String, Object> aps = asMap(map(field(captured.getValue(), "apnsConfig"), "payload").get("aps"));
+        assertThat(aps).containsEntry("badge", 2);
+        assertThat(aps).containsEntry("content-available", 1);
     }
 
     @ParameterizedTest
@@ -202,7 +202,10 @@ class FcmDeliveryContractTest {
     }
 
     private Object field(Object value, String name) { return ReflectionTestUtils.getField(value, name); }
-    private Map<?, ?> map(Object value, String name) { return (Map<?, ?>) field(value, name); }
+    private Map<String, Object> map(Object value, String name) { return asMap(field(value, name)); }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> asMap(Object value) { return (Map<String, Object>) value; }
 
     private enum FutureFailure {
         INTERRUPTED, EXECUTION, CANCELLED, RUNTIME;
