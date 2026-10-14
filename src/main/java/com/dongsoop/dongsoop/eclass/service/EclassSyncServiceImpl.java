@@ -124,12 +124,8 @@ public class EclassSyncServiceImpl implements EclassSyncService {
                 EclassAssignment assignment = merge(link, existingAssignment, fetchedAssignment);
                 toSave.add(assignment);
 
-                if (isDueDateAdvanced(previousDueAt, assignment)) {
-                    dueDateAdvanced.add(assignment);
-                }
-                if (existingAssignment == null && isNewlyPosted(previousSyncedAt, fetchedAssignment)) {
-                    newlyPosted.add(assignment);
-                }
+                collectNotifications(previousDueAt, assignment, dueDateAdvanced);
+                collectNewAssignments(existingAssignment, previousSyncedAt, fetchedAssignment, assignment, newlyPosted);
                 if (checkAllSubmissions || needsSubmissionCheck(assignment, now)) {
                     updateSubmission(token, assignment, now,
                             checkAllSubmissions ? manualRequestDelayMs : requestDelayMs);
@@ -168,6 +164,21 @@ public class EclassSyncServiceImpl implements EclassSyncService {
                 .forEach(assignment -> notifyNewAssignment(link, assignment));
 
         return SyncOutcome.SYNCED;
+    }
+
+    private void collectNotifications(LocalDateTime previousDueAt, EclassAssignment assignment,
+                                      List<EclassAssignment> dueDateAdvanced) {
+        if (isDueDateAdvanced(previousDueAt, assignment)) {
+            dueDateAdvanced.add(assignment);
+        }
+    }
+
+    private void collectNewAssignments(EclassAssignment existingAssignment, LocalDateTime previousSyncedAt,
+                                       MoodleAssignment fetchedAssignment, EclassAssignment assignment,
+                                       List<EclassAssignment> newlyPosted) {
+        if (existingAssignment == null && isNewlyPosted(previousSyncedAt, fetchedAssignment)) {
+            newlyPosted.add(assignment);
+        }
     }
 
     @Override

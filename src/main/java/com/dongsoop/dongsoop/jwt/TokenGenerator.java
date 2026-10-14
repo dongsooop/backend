@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.jwt;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,8 +25,7 @@ public class TokenGenerator {
     private Long refreshTokenExpiredTime;
 
     public String generateAccessToken(Authentication authentication, Long deviceId) {
-        long now = (new Date()).getTime();
-        Date expireAt = new Date(now + this.accessTokenExpiredTime);
+        Instant expireAt = Instant.now().plusMillis(this.accessTokenExpiredTime);
 
         String id = authentication.getName();
         List<String> roleList = authentication.getAuthorities()
@@ -38,8 +37,7 @@ public class TokenGenerator {
     }
 
     public String generateRefreshToken(Authentication authentication, Long deviceId) {
-        long now = (new Date()).getTime();
-        Date expireAt = new Date(now + this.refreshTokenExpiredTime);
+        Instant expireAt = Instant.now().plusMillis(this.refreshTokenExpiredTime);
 
         String id = authentication.getName();
         List<String> roleList = authentication.getAuthorities()
@@ -51,8 +49,7 @@ public class TokenGenerator {
     }
 
     public String generateSocialToken(Authentication authentication) {
-        long now = (new Date()).getTime();
-        Date expireAt = new Date(now + this.socialTokenExpiredTime);
+        Instant expireAt = Instant.now().plusMillis(this.socialTokenExpiredTime);
 
         String id = authentication.getName();
         List<String> roleList = authentication.getAuthorities()

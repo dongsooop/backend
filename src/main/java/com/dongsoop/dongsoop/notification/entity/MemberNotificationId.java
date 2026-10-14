@@ -1,29 +1,23 @@
 package com.dongsoop.dongsoop.notification.entity;
 
-import com.dongsoop.dongsoop.member.entity.Member;
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Objects;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Embeddable
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 @AllArgsConstructor
-public class MemberNotificationId {
+public class MemberNotificationId implements Serializable {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "notification_details_id", nullable = false, updatable = false)
-    private NotificationDetails details;
+    @Serial
+    private static final long serialVersionUID = 1L;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false, updatable = false)
-    private Member member;
+    private Long details;
+
+    private Long member;
 
     @Override
     public boolean equals(Object o) {
@@ -36,17 +30,7 @@ public class MemberNotificationId {
 
         MemberNotificationId that = (MemberNotificationId) o;
 
-        boolean isDetailsSame = Objects.equals( // detail null 체크
-                details != null ? details.getId() : null,
-                that.details != null ? that.details.getId() : null
-        );
-
-        boolean isMemberSame = Objects.equals( // member null 체크
-                member != null ? member.getId() : null,
-                that.member != null ? that.member.getId() : null
-        );
-
-        return isDetailsSame && isMemberSame;
+        return Objects.equals(details, that.details) && Objects.equals(member, that.member);
     }
 
     @Override

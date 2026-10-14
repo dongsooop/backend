@@ -31,12 +31,12 @@ import org.springframework.web.client.RestTemplate;
 @Component
 public class EclassClient {
 
-    private static final String WS_PATH = "/webservice/rest/server.php";
     private static final String INVALID_TOKEN_CODE = "invalidtoken";
     private static final String SUBMITTED_STATUS = "submitted";
 
     private final RestTemplate eclassRestTemplate;
     private final ObjectMapper objectMapper;
+    private final String webServicePath;
 
     @Value("${eclass.base-url}")
     private String baseUrl;
@@ -47,9 +47,11 @@ public class EclassClient {
     // RestTemplate 빈이 둘이라 어느 것을 쓸지 명시한다. Lombok 생성자에는 @Qualifier가
     // 복사되지 않아, 이름 일치에 기대면 필드명을 바꾸는 순간 공용 빈(읽기 4초)으로 조용히 바뀐다
     public EclassClient(@Qualifier("eclassRestTemplate") RestTemplate eclassRestTemplate,
-                        ObjectMapper objectMapper) {
+                        ObjectMapper objectMapper,
+                        @Value("${eclass.web-service-path}") String webServicePath) {
         this.eclassRestTemplate = eclassRestTemplate;
         this.objectMapper = objectMapper;
+        this.webServicePath = webServicePath;
     }
 
     public MoodleSiteInfoResponse getSiteInfo(String token) {
@@ -102,7 +104,8 @@ public class EclassClient {
 
         String body;
         try {
-            body = eclassRestTemplate.postForObject(baseUrl + WS_PATH, new HttpEntity<>(form, headers), String.class);
+            body = eclassRestTemplate.postForObject(baseUrl + webServicePath,
+                    new HttpEntity<>(form, headers), String.class);
         } catch (RestClientException exception) {
             throw new EclassApiException(function, exception);
         }

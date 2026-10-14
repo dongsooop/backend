@@ -17,7 +17,6 @@ import com.dongsoop.dongsoop.recruitment.board.dto.RecruitmentOverview;
 import com.dongsoop.dongsoop.recruitment.board.study.dto.CreateStudyBoardRequest;
 import com.dongsoop.dongsoop.recruitment.board.study.entity.StudyBoard;
 import com.dongsoop.dongsoop.recruitment.board.study.entity.StudyBoardDepartment;
-import com.dongsoop.dongsoop.recruitment.board.study.entity.StudyBoardDepartment.StudyBoardDepartmentId;
 import com.dongsoop.dongsoop.recruitment.board.study.exception.StudyBoardNotFound;
 import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepository;
@@ -52,10 +51,7 @@ public class StudyBoardServiceImpl implements StudyBoardService {
         createAndLinkChatRoom(savedBoard);
         
         List<StudyBoardDepartment> studyBoardDepartmentList = departmentList.stream()
-                .map(department -> {
-                    StudyBoardDepartmentId studyBoardDepartmentId = new StudyBoardDepartmentId(savedBoard, department);
-                    return new StudyBoardDepartment(studyBoardDepartmentId);
-                })
+                .map(department -> new StudyBoardDepartment(savedBoard, department))
                 .toList();
 
         studyBoardDepartmentRepository.saveAll(studyBoardDepartmentList);

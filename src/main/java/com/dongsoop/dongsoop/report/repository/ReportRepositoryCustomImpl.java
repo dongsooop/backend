@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.report.repository;
 
-import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.report.dto.ReportResponse;
 import com.dongsoop.dongsoop.report.dto.ReportSummaryResponse;
@@ -9,18 +8,18 @@ import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.core.types.dsl.PathBuilder;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Repository;
-
+import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.support.Querydsl;
+import org.springframework.stereotype.Repository;
 
 @Repository
-@RequiredArgsConstructor
 public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
 
     private static final QReport report = QReport.report;
@@ -30,7 +29,14 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     private static final QSanction sanction = QSanction.sanction;
 
     private final JPAQueryFactory queryFactory;
-    private final PageableUtil pageableUtil;
+    private final Querydsl querydsl;
+
+    public ReportRepositoryCustomImpl(EntityManager entityManager,
+            JPAQueryFactory queryFactory) {
+        this.queryFactory = queryFactory;
+        this.querydsl = new Querydsl(entityManager,
+                new PathBuilder<>(report.getType(), report.getMetadata()));
+    }
 
     @Override
     public List<ReportResponse> findDetailedReportsByFilter(ReportFilterType filterType, Pageable pageable) {
@@ -55,10 +61,7 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     }
 
     private List<ReportSummaryResponse> applySummaryPaginationAndSorting(JPAQuery<ReportSummaryResponse> query, Pageable pageable) {
-        return query
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), report))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
+        return querydsl.applyPagination(pageable, query)
                 .fetch();
     }
 
@@ -95,7 +98,12 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 sanction.startDate,
                 sanction.endDate,
                 sanction.isActive,
-                report.createdAt);
+                report.createdAt,
+                report.chatRoomId,
+                report.messageId,
+                report.messageContent,
+                report.messageSentAt,
+                report.messageContext);
     }
 
     private Expression<ReportSummaryResponse> createSummaryProjection() {
@@ -108,10 +116,14 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 report.createdAt,
                 report.targetMember.id,
                 report.targetId,
-                report.description
+                report.description,
+                report.chatRoomId,
+                report.messageId,
+                report.messageContent,
+                report.messageSentAt,
+                report.messageContext
         );
     }
-
 
     private JPAQuery<ReportResponse> createBaseQuery(Expression<ReportResponse> projection,
                                                      BooleanExpression filterCondition) {
@@ -143,10 +155,7 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     }
 
     private List<ReportResponse> applyPaginationAndSorting(JPAQuery<ReportResponse> query, Pageable pageable) {
-        return query
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), report))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
+        return querydsl.applyPagination(pageable, query)
                 .fetch();
     }
 
@@ -182,10 +191,15 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     public List<Report> findUnprocessedReports(Pageable pageable) {
         return queryFactory
                 .selectFrom(report)
-                .where(report.isProcessed.eq(false))
+                .where(report.isProcessed.eq(false), isAutoSanctionTarget())
                 .orderBy(report.createdAt.asc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
+    }
+
+    private BooleanExpression isAutoSanctionTarget() {
+        return report.reportType.in(ReportType.BOARD_TYPES)
+                .or(report.reportType.eq(ReportType.CHAT_MESSAGE).and(report.isAutoReviewed.eq(false)));
     }
 }

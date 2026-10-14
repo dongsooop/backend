@@ -11,7 +11,6 @@ import com.dongsoop.dongsoop.recruitment.apply.dto.UpdateApplyStatusRequest;
 import com.dongsoop.dongsoop.recruitment.apply.entity.RecruitmentApplyStatus;
 import com.dongsoop.dongsoop.recruitment.apply.project.dto.ApplyProjectBoardRequest;
 import com.dongsoop.dongsoop.recruitment.apply.project.entity.ProjectApply;
-import com.dongsoop.dongsoop.recruitment.apply.project.entity.ProjectApply.ProjectApplyKey;
 import com.dongsoop.dongsoop.recruitment.apply.project.exception.ProjectApplyNotFoundException;
 import com.dongsoop.dongsoop.recruitment.apply.project.exception.ProjectOwnerCannotApplyException;
 import com.dongsoop.dongsoop.recruitment.apply.project.exception.ProjectRecruitmentAlreadyAppliedException;
@@ -63,9 +62,9 @@ public class ProjectApplyServiceImpl implements ProjectApplyService {
 
         validateDepartment(boardDepartmentList, member);
 
-        ProjectApplyKey key = new ProjectApplyKey(projectBoard, member);
         ProjectApply boardApply = ProjectApply.builder()
-                .id(key)
+                .projectBoard(projectBoard)
+                .member(member)
                 .introduction(request.introduction())
                 .motivation(request.motivation())
                 .build();

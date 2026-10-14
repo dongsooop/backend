@@ -20,7 +20,6 @@ import com.dongsoop.dongsoop.recruitment.apply.study.repository.StudyApplyReposi
 import com.dongsoop.dongsoop.recruitment.apply.study.service.StudyApplyServiceImpl;
 import com.dongsoop.dongsoop.recruitment.board.study.entity.StudyBoard;
 import com.dongsoop.dongsoop.recruitment.board.study.entity.StudyBoardDepartment;
-import com.dongsoop.dongsoop.recruitment.board.study.entity.StudyBoardDepartment.StudyBoardDepartmentId;
 import com.dongsoop.dongsoop.recruitment.board.study.exception.StudyBoardDepartmentMismatchException;
 import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardRepository;
@@ -146,11 +145,7 @@ class StudyRecruitmentDepartmentEligibilityValidatorTest {
      * @return StudyBoardDepartment 객체
      */
     private StudyBoardDepartment getStudyBoardDepartment(Department department, StudyBoard studyBoard) {
-        StudyBoardDepartmentId studyBoardDepartmentId = new StudyBoardDepartmentId(
-                studyBoard,
-                department
-        );
-        return new StudyBoardDepartment(studyBoardDepartmentId);
+        return new StudyBoardDepartment(studyBoard, department);
     }
 
     private Member getAuthor() {

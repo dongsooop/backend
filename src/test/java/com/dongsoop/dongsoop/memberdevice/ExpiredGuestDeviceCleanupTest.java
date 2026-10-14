@@ -78,6 +78,6 @@ class ExpiredGuestDeviceCleanupTest {
 
         assertThat(deleted).isEqualTo(1);
         assertThat(memberDeviceRepository.findById(device.getId())).isEmpty();
-        assertThat(preferenceRepository.findAllByIdDeviceId(device.getId())).isEmpty();
+        assertThat(preferenceRepository.findAllByDeviceId(device.getId())).isEmpty();
     }
 }

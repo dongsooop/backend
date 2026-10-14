@@ -74,7 +74,7 @@ public class BlindDateServiceImpl implements BlindDateService {
      */
     @Override
     public void resetParticipants() {
-        eventQueue.submit(() -> {
+        eventQueue.submitCleanup(() -> {
             blindDateStorage.setPointer(null);
             sessionStorage.clear();
             participantStorage.clear();
@@ -93,7 +93,7 @@ public class BlindDateServiceImpl implements BlindDateService {
             blindDateStorage.close();
 
             // 세션/참가자 데이터 정리는 큐를 통해 순서대로 처리
-            eventQueue.submit(() -> {
+            eventQueue.submitCleanup(() -> {
                 // 모든 세션 정보 삭제
                 sessionStorage.clear();
 

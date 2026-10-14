@@ -187,6 +187,7 @@ public class BoardSearchServiceImpl implements BoardSearchService {
                 return memberService.getMemberIdByAuthentication();
             }
         } catch (Exception ignored) {
+            // 회원 정보를 조회할 수 없으면 회원별 부가 정보 없이 검색 결과를 제공한다.
         }
         return null;
     }

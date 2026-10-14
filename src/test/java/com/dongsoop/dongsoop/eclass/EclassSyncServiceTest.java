@@ -369,14 +369,19 @@ class EclassSyncServiceTest {
         assertThat(capturedSaved().get(0).getDueAt()).isEqualTo(LocalDateTime.of(2026, 9, 3, 23, 55));
     }
 
-    @ParameterizedTest(name = "마감 {0}일 → {1}일, 알림 {2}회")
-    @CsvSource({"9, 2, 1", "2, 9, 0", "2, 2, 0"})
+    @ParameterizedTest(name = "마감 {0}일 → {1}일, 제출={2}, 알림 {3}회")
+    @CsvSource({"9, 2, false, 1", "2, 9, false, 0", "2, 2, false, 0", "9, 2, true, 0"})
     @DisplayName("미제출 과제는 마감이 앞당겨질 때만 변경 알림을 보낸다")
-    void notifiesOnlyWhenDueDateAdvanced(int previousDays, int newDays, int notificationCount) {
+    void notifiesOnlyWhenDueDateAdvanced(int previousDays, int newDays, boolean submitted, int notificationCount) {
         EclassAssignment existing = existing(NOW.plusDays(previousDays));
+        if (submitted) {
+            existing.updateSubmission(true, NOW.minusHours(1));
+        }
         givenExisting(existing);
         givenFetched(moodleAssignment(601L, NOW.plusDays(newDays)));
-        givenSubmissionStatus(false);
+        if (!submitted) {
+            givenSubmissionStatus(false);
+        }
 
         syncService.syncLink(link);
 
@@ -385,19 +390,6 @@ class EclassSyncServiceTest {
             verify(eclassNotification).sendDueDateChanged(link, existing);
         }
         assertThat(existing.getDueAt()).isEqualTo(NOW.plusDays(newDays));
-    }
-
-    @Test
-    @DisplayName("이미 제출한 과제는 마감이 앞당겨져도 알리지 않는다")
-    void doesNotNotifySubmittedAssignment() {
-        EclassAssignment existing = existing(NOW.plusDays(9));
-        existing.updateSubmission(true, NOW.minusHours(1));
-        givenExisting(existing);
-        givenFetched(moodleAssignment(601L, NOW.plusDays(2)));
-
-        syncService.syncLink(link);
-
-        verify(eclassNotification, never()).sendDueDateChanged(any(), any());
     }
 
     @Test

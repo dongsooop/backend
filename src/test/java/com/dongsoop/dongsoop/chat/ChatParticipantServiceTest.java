@@ -3,6 +3,8 @@ package com.dongsoop.dongsoop.chat;
 import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.MessageType;
+import com.dongsoop.dongsoop.chat.exception.GroupChatOnlyException;
+import com.dongsoop.dongsoop.chat.exception.ManagerKickAttemptException;
 import com.dongsoop.dongsoop.chat.service.ChatMessageService;
 import com.dongsoop.dongsoop.chat.service.ChatParticipantService;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
@@ -20,6 +22,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -153,5 +156,67 @@ class ChatParticipantServiceTest {
 
         assertThat(result).isNotNull();
         verify(chatRoomService).saveRoom(any());
+    }
+
+    private ChatRoom groupRoom(Set<Long> participants) {
+        return ChatRoom.builder()
+                .roomId("room1")
+                .isGroupChat(true)
+                .managerId(1L)
+                .participants(new HashSet<>(participants))
+                .kickedUsers(new HashSet<>())
+                .participantJoinTimes(new java.util.HashMap<>())
+                .build();
+    }
+
+    @Test
+    @DisplayName("관리자 추방은 방장 권한 없이 대상을 내보내고 재입장을 막는다")
+    void kickUserByAdmin_KicksParticipant() {
+        ChatRoom room = groupRoom(Set.of(1L, 2L));
+        when(chatRoomService.getChatRoomById("room1")).thenReturn(room);
+
+        chatParticipantService.kickUserByAdmin("room1", 2L);
+
+        assertThat(room.getParticipants()).doesNotContain(2L);
+        assertThat(room.isKicked(2L)).isTrue();
+        verify(chatMessageService).createAndSaveSystemMessage("room1", 2L, MessageType.LEAVE);
+        verify(chatRoomService).saveRoom(room);
+    }
+
+    @Test
+    @DisplayName("이미 나간 대상은 시스템 메시지 없이 재입장만 막는다")
+    void kickUserByAdmin_AlreadyLeft_BlocksRejoinOnly() {
+        ChatRoom room = groupRoom(Set.of(1L));
+        when(chatRoomService.getChatRoomById("room1")).thenReturn(room);
+
+        chatParticipantService.kickUserByAdmin("room1", 2L);
+
+        assertThat(room.isKicked(2L)).isTrue();
+        verify(chatMessageService, never()).createAndSaveSystemMessage("room1", 2L, MessageType.LEAVE);
+    }
+
+    @Test
+    @DisplayName("1:1 방에서는 관리자 추방을 거절한다")
+    void kickUserByAdmin_OneToOne_Throws() {
+        ChatRoom room = ChatRoom.create(1L, 2L, "1:1");
+        when(chatRoomService.getChatRoomById("room1")).thenReturn(room);
+
+        assertThatThrownBy(() -> chatParticipantService.kickUserByAdmin("room1", 2L))
+                .isInstanceOf(GroupChatOnlyException.class);
+        verify(chatRoomService, never()).saveRoom(any());
+        verify(chatMessageService, never()).createAndSaveSystemMessage(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("방장은 관리자 추방 대상이 될 수 없다")
+    void kickUserByAdmin_Manager_Throws() {
+        ChatRoom room = groupRoom(Set.of(1L, 2L));
+        when(chatRoomService.getChatRoomById("room1")).thenReturn(room);
+        doThrow(new ManagerKickAttemptException()).when(chatValidator).validateNotKickingManager(room, 1L);
+
+        assertThatThrownBy(() -> chatParticipantService.kickUserByAdmin("room1", 1L))
+                .isInstanceOf(ManagerKickAttemptException.class);
+        verify(chatRoomService, never()).saveRoom(any());
+        verify(chatMessageService, never()).createAndSaveSystemMessage(any(), any(), any());
     }
 }

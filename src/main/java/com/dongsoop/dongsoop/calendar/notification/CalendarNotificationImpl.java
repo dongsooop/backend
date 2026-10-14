@@ -53,8 +53,7 @@ public class CalendarNotificationImpl implements CalendarNotification {
     public void saveAndSendForMember(Member member, List<String> devices, String title, String body) {
         // 알림 저장 및 저장된 알림 ID 반환
         MemberNotification save = notificationSaveService.save(member, title, body, NotificationType.CALENDAR, "");
-        Long notificationId = save.getId()
-                .getDetails()
+        Long notificationId = save.getDetails()
                 .getId();
 
         // 알림 저장용 DTO

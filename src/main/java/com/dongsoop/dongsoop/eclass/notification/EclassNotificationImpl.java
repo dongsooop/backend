@@ -131,8 +131,7 @@ public class EclassNotificationImpl implements EclassNotification {
         if (member != null) {
             MemberNotification saved = notificationSaveService.save(member, title, body,
                     NotificationType.ECLASS_ASSIGNMENT, value);
-            notificationId = saved.getId()
-                    .getDetails()
+            notificationId = saved.getDetails()
                     .getId();
         }
 

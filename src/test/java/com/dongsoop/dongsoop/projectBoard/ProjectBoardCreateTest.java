@@ -16,7 +16,6 @@ import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.board.project.dto.CreateProjectBoardRequest;
 import com.dongsoop.dongsoop.recruitment.board.project.entity.ProjectBoard;
 import com.dongsoop.dongsoop.recruitment.board.project.entity.ProjectBoardDepartment;
-import com.dongsoop.dongsoop.recruitment.board.project.entity.ProjectBoardDepartment.ProjectBoardDepartmentId;
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardDepartmentRepository;
 import com.dongsoop.dongsoop.recruitment.board.project.repository.ProjectBoardRepository;
 import com.dongsoop.dongsoop.recruitment.board.project.service.ProjectBoardServiceImpl;
@@ -128,10 +127,10 @@ class ProjectBoardCreateTest {
                 .build();
 
         List<ProjectBoardDepartment> compareDepartmentList = List.of(
-                new ProjectBoardDepartment(new ProjectBoardDepartmentId(board,
-                        new Department(VALID_DEPARTMENT_TYPE_A, null, null))),
-                new ProjectBoardDepartment(new ProjectBoardDepartmentId(board,
-                        new Department(VALID_DEPARTMENT_TYPE_B, null, null)))
+                new ProjectBoardDepartment(board,
+                        new Department(VALID_DEPARTMENT_TYPE_A, null, null)),
+                new ProjectBoardDepartment(board,
+                        new Department(VALID_DEPARTMENT_TYPE_B, null, null))
         );
 
         assertThat(board)

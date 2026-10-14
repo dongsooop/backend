@@ -15,7 +15,6 @@ import com.dongsoop.dongsoop.report.exception.SelfReportException;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -33,8 +32,7 @@ public class ReportValidator {
     private final MemberRepository memberRepository;
 
     public void checkMemberAccessById(Long memberId) {
-        List<SanctionType> banTypes = List.of(SanctionType.TEMPORARY_BAN, SanctionType.PERMANENT_BAN);
-        reportRepository.findActiveBanForMember(memberId, LocalDateTime.now(KST), banTypes)
+        reportRepository.findActiveBanForMember(memberId, LocalDateTime.now(KST), SanctionType.BAN_TYPES)
                 .ifPresent(report -> {
                     throw new MemberSanctionedException("회원님은 현재 제재 중입니다. 자세한 내용은 고객센터에 문의해주세요.");
                 });

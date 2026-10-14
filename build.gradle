@@ -113,6 +113,7 @@ sonar {
         property 'sonar.issue.ignore.multicriteria.csrfDisabled.ruleKey', 'java:S4502'
         property 'sonar.issue.ignore.multicriteria.csrfDisabled.resourceKey', '**/SecurityConfig.java'
 
+
         property 'sonar.coverage.jacoco.xmlReportPaths', 'build/reports/jacoco/test/jacocoTestReport.xml'
     }
 }

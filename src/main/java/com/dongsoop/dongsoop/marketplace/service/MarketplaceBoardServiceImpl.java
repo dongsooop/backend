@@ -70,8 +70,7 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
     private MarketplaceImage uploadImage(MultipartFile image, MarketplaceBoard board) {
         try {
             String url = s3Service.upload(image, DIRECTORY_PATH, board.getId());
-            MarketplaceImageId id = new MarketplaceImageId(board, url);
-            return new MarketplaceImage(id);
+            return new MarketplaceImage(board, url);
         } catch (IOException exception) {
             throw new S3UnknownException(exception);
         }
@@ -119,7 +118,7 @@ public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
         if (request.deleteImageUrls() != null) {
             List<MarketplaceImageId> deleteImage = request.deleteImageUrls()
                     .stream()
-                    .map(v -> new MarketplaceImageId(board, v))
+                    .map(v -> new MarketplaceImageId(board.getId(), v))
                     .toList();
             marketplaceImageRepository.deleteAllById(deleteImage);
         }

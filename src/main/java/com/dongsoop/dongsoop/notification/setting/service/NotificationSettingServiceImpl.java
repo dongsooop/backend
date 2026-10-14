@@ -35,9 +35,7 @@ public class NotificationSettingServiceImpl implements NotificationSettingServic
                         HashMap::putAll);
 
         for (NotificationType type : NotificationType.values()) {
-            if (!settingMap.containsKey(type)) {
-                settingMap.put(type, type.getDefaultActiveState());
-            }
+            settingMap.computeIfAbsent(type, NotificationType::getDefaultActiveState);
         }
 
         return settingMap;

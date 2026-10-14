@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.common.config;
 
+import com.dongsoop.dongsoop.common.handler.websocket.ChatAuthorizationInterceptor;
 import com.dongsoop.dongsoop.common.handler.websocket.CustomStompErrorHandler;
 import com.dongsoop.dongsoop.common.handler.websocket.StompHandler;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import org.springframework.web.socket.messaging.StompSubProtocolErrorHandler;
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final StompHandler stompHandler;
+    private final ChatAuthorizationInterceptor chatAuthorizationInterceptor;
     private final CustomStompErrorHandler customStompErrorHandler;
 
     @Override
@@ -48,7 +50,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(stompHandler);
+        registration.interceptors(stompHandler, chatAuthorizationInterceptor);
         registration.taskExecutor()
                 .corePoolSize(16)
                 .maxPoolSize(50)

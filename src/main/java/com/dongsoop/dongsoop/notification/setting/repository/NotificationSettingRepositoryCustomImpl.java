@@ -23,7 +23,7 @@ public class NotificationSettingRepositoryCustomImpl implements NotificationSett
                         notificationSetting.id.notificationType,
                         notificationSetting.enabled))
                 .from(notificationSetting)
-                .where(notificationSetting.id.device.deviceToken.eq(deviceToken))
+                .where(notificationSetting.device.deviceToken.eq(deviceToken))
                 .fetch();
     }
 }

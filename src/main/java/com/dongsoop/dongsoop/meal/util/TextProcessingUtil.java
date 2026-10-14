@@ -1,15 +1,16 @@
 package com.dongsoop.dongsoop.meal.util;
 
-import java.util.Optional;
-import org.springframework.stereotype.Component;
-
 import java.util.Objects;
+import java.util.Optional;
+import java.util.regex.Pattern;
+import org.springframework.stereotype.Component;
 
 @Component
 public class TextProcessingUtil {
 
     private static final int MAX_MENU_LENGTH = 800;
     private static final String DEFAULT_EMPTY_MENU = "식단 정보 없음";
+    private static final Pattern LUNCH_LABEL_PATTERN = Pattern.compile("\\[점심\\]\\s*", Pattern.CANON_EQ);
 
     public String processMenuText(String rawHtml) {
         String cleanedText = cleanMenuText(rawHtml);
@@ -19,8 +20,10 @@ public class TextProcessingUtil {
     }
 
     private String cleanMenuText(String text) {
-        return text.replaceAll("<br\\s*/?>", " ")
-                .replaceAll("\\[점심\\]\\s*", "")
+        String withoutLineBreaks = text.replaceAll("<br\\s*/?>", " ");
+
+        return LUNCH_LABEL_PATTERN.matcher(withoutLineBreaks)
+                .replaceAll("")
                 .replaceAll("\\s+", " ")
                 .trim();
     }

@@ -2,47 +2,58 @@ package com.dongsoop.dongsoop.recruitment.board.project.entity;
 
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
 @Entity
+@IdClass(ProjectBoardDepartment.ProjectBoardDepartmentId.class)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class ProjectBoardDepartment {
 
-    @EmbeddedId
-    private ProjectBoardDepartmentId id;
+    @Id
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_board_id")
+    private ProjectBoard projectBoard;
+
+    @Id
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id")
+    private Department department;
 
     public boolean isSameDepartmentType(DepartmentType that) {
-        DepartmentType thisDepartmentType = this.id.department.getId();
+        DepartmentType thisDepartmentType = this.department.getId();
 
         return thisDepartmentType.equals(that);
     }
 
     public Department getDepartment() {
-        return this.id.department;
+        return this.department;
     }
 
-    @Embeddable
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class ProjectBoardDepartmentId {
+    public static class ProjectBoardDepartmentId implements Serializable {
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(name = "project_board_id")
-        private ProjectBoard projectBoard;
+        @Serial
+        private static final long serialVersionUID = 1L;
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(name = "department_id")
-        private Department department;
+        private Long projectBoard;
+
+        @Enumerated(EnumType.STRING)
+        private DepartmentType department;
 
         @Override
         public boolean equals(Object o) {
@@ -53,17 +64,13 @@ public class ProjectBoardDepartment {
                 return false;
             }
             ProjectBoardDepartmentId that = (ProjectBoardDepartmentId) o;
-            if (this.projectBoard == null || that.projectBoard == null
-                    || this.department == null || that.department == null) {
-                return false;
-            }
-
-            return this.projectBoard.equalsId(that.projectBoard) && this.department.equalsId(that.department);
+            return Objects.equals(projectBoard, that.projectBoard)
+                    && Objects.equals(department, that.department);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(projectBoard.getId(), department.getId());
+            return Objects.hash(projectBoard, department);
         }
     }
 }
