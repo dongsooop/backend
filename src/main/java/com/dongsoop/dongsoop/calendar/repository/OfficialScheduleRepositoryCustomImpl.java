@@ -59,7 +59,8 @@ public class OfficialScheduleRepositoryCustomImpl implements OfficialScheduleRep
         return queryFactory.selectDistinct(officialSchedule.title, officialSchedule.startAt, officialSchedule.endAt)
                 .from(officialSchedule)
                 .where(startAtDate.eq(date))
-                .fetch().stream()
+                .fetch()
+                .stream()
                 .map(schedule -> HomeSchedule.allDay(schedule.get(officialSchedule.title), ScheduleType.OFFICIAL))
                 .toList();
     }
