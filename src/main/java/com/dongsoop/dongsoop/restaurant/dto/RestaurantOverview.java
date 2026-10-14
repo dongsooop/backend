@@ -21,15 +21,15 @@ public final class RestaurantOverview {
 
     @QueryProjection
     public RestaurantOverview(RestaurantInfo info, RestaurantStats stats, String tags) {
-        this.id = info.getId();
-        this.name = info.getName();
-        this.category = info.getCategory().getDisplayName();
-        this.distance = info.getDistance();
-        this.likeCount = stats.getLikeCount();
-        this.isLikedByMe = stats.getIsLikedByMe();
+        this.id = info.id();
+        this.name = info.name();
+        this.category = info.category().getDisplayName();
+        this.distance = info.distance();
+        this.likeCount = stats.likeCount();
+        this.isLikedByMe = stats.isLikedByMe();
         this.tags = parseTags(tags);
-        this.externalMapId = info.getExternalMapId();
-        this.placeUrl = info.getPlaceUrl();
+        this.externalMapId = info.externalMapId();
+        this.placeUrl = info.placeUrl();
     }
 
     private static List<String> parseTags(String tags) {
