@@ -33,9 +33,9 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -369,45 +369,27 @@ class EclassSyncServiceTest {
         assertThat(capturedSaved().get(0).getDueAt()).isEqualTo(LocalDateTime.of(2026, 9, 3, 23, 55));
     }
 
-    @Test
-    @DisplayName("마감이 앞당겨지면 변경 알림을 보낸다")
-    void notifiesWhenDueDateAdvanced() {
-        EclassAssignment existing = existing(NOW.plusDays(9));
-        givenExisting(existing);
-        givenFetched(moodleAssignment(601L, NOW.plusDays(2)));
-        givenSubmissionStatus(false);
-
-        syncService.syncLink(link);
-
-        verify(eclassNotification).sendDueDateChanged(link, existing);
-        assertThat(existing.getDueAt()).isEqualTo(NOW.plusDays(2));
-    }
-
-    @ParameterizedTest(name = "기존 +{0}일, 수집 +{1}일, 제출={2}")
-    @CsvSource({
-            "2, 9, false",
-            "2, 2, false",
-            "9, 2, true"
-    })
-    @DisplayName("마감이 앞당겨지지 않거나 이미 제출한 과제에는 변경 알림을 보내지 않는다")
-    void doesNotNotifyWhenDueDateChangeIsNotRelevant(
-            int existingDueDays,
-            int fetchedDueDays,
-            boolean submitted
-    ) {
-        EclassAssignment existing = existing(NOW.plusDays(existingDueDays));
+    @ParameterizedTest(name = "마감 {0}일 → {1}일, 제출={2}, 알림 {3}회")
+    @CsvSource({"9, 2, false, 1", "2, 9, false, 0", "2, 2, false, 0", "9, 2, true, 0"})
+    @DisplayName("미제출 과제는 마감이 앞당겨질 때만 변경 알림을 보낸다")
+    void notifiesOnlyWhenDueDateAdvanced(int previousDays, int newDays, boolean submitted, int notificationCount) {
+        EclassAssignment existing = existing(NOW.plusDays(previousDays));
         if (submitted) {
             existing.updateSubmission(true, NOW.minusHours(1));
         }
         givenExisting(existing);
-        givenFetched(moodleAssignment(601L, NOW.plusDays(fetchedDueDays)));
+        givenFetched(moodleAssignment(601L, NOW.plusDays(newDays)));
         if (!submitted) {
             givenSubmissionStatus(false);
         }
 
         syncService.syncLink(link);
 
-        verify(eclassNotification, never()).sendDueDateChanged(any(), any());
+        verify(eclassNotification, times(notificationCount)).sendDueDateChanged(any(), any());
+        if (notificationCount > 0) {
+            verify(eclassNotification).sendDueDateChanged(link, existing);
+        }
+        assertThat(existing.getDueAt()).isEqualTo(NOW.plusDays(newDays));
     }
 
     @Test
