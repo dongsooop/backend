@@ -23,7 +23,8 @@ public class JwtValidator {
 
     public void validate(Claims claims) {
         // 요청자 ID 검사
-        if (!claims.getSubject().matches("\\d+")) {
+        String subject = claims.getSubject();
+        if (!StringUtils.hasText(subject) || !subject.matches("\\d+")) {
             throw new TokenMalformedException();
         }
 
