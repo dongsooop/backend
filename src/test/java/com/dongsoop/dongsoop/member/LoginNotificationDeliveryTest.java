@@ -24,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
@@ -77,44 +78,49 @@ class LoginNotificationDeliveryTest {
         verify(send).send(notification);
     }
 
-    @Test
-    void mailFailureDoesNotPreventPush() {
-        MimeMessage message = prepareMail();
-        preparePush();
-        doThrow(new MailSendException("unavailable")).when(mail).send(message);
+    @ParameterizedTest
+    @EnumSource(DeliveryFailure.class)
+    void deliveryFailureDoesNotFailLogin(DeliveryFailure failure) {
+        MimeMessage message = configureFailure(failure);
         assertThatCode(() -> service.sendLoginNotification(7L, "member@example.com", "127.0.0.1", "Browser"))
                 .doesNotThrowAnyException();
-        verify(send).send(notification);
-    }
-
-    @Test
-    void missingTemplateStillSendsPush() {
-        ReflectionTestUtils.setField(service, "loginMailTemplate", "missing-test-template.html");
-        preparePush();
-        assertThatCode(() -> service.sendLoginNotification(7L, "member@example.com", "127.0.0.1", "Browser"))
-                .doesNotThrowAnyException();
-        verify(mail, never()).send(any(MimeMessage.class));
-        verify(send).send(notification);
-    }
-
-    @Test
-    void pushPersistenceFailureDoesNotFailLoginOrMail() {
-        MimeMessage message = prepareMail();
-        when(save.save(eq(member), any(), any(), eq(NotificationType.NEW_DEVICE_LOGIN), eq("")))
-                .thenThrow(new IllegalStateException("storage unavailable"));
-        assertThatCode(() -> service.sendLoginNotification(7L, "member@example.com", "127.0.0.1", "Browser"))
-                .doesNotThrowAnyException();
+        if (failure == DeliveryFailure.TEMPLATE) {
+            verify(mail, never()).send(any(MimeMessage.class));
+            verify(send).send(notification);
+            return;
+        }
         verify(mail).send(message);
-        verify(send, never()).send(any(MemberNotification.class));
+        if (failure == DeliveryFailure.STORAGE) {
+            verify(send, never()).send(any(MemberNotification.class));
+            return;
+        }
+        verify(send).send(notification);
     }
 
-    @Test
-    void pushSendingFailureDoesNotFailLogin() {
-        prepareMail();
+    private MimeMessage configureFailure(DeliveryFailure failure) {
+        if (failure == DeliveryFailure.TEMPLATE) {
+            ReflectionTestUtils.setField(service, "loginMailTemplate", "missing-test-template.html");
+            preparePush();
+            return null;
+        }
+        MimeMessage message = prepareMail();
+        if (failure == DeliveryFailure.STORAGE) {
+            when(save.save(eq(member), any(), any(), eq(NotificationType.NEW_DEVICE_LOGIN), eq("")))
+                    .thenThrow(new IllegalStateException("storage unavailable"));
+            return message;
+        }
         preparePush();
-        doThrow(new IllegalStateException("push unavailable")).when(send).send(notification);
-        assertThatCode(() -> service.sendLoginNotification(7L, "member@example.com", "127.0.0.1", "Browser"))
-                .doesNotThrowAnyException();
+        if (failure == DeliveryFailure.MAIL) {
+            doThrow(new MailSendException("unavailable")).when(mail).send(message);
+        }
+        if (failure == DeliveryFailure.PUSH) {
+            doThrow(new IllegalStateException("push unavailable")).when(send).send(notification);
+        }
+        return message;
+    }
+
+    private enum DeliveryFailure {
+        MAIL, TEMPLATE, STORAGE, PUSH
     }
 
     private MimeMessage prepareMail() {
