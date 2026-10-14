@@ -64,13 +64,13 @@ class FcmDeliveryContractTest {
         assertThat(field(notification, "body")).isEqualTo("body");
         Map<String, Object> apns = map(field(message, "apnsConfig"), "payload");
         assertThat(apns).containsEntry("type", "NOTICE")
-                .containsEntry("value", "42");
-        assertThat(apns).containsEntry("id", "9");
+                .containsEntry("value", "42")
+                .containsEntry("id", "9");
         Map<String, Object> aps = asMap(apns.get("aps"));
         Map<String, Object> android = map(field(message, "androidConfig"), "data");
         assertThat(android).containsEntry("type", "NOTICE")
-                .containsEntry("id", "9");
-        assertThat(android).containsEntry("value", "42");
+                .containsEntry("id", "9")
+                .containsEntry("value", "42");
         if (badge == null || badge < 0) {
             assertThat(aps.containsKey("badge")).isFalse();
             assertThat(android.containsKey("badge")).isFalse();
