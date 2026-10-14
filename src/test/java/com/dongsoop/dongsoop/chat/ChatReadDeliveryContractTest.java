@@ -63,7 +63,8 @@ class ChatReadDeliveryContractTest {
     void unauthorizedReadCannotLoadOrChangeMessages() {
         doThrow(new UnauthorizedChatAccessException()).when(validator).validateUserForRoom("room", 7L);
         assertThatThrownBy(() -> service.initializeChatRoomForFirstTime("room", 7L)).isInstanceOf(UnauthorizedChatAccessException.class);
-        assertThatThrownBy(() -> service.updateReadStatus("room", 7L, new ReadStatusUpdateRequest(TIME, null)))
+        ReadStatusUpdateRequest request = new ReadStatusUpdateRequest(TIME, null);
+        assertThatThrownBy(() -> service.updateReadStatus("room", 7L, request))
                 .isInstanceOf(UnauthorizedChatAccessException.class);
         assertThatThrownBy(() -> service.getMessagesAfter("room", 7L, "m1")).isInstanceOf(UnauthorizedChatAccessException.class);
         verifyNoInteractions(rooms, messages, reads);
@@ -102,10 +103,10 @@ class ChatReadDeliveryContractTest {
         verify(socket).convertAndSend(eq("/topic/user/9"), notifications.capture());
         assertThat(notifications.getAllValues()).allSatisfy(value -> {
             assertThat(value).isInstanceOf(Map.class);
-            Map<?, ?> data = (Map<?, ?>) value;
-            assertThat(data.get("roomId")).isEqualTo("room");
-            assertThat(data.get("readerId")).isEqualTo(7L);
-            assertThat(data.get("type")).isEqualTo(ChatNotificationType.READ_STATUS_UPDATE);
+            assertThat(value).asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.MAP)
+                    .containsEntry("roomId", "room")
+                    .containsEntry("readerId", 7L)
+                    .containsEntry("type", ChatNotificationType.READ_STATUS_UPDATE);
         });
         verify(socket, never()).convertAndSend(eq("/topic/user/7"), any(Object.class));
     }
