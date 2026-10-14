@@ -248,7 +248,7 @@ public class FCMServiceImpl implements FCMService {
         }
 
         // 만료된 토큰 확인
-        if (isValidToken(exception)) {
+        if (isUnregisteredToken(exception)) {
             memberDeviceService.unbindByToken(token);
             log.warn("Invalid FCM token unbound: {}", token);
             return;
@@ -257,16 +257,9 @@ public class FCMServiceImpl implements FCMService {
         log.error("Error sending FCM message: {}", exception.getMessage());
     }
 
-    private boolean isValidToken(FirebaseMessagingException exception) {
-        MessagingErrorCode messagingErrorCode = exception.getMessagingErrorCode();
-        if (messagingErrorCode == null) {
-            return false;
-        }
-
-        boolean isUnregistered = messagingErrorCode.equals(MessagingErrorCode.UNREGISTERED);
-        boolean isInvalidArgument = messagingErrorCode.equals(MessagingErrorCode.INVALID_ARGUMENT);
-
-        return isUnregistered || isInvalidArgument;
+    private boolean isUnregisteredToken(FirebaseMessagingException exception) {
+        // INVALID_ARGUMENT can also indicate a payload error, not an invalid token.
+        return exception.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED;
     }
 
     @Override
