@@ -26,7 +26,7 @@ public class JwtServiceImpl implements JwtService {
         // deviceId가 있는 경우 블랙리스트 검사 (없으면 하위 호환을 위해 스킵)
         Long deviceId = claims.get(JwtUtil.DEVICE_ID_CLAIM, Long.class);
         if (deviceId != null) {
-            deviceBlacklistService.validateNotBlacklisted(deviceId, claims.getIssuedAt());
+            deviceBlacklistService.validateNotBlacklisted(deviceId, JwtUtil.getIssuedAt(claims));
         }
 
         Authentication authentication = jwtUtil.getAuthenticationByToken(refreshToken);
