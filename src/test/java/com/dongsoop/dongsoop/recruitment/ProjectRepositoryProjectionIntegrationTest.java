@@ -77,9 +77,13 @@ class ProjectRepositoryProjectionIntegrationTest extends AbstractIntegrationTest
         board("예정 모집", NOW.plusDays(1), NOW.plusDays(3));
         ProjectBoard deleted = board("삭제 모집", NOW.minusDays(1), NOW.plusDays(1));
         deleted.setDeleted(true);
+        board("시작 경계", NOW, NOW.plusDays(1));
+        board("종료 경계", NOW.minusDays(1), NOW);
         Long firstId = first.getId();
         Long secondId = second.getId();
         flushAndClear();
+        assertThat(boards.findProjectBoardOverviewsByPage(PageRequest.of(0, 100, Sort.by("id"))))
+                .extracting(RecruitmentOverview::id).containsExactly(firstId, secondId);
         PageRequest firstPage = PageRequest.of(0, 1, Sort.by("id"));
         PageRequest secondPage = PageRequest.of(1, 1, Sort.by("id"));
         assertThat(boards.findProjectBoardOverviewsByPage(firstPage)).extracting(RecruitmentOverview::id)
