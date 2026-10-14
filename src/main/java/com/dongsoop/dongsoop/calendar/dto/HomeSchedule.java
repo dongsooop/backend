@@ -15,8 +15,6 @@ public record HomeSchedule(
         this(title, startAt.toLocalTime(), endAt.toLocalTime(), type);
     }
 
-    // QueryDSL selects the date range, while an all-day response intentionally exposes MIN/MAX times.
-    @SuppressWarnings("java:S1172")
     public HomeSchedule(String title, LocalDate startAt, LocalDate endAt, ScheduleType type) {
         this(title, LocalTime.MIN, LocalTime.MAX, type);
     }
