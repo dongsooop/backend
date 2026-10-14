@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.calendar.dto;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
@@ -15,7 +14,7 @@ public record HomeSchedule(
         this(title, startAt.toLocalTime(), endAt.toLocalTime(), type);
     }
 
-    public HomeSchedule(String title, LocalDate startAt, LocalDate endAt, ScheduleType type) {
-        this(title, LocalTime.MIN, LocalTime.MAX, type);
+    public static HomeSchedule allDay(String title, ScheduleType type) {
+        return new HomeSchedule(title, LocalTime.MIN, LocalTime.MAX, type);
     }
 }

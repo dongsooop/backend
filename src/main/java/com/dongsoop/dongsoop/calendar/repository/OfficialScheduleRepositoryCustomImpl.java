@@ -4,7 +4,6 @@ import com.dongsoop.dongsoop.calendar.dto.HomeSchedule;
 import com.dongsoop.dongsoop.calendar.dto.ScheduleType;
 import com.dongsoop.dongsoop.calendar.entity.OfficialSchedule;
 import com.dongsoop.dongsoop.calendar.entity.QOfficialSchedule;
-import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.DateExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -56,14 +55,12 @@ public class OfficialScheduleRepositoryCustomImpl implements OfficialScheduleRep
         DateExpression<LocalDate> startAtDate = Expressions.dateTemplate(LocalDate.class, "DATE({0})",
                 officialSchedule.startAt);
 
-        return queryFactory.selectDistinct(Projections.constructor(
-                        HomeSchedule.class,
-                        officialSchedule.title,
-                        officialSchedule.startAt,
-                        officialSchedule.endAt,
-                        Expressions.constant(ScheduleType.OFFICIAL)))
+        // 날짜 범위를 조회 열에 유지해 기존 DISTINCT 기준을 보존한다.
+        return queryFactory.selectDistinct(officialSchedule.title, officialSchedule.startAt, officialSchedule.endAt)
                 .from(officialSchedule)
                 .where(startAtDate.eq(date))
-                .fetch();
+                .fetch().stream()
+                .map(schedule -> HomeSchedule.allDay(schedule.get(officialSchedule.title), ScheduleType.OFFICIAL))
+                .toList();
     }
 }
