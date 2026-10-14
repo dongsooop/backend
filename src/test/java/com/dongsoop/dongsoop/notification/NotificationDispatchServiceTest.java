@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
@@ -51,9 +52,11 @@ class NotificationDispatchServiceTest {
 
     @Test
     void batchResolvesMembersAndUsesDefaultBadgeForMissingEntry() {
-        when(devices.getDeviceByMember(any())).thenReturn(Map.of(7L, List.of("device-a")));
+        MemberDeviceFindCondition condition = new MemberDeviceFindCondition(List.of(7L, 8L), NotificationType.NOTICE);
+        when(devices.getDeviceByMember(condition)).thenReturn(Map.of(7L, List.of("device-a")));
         when(badges.resolveByMemberIds(List.of(7L, 8L))).thenReturn(Map.of());
         service.sendAll(List.of(notification(7L), notification(8L)), NotificationType.NOTICE);
+        verify(devices).getDeviceByMember(condition);
         verify(fcm).sendNotification(List.of("device-a"), payload(), 0);
     }
 
