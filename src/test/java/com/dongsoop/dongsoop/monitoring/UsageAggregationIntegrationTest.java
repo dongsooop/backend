@@ -3,6 +3,12 @@ package com.dongsoop.dongsoop.monitoring;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.json.JsonData;
+import com.dongsoop.dongsoop.monitoring.service.ApiUsageRecorder;
+import com.dongsoop.dongsoop.monitoring.dto.ApiUsageEvent;
+import jakarta.json.Json;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.env.MapPropertySource;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.dongsoop.dongsoop.monitoring.client.UsageStatsClient;
@@ -53,6 +59,44 @@ class UsageAggregationIntegrationTest {
                 .properties("uri", p -> p.keyword(k -> k)).properties("status", p -> p.integer(i -> i))
                 .properties("durationMs", p -> p.long_(l -> l))));
         service = new UsageStatsClient(client);
+    }
+
+    @Test
+    void springInitializedRecorderWritesTemplateBackedDocumentsReadableByAggregation() throws Exception {
+        client.indices().delete(d -> d.index(INDEX));
+        var context = new AnnotationConfigApplicationContext();
+        context.getEnvironment().getPropertySources().addFirst(new MapPropertySource("test",
+                Map.of("monitoring.usage.enabled", "true")));
+        context.registerBean(ElasticsearchClient.class, () -> client);
+        context.registerBean(ApiUsageRecorder.class,
+                () -> new ApiUsageRecorder(
+                        context.getBeanProvider(ElasticsearchClient.class)));
+        try (context) {
+            context.refresh();
+            var recorder = context.getBean(ApiUsageRecorder.class);
+            assertThat(client.indices().existsIndexTemplate(e -> e.name("api-usage")).value()).isTrue();
+            assertThat(recorder.offer(new ApiUsageEvent(
+                    day(15).plusHours(9), "GET", "/meal", "meal", 200, 120, 7L, 9L, "m:7"))).isTrue();
+            assertThat(recorder.offer(new ApiUsageEvent(
+                    day(15).plusHours(10), "GET", "/meal", "meal", 500, 240, null, null, "anon"))).isTrue();
+            recorder.flush();
+            client.indices().refresh(r -> r.index(INDEX));
+            var result = service.query(day(15), day(16));
+            assertThat(result.calls()).isEqualTo(2);
+            assertThat(result.users()).isEqualTo(1);
+            assertThat(result.memberUsers()).isEqualTo(1);
+            assertThat(result.serverErrors()).isEqualTo(1);
+            assertThat(result.features()).containsEntry("meal", new UsageWindow.FeatureCount(2, 1));
+            var stored = client.search(s -> s.index(INDEX).query(q -> q.term(t -> t.field("actor").value("m:7"))), JsonData.class);
+            assertThat(stored.hits().hits()).singleElement().satisfies(hit ->
+                    assertThat(hit.source().toJson().asJsonObject()).containsEntry("memberId", Json.createValue(7))
+                            .containsEntry("deviceId", Json.createValue(9))
+                            .containsEntry("method", Json.createValue("GET"))
+                            .containsEntry("durationMs", Json.createValue(120)));
+            recorder.flush();
+            client.indices().refresh(r -> r.index(INDEX));
+            assertThat(client.count(c -> c.index(INDEX)).count()).isEqualTo(2);
+        }
     }
 
     @Test
