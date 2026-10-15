@@ -53,6 +53,14 @@ class TimetableDispatchContractTest {
         verifyNoInteractions(notification);
     }
 
+    @Test
+    void failedTimetableLookupCannotDispatchPartialNotification() {
+        when(timetables.getTimetableNotificationDtoList(any(), any(), any()))
+                .thenThrow(new IllegalStateException("database unavailable"));
+        assertThatThrownBy(scheduler::scheduled).isInstanceOf(IllegalStateException.class);
+        verifyNoInteractions(devices, notification);
+    }
+
     private TodayTimetable row(String name, int hour, int minute, Long memberId) {
         return new TodayTimetable(name, LocalTime.of(hour, minute), LocalTime.of(hour + 1, minute), memberId);
     }
