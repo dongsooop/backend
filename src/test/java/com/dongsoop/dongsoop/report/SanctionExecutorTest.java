@@ -11,6 +11,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.dongsoop.dongsoop.blinddate.service.BlindDateService;
 import com.dongsoop.dongsoop.chat.service.ChatParticipantService;
 import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import com.dongsoop.dongsoop.member.entity.Member;
@@ -64,6 +65,8 @@ class SanctionExecutorTest {
     private MemberDeviceRepository memberDeviceRepository;
     @Mock
     private DeviceBlacklistService deviceBlacklistService;
+    @Mock
+    private BlindDateService blindDateService;
 
     private final Member admin = Member.builder().id(100L).build();
     private final Member target = Member.builder().id(2L).build();
@@ -178,6 +181,43 @@ class SanctionExecutorTest {
     }
 
     @Test
+    @DisplayName("과팅 신고의 채팅방 추방은 커밋된 뒤 신고된 세션에서 대상을 강퇴하고 채팅방 추방은 하지 않는다")
+    void issue_BlindDateChatKick_KicksParticipantOnlyAfterCommit() {
+        Report report = Report.builder().id(1L).reportType(ReportType.BLINDDATE_MESSAGE).targetId(2L)
+                .targetMember(target).chatRoomId("session-1").build();
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            sanctionExecutor.issue(report, admin, target, SanctionType.CHAT_KICK, null, null, null);
+            verify(blindDateService, never()).kickParticipant(any(), anyLong());
+
+            TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+
+        verify(blindDateService).kickParticipant("session-1", 2L);
+        verify(chatParticipantService, never()).kickUserByAdmin(any(), anyLong());
+    }
+
+    @Test
+    @DisplayName("과팅 강퇴 제재가 롤백되면 강퇴하지 않는다")
+    void issue_BlindDateChatKickRolledBack_DoesNotKick() {
+        Report report = Report.builder().id(1L).reportType(ReportType.BLINDDATE_MESSAGE).targetId(2L)
+                .targetMember(target).chatRoomId("session-1").build();
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            sanctionExecutor.issue(report, admin, target, SanctionType.CHAT_KICK, null, null, null);
+
+            TransactionSynchronizationManager.getSynchronizations()
+                    .forEach(sync -> sync.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+
+        verify(blindDateService, never()).kickParticipant(any(), anyLong());
+    }
+
+    @Test
     @DisplayName("경고 3회 누적 시 3일 정지를 시스템 관리자 명의와 필수 필드로 저장한다")
     void issue_ThirdWarning_CreatesSuspensionWithRequiredFields() {
         when(reportRepository.countActiveWarningsForMember(2L, SanctionType.WARNING)).thenReturn(3L);
@@ -270,6 +310,21 @@ class SanctionExecutorTest {
         Sanction suspension = captor.getAllValues().get(1);
         assertThat(suspension.getReason()).isEqualTo("경고 3회 누적으로 인한 자동 3일 정지");
         assertThat(suspension.getReport().getReportReason()).isEqualTo(ReportReason.OTHER);
+    }
+
+    @Test
+    @DisplayName("관리자가 사유 없이 발급해 기본값(경고)이 채워진 경고면 자동 정지 사유는 누적 정지 문구로 대체한다")
+    void issue_ThirdWarningWithDefaultReason_FallsBackToDescription() {
+        when(reportRepository.countActiveWarningsForMember(2L, SanctionType.WARNING)).thenReturn(3L);
+        when(memberRepository.getReferenceById(0L)).thenReturn(systemAdmin);
+        when(reportRepository.save(any(Report.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        issue(SanctionType.WARNING, null, null);
+
+        ArgumentCaptor<Sanction> captor = ArgumentCaptor.forClass(Sanction.class);
+        verify(sanctionRepository, times(2)).saveAndFlush(captor.capture());
+        assertThat(captor.getAllValues().get(0).getReason()).isEqualTo("경고");
+        assertThat(captor.getAllValues().get(1).getReason()).isEqualTo("경고 3회 누적으로 인한 자동 3일 정지");
     }
 
     @Test

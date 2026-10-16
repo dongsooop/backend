@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.dongsoop.dongsoop.blinddate.config.BlindDateMessageProvider;
 import com.dongsoop.dongsoop.blinddate.dto.StartBlindDateRequest;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
@@ -30,7 +31,8 @@ class BlindDateControllerTest {
     private final BlindDateEventQueue queue = new BlindDateEventQueue();
     private final BlindDateServiceImpl service = new BlindDateServiceImpl(
             participants, operation, mock(BlindDateNotification.class), sessions,
-            mock(SimpMessagingTemplate.class), new ManualBlindDateTaskScheduler(), queue);
+            mock(SimpMessagingTemplate.class), new ManualBlindDateTaskScheduler(), queue,
+            new BlindDateMessageProvider());
     private final BlindDateController controller = new BlindDateController(service);
 
     @AfterEach

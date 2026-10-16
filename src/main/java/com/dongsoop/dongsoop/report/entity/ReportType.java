@@ -16,7 +16,10 @@ public enum ReportType {
     public static final Set<ReportType> BOARD_TYPES =
             Collections.unmodifiableSet(EnumSet.of(PROJECT_BOARD, STUDY_BOARD, MARKETPLACE_BOARD, TUTORING_BOARD));
 
+    public static final Set<ReportType> MESSAGE_TYPES =
+            Collections.unmodifiableSet(EnumSet.of(CHAT_MESSAGE, BLINDDATE_MESSAGE));
+
     public boolean isMessageReport() {
-        return this == CHAT_MESSAGE || this == BLINDDATE_MESSAGE;
+        return MESSAGE_TYPES.contains(this);
     }
 }

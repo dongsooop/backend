@@ -73,6 +73,15 @@ public interface BlindDateParticipantStorage {
     void removeParticipant(Long memberId);
 
     /**
+     * 세션 참가자를 내보내고 전체 초기화 전까지 재입장을 막는다. 선택 대상과 접수된 응답에서도 뺀다.
+     *
+     * @return 내보낸 참가 정보. 그 세션의 참가자가 아니면 null
+     */
+    ParticipantInfo kick(String sessionId, Long memberId);
+
+    boolean isKicked(Long memberId);
+
+    /**
      * 익명 이름 조회
      */
     String getAnonymousName(Long memberId);

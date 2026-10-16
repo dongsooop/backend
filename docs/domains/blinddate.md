@@ -84,6 +84,28 @@
 과팅은 이벤트를 누가 받는지 모르며 신고를 호출하지 않는다. 발행이 실패해도 로그만 남기고 Session 삭제는 그대로 끝난다.
 서버 재시작처럼 저장소를 거치지 않고 메모리가 사라지는 경우에는 발행되지 않는다.
 
+## 관리자 강퇴와 재입장 차단
+
+`BlindDateService.kickParticipant(sessionId, memberId)`는 참가자를 세션에서 내보내는 공개 메서드다.
+과팅은 누가 왜 호출하는지 모른다. 현재는 신고 처리의 `CHAT_KICK` 제재가 커밋된 뒤 호출한다(정책은 `report.md`).
+처리는 입장·퇴장과 같은 참여 큐에서 순서대로 한다.
+
+1. 참가 기록이 없거나 다른 세션의 참가자면 아무것도 하지 않는다. 전체 초기화 뒤에 온 강퇴는 다음 입장을 막지 않는다.
+2. 참가 기록과 소켓 역인덱스를 지우고, 강퇴 목록에 회원을 넣는다. Choice Round가 열려 있으면 고정 참가자 목록과
+   접수된 응답에서도 뺀다. 그래서 다른 참가자가 강퇴된 회원을 고르면 `CHOICE_TARGET_NOT_FOUND`, 강퇴된 회원의 선택은
+   `CHOICE_FORBIDDEN`이 되고, 강퇴 전에 접수된 서로의 선택도 매칭되지 않는다. 이미 권한을 얻어 만든 채팅방은 되돌리지 않는다.
+3. 세션이 살아 있으면 본인 JOIN 큐에 `{state: "KICKED"}`를, 세션 `/system`에 "익명N님이 퇴장당했습니다."를
+   기존 시스템 메시지 형식(senderId=0, 진행자 이름)으로 보낸다. 회원 정보 대신 익명 이름만 쓴다. WAITING이면 `joined` 인원도 갱신한다.
+4. 세션이 이미 끝났으면 알림 없이 재입장만 막는다.
+
+강퇴 목록은 참가 기록과 수명이 같다. 운영 종료 후 정리와 관리자 참가자 초기화(`participantStorage.clear`)에서만 지운다.
+입장(`BlindDateConnectHandler`)은 강퇴 목록의 회원이면 세션을 배정하지 않고 JOIN 큐에 `KICKED`를 보낸다.
+같은 세션뿐 아니라 같은 운영 회차의 다른 세션에도 들어가지 못한다.
+
+서버는 소켓을 닫지 못한다(회원당 WebSocket 세션 참조가 없다). 강퇴된 회원의 기존 소켓은 세션 토픽 구독이 남아
+다른 참가자의 메시지를 계속 받을 수 있다. 다만 메시지 전송은 익명 이름이 없어 버려지고 선택은 거절된다.
+앱은 `KICKED`를 받으면 과팅 화면을 닫아야 한다. 진행·선택·타임아웃 흐름은 남은 참가자로 그대로 이어진다.
+
 ## 화면 종료와 성공 알림 계약
 
 프론트는 선택 시작 안내와 로컬 10초 타이머를 관리하고, 종료 후 최종 선택 또는 null을 제출한다.
@@ -205,7 +227,7 @@ flowchart TD
 | 권한 | 관리자 (`ADMIN_ROLE`) |
 | 요청 본문 | 없음 |
 | 정상 응답 | `204 No Content`, 응답 본문 없음 |
-| 초기화 범위 | 특정 회원이 아니라 전체 Session·참가 기록·Choice Round·대기 Session 포인터 |
+| 초기화 범위 | 특정 회원이 아니라 전체 Session·참가 기록·강퇴 목록·Choice Round·대기 Session 포인터 |
 | 유지되는 정보 | 과팅 운영 상태·정원·개최 만료 시각·자동 종료 예약 |
 | 처리 시점 | 정리 큐에 작업 제출 후 응답; 204가 전체 정리 완료를 뜻하지 않음 |
 | 기존 호환 경로 | `POST /blinddate/participants`도 같은 동작으로 지원 |
@@ -221,11 +243,11 @@ flowchart TD
 | 방향 | 목적지 / 상대 경로 | 의미 / 주요 payload |
 | --- | --- | --- |
 | 클라이언트 SUBSCRIBE | `/user/queue/blinddate/join` | 입장 요청 트리거 및 JOIN 응답 구독 |
-| 서버 → 개인 | 위 JOIN 구독 경로 | name, sessionId, state, volunteer, maxCount; 실패·종료는 state만 전달 가능 |
+| 서버 → 개인 | 위 JOIN 구독 경로 | name, sessionId, state, volunteer, maxCount; 실패·종료·강퇴는 state만 전달(`FAILED`, `TERMINATED`, `KICKED`) |
 | 서버 → Session | `/joined` | 인원 갱신, `volunteer` |
 | 서버 → Session | `/start` | 진행 시작, `sessionId` |
 | 서버 → Session | `/freeze`, `/thaw` | UI 대화 비활성화·활성화, `type` |
-| 서버 → Session | `/system` | 안내·주제, message, senderId=0, senderName, timestamp |
+| 서버 → Session | `/system` | 안내·주제·강퇴 안내, message, senderId=0, senderName, timestamp |
 | 클라이언트 SEND | `/app/blinddate/message` | 사용자 대화, message |
 | 서버 → Session | `/message` | 사용자 대화, messageId, message, senderId, senderName, timestamp |
 | 서버 → Session | `/participants` | **선택 UI 시작 신호**, participants(회원 ID → 익명 이름) |
@@ -269,6 +291,10 @@ ID는 문서 시나리오 ID이며 테스트 메서드 이름에 결합하지 �
 | J18 | 가용성 검사 이후 운영 종료, 입장 작업은 이미 큐에 있음 | 처리 시 가용성 재검사가 없어 종료 직전 접수의 편입 가능성은 남아 있음 |
 | J19 | PROCESSING 소켓 해제와 Choice Round 개설이 겹침 | 참가자 기록이 유지되므로 응답 대상에서 빠지지 않음 |
 | J20 | 종료 후 소켓 해제 | 현재 DisconnectHandler는 삭제된 Session이면 바로 반환; 소켓 기록 정리까지 보장하지 않음 |
+| J21 | 진행 중 관리자 강퇴 | 본인 JOIN에 KICKED, 세션 SYSTEM에 익명 이름 퇴장 안내; 참가·선택 대상에서 제외 |
+| J22 | 강퇴된 회원 재입장 | 같은 회차의 어느 세션에도 배정하지 않고 JOIN에 KICKED |
+| J23 | 강퇴 후 관리자 초기화 | 강퇴 목록도 지워져 운영 중이면 다시 입장 가능 |
+| J24 | 종료된 세션 참가자 강퇴 | 알림 없음, 재입장만 차단 |
 
 ### 안내·이벤트·대화
 
@@ -374,6 +400,7 @@ ID는 문서 시나리오 ID이며 테스트 메서드 이름에 결합하지 �
 | 즉시 성공·상태 종료·부분 실패 | `BlindDateChoiceHandler` | `BlindDateMatchResultTest`, `notification/BlindDateMatchNotificationTest` |
 | 초기화·큐 실행 순서 | `BlindDateEventQueue`, `BlindDateServiceImpl` | `executor/BlindDateEventQueueTest`, `service/BlindDateServiceTest` |
 | 초기화 REST 계약 | `controller/BlindDateController` | POST/DELETE 경로의 빈 204 응답·실제 Session/참가 기록 제거·운영 상태 유지 |
+| 관리자 강퇴·재입장 차단 | `BlindDateServiceImpl.kickParticipant`, `BlindDateParticipantStorageImpl.kick`, ConnectHandler | `BlindDateIntegrationTest`의 관리자 강퇴, `repository/BlindDateChoiceCollectionTest` |
 | 실제 모바일 UI·네트워크 전달 | 이 저장소에서는 m초 UI·수신 시각·수신 ACK를 검증하지 않음 | 수동·E2E QA 필요. 문서의 시나리오 목록과 자동 테스트 커버리지는 동일하지 않음 |
 
 ### 후속 검토가 필요한 보장

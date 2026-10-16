@@ -1,5 +1,6 @@
 package com.dongsoop.dongsoop.report.service;
 
+import com.dongsoop.dongsoop.blinddate.service.BlindDateService;
 import com.dongsoop.dongsoop.chat.service.ChatParticipantService;
 import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import com.dongsoop.dongsoop.member.entity.Member;
@@ -55,6 +56,7 @@ public class SanctionExecutor {
     private final ChatParticipantService chatParticipantService;
     private final MemberDeviceRepository memberDeviceRepository;
     private final DeviceBlacklistService deviceBlacklistService;
+    private final BlindDateService blindDateService;
     @Value("${admin.id}")
     private Long systemAdminId;
 
@@ -131,23 +133,25 @@ public class SanctionExecutor {
         logoutAllDevicesAfterCommit(report.getTargetMember().getId());
     }
 
-    // 정지는 로그인 때만 검사하므로 기존 토큰을 블랙리스트로 끊어 재로그인(정지 검사)을 거치게 한다.
+    // 정지는 로그인·토큰 재발급 때만 검사하므로 기존 토큰을 블랙리스트로 끊어 그 검사를 거치게 한다.
     // 롤백된 제재로 로그아웃되지 않도록 커밋 후에 반영하고, 실패해도 제재는 유지한다
     private void logoutAllDevicesAfterCommit(Long memberId) {
         List<Long> deviceIds = memberDeviceRepository.findByMemberId(memberId).stream()
                 .map(MemberDevice::getId)
                 .toList();
-        Runnable logout = () -> blacklistDevices(memberId, deviceIds);
+        runAfterCommit(() -> blacklistDevices(memberId, deviceIds));
+    }
 
+    private static void runAfterCommit(Runnable action) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            logout.run();
+            action.run();
             return;
         }
 
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                logout.run();
+                action.run();
             }
         });
     }
@@ -167,7 +171,14 @@ public class SanctionExecutor {
 
     private void executeChatKick(Report report) {
         log.info("채팅방 추방 제재 실행: {}", report.getId());
-        chatParticipantService.kickUserByAdmin(report.getChatRoomId(), report.getTargetMember().getId());
+        String roomId = report.getChatRoomId();
+        Long memberId = report.getTargetMember().getId();
+        if (report.getReportType() == ReportType.BLINDDATE_MESSAGE) {
+            // 과팅 강퇴는 되돌릴 수 없는 메모리 상태 변경이라 제재가 커밋된 뒤에 실행한다
+            runAfterCommit(() -> blindDateService.kickParticipant(roomId, memberId));
+            return;
+        }
+        chatParticipantService.kickUserByAdmin(roomId, memberId);
     }
 
     private void handleUnsupportedSanctionType(Report report) {
@@ -206,8 +217,8 @@ public class SanctionExecutor {
     // 사유는 정지를 촉발한 마지막 경고의 사유, 설명은 누적 정지 안내로 나눠 관리자가 원인 경고를 알 수 있게 한다
     private void createAutoSuspension(Report warningReport, int suspensionDays, String description) {
         Member member = warningReport.getTargetMember();
-        String warningReason = warningReport.getSanction().getReason();
-        String reason = StringUtils.hasText(warningReason) ? warningReason : description;
+        String reason = hasEnteredReason(warningReport.getSanction()) ? warningReport.getSanction().getReason()
+                : description;
         log.info("{} 실행: {}", description, member.getId());
 
         // Sanction.report가 NOT NULL이라 신고를 먼저 저장하고 제재를 연결한다
@@ -215,6 +226,12 @@ public class SanctionExecutor {
         issueInternal(report, systemAdmin(), member, SanctionType.TEMPORARY_BAN, reason,
                 LocalDateTime.now(KST).plusDays(suspensionDays), description);
         log.info("{} 생성 완료: 회원 ID {}", description, member.getId());
+    }
+
+    // 입력 여부는 저장되지 않는다. 사유 없이 발급하면 제재 종류 이름("경고")이 채워지므로 그 값은 입력이 없던 것으로 본다
+    private static boolean hasEnteredReason(Sanction sanction) {
+        String reason = sanction.getReason();
+        return StringUtils.hasText(reason) && !reason.equals(sanction.getSanctionType().getDescription());
     }
 
     private Report buildAutoSuspensionReport(Member member, Report warningReport, String description) {

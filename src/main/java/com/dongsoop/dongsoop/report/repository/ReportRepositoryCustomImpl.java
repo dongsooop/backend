@@ -27,6 +27,7 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     private static final QMember admin = new QMember("admin");
     private static final QMember targetMember = new QMember("targetMember");
     private static final QSanction sanction = QSanction.sanction;
+    private static final QReport resolvedBy = new QReport("resolvedBy");
 
     private final JPAQueryFactory queryFactory;
     private final Querydsl querydsl;
@@ -136,7 +137,9 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 .leftJoin(report.reporter, reporter)
                 .leftJoin(report.admin, admin)
                 .leftJoin(report.targetMember, targetMember)
-                .leftJoin(report.sanction, sanction)
+                .leftJoin(resolvedBy).on(resolvedBy.id.eq(report.resolvedByReportId))
+                // 함께 닫힌 신고는 자기 제재가 없으므로 처리한 신고의 제재를 보여 준다. 제재 행은 처리한 신고에만 있다
+                .leftJoin(sanction).on(sanction.eq(report.sanction).or(sanction.eq(resolvedBy.sanction)))
                 .where(filterCondition);
     }
 
@@ -187,7 +190,7 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     }
 
     private BooleanExpression isSanctionActive() {
-        return sanction.isActive.eq(true).and(report.sanction.isNotNull());
+        return sanction.isActive.eq(true);
     }
 
     @Override

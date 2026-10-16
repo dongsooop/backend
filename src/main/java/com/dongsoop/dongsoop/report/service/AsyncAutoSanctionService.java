@@ -65,7 +65,7 @@ public class AsyncAutoSanctionService {
 
     // 필터를 기다리는 동안 관리자가 제재·기각했을 수 있어 잠금 조회로 다시 확인한다
     private void applyResult(Long reportId, boolean hasProfanity) {
-        Report report = reportRepository.findByIdForUpdate(reportId).orElse(null);
+        Report report = reportRepository.findByIdForUpdateLockingTarget(reportId).orElse(null);
         if (report == null || report.getIsProcessed()) {
             log.info("Report processed during filtering - Report ID: {}", reportId);
             return;
@@ -96,14 +96,17 @@ public class AsyncAutoSanctionService {
             return;
         }
 
-        if (reportRepository.existsByMessageIdAndSanctionSanctionType(report.getMessageId(), SanctionType.WARNING)) {
+        // 이미 경고된 메시지면 새 경고 없이 그 경고 신고를 가리키게 해 목록에서 활성 경고로 보이게 한다
+        Report warned = reportRepository.findFirstByMessageIdAndSanctionSanctionTypeOrderByIdAsc(
+                report.getMessageId(), SanctionType.WARNING).orElse(null);
+        if (warned != null) {
             log.info("Message already warned - Report ID: {}, Message ID: {}", report.getId(), report.getMessageId());
-            report.markAsProcessedWithoutSanction();
-            reportRepository.resolveSameMessageReports(report);
+            report.resolveWith(warned);
+            reportRepository.resolveSameMessageReports(report, warned);
             return;
         }
 
         sanctionExecutor.issueBySystem(report, SanctionType.WARNING, AUTO_SANCTION_REASON, AUTO_WARNING_DESCRIPTION);
-        reportRepository.resolveSameMessageReports(report);
+        reportRepository.resolveSameMessageReports(report, report);
     }
 }

@@ -30,6 +30,9 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
     // 최종 응답과 쌍별 처리 권한은 sessionId별 한 곳에서 관리한다.
     private final Map<String, ChoiceRound> choiceRounds = new ConcurrentHashMap<>();
 
+    // 강퇴된 회원. 참가 기록과 같은 수명으로 전체 초기화 때만 지운다
+    private final Set<Long> kickedMembers = ConcurrentHashMap.newKeySet();
+
     /**
      * 참여자 추가 또는 소켓 추가
      * <p>
@@ -225,7 +228,7 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
         private final Set<Long> claimedMembers = new HashSet<>();
 
         private ChoiceRound(Set<Long> participantIds) {
-            this.participantIds = Set.copyOf(participantIds);
+            this.participantIds = new HashSet<>(participantIds);
         }
     }
 
@@ -237,6 +240,7 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
         socketIdToMemberId.clear();
         nameCounters.clear();
         choiceRounds.clear();
+        kickedMembers.clear();
 
         log.info("[BlindDate] All participant data cleared");
     }
@@ -250,6 +254,31 @@ public class BlindDateParticipantStorageImpl implements BlindDateParticipantStor
             participant.getSocketIds().forEach(socketIdToMemberId::remove);
             log.info("Participant removed: memberId={}, sessionId={}", memberId, participant.getSessionId());
         }
+    }
+
+    @Override
+    public synchronized ParticipantInfo kick(String sessionId, Long memberId) {
+        ParticipantInfo participant = participants.get(memberId);
+        if (participant == null || !participant.getSessionId().equals(sessionId)) {
+            return null;
+        }
+
+        removeParticipant(memberId);
+        kickedMembers.add(memberId);
+        ChoiceRound round = choiceRounds.get(sessionId);
+        if (round != null) {
+            synchronized (round) {
+                round.participantIds.remove(memberId);
+                round.responses.remove(memberId);
+            }
+        }
+        log.info("[BlindDate] Participant kicked: sessionId={}, memberId={}", sessionId, memberId);
+        return participant;
+    }
+
+    @Override
+    public boolean isKicked(Long memberId) {
+        return kickedMembers.contains(memberId);
     }
 
     /**

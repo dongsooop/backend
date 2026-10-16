@@ -8,6 +8,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.dongsoop.dongsoop.blinddate.config.BlindDateMessageProvider;
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateChoiceHandler;
@@ -342,7 +343,7 @@ class BlindDateMatchResultTest {
         operation.start(3, LocalDateTime.now().plusHours(1));
         operation.setPointer(sessionId);
         var service = new BlindDateServiceImpl(participants, operation, mock(BlindDateNotification.class),
-                sessions, messaging, new ManualBlindDateTaskScheduler(), queue);
+                sessions, messaging, new ManualBlindDateTaskScheduler(), queue, new BlindDateMessageProvider());
         var started = new CountDownLatch(1);
         var release = new CountDownLatch(1);
         doAnswer(call -> {
