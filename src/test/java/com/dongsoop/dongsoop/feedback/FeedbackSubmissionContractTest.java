@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.feedback;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.*;
 
 import com.dongsoop.dongsoop.feedback.dto.*;
@@ -50,8 +51,8 @@ class FeedbackSubmissionContractTest {
         order.verify(features).saveAll(argThat(rows -> {
             var values = new java.util.ArrayList<FeedbackServiceFeature>();
             rows.forEach(values::add);
-            assertThat(values).extracting("feedback").containsExactly(saved, saved);
-            assertThat(values).extracting("serviceFeature").containsExactly(ServiceFeature.CHATBOT_CAMPUS_INFO, ServiceFeature.NOTICE_ALERT);
+            assertThat(values).extracting("feedback", "serviceFeature")
+                    .containsExactly(tuple(saved, ServiceFeature.CHATBOT_CAMPUS_INFO), tuple(saved, ServiceFeature.NOTICE_ALERT));
             return true;
         }));
         order.verify(notification).send("Improve search", 19L);
