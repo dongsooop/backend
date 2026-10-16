@@ -7,6 +7,9 @@ import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.dongsoop.dongsoop.search.entity.BoardDocument;
+import com.dongsoop.dongsoop.search.entity.RestaurantDocument;
+import com.dongsoop.dongsoop.search.repository.RestaurantSearchRepositoryImpl;
+import java.util.Map;
 import com.dongsoop.dongsoop.search.repository.BoardSearchRepositoryImpl;
 import java.io.IOException;
 import java.time.Duration;
@@ -116,6 +119,56 @@ class BoardSearchPersistenceIntegrationTest {
     void missingAutocompleteKeywordReturnsNoSuggestions(String keyword) {
         assertThat(repository.findAutocompleteSuggestionsDynamic(keyword, null, PageRequest.of(0, 10))).isEmpty();
         assertThat(repository.findNoticeAutocompleteSuggestionsDynamic(keyword, null, PageRequest.of(0, 10))).isEmpty();
+    }
+
+    @Test
+    void restaurantSearchFiltersMixedIndexAndRequiresAllTerms() throws IOException {
+        seedRestaurants();
+        var restaurants = new RestaurantSearchRepositoryImpl(operations);
+        var result = restaurants.searchByKeywordDynamic("campus noodles", PageRequest.of(0, 10));
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent()).singleElement().satisfies(found -> {
+            assertThat(found.getRestaurantId()).isEqualTo(101L);
+            assertThat(found.getName()).isEqualTo("campus noodles");
+            assertThat(found.getCategory()).isEqualTo("food");
+            assertThat(found.getPlaceUrl()).isEqualTo("https://example.test/restaurant/101");
+        });
+        assertThat(restaurants.searchByKeywordDynamic("campus nonexistent", PageRequest.of(0, 10))).isEmpty();
+        var page = restaurants.searchByKeywordDynamic(null, PageRequest.of(1, 1, Sort.by("restaurantId")));
+        assertThat(page.getTotalElements()).isEqualTo(2);
+        assertThat(page.getContent()).extracting(RestaurantDocument::getRestaurantId)
+                .containsExactly(102L);
+    }
+
+    @Test
+    void restaurantAutocompleteExcludesOtherBoardTypes() throws IOException {
+        seedRestaurants();
+        var restaurants = new RestaurantSearchRepositoryImpl(operations);
+        assertThat(restaurants.findAutocompleteSuggestionsDynamic("campus", PageRequest.of(0, 10)))
+                .extracting(RestaurantDocument::getRestaurantId)
+                .containsExactlyInAnyOrder(101L, 102L);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = "   ")
+    void restaurantAutocompleteRejectsMissingKeyword(String keyword) {
+        var restaurants = new RestaurantSearchRepositoryImpl(operations);
+        assertThat(restaurants.findAutocompleteSuggestionsDynamic(keyword, PageRequest.of(0, 10))).isEmpty();
+    }
+
+    private void seedRestaurants() throws IOException {
+        var client = new ElasticsearchClient(transport);
+        for (long id : List.of(101L, 102L)) {
+            String name = "campus noodles";
+            if (id == 102L) {
+                name = "campus coffee";
+            }
+            var document = Map.of("board_type", "RESTAURANT", "board_id", id, "title", name,
+                    "content", "food", "tags", "campus", "link", "https://example.test/restaurant/" + id);
+            client.index(i -> i.index("boards").id("restaurant-" + id).document(document));
+        }
+        operations.indexOps(BoardDocument.class).refresh();
     }
 
     private BoardDocument document(String id, String type, String marketplaceType, String department) {
