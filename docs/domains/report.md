@@ -140,7 +140,7 @@ SanctionExecutor가 TEMPORARY_BAN·PERMANENT_BAN 실행(관리자 제재, 경고
   ↓
 디바이스 ID(did)가 없는 토큰·블랙리스트 반영 실패: access 토큰은 만료까지 쓰이지만 /token/reissue가 정지 검사(ReportValidator.checkMemberAccessById)로 401(제재 안내 문구)
   ↓
-앱이 로그인 화면으로 이동 → 로그인·소셜 로그인 시 ReportValidator.checkMemberAccessById가 정지 중이면 거절
+앱이 로그인 화면으로 이동 → 로그인·소셜 로그인 시 ReportValidator.checkMemberAccessById가 정지 중이면 403, 본문 sanction에 제재 내용
   ↓
 정지가 끝난 뒤 로그인하면 블랙리스트 등록 시각 이후 발급된 토큰이라 통과
 ```
@@ -177,6 +177,7 @@ SanctionExecutor가 TEMPORARY_BAN·PERMANENT_BAN 실행(관리자 제재, 경고
 - 메시지 신고에는 `CONTENT_DELETION`(게시글 삭제) 제재를 쓸 수 없다(400). 삭제할 게시글이 없기 때문이다.
 - 관리자 제재와 신고 기각은 이미 처리된 신고에는 쓸 수 없다(409, "이미 처리된 신고입니다. ID : n").
 - 회원 본인의 제재 상태 조회(`GET /reports/sanction-status`)는 활성 상태인 정지(`TEMPORARY_BAN`, `PERMANENT_BAN`)만 노출하고, 여러 건이 활성 상태면 종료일이 가장 늦은 것을 반환한다. 경고는 영구 누적이라 노출하면 한 번 경고받은 사용자가 계속 "제재 중"으로 보이므로 노출하지 않는다.
+- 정지 회원의 로그인·소셜 로그인 거절(403)은 ProblemDetail 본문의 `sanction` 필드에 제재 상태 조회와 같은 형식(`isSanctioned`, `sanctionType`, `reason`, `startDate`, `endDate`, `description`)으로 제재 내용을 담는다. 정지가 확정되면 기존 토큰이 무효화되어 제재 상태 조회도 401이 되므로, 정지 회원이 제재 내용을 받을 수 있는 곳은 로그인 응답뿐이다. 여러 건이면 종료일이 가장 늦은 정지를 담고, 영구정지는 종료일이 9999-12-31이라 항상 우선한다. 403은 다른 권한 오류에도 쓰이므로 앱은 `sanction` 필드 유무로 정지를 구분한다. 제재 상태 조회는 구 버전 앱이 앱 시작 때 호출하므로 남겨 둔다.
 - 신고자에게는 처리 결과를 통보하지 않는다. 신고 접수 응답(201)만 준다.
 - 게시판 신고의 판정·처리 방식(욕설 필터 호출, 실패 시 처리 완료 취급)은 이번 개편에서 바꾸지 않는다.
 

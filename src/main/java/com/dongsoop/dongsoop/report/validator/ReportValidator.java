@@ -34,7 +34,7 @@ public class ReportValidator {
     public void checkMemberAccessById(Long memberId) {
         reportRepository.findActiveBanForMember(memberId, LocalDateTime.now(KST), SanctionType.BAN_TYPES)
                 .ifPresent(report -> {
-                    throw new MemberSanctionedException("회원님은 현재 제재 중입니다. 자세한 내용은 고객센터에 문의해주세요.");
+                    throw new MemberSanctionedException(report.getSanction());
                 });
     }
 

@@ -13,6 +13,8 @@ import com.dongsoop.dongsoop.jwt.dto.IssuedToken;
 import com.dongsoop.dongsoop.jwt.exception.SanctionedMemberReissueException;
 import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import com.dongsoop.dongsoop.jwt.service.JwtServiceImpl;
+import com.dongsoop.dongsoop.report.entity.Sanction;
+import com.dongsoop.dongsoop.report.entity.SanctionType;
 import com.dongsoop.dongsoop.report.exception.MemberSanctionedException;
 import com.dongsoop.dongsoop.report.validator.ReportValidator;
 import io.jsonwebtoken.Claims;
@@ -47,11 +49,12 @@ class JwtServiceImplTest {
     void suspendedMemberWithoutDeviceIdCannotReissue() {
         Claims claims = Jwts.claims().subject("7").build();
         when(jwtUtil.getClaims("refresh")).thenReturn(claims);
-        doThrow(new MemberSanctionedException("제재 중")).when(reportValidator).checkMemberAccessById(7L);
+        doThrow(new MemberSanctionedException(Sanction.builder().sanctionType(SanctionType.TEMPORARY_BAN).build()))
+                .when(reportValidator).checkMemberAccessById(7L);
 
         assertThatThrownBy(() -> jwtService.issuedTokenByRefreshToken("refresh"))
                 .isInstanceOf(SanctionedMemberReissueException.class)
-                .hasMessage("제재 중")
+                .hasMessage("회원님은 현재 제재 중입니다. 자세한 내용은 고객센터에 문의해주세요.")
                 .extracting(e -> ((CustomException) e).getHttpStatus())
                 .isEqualTo(HttpStatus.UNAUTHORIZED);
         verify(tokenGenerator, never()).generateAccessToken(any(), any());

@@ -20,11 +20,13 @@ import com.dongsoop.dongsoop.report.entity.ReportReason;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.entity.Sanction;
 import com.dongsoop.dongsoop.report.entity.SanctionType;
+import com.dongsoop.dongsoop.report.exception.MemberSanctionedException;
 import com.dongsoop.dongsoop.report.exception.ReportAlreadyProcessedException;
 import com.dongsoop.dongsoop.report.repository.ReportRepository;
 import com.dongsoop.dongsoop.report.repository.SanctionRepository;
 import com.dongsoop.dongsoop.report.service.BlindDateContextAfterRecorder;
 import com.dongsoop.dongsoop.report.service.ReportService;
+import com.dongsoop.dongsoop.report.validator.ReportValidator;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -65,6 +67,8 @@ class ReportPersistenceIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private ReportService reportService;
     @Autowired
+    private ReportValidator reportValidator;
+    @Autowired
     private EntityManager entityManager;
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -90,6 +94,31 @@ class ReportPersistenceIntegrationTest extends AbstractIntegrationTest {
                 .reportReason(ReportReason.OTHER)
                 .targetUrl("/test/" + target.getId())
                 .build());
+    }
+
+    @Test
+    @DisplayName("정지가 여러 건이면 로그인 거절 응답에는 나중에 내린 일시정지가 아니라 영구정지가 실린다")
+    void checkMemberAccess_PrefersLongestBan() {
+        Member admin = saveMember("adm9");
+        Member reporter = saveMember("rep9");
+        Member target = saveMember("tgt9");
+        Report permanentReport = saveReport(reporter, target, ReportType.MEMBER);
+        Report temporaryReport = saveReport(reporter, target, ReportType.MEMBER);
+        when(memberService.getMemberReferenceByContext()).thenReturn(admin);
+        reportService.processSanction(new ProcessSanctionRequest(
+                permanentReport.getId(), target.getId(), SanctionType.PERMANENT_BAN, "영구 사유", null));
+        reportService.processSanction(new ProcessSanctionRequest(
+                temporaryReport.getId(), target.getId(), SanctionType.TEMPORARY_BAN, "일시 사유",
+                LocalDateTime.now().plusDays(3)));
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThatThrownBy(() -> reportValidator.checkMemberAccessById(target.getId()))
+                .isInstanceOfSatisfying(MemberSanctionedException.class, e -> {
+                    assertThat(e.getSanction().sanctionType()).isEqualTo("PERMANENT_BAN");
+                    assertThat(e.getSanction().reason()).isEqualTo("영구 사유");
+                    assertThat(e.getSanction().endDate()).isEqualTo(SanctionType.PERMANENT_END_DATE);
+                });
     }
 
     @Test

@@ -153,9 +153,9 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
         return Optional.ofNullable(
                 queryFactory
                         .selectFrom(report)
-                        .leftJoin(report.sanction, sanction)
+                        .leftJoin(report.sanction, sanction).fetchJoin()
                         .where(condition)
-                        .orderBy(report.createdAt.desc())
+                        .orderBy(sanction.endDate.desc())
                         .fetchFirst()
         );
     }
