@@ -100,10 +100,12 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 sanction.isActive,
                 report.createdAt,
                 report.chatRoomId,
+                report.chatRoomType,
                 report.messageId,
                 report.messageContent,
                 report.messageSentAt,
-                report.messageContext);
+                report.messageContext,
+                report.resolvedByReportId);
     }
 
     private Expression<ReportSummaryResponse> createSummaryProjection() {
@@ -118,6 +120,7 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 report.targetId,
                 report.description,
                 report.chatRoomId,
+                report.chatRoomType,
                 report.messageId,
                 report.messageContent,
                 report.messageSentAt,

@@ -13,6 +13,7 @@ import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.report.dto.CreateBlindDateReportRequest;
 import com.dongsoop.dongsoop.report.dto.MessageReportDraft;
 import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshot;
+import com.dongsoop.dongsoop.report.entity.ReportChatRoomType;
 import com.dongsoop.dongsoop.report.entity.ReportReason;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.exception.BlindDateMessageNotFoundException;
@@ -84,6 +85,7 @@ class BlindDateReportTargetResolverTest {
 
         assertThat(draft.reportType()).isEqualTo(ReportType.BLINDDATE_MESSAGE);
         assertThat(draft.chatRoomId()).isEqualTo(sessionId);
+        assertThat(draft.chatRoomType()).isEqualTo(ReportChatRoomType.BLINDDATE);
         assertThat(draft.targetUrl()).isEqualTo("/blinddate/session/" + sessionId);
         assertThat(draft.targetMember()).isEqualTo(sender);
         assertThat(draft.messageId()).isEqualTo("m2");

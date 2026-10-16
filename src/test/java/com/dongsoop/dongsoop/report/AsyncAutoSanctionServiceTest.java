@@ -105,6 +105,7 @@ class AsyncAutoSanctionServiceTest {
         asyncAutoSanctionService.processReportAsync(report);
 
         verify(sanctionExecutor).issueBySystem(report, SanctionType.WARNING, "부적절한 언어 사용", "자동 제재에 의한 경고");
+        verify(reportRepository).resolveSameMessageReports(report);
     }
 
     @Test
@@ -120,6 +121,7 @@ class AsyncAutoSanctionServiceTest {
         assertThat(report.getIsProcessed()).isFalse();
         assertThat(report.getIsAutoReviewed()).isTrue();
         verify(sanctionExecutor, never()).issueBySystem(any(), any(), any(), any());
+        verify(reportRepository, never()).resolveSameMessageReports(any());
     }
 
     @Test
@@ -137,6 +139,7 @@ class AsyncAutoSanctionServiceTest {
         assertThat(report.getIsProcessed()).isTrue();
         assertThat(report.getSanction()).isNull();
         verify(sanctionExecutor, never()).issueBySystem(any(), any(), any(), any());
+        verify(reportRepository).resolveSameMessageReports(report);
     }
 
     @Test

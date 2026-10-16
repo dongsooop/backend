@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.report.dto;
 
 import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshots;
+import com.dongsoop.dongsoop.report.entity.ReportChatRoomType;
 import com.dongsoop.dongsoop.report.entity.ReportReason;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 
@@ -17,6 +18,7 @@ public record ReportSummaryResponse(
         Long targetId,
         String description,
         String chatRoomId,
+        ReportChatRoomType chatRoomType,
         String messageId,
         String messageContent,
         LocalDateTime messageSentAt,

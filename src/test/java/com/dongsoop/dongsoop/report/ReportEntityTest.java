@@ -69,4 +69,20 @@ class ReportEntityTest {
         assertThatThrownBy(() -> ReportType.BOARD_TYPES.add(ReportType.MEMBER))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
+
+    @Test
+    @DisplayName("함께 닫힌 신고는 처리한 신고의 관리자와 ID를 가리키고 제재는 연결하지 않는다")
+    void resolveWith_CopiesAdminAndPointsToResolvedReport() {
+        Member admin = Member.builder().id(100L).build();
+        Report resolved = Report.builder().id(1L).reportType(ReportType.CHAT_MESSAGE).build();
+        resolved.dismiss(admin);
+        Report sibling = Report.builder().id(2L).reportType(ReportType.CHAT_MESSAGE).build();
+
+        sibling.resolveWith(resolved);
+
+        assertThat(sibling.getIsProcessed()).isTrue();
+        assertThat(sibling.getAdmin()).isEqualTo(admin);
+        assertThat(sibling.getResolvedByReportId()).isEqualTo(1L);
+        assertThat(sibling.getSanction()).isNull();
+    }
 }

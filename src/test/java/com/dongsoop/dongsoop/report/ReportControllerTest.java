@@ -9,6 +9,7 @@ import com.dongsoop.dongsoop.report.dto.CreateBlindDateReportRequest;
 import com.dongsoop.dongsoop.report.dto.ReportContextResponse;
 import com.dongsoop.dongsoop.report.dto.ReportContextResponse.AfterSource;
 import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshot;
+import com.dongsoop.dongsoop.report.entity.ReportChatRoomType;
 import com.dongsoop.dongsoop.report.exception.ReportNotFoundException;
 import com.dongsoop.dongsoop.report.dto.SanctionStatusResponse;
 import com.dongsoop.dongsoop.report.service.ReportService;
@@ -186,13 +187,14 @@ class ReportControllerTest {
     void getReportContext_ReturnsContext() throws Exception {
         LocalDateTime sentAt = LocalDateTime.of(2026, 9, 28, 21, 0);
         when(reportService.getReportContext(7L)).thenReturn(new ReportContextResponse("m1", "욕설",
-                List.of(ChatMessageSnapshot.of(1L, "앞말", sentAt)),
+                ReportChatRoomType.BLINDDATE, List.of(ChatMessageSnapshot.of(1L, "앞말", sentAt)),
                 List.of(ChatMessageSnapshot.of(2L, "뒷말", sentAt.plusMinutes(1))), AfterSource.SAVED));
 
         mockMvc.perform(get("/reports/7/context"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.messageId").value("m1"))
                 .andExpect(jsonPath("$.messageContent").value("욕설"))
+                .andExpect(jsonPath("$.chatRoomType").value("BLINDDATE"))
                 .andExpect(jsonPath("$.before[0].senderId").value(1))
                 .andExpect(jsonPath("$.before[0].content").value("앞말"))
                 .andExpect(jsonPath("$.after[0].content").value("뒷말"))

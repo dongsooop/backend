@@ -146,6 +146,17 @@ public class ChatRoom {
         return title != null && title.startsWith(CONTACT_ROOM_TITLE_PREFIX);
     }
 
+    // get 접두사를 붙이지 않는다. Redis·API 직렬화 필드로 섞이지 않게 하기 위함이다
+    public ChatRoomType roomType() {
+        if (isContactRoom()) {
+            return ChatRoomType.CONTACT;
+        }
+        if (isGroupChat) {
+            return ChatRoomType.GROUP;
+        }
+        return ChatRoomType.ONE_TO_ONE;
+    }
+
     private LocalDateTime getEffectiveCreatedAt() {
         if (createdAt != null) {
             return createdAt;

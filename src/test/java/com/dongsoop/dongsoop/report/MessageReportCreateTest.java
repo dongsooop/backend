@@ -16,6 +16,7 @@ import com.dongsoop.dongsoop.report.dto.MessageReportDraft;
 import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshot;
 import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshots;
 import com.dongsoop.dongsoop.report.entity.Report;
+import com.dongsoop.dongsoop.report.entity.ReportChatRoomType;
 import com.dongsoop.dongsoop.report.entity.ReportReason;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.exception.DuplicateReportException;
@@ -75,9 +76,9 @@ class MessageReportCreateTest {
         when(memberService.getMemberIdByAuthentication()).thenReturn(1L);
         when(memberRepository.getReferenceById(1L)).thenReturn(reporter);
         when(chatReportTargetResolver.resolve(1L, chatRequest)).thenReturn(new MessageReportDraft(
-                ReportType.CHAT_MESSAGE, "room1", "/chat/room/room1", sender, "target", "욕", SENT_AT, context));
+                ReportType.CHAT_MESSAGE, "room1", ReportChatRoomType.GROUP, "/chat/room/room1", sender, "target", "욕", SENT_AT, context));
         when(blindDateReportTargetResolver.resolve(1L, blindDateRequest)).thenReturn(new MessageReportDraft(
-                ReportType.BLINDDATE_MESSAGE, "s1", "/blinddate/session/s1", sender, "m2", "무례한 말", SENT_AT,
+                ReportType.BLINDDATE_MESSAGE, "s1", ReportChatRoomType.BLINDDATE, "/blinddate/session/s1", sender, "m2", "무례한 말", SENT_AT,
                 context));
     }
 
@@ -106,6 +107,7 @@ class MessageReportCreateTest {
         assertThat(report.getDescription()).isEqualTo("욕함");
         assertThat(report.getTargetUrl()).isEqualTo("/chat/room/room1");
         assertThat(report.getChatRoomId()).isEqualTo("room1");
+        assertThat(report.getChatRoomType()).isEqualTo(ReportChatRoomType.GROUP);
         assertThat(report.getMessageId()).isEqualTo("target");
         assertThat(report.getMessageContent()).isEqualTo("욕");
         assertThat(report.getMessageSentAt()).isEqualTo(SENT_AT);
@@ -123,6 +125,7 @@ class MessageReportCreateTest {
         assertThat(report.getTargetMember()).isEqualTo(sender);
         assertThat(report.getTargetId()).isEqualTo(2L);
         assertThat(report.getChatRoomId()).isEqualTo("s1");
+        assertThat(report.getChatRoomType()).isEqualTo(ReportChatRoomType.BLINDDATE);
         assertThat(report.getTargetUrl()).isEqualTo("/blinddate/session/s1");
         assertThat(report.getMessageId()).isEqualTo("m2");
         assertThat(report.getMessageContent()).isEqualTo("무례한 말");

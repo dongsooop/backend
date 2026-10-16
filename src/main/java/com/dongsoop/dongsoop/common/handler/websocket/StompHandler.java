@@ -5,6 +5,7 @@ import com.dongsoop.dongsoop.chat.session.WebSocketSessionManager;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import com.dongsoop.dongsoop.jwt.dto.AuthenticationInformationByToken;
+import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import io.jsonwebtoken.Claims;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class StompHandler implements ChannelInterceptor {
     private final JwtValidator jwtValidator;
     private final JwtUtil jwtUtil;
     private final WebSocketSessionManager sessionManager;
+    private final DeviceBlacklistService deviceBlacklistService;
 
     @Override
     @Nullable
@@ -103,6 +105,12 @@ public class StompHandler implements ChannelInterceptor {
         try {
             Claims claims = jwtUtil.getClaims(token);
             jwtValidator.validate(claims);
+
+            // HTTP 요청(JwtFilter)과 같이 로그아웃·정지로 블랙리스트된 디바이스의 토큰은 연결을 거절한다
+            Long deviceId = claims.get(JwtUtil.DEVICE_ID_CLAIM, Long.class);
+            if (deviceId != null) {
+                deviceBlacklistService.validateNotBlacklisted(deviceId, JwtUtil.getIssuedAt(claims));
+            }
         } catch (Exception e) {
             throw new UnauthorizedChatAccessException(e);
         }

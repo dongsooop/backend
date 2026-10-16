@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 import com.dongsoop.dongsoop.report.dto.ReportListItem;
 import com.dongsoop.dongsoop.report.dto.ReportResponse;
 import com.dongsoop.dongsoop.report.dto.ReportSummaryResponse;
+import com.dongsoop.dongsoop.report.entity.ReportChatRoomType;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
 import com.dongsoop.dongsoop.report.entity.ReportReason;
 import com.dongsoop.dongsoop.report.entity.ReportType;
@@ -37,10 +38,10 @@ class ReportListResponseTest {
         Pageable pageable = PageRequest.of(0, 20);
         if (filter == ReportFilterType.UNPROCESSED) {
             when(reportRepository.findSummaryReportsByFilter(filter, pageable)).thenReturn(List.of(
-                    new ReportSummaryResponse(7L, "reporter", ReportType.MEMBER, ReportReason.OTHER, false, null, 9L, 9L, "description", null, null, null, null, null)));
+                    new ReportSummaryResponse(7L, "reporter", ReportType.CHAT_MESSAGE, ReportReason.OTHER, false, null, 9L, 9L, "description", "room1", ReportChatRoomType.GROUP, null, null, null, null)));
         } else {
             when(reportRepository.findDetailedReportsByFilter(filter, pageable)).thenReturn(List.of(
-                    new ReportResponse(7L, "reporter", ReportType.MEMBER, 9L, null, ReportReason.OTHER, "description", false, null, null, null, null, null, null, null, null, null, null, null, null, null)));
+                    new ReportResponse(7L, "reporter", ReportType.CHAT_MESSAGE, 9L, null, ReportReason.OTHER, "description", false, null, null, null, null, null, null, null, null, "room1", ReportChatRoomType.GROUP, null, null, null, null, 3L)));
         }
 
         List<ReportListItem> result = reportService.getReports(filter, pageable);
@@ -50,13 +51,15 @@ class ReportListResponseTest {
         JsonNode item = json.get(0);
         assertThat(item.get("id").asLong()).isEqualTo(7L);
         assertThat(item.get("reporterNickname").asText()).isEqualTo("reporter");
-        assertThat(item.get("reportType").asText()).isEqualTo("MEMBER");
+        assertThat(item.get("reportType").asText()).isEqualTo("CHAT_MESSAGE");
+        assertThat(item.get("chatRoomType").asText()).isEqualTo("GROUP");
         assertThat(item.get("reportReason").asText()).isEqualTo("OTHER");
         assertThat(item.get("targetId").asLong()).isEqualTo(9L);
         assertThat(item.get("description").asText()).isEqualTo("description");
         assertThat(item.get("isProcessed").asBoolean()).isFalse();
         assertThat(item.has("targetMemberId")).isEqualTo(filter == ReportFilterType.UNPROCESSED);
         assertThat(item.has("sanctionType")).isEqualTo(filter != ReportFilterType.UNPROCESSED);
-        assertThat(item.size()).isEqualTo(filter == ReportFilterType.UNPROCESSED ? 14 : 21);
+        assertThat(item.has("resolvedByReportId")).isEqualTo(filter != ReportFilterType.UNPROCESSED);
+        assertThat(item.size()).isEqualTo(filter == ReportFilterType.UNPROCESSED ? 15 : 23);
     }
 }

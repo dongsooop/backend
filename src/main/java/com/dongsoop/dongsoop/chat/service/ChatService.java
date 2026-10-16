@@ -8,7 +8,6 @@ import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatNotificationType;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
-import com.dongsoop.dongsoop.chat.entity.ChatRoomType;
 import com.dongsoop.dongsoop.chat.notification.ChatNotification;
 import com.dongsoop.dongsoop.chat.session.WebSocketSessionManager;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
@@ -281,13 +280,7 @@ public class ChatService {
 
     // 채팅방 유형 판별
     private String determineRoomType(ChatRoom room) {
-        if (room.isContactRoom()) {
-            return ChatRoomType.CONTACT.getValue();
-        }
-        if (room.isGroupChat()) {
-            return ChatRoomType.GROUP.getValue();
-        }
-        return ChatRoomType.ONE_TO_ONE.getValue();
+        return room.roomType().getValue();
     }
 
     public BlockStatus getBlockStatus(String roomId, Long userId) {

@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.report.dto;
 
 import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshots;
+import com.dongsoop.dongsoop.report.entity.ReportChatRoomType;
 import com.dongsoop.dongsoop.report.entity.ReportReason;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.entity.SanctionType;
@@ -25,9 +26,11 @@ public record ReportResponse(
         Boolean isSanctionActive,
         LocalDateTime createdAt,
         String chatRoomId,
+        ReportChatRoomType chatRoomType,
         String messageId,
         String messageContent,
         LocalDateTime messageSentAt,
-        ChatMessageSnapshots messageContext
+        ChatMessageSnapshots messageContext,
+        Long resolvedByReportId
 ) implements ReportListItem {
 }

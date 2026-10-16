@@ -17,6 +17,7 @@ import com.dongsoop.dongsoop.member.repository.MemberRepository;
 import com.dongsoop.dongsoop.report.dto.CreateChatReportRequest;
 import com.dongsoop.dongsoop.report.dto.MessageReportDraft;
 import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshot;
+import com.dongsoop.dongsoop.report.entity.ReportChatRoomType;
 import com.dongsoop.dongsoop.report.entity.ReportReason;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.exception.NotReportableMessageException;
@@ -96,6 +97,7 @@ class ChatReportTargetResolverTest {
         assertThat(draft.reportType()).isEqualTo(ReportType.CHAT_MESSAGE);
         assertThat(draft.targetMember()).isEqualTo(sender);
         assertThat(draft.chatRoomId()).isEqualTo(ROOM_ID);
+        assertThat(draft.chatRoomType()).isEqualTo(ReportChatRoomType.ONE_TO_ONE);
         assertThat(draft.messageId()).isEqualTo("target");
         assertThat(draft.messageContent()).isEqualTo("내용target");
         assertThat(draft.messageSentAt()).isEqualTo(BASE.plusMinutes(13));
@@ -137,6 +139,19 @@ class ChatReportTargetResolverTest {
         assertThat(resolver.findContextAfter(ROOM_ID, "old")).hasValueSatisfying(after ->
                 assertThat(after.messages()).extracting(ChatMessageSnapshot::content).containsExactly("답장"));
         assertThat(resolver.findContextAfter(ROOM_ID, "nope")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("방 종류는 채팅 도메인의 판단(문의방·그룹방·1:1)을 그대로 스냅샷한다")
+    void resolve_SnapshotsRoomTypeFromChatRoom() {
+        when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(List.of(message("m", 2L, 0, MessageType.CHAT)));
+        when(chatRoomService.getChatRoomById(ROOM_ID)).thenReturn(
+                ChatRoom.builder().roomId(ROOM_ID).participants(Set.of(1L, 2L)).isGroupChat(true).build(),
+                ChatRoom.builder().roomId(ROOM_ID).participants(Set.of(1L, 2L))
+                        .title(ChatRoom.CONTACT_ROOM_TITLE_PREFIX + " 문의").build());
+
+        assertThat(resolver.resolve(REPORTER_ID, request("m")).chatRoomType()).isEqualTo(ReportChatRoomType.GROUP);
+        assertThat(resolver.resolve(REPORTER_ID, request("m")).chatRoomType()).isEqualTo(ReportChatRoomType.CONTACT);
     }
 
     @Test

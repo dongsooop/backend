@@ -69,6 +69,17 @@ class ReportSanctionProcessTest {
         reportService.processSanction(new ProcessSanctionRequest(1L, 2L, SanctionType.TEMPORARY_BAN, "욕설", endAt));
 
         verify(sanctionExecutor).issue(report, admin, target, SanctionType.TEMPORARY_BAN, "욕설", endAt, null);
+        verify(reportRepository).resolveSameMessageReports(report);
+    }
+
+    @Test
+    @DisplayName("기각하면 관리자 명의로 닫고 같은 메시지의 다른 신고도 함께 닫는다")
+    void dismissReport_ClosesAndResolvesSameMessageReports() {
+        reportService.dismissReport(1L);
+
+        assertThat(report.getIsProcessed()).isTrue();
+        assertThat(report.getAdmin()).isEqualTo(admin);
+        verify(reportRepository).resolveSameMessageReports(report);
     }
 
     @Test

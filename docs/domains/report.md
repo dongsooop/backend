@@ -32,6 +32,16 @@
 - 의미: 채팅 메시지 신고 시점에 복사해 두는 신고 대상 메시지의 내용·발신자·전송 시각. 원본 메시지가 나중에 삭제되거나 만료돼도 신고 처리에 필요한 증거로 남는다.
 - 코드: `Report.messageContent`, `Report.messageSentAt`, `ChatMessageSnapshot`
 
+### 방 종류
+
+- 의미: 메시지 신고가 들어온 방의 종류를 신고 시점에 복사해 둔 값. 일반 채팅은 채팅 도메인의 방 종류 판단(`ChatRoom.roomType()`: 문의방 `CONTACT`, 그룹방 `GROUP`, 그 외 `ONE_TO_ONE`)을 그대로 쓰고, 과팅 신고는 `BLINDDATE`다. 게시판·회원 신고와 이 컬럼이 생기기 전 신고는 `null`이다.
+- 코드: `Report.chatRoomType`, `ReportChatRoomType`, `chat_room_type` 컬럼
+
+### 함께 해결
+
+- 의미: 메시지 신고 한 건을 제재·기각·자동 경고로 처리할 때, 같은 메시지(같은 신고 타입·`chatRoomId`·`messageId`)의 다른 미처리 신고를 같은 처리 주체로 처리 완료하는 것. 함께 닫힌 신고는 실제로 처리된 신고의 ID를 가리키고, 제재는 연결하지 않는다.
+- 코드: `ReportRepository.resolveSameMessageReports`, `Report.resolveWith`, `Report.resolvedByReportId`
+
 ### 맥락 메시지
 
 - 의미: 신고된 메시지 앞뒤의 사용자 메시지를 각각 최대 10개까지 모은 것. 관리자가 앞뒤 맥락을 보고 판단하도록 돕는다. 입장·퇴장 시스템 메시지는 포함하지 않는다.
@@ -62,11 +72,14 @@ POST /reports/chat { roomId, messageId, reason, description }
   ↓
 AutoSanctionScheduler(1시간마다, 최대 3건, is_auto_reviewed=false인 CHAT_MESSAGE만 조회)
   ↓
-욕설 판정 → 욕설이면 자동 WARNING 생성 + 처리 완료 + 경고 누적 검사(3·5·7회 → 3·14·30일 자동 정지)
-        → 욕설이지만 같은 메시지에 이미 경고가 있으면 새 경고 없이 처리 완료
+욕설 판정 → 욕설이면 자동 WARNING 생성 + 처리 완료 + 같은 메시지의 다른 미처리 신고 함께 해결
+                       + 경고 누적 검사(3·5·7회 → 3·14·30일 자동 정지 + 회원의 모든 디바이스 토큰 무효화)
+        → 욕설이지만 같은 메시지에 이미 경고가 있으면 새 경고 없이 처리 완료(함께 해결 포함)
         → 욕설이 아니거나 API 실패면 처리하지 않고 is_auto_reviewed만 true로 표시
   ↓
-관리자 목록(GET /reports/admin)에서 미처리 신고 확인 → POST /reports/sanctions 또는 POST /reports/{id}/dismiss
+관리자 목록(GET /reports/admin)에서 미처리 신고 확인(chatRoomType으로 방 종류 확인) → POST /reports/sanctions 또는 POST /reports/{id}/dismiss
+  ↓
+메시지 신고면 같은 메시지의 다른 미처리 신고를 같은 관리자 명의로 함께 해결(resolvedByReportId = 처리한 신고 ID)
 ```
 
 과팅 메시지 신고(자동 판정 없음). 앱이 스프링에 직접 신고하고, 스프링은 과팅 세션 메모리에 남아 있는 메시지 기록을 근거로 쓴다:
@@ -106,7 +119,23 @@ before = 저장된 message_context
 after  = CHAT_MESSAGE: 원문(Redis → chat_messages 백업)에서 신고 메시지 다음 사용자 메시지 최대 10개 → LIVE, 원문에 없으면 UNAVAILABLE
          BLINDDATE_MESSAGE: message_context_after 저장본 → SAVED, 없고 세션이 살아 있으면 세션 메모리 → LIVE, 둘 다 없으면 UNAVAILABLE
   ↓
-{ messageId, messageContent, before: [{senderId, content, sentAt}], after: [...], afterSource }
+{ messageId, messageContent, chatRoomType, before: [{senderId, content, sentAt}], after: [...], afterSource }
+```
+
+관리자 목록 응답의 메시지 신고 필드: 요약형(`UNPROCESSED`)과 상세형 모두 `chatRoomType`을 담는다. 상세형은 함께 해결된 신고에 `resolvedByReportId`(그 신고를 닫은, 실제로 처리된 신고 ID)를 담고, 직접 처리됐거나 미처리인 신고는 `null`이다.
+
+정지와 토큰 무효화:
+
+```text
+SanctionExecutor가 TEMPORARY_BAN·PERMANENT_BAN 실행(관리자 제재, 경고 누적 자동 정지 모두)
+  ↓
+트랜잭션 안에서 회원의 디바이스 ID 목록 조회 → 커밋 후 각 디바이스를 DeviceBlacklistService.blacklist
+  ↓
+기존 access 토큰 → JwtFilter 401("만료된 세션입니다.") → /token/reissue도 블랙리스트 검사로 401
+  ↓
+앱이 로그인 화면으로 이동 → 로그인·소셜 로그인 시 ReportValidator.checkMemberAccessById가 정지 중이면 거절
+  ↓
+정지가 끝난 뒤 로그인하면 블랙리스트 등록 시각 이후 발급된 토큰이라 통과
 ```
 
 관리자 목록(`GET /reports/admin`)에는 뒤쪽 맥락을 넣지 않는다. 일반 채팅은 방 전체 메시지를 읽어야 해서 목록 한 번에 신고 수만큼 무거운 조회가 생기기 때문이다.
@@ -129,8 +158,11 @@ after  = CHAT_MESSAGE: 원문(Redis → chat_messages 백업)에서 신고 메�
 - 과팅 신고는 세션이 진행 중일 때만 성립한다. 메시지 기록은 세션이 종료되면 함께 사라지므로, 세션 메모리에 세션이 없으면 참가 기록 유무와 관계없이 410으로 거절한다. 관리자 초기화는 참가 기록까지 지우지만 세션 검사를 먼저 하므로 403이 아니라 410이 된다.
 - 자동제재 스케줄러는 게시판 4종과, 아직 자동 판정되지 않은(`is_auto_reviewed = false`) 일반 채팅 신고만 조회한다. 과팅 신고(`BLINDDATE_MESSAGE`)와 회원 신고(`MEMBER`)는 자동 판정 대상이 아니다.
 - 경고는 영구 누적된다. 누적 3·5·7회에 도달하면 각각 3·14·30일 자동 정지가 붙는다. 8회 이상은 자동 제재 없이 관리자가 판단한다.
+- 자동 정지 제재의 `reason`은 정지를 촉발한 마지막 경고(3·5·7번째) 제재의 `reason`이고, `description`은 "경고 N회 누적으로 인한 자동 D일 정지"다. 마지막 경고 사유가 비어 있으면 `reason`도 그 누적 정지 문구로 대체한다. 자동 정지가 만드는 내부 `MEMBER` 신고의 `reportReason`은 마지막 경고 신고의 `reportReason`(없으면 `OTHER`), `description`은 같은 누적 정지 문구다.
+- 정지(`TEMPORARY_BAN`, `PERMANENT_BAN`)를 발급하면 대상 회원에게 현재 연결된 모든 디바이스의 기존 토큰을 무효화한다. 정지 검사는 여전히 로그인 시점에만 하므로, 무효화는 재로그인을 강제해 그 검사를 거치게 하는 수단이다.
+- 메시지 신고(`CHAT_MESSAGE`, `BLINDDATE_MESSAGE`)를 처리(관리자 제재, 기각, 자동 경고, 이미 경고된 메시지의 자동 처리 완료)하면 같은 메시지의 다른 미처리 신고를 함께 해결한다. 게시판·회원 신고는 함께 해결하지 않는다. 처리 이후에 새로 들어온 같은 메시지 신고는 미처리로 들어온다.
 - `TEMPORARY_BAN`은 관리자가 종료일을 반드시 입력해야 한다(없으면 400). `WARNING`·`PERMANENT_BAN`은 종료일 입력이 없으면 9999-12-31로 채운다(경고는 영구 누적이 정책이라 만료시키지 않기 위함). `CONTENT_DELETION`·`CHAT_KICK`은 기간 개념이 없어 시작 시각을 종료일로 쓴다.
-- `CHAT_KICK`은 `CHAT_MESSAGE` 신고이면서 대상 방이 그룹방일 때만 허용한다. 그 외에는 400으로 거절한다. 대상이 방장이면 거절하고(방장 부재 방지), 이미 방을 나간 대상은 퇴장 시스템 메시지 없이 제재만 기록한다.
+- `CHAT_KICK`은 `CHAT_MESSAGE` 신고이면서 대상 방이 그룹방일 때만 허용한다. 실제 판단은 실행 시점의 방(`ChatParticipantService.kickUserByAdmin`의 `isGroupChat`)으로 하고, 신고에 저장된 `chatRoomType`은 관리자가 목록에서 미리 알 수 있게 보여 주는 값이다. 저장값의 `GROUP`·`ONE_TO_ONE`은 `isGroupChat`, `CONTACT`는 방 제목의 `[문의]` 접두사로 판단하므로, 제목이 `[문의]`로 시작하는 그룹방은 `CONTACT`로 저장돼도 추방은 허용된다. 그 외에는 400으로 거절한다. 대상이 방장이면 거절하고(방장 부재 방지), 이미 방을 나간 대상은 퇴장 시스템 메시지 없이 제재만 기록한다.
 - 메시지 신고(`CHAT_MESSAGE`, `BLINDDATE_MESSAGE`)의 관리자 제재는 요청한 제재 대상 회원이 신고된 메시지의 작성자와 같아야 한다(다르면 400).
 - 메시지 신고에는 `CONTENT_DELETION`(게시글 삭제) 제재를 쓸 수 없다(400). 삭제할 게시글이 없기 때문이다.
 - 관리자 제재와 신고 기각은 이미 처리된 신고에는 쓸 수 없다(409, "이미 처리된 신고입니다. ID : n").
@@ -217,6 +249,52 @@ after  = CHAT_MESSAGE: 원문(Redis → chat_messages 백업)에서 신고 메�
 - 회원 신고(`MEMBER`)는 더 이상 자동으로 처리 완료되지 않고 관리자 미처리 목록에 남는다. 회원 신고는 원래 자동 판단 대상이 아니었으므로 의도에 맞는 변화로 본다.
 - 처리량(1시간에 3건)은 현행을 유지한다. 채팅 신고가 늘어 밀리면 별도로 조정한다.
 
+### 방 종류는 신고 시점에 스냅샷한다
+
+#### 선택
+
+`report.chat_room_type`에 신고 시점의 방 종류를 저장한다(`ChatReportTargetResolver`는 `ChatRoom.roomType()`, `BlindDateReportTargetResolver`는 `BLINDDATE`). 채팅 목록 응답의 방 종류 판단(`ChatService.determineRoomType`)도 같은 `ChatRoom.roomType()`을 쓰도록 옮겨, 판단 로직은 채팅 도메인 한 곳에만 둔다.
+
+#### 이유
+
+채팅방은 마지막 참여자가 나가면 삭제되고, 과팅 세션은 끝나면 메모리에서 사라진다. 관리자 조회 시점에 방을 다시 읽으면 이미 없을 수 있어 신고 시점 값을 남긴다. 채팅 도메인의 `ChatRoomType`(값 `CONTACT`·`GROUP`·`ONE_TO_ONE`)에는 과팅이 없어 신고 도메인이 `BLINDDATE`를 더한 `ReportChatRoomType`을 소유하되, 채팅 쪽 이름은 그대로 쓴다.
+
+#### 영향 / Trade-offs
+
+- 기존 신고 행은 `null`이다. 마이그레이션(`src/main/resources/migration/648_report_followups.sql`)은 `chat_room_type`·`resolved_by_report_id` 컬럼만 `ADD COLUMN IF NOT EXISTS`로 추가하고 과거 값을 채우지 않는다.
+- 신고 이후 방 종류가 바뀌어도(현재 바뀌는 경로는 없다) 저장값은 신고 시점 그대로다. `CHAT_KICK` 실행 검증은 저장값이 아니라 실행 시점의 방으로 한다.
+
+### 같은 메시지의 나머지 신고는 `resolved_by_report_id`로 함께 닫는다
+
+#### 선택
+
+메시지 신고를 처리한 트랜잭션 안에서 같은 신고 타입·`chatRoomId`·`messageId`의 다른 미처리 신고를 `SELECT ... FOR UPDATE SKIP LOCKED`로 읽어, 처리 완료·같은 관리자·`resolved_by_report_id = 처리한 신고 ID`로 바꾼다(`ReportRepository.resolveSameMessageReports`).
+
+#### 이유
+
+함께 닫힌 신고에 같은 제재를 연결하면 `countActiveWarningsForMember`가 신고 행 기준으로 경고를 세므로 경고 한 건이 신고 수만큼 누적돼 자동 정지가 잘못 붙는다. 그래서 제재는 처리한 신고에만 두고, 함께 닫힌 신고는 그 신고를 가리키는 ID 하나만 갖는다. 처리 시각 컬럼은 따로 없으며, 같은 트랜잭션에서 갱신되므로 `updated_at`이 처리한 신고와 같은 시점이 된다.
+
+#### 영향 / Trade-offs
+
+- 잠금을 기다리지 않고 건너뛰는 이유: 관리자 두 명이 같은 메시지의 서로 다른 신고를 동시에 처리하면 각자 자기 행을 잠근 뒤 상대 행을 기다려 교착된다. 건너뛴 신고는 그 신고를 잠근 처리(다른 관리자 처리나 자동 판정)에 맡기는데, 그 처리가 자동 판정의 "욕설 아님"처럼 닫지 않는 결과로 끝나면 미처리로 남는다.
+- 처리 이후 새로 들어온 같은 메시지 신고는 미처리로 남는다. 일반 채팅은 자동 판정에서 "이미 경고된 메시지"로 닫힐 수 있다.
+
+### 정지 시 기존 토큰은 디바이스 블랙리스트로 무효화한다
+
+#### 선택
+
+`SanctionExecutor`가 정지를 실행하면 회원의 디바이스 ID를 트랜잭션 안에서 읽고, 커밋 후(`TransactionSynchronization.afterCommit`) 로그아웃·강제 로그아웃이 쓰는 `DeviceBlacklistService.blacklist`로 등록한다. 블랙리스트 반영이 실패하면 로그만 남기고 제재는 유지한다. STOMP CONNECT(`StompHandler`)도 HTTP 요청과 같이 블랙리스트를 검사한다.
+
+#### 이유
+
+새 강제 로그아웃 수단을 만들지 않고, 이미 HTTP 요청(`JwtFilter`)과 토큰 재발급(`JwtServiceImpl`)이 검사하는 블랙리스트를 재사용한다. 블랙리스트는 등록 시각 이전에 발급된 토큰만 거부하고 TTL이 리프레시 토큰 만료 시간이라, 정지가 끝난 뒤 새로 로그인해 받은 토큰은 막지 않는다. 커밋 후에 반영해야 롤백된 제재로 로그아웃되지 않는다.
+
+#### 영향 / Trade-offs
+
+- 토큰에 디바이스 ID(`did`)가 없으면(로그인 때 FCM 토큰이 없거나 등록되지 않은 디바이스, 블랙리스트 도입 전 토큰) 무효화할 수 없어 만료 전까지 쓸 수 있다.
+- 무효화 대상은 정지 시점에 그 회원에게 연결된 디바이스다. 다른 회원으로 다시 연결된 디바이스에서 예전에 발급된 토큰은 대상이 아니다.
+- 이미 열린 STOMP 연결(채팅·과팅)은 CONNECT 때만 인증하므로 끊기지 않는다. 서버가 연결을 끊으려면 WebSocket 세션 참조를 보관하는 장치가 필요한데 현재 `WebSocketSessionManager`는 회원당 세션 ID 하나만 들고 있어 닫을 수 없다. 끊긴 뒤 재연결은 블랙리스트 검사로 거절된다.
+
 ### enum CHECK 제약을 마이그레이션으로 제거한다
 
 #### 선택
@@ -239,6 +317,8 @@ after  = CHAT_MESSAGE: 원문(Redis → chat_messages 백업)에서 신고 메�
 - 자동제재 스케줄러는 채팅 신고는 `CHAT_MESSAGE:messageId`, 그 외 신고는 `reportType:targetId`를 키로 쓴다. 이전 주기에서 아직 처리 중인 키(`ConcurrentHashMap` 기반 집합)와 같은 배치 안에서 이미 나온 키는 모두 건너뛰므로, 같은 메시지를 여러 사람이 신고해도 한 번에 한 건만 자동 판정한다.
 - 관리자 제재·기각과 자동 판정의 결과 반영은 모두 신고 행을 비관적 쓰기 잠금(`ReportRepository.findByIdForUpdate`)으로 읽은 뒤 처리 여부를 검사한다. 먼저 잠근 쪽이 처리를 끝내고 커밋하면, 뒤의 쪽은 처리된 신고를 보고 409(관리자) 또는 건너뛰기(자동 판정)로 끝난다.
 - 자동 판정은 욕설 필터 HTTP 호출을 트랜잭션 밖에서 한다. 호출 전에 잠금 없이 한 번 읽어 이미 처리된 신고는 건너뛰고, 필터 결과를 받은 뒤 새 트랜잭션에서 잠금 조회로 다시 읽어 미처리일 때만 제재·처리 완료·`is_auto_reviewed` 표시를 한다. 필터 대기(최대 약 8초) 동안 DB 커넥션과 행 잠금을 잡지 않고, 그사이 관리자가 기각한 신고에 자동 경고가 덧씌워지지 않는다.
+- 함께 해결은 처리한 신고의 잠금을 잡은 같은 트랜잭션에서 `FOR UPDATE SKIP LOCKED`로 대상 행을 잠그고 갱신한다. 잠금 획득 뒤 Postgres가 `is_processed = false` 조건을 다시 확인하므로, 그사이 다른 처리가 닫은 신고는 덮어쓰지 않는다.
+- 정지에 따른 디바이스 블랙리스트 등록은 제재 트랜잭션 커밋 후에 실행한다. 트랜잭션 밖에서 호출되면(테스트 등) 즉시 실행한다.
 - 욕설로 판정돼도 같은 메시지에 `WARNING` 제재가 연결된 다른 신고가 이미 있으면 새 경고를 만들지 않고 제재 없이 처리 완료로 닫는다. 같은 메시지로 경고가 쌓여 자동 정지가 잘못 붙는 것을 막기 위함이다.
 - 모든 제재(관리자 제재, 자동 게시글 삭제·경고, 누적 자동 정지)는 `SanctionExecutor.issue` 한 곳에서 만들고 저장한다. 제재 행을 먼저 flush한 뒤 효과(게시글 삭제·채팅방 추방·경고 누적 검사)를 실행해, DB 제약 오류가 되돌릴 수 없는 Redis 추방보다 먼저 드러나게 한다.
 - 과팅 뒤쪽 맥락 저장은 `message_context_after`가 이미 있으면 건너뛴다(`Report.recordContextAfter`). 세션은 저장소에서 한 번만 지워지므로 같은 세션의 종료 이벤트도 한 번만 발행되고, 그래서 같은 신고를 두 트랜잭션이 동시에 갱신하는 경합은 생기지 않는다(이 검사는 메모리 확인이라 동시 갱신 자체를 막지는 못한다).
@@ -247,7 +327,7 @@ after  = CHAT_MESSAGE: 원문(Redis → chat_messages 백업)에서 신고 메�
 ## 알려진 한계 / 후속 작업
 
 - **과팅 신고 고도화(과반수 신고 시 세션 얼림)**: 사용자 신고 계획 3번 안(과반수 신고 → 세션 얼림 → 관리자 입장 대기 → 3분 초과 시 사랑의 작대기)은 이번 범위에 없다. 기존 얼리기(FREEZE/THAW)는 재사용할 수 있지만 지금은 클라이언트에 이벤트만 보내고 서버는 얼린 상태에서도 메시지를 계속 받으며, 예약된 진행 일정이 THAW를 보내 신고로 얼린 상태를 풀어버릴 수 있다. 구현하려면 서버 측 얼림 검사와 진행 일정 일시정지가 필요하다. 이번에 저장하는 과팅 신고 기록은 그 안에서도 그대로 쓴다.
-- **정지가 로그인 시점에만 검사됨**: `ReportValidator.checkMemberAccessById`는 로그인·소셜 로그인 시점에만 호출되므로, 이미 발급된 토큰을 쓰는 회원은 정지 이후에도 만료 전까지 계속 이용할 수 있다.
+- **정지 후에도 남는 접근**: 정지 시 디바이스 블랙리스트로 기존 토큰을 무효화하지만, 디바이스 ID가 없는 토큰과 이미 열린 STOMP 연결은 남는다(위 "정지 시 기존 토큰은 디바이스 블랙리스트로 무효화한다" 참고).
 - **AI 욕설 필터**: 현재 욕설 판정은 외부 텍스트 필터링 API 한 번 호출로만 이뤄진다. 더 정교한 필터는 이번 범위 밖이다.
 
 ## Related Documents
@@ -262,6 +342,7 @@ after  = CHAT_MESSAGE: 원문(Redis → chat_messages 백업)에서 신고 메�
 - 신고 대상 타입(`ReportType`)이나 제재 타입(`SanctionType`)이 추가·변경될 때
 - 경고 누적 기준이나 자동 정지 기간이 바뀔 때
 - 자동제재 스케줄러의 조회 대상이나 처리 주기가 바뀔 때
-- `Report`의 저장 구조(메시지 스냅샷·맥락 컬럼)가 바뀔 때
+- `Report`의 저장 구조(메시지 스냅샷·맥락·방 종류·함께 해결 컬럼)가 바뀔 때
+- 정지 시 토큰 무효화 방식이나 같은 메시지 신고의 함께 해결 규칙이 바뀔 때
 - 신고 맥락 조회 API의 응답이나 뒤쪽 맥락 확보 방식이 바뀔 때
 - 과팅 신고 고도화(3번 안)가 구현돼 "알려진 한계"가 해소될 때

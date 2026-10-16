@@ -99,9 +99,11 @@ public class AsyncAutoSanctionService {
         if (reportRepository.existsByMessageIdAndSanctionSanctionType(report.getMessageId(), SanctionType.WARNING)) {
             log.info("Message already warned - Report ID: {}, Message ID: {}", report.getId(), report.getMessageId());
             report.markAsProcessedWithoutSanction();
+            reportRepository.resolveSameMessageReports(report);
             return;
         }
 
         sanctionExecutor.issueBySystem(report, SanctionType.WARNING, AUTO_SANCTION_REASON, AUTO_WARNING_DESCRIPTION);
+        reportRepository.resolveSameMessageReports(report);
     }
 }

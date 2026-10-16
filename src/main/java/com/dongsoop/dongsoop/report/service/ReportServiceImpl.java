@@ -123,6 +123,7 @@ public class ReportServiceImpl implements ReportService {
 
         sanctionExecutor.issue(report, admin, targetMember, request.sanctionType(), request.sanctionReason(),
                 request.sanctionEndAt(), null);
+        reportRepository.resolveSameMessageReports(report);
     }
 
     @Override
@@ -130,6 +131,7 @@ public class ReportServiceImpl implements ReportService {
     public void dismissReport(Long reportId) {
         Report report = findReportById(reportId);
         report.dismiss(memberService.getMemberReferenceByContext());
+        reportRepository.resolveSameMessageReports(report);
     }
 
     @Override
@@ -159,7 +161,7 @@ public class ReportServiceImpl implements ReportService {
             after = blindDateReportTargetResolver.findLiveContextAfter(report.getChatRoomId(), report.getMessageId());
         }
 
-        return new ReportContextResponse(report.getMessageId(), report.getMessageContent(),
+        return new ReportContextResponse(report.getMessageId(), report.getMessageContent(), report.getChatRoomType(),
                 messagesOf(report.getMessageContext()), messagesOf(after.orElse(null)),
                 after.isPresent() ? source : AfterSource.UNAVAILABLE);
     }

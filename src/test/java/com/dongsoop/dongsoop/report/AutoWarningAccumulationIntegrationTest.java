@@ -3,11 +3,16 @@ package com.dongsoop.dongsoop.report;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.AbstractIntegrationTest;
+import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.repository.MemberRepository;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
+import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
+import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
 import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportReason;
 import com.dongsoop.dongsoop.report.entity.ReportType;
@@ -53,8 +58,12 @@ class AutoWarningAccumulationIntegrationTest extends AbstractIntegrationTest {
     private AsyncAutoSanctionService asyncAutoSanctionService;
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private MemberDeviceRepository memberDeviceRepository;
     @MockitoBean
     private TextFilteringService textFilteringService;
+    @MockitoBean
+    private DeviceBlacklistService deviceBlacklistService;
     @Value("${admin.id}")
     private Long systemAdminId;
 
@@ -76,6 +85,7 @@ class AutoWarningAccumulationIntegrationTest extends AbstractIntegrationTest {
         jdbcTemplate.update("UPDATE report SET sanction_id = NULL WHERE reporter_id IN (" + ids + ")"
                 + " OR target_member_id IN (" + ids + ")");
         jdbcTemplate.update("DELETE FROM sanction WHERE member_id IN (" + ids + ")");
+        jdbcTemplate.update("DELETE FROM member_device WHERE member_id IN (" + ids + ")");
         jdbcTemplate.update("DELETE FROM report WHERE reporter_id IN (" + ids + ")"
                 + " OR target_member_id IN (" + ids + ")");
         jdbcTemplate.update("DELETE FROM member WHERE id IN (" + ids + ")");
@@ -132,6 +142,8 @@ class AutoWarningAccumulationIntegrationTest extends AbstractIntegrationTest {
         saveWarnedChatReport(reporter, target, admin, "acc-old-1");
         saveWarnedChatReport(reporter, target, admin, "acc-old-2");
         Report fresh = saveChatReport(reporter, target, "acc-new");
+        MemberDevice device = memberDeviceRepository.save(MemberDevice.builder()
+                .member(target).deviceToken("acc-device").memberDeviceType(MemberDeviceType.ANDROID).build());
         when(textFilteringService.hasProfanity(any(), any(), any())).thenReturn(true);
 
         asyncAutoSanctionService.processReportAsync(fresh).get(10, TimeUnit.SECONDS);
@@ -142,7 +154,10 @@ class AutoWarningAccumulationIntegrationTest extends AbstractIntegrationTest {
         assertThat(bans).hasSize(1);
         assertThat(bans.get(0).getEndDate())
                 .isCloseTo(LocalDateTime.now(KST).plusDays(3), within(1, ChronoUnit.MINUTES));
+        assertThat(bans.get(0).getReason()).isEqualTo("부적절한 언어 사용");
+        assertThat(bans.get(0).getDescription()).isEqualTo("경고 3회 누적으로 인한 자동 3일 정지");
         assertThat(reportRepository.findById(fresh.getId()).orElseThrow().getIsProcessed()).isTrue();
+        verify(deviceBlacklistService).blacklist(device.getId());
     }
 
     @Test

@@ -15,6 +15,7 @@ import com.dongsoop.dongsoop.report.dto.CreateChatReportRequest;
 import com.dongsoop.dongsoop.report.dto.MessageReportDraft;
 import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshot;
 import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshots;
+import com.dongsoop.dongsoop.report.entity.ReportChatRoomType;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.exception.NotReportableMessageException;
 import com.dongsoop.dongsoop.report.exception.ReportTargetNotFoundException;
@@ -37,7 +38,8 @@ public class ChatReportTargetResolver {
     private final ChatMessageJpaRepository chatMessageJpaRepository;
 
     public MessageReportDraft resolve(Long reporterId, CreateChatReportRequest request) {
-        validateParticipant(chatRoomService.getChatRoomById(request.roomId()), reporterId);
+        ChatRoom room = chatRoomService.getChatRoomById(request.roomId());
+        validateParticipant(room, reporterId);
 
         List<ChatMessage> messages = loadMessages(request.roomId(), request.messageId());
         int targetIndex = indexOf(messages, request.messageId());
@@ -50,9 +52,10 @@ public class ChatReportTargetResolver {
         Member targetMember = memberRepository.findById(target.getSenderId())
                 .orElseThrow(MemberNotFoundException::new);
 
-        return new MessageReportDraft(ReportType.CHAT_MESSAGE, request.roomId(), "/chat/room/" + request.roomId(),
-                targetMember, target.getMessageId(), ChatMessageSnapshot.truncate(target.getContent()),
-                target.getTimestamp(), buildContext(messages, targetIndex));
+        return new MessageReportDraft(ReportType.CHAT_MESSAGE, request.roomId(),
+                ReportChatRoomType.from(room.roomType()), "/chat/room/" + request.roomId(), targetMember,
+                target.getMessageId(), ChatMessageSnapshot.truncate(target.getContent()), target.getTimestamp(),
+                buildContext(messages, targetIndex));
     }
 
     /**

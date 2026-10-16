@@ -12,6 +12,7 @@ import com.dongsoop.dongsoop.report.dto.ProcessSanctionRequest;
 import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshot;
 import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshots;
 import com.dongsoop.dongsoop.report.entity.Report;
+import com.dongsoop.dongsoop.report.entity.ReportChatRoomType;
 import com.dongsoop.dongsoop.report.entity.ReportFilterType;
 import com.dongsoop.dongsoop.report.entity.ReportReason;
 import com.dongsoop.dongsoop.report.entity.ReportType;
@@ -22,6 +23,8 @@ import com.dongsoop.dongsoop.report.repository.SanctionRepository;
 import com.dongsoop.dongsoop.report.service.ReportService;
 import jakarta.persistence.EntityManager;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,7 +36,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.jdbc.Sql;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -52,6 +58,8 @@ class ReportPersistenceIntegrationTest extends AbstractIntegrationTest {
     private EntityManager entityManager;
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private PlatformTransactionManager transactionManager;
     @MockitoBean
     private MemberService memberService;
 
@@ -356,6 +364,109 @@ class ReportPersistenceIntegrationTest extends AbstractIntegrationTest {
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .satisfies(e -> assertThat(constraintNameOf((DataIntegrityViolationException) e))
                         .isEqualToIgnoringCase("uk_report_blinddate_reporter_target"));
+    }
+
+    private Report saveMessageReport(Member reporter, Member target, String roomId, String messageId) {
+        return reportRepository.save(Report.builder()
+                .reporter(reporter)
+                .reportType(ReportType.CHAT_MESSAGE)
+                .targetId(target.getId())
+                .targetMember(target)
+                .reportReason(ReportReason.HATE_SPEECH)
+                .targetUrl("/chat/room/" + roomId)
+                .chatRoomId(roomId)
+                .chatRoomType(ReportChatRoomType.GROUP)
+                .messageId(messageId)
+                .messageContent("욕설")
+                .build());
+    }
+
+    @Test
+    @Sql(scripts = {"classpath:migration/417_chat_report.sql", "classpath:migration/417_blinddate_report.sql",
+            "classpath:migration/648_report_followups.sql"})
+    @DisplayName("메시지 신고를 제재하면 같은 메시지의 미처리 신고만 함께 닫히고 제재는 한 건만 연결된다")
+    void processSanction_ResolvesSameMessageReportsWithSingleSanction() {
+        Member admin = saveMember("rsadm");
+        Member target = saveMember("rstgt");
+        Member reporter1 = saveMember("rsrep1");
+        Member reporter2 = saveMember("rsrep2");
+        Member reporter3 = saveMember("rsrep3");
+        Report processing = saveMessageReport(reporter1, target, "rs-room", "rs-msg");
+        Report sibling = saveMessageReport(reporter2, target, "rs-room", "rs-msg");
+        Report otherMessage = saveMessageReport(reporter3, target, "rs-room", "rs-other");
+        Report board = saveReport(reporter2, target, ReportType.PROJECT_BOARD);
+        entityManager.flush();
+        when(memberService.getMemberReferenceByContext()).thenReturn(admin);
+
+        reportService.processSanction(new ProcessSanctionRequest(
+                processing.getId(), target.getId(), SanctionType.WARNING, "욕설", null));
+        entityManager.flush();
+        entityManager.clear();
+
+        Report resolved = reportRepository.findById(sibling.getId()).orElseThrow();
+        assertThat(resolved.getIsProcessed()).isTrue();
+        assertThat(resolved.getAdmin().getId()).isEqualTo(admin.getId());
+        assertThat(resolved.getResolvedByReportId()).isEqualTo(processing.getId());
+        assertThat(resolved.getSanction()).isNull();
+        assertThat(resolved.getChatRoomType()).isEqualTo(ReportChatRoomType.GROUP);
+        assertThat(reportRepository.findById(otherMessage.getId()).orElseThrow().getIsProcessed()).isFalse();
+        assertThat(reportRepository.findById(board.getId()).orElseThrow().getIsProcessed()).isFalse();
+        assertThat(reportRepository.countActiveWarningsForMember(target.getId(), SanctionType.WARNING)).isOne();
+        assertThat(reportRepository.findDetailedReportsByFilter(ReportFilterType.PROCESSED, PageRequest.of(0, 50)))
+                .anySatisfy(report -> {
+                    assertThat(report.id()).isEqualTo(sibling.getId());
+                    assertThat(report.resolvedByReportId()).isEqualTo(processing.getId());
+                    assertThat(report.chatRoomType()).isEqualTo(ReportChatRoomType.GROUP);
+                });
+        assertThat(reportRepository.findSummaryReportsByFilter(ReportFilterType.UNPROCESSED, PageRequest.of(0, 50)))
+                .extracting(report -> report.id())
+                .doesNotContain(sibling.getId())
+                .contains(otherMessage.getId());
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @DisplayName("같은 메시지의 다른 신고가 다른 처리에 잠겨 있으면 기다리지 않고 건너뛴다")
+    void dismissReport_SkipsSameMessageReportLockedByOtherProcessing() throws Exception {
+        TransactionTemplate tx = new TransactionTemplate(transactionManager);
+        Member admin = tx.execute(status -> saveMember("lkadm"));
+        Member target = tx.execute(status -> saveMember("lktgt"));
+        Member reporter1 = tx.execute(status -> saveMember("lkrep1"));
+        Member reporter2 = tx.execute(status -> saveMember("lkrep2"));
+        Report dismissed = tx.execute(status -> saveMessageReport(reporter1, target, "lk-room", "lk-msg"));
+        Report locked = tx.execute(status -> saveMessageReport(reporter2, target, "lk-room", "lk-msg"));
+        when(memberService.getMemberReferenceByContext()).thenReturn(admin);
+        CountDownLatch lockHeld = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        Thread holder = new Thread(() -> tx.executeWithoutResult(status -> {
+            reportRepository.findByIdForUpdate(locked.getId());
+            lockHeld.countDown();
+            try {
+                release.await(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }));
+
+        try {
+            holder.start();
+            assertThat(lockHeld.await(10, TimeUnit.SECONDS)).isTrue();
+            long startedAt = System.nanoTime();
+            reportService.dismissReport(dismissed.getId());
+            long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
+            release.countDown();
+            holder.join(10_000);
+
+            assertThat(elapsedMillis).isLessThan(5_000);
+            assertThat(reportRepository.findById(dismissed.getId()).orElseThrow().getIsProcessed()).isTrue();
+            assertThat(reportRepository.findById(locked.getId()).orElseThrow().getIsProcessed()).isFalse();
+        } finally {
+            release.countDown();
+            holder.join(10_000);
+            jdbcTemplate.update("DELETE FROM report WHERE id IN (?, ?)", dismissed.getId(), locked.getId());
+            jdbcTemplate.update("DELETE FROM member WHERE id IN (?, ?, ?, ?)", admin.getId(), target.getId(),
+                    reporter1.getId(), reporter2.getId());
+        }
     }
 
     // 예외 발생 뒤 Postgres 트랜잭션이 abort 상태가 되어 추가 조회가 실패하므로, 예외 객체에서만 제약 이름을 꺼낸다
