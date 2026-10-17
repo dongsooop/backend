@@ -123,6 +123,7 @@ public class ReportServiceImpl implements ReportService {
 
         sanctionExecutor.issue(report, admin, targetMember, request.sanctionType(), request.sanctionReason(),
                 request.sanctionEndAt(), null);
+        reportRepository.resolveSameTargetMessageReports(report);
     }
 
     @Override
@@ -130,6 +131,7 @@ public class ReportServiceImpl implements ReportService {
     public void dismissReport(Long reportId) {
         Report report = findReportById(reportId);
         report.dismiss(memberService.getMemberReferenceByContext());
+        reportRepository.resolveSameTargetMessageReports(report);
     }
 
     @Override
@@ -159,7 +161,7 @@ public class ReportServiceImpl implements ReportService {
             after = blindDateReportTargetResolver.findLiveContextAfter(report.getChatRoomId(), report.getMessageId());
         }
 
-        return new ReportContextResponse(report.getMessageId(), report.getMessageContent(),
+        return new ReportContextResponse(report.getMessageId(), report.getMessageContent(), report.getChatRoomType(),
                 messagesOf(report.getMessageContext()), messagesOf(after.orElse(null)),
                 after.isPresent() ? source : AfterSource.UNAVAILABLE);
     }
@@ -272,7 +274,7 @@ public class ReportServiceImpl implements ReportService {
 
     private void validateSanctionApplicable(Report report, ProcessSanctionRequest request) {
         SanctionType sanctionType = request.sanctionType();
-        if (sanctionType == SanctionType.CHAT_KICK && report.getReportType() != ReportType.CHAT_MESSAGE) {
+        if (sanctionType == SanctionType.CHAT_KICK && !report.getReportType().isMessageReport()) {
             throw new GroupChatOnlyException("채팅방 추방");
         }
 
@@ -289,9 +291,9 @@ public class ReportServiceImpl implements ReportService {
         }
     }
 
-    // 관리자 제재·기각·자동 판정이 같은 신고를 동시에 처리하지 않도록 행을 잠근 뒤 처리 여부를 검사한다
+    // 관리자 제재·기각·자동 판정이 같은 대상의 신고를 동시에 처리하지 않도록 잠근 뒤 처리 여부를 검사한다
     private Report findReportById(Long reportId) {
-        return reportRepository.findByIdForUpdate(reportId)
+        return reportRepository.findByIdForUpdateLockingTarget(reportId)
                 .orElseThrow(() -> new ReportNotFoundException(reportId));
     }
 

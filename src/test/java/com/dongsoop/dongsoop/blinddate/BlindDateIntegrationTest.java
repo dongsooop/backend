@@ -5,10 +5,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.dongsoop.dongsoop.blinddate.config.BlindDateMessageProvider;
 import com.dongsoop.dongsoop.blinddate.dto.StartBlindDateRequest;
 import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo.SessionState;
@@ -117,7 +122,8 @@ class BlindDateIntegrationTest {
                 sessionStorage,
                 messagingTemplate,
                 taskScheduler,
-                eventQueue
+                eventQueue,
+                new BlindDateMessageProvider()
         );
 
         sessionService = new BlindDateSessionServiceImpl(
@@ -725,5 +731,113 @@ class BlindDateIntegrationTest {
             assertThat(participantStorage.isMatched(sessionId, 3L)).isFalse();
         }
     }
+    @Nested
+    @DisplayName("관리자 강퇴")
+    class KickScenarios {
+
+        private List<Map<String, Object>> joinStatesOf(long memberId) {
+            return joinResponses.stream()
+                    .filter(response -> response.member().equals(String.valueOf(memberId)))
+                    .map(JoinResponse::payload)
+                    .toList();
+        }
+
+        @Test
+        @DisplayName("진행 중 세션에서 강퇴하면 본인에게 KICKED, 다른 참가자에게 익명 이름 퇴장 안내를 보내고 재입장을 막는다")
+        void kickFromProcessingSession_NotifiesAndBlocksReconnect() {
+            blindDateStorage.start(3, LocalDateTime.now().plusHours(1));
+            Map<String, Object> attr = new HashMap<>();
+            connectHandler.execute("socket-1", 1L, attr);
+            connectHandler.execute("socket-2", 2L, new HashMap<>());
+            connectHandler.execute("socket-3", 3L, new HashMap<>());
+            eventQueue.awaitIdle();
+            String sessionId = (String) attr.get("sessionId");
+            assertThat(sessionStorage.isProcessing(sessionId)).isTrue();
+
+            blindDateService.kickParticipant(sessionId, 2L);
+            eventQueue.awaitIdle();
+
+            assertThat(joinStatesOf(2L)).last().isEqualTo(Map.of("state", "KICKED"));
+            verify(messagingTemplate).convertAndSend(
+                    eq("/topic/blinddate/session/" + sessionId + "/system"),
+                    (Object) argThat(payload -> payload instanceof Map<?, ?> map
+                            && "익명2님이 퇴장당했습니다.".equals(map.get("message"))
+                            && Long.valueOf(0L).equals(map.get("senderId"))));
+            assertThat(participantStorage.getAnonymousName(2L)).isNull();
+            assertThat(participantStorage.findAllBySessionId(sessionId))
+                    .extracting(ParticipantInfo::getMemberId).containsExactlyInAnyOrder(1L, 3L);
+
+            Map<String, Object> reconnect = new HashMap<>();
+            connectHandler.execute("socket-2b", 2L, reconnect);
+            eventQueue.awaitIdle();
+
+            assertThat(reconnect).doesNotContainKey("sessionId");
+            assertThat(participantStorage.getByMemberId(2L)).isNull();
+            assertThat(joinStatesOf(2L)).last().isEqualTo(Map.of("state", "KICKED"));
+        }
+
+        @Test
+        @DisplayName("대기 중 세션에서 강퇴하면 인원을 갱신하고, 전체 초기화 뒤에는 다시 입장할 수 있다")
+        void kickFromWaitingSession_UpdatesCountAndResetAllowsRejoin() {
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+            Map<String, Object> attr = new HashMap<>();
+            connectHandler.execute("socket-1", 1L, attr);
+            connectHandler.execute("socket-2", 2L, new HashMap<>());
+            eventQueue.awaitIdle();
+            String sessionId = (String) attr.get("sessionId");
+            clearInvocations(messagingTemplate);
+
+            blindDateService.kickParticipant(sessionId, 2L);
+            eventQueue.awaitIdle();
+
+            verify(messagingTemplate).convertAndSend(
+                    "/topic/blinddate/session/" + sessionId + "/joined", Map.of("volunteer", 1));
+
+            blindDateService.resetParticipants();
+            eventQueue.awaitIdle();
+            Map<String, Object> rejoin = new HashMap<>();
+            connectHandler.execute("socket-2b", 2L, rejoin);
+            eventQueue.awaitIdle();
+
+            assertThat(rejoin).containsKey("sessionId");
+            assertThat(participantStorage.getByMemberId(2L)).isNotNull();
+        }
+
+        @Test
+        @DisplayName("이미 끝난 세션의 참가자를 강퇴하면 안내 없이 재입장만 막는다")
+        void kickAfterSessionTerminated_OnlyBlocksRejoin() {
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+            Map<String, Object> attr = new HashMap<>();
+            connectHandler.execute("socket-1", 1L, attr);
+            eventQueue.awaitIdle();
+            String sessionId = (String) attr.get("sessionId");
+            sessionStorage.terminate(sessionId);
+            int responsesBeforeKick = joinStatesOf(1L).size();
+
+            blindDateService.kickParticipant(sessionId, 1L);
+            eventQueue.awaitIdle();
+
+            assertThat(joinStatesOf(1L)).hasSize(responsesBeforeKick);
+            connectHandler.execute("socket-1b", 1L, new HashMap<>());
+            eventQueue.awaitIdle();
+            assertThat(joinStatesOf(1L)).last().isEqualTo(Map.of("state", "KICKED"));
+        }
+
+        @Test
+        @DisplayName("전체 초기화로 참가 기록이 없으면 강퇴해도 다음 입장을 막지 않는다")
+        void kickWithoutParticipantRecord_DoesNothing() {
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+
+            blindDateService.kickParticipant("cleared-session", 1L);
+            eventQueue.awaitIdle();
+            Map<String, Object> join = new HashMap<>();
+            connectHandler.execute("socket-1", 1L, join);
+            eventQueue.awaitIdle();
+
+            assertThat(join).containsKey("sessionId");
+            assertThat(joinStatesOf(1L)).noneMatch(payload -> "KICKED".equals(payload.get("state")));
+        }
+    }
+
     private record JoinResponse(String member, String destination, Map<String, Object> payload) {}
 }

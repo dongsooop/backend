@@ -12,6 +12,8 @@ import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
 import com.dongsoop.dongsoop.oauth.exception.AccountNotLinkedException;
 import com.dongsoop.dongsoop.oauth.exception.LinkedAccountAlreadyDeletedException;
 import com.dongsoop.dongsoop.oauth.repository.MemberSocialAccountRepository;
+import com.dongsoop.dongsoop.report.entity.Sanction;
+import com.dongsoop.dongsoop.report.entity.SanctionType;
 import com.dongsoop.dongsoop.report.exception.MemberSanctionedException;
 import com.dongsoop.dongsoop.report.validator.ReportValidator;
 import com.dongsoop.dongsoop.role.entity.RoleType;
@@ -111,7 +113,7 @@ class MemberSocialAccountValidatorTest {
                 .thenReturn(Optional.of(dto));
         when(member.getId()).thenReturn(MEMBER_ID);
         when(member.isDeleted()).thenReturn(false);
-        doThrow(new MemberSanctionedException("제재 중"))
+        doThrow(new MemberSanctionedException(Sanction.builder().sanctionType(SanctionType.TEMPORARY_BAN).build()))
                 .when(reportValidator).checkMemberAccessById(MEMBER_ID);
 
         assertThatThrownBy(() -> validator.validate(PROVIDER_ID, OAuthProviderType.GOOGLE))

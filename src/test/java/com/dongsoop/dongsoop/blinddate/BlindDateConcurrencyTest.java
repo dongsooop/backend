@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.blinddate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import com.dongsoop.dongsoop.blinddate.config.BlindDateMessageProvider;
 import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateConnectHandler;
@@ -86,7 +87,8 @@ class BlindDateConcurrencyTest {
                 sessionStorage,
                 messagingTemplate,
                 taskScheduler,
-                eventQueue
+                eventQueue,
+                new BlindDateMessageProvider()
         );
 
         sessionService = new BlindDateSessionServiceImpl(

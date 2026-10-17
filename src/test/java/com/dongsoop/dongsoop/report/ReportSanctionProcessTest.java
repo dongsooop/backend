@@ -55,7 +55,7 @@ class ReportSanctionProcessTest {
     @BeforeEach
     void setUp() {
         report = Report.builder().id(1L).reportType(ReportType.MEMBER).targetId(2L).build();
-        when(reportRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(report));
+        when(reportRepository.findByIdForUpdateLockingTarget(1L)).thenReturn(Optional.of(report));
         // 이미 처리된 신고는 회원 조회 전에 거절돼 두 스텁이 쓰이지 않는다
         lenient().when(memberRepository.findById(2L)).thenReturn(Optional.of(target));
         lenient().when(memberService.getMemberReferenceByContext()).thenReturn(admin);
@@ -69,13 +69,24 @@ class ReportSanctionProcessTest {
         reportService.processSanction(new ProcessSanctionRequest(1L, 2L, SanctionType.TEMPORARY_BAN, "욕설", endAt));
 
         verify(sanctionExecutor).issue(report, admin, target, SanctionType.TEMPORARY_BAN, "욕설", endAt, null);
+        verify(reportRepository).resolveSameTargetMessageReports(report);
+    }
+
+    @Test
+    @DisplayName("기각하면 관리자 명의로 닫고 같은 대상의 다른 메시지 신고도 함께 닫는다")
+    void dismissReport_ClosesAndResolvesSameTargetMessageReports() {
+        reportService.dismissReport(1L);
+
+        assertThat(report.getIsProcessed()).isTrue();
+        assertThat(report.getAdmin()).isEqualTo(admin);
+        verify(reportRepository).resolveSameTargetMessageReports(report);
     }
 
     @Test
     @DisplayName("이미 처리된 신고에 제재를 요청하면 409로 거절한다")
     void processSanction_AlreadyProcessed_Throws() {
         Report processed = Report.builder().id(1L).reportType(ReportType.MEMBER).targetId(2L).isProcessed(true).build();
-        when(reportRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(processed));
+        when(reportRepository.findByIdForUpdateLockingTarget(1L)).thenReturn(Optional.of(processed));
         ProcessSanctionRequest request = new ProcessSanctionRequest(1L, 2L, SanctionType.WARNING, null, null);
 
         assertThatThrownBy(() -> reportService.processSanction(request))
@@ -86,7 +97,7 @@ class ReportSanctionProcessTest {
     }
 
     @Test
-    @DisplayName("채팅 메시지 신고가 아니면 채팅방 추방을 거절한다")
+    @DisplayName("메시지 신고가 아니면 채팅방 추방을 거절한다")
     void processSanction_ChatKickOnNonChatReport_Throws() {
         ProcessSanctionRequest request = new ProcessSanctionRequest(1L, 2L, SanctionType.CHAT_KICK, null, null);
 
@@ -95,10 +106,22 @@ class ReportSanctionProcessTest {
         verify(sanctionExecutor, never()).issue(any(), any(), any(), any(), any(), any(), any());
     }
 
+    @Test
+    @DisplayName("과팅 메시지 신고에는 채팅방 추방(과팅 강퇴)을 허용한다")
+    void processSanction_ChatKickOnBlindDateReport_Delegates() {
+        Report blindDateReport = Report.builder().id(1L).reportType(ReportType.BLINDDATE_MESSAGE).targetId(2L)
+                .targetMember(target).chatRoomId("session-1").messageId("m1").build();
+        when(reportRepository.findByIdForUpdateLockingTarget(1L)).thenReturn(Optional.of(blindDateReport));
+
+        reportService.processSanction(new ProcessSanctionRequest(1L, 2L, SanctionType.CHAT_KICK, null, null));
+
+        verify(sanctionExecutor).issue(blindDateReport, admin, target, SanctionType.CHAT_KICK, null, null, null);
+    }
+
     private void stubChatMessageReport(Member reportedMember) {
         Report chatReport = Report.builder().id(1L).reportType(ReportType.CHAT_MESSAGE).targetId(reportedMember.getId())
                 .targetMember(reportedMember).messageId("m1").build();
-        when(reportRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(chatReport));
+        when(reportRepository.findByIdForUpdateLockingTarget(1L)).thenReturn(Optional.of(chatReport));
     }
 
     @Test
@@ -128,7 +151,7 @@ class ReportSanctionProcessTest {
     void dismissReport_AlreadyProcessed_Throws() {
         Report processed = Report.builder().id(1L).reportType(ReportType.CHAT_MESSAGE).targetId(2L).isProcessed(true)
                 .build();
-        when(reportRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(processed));
+        when(reportRepository.findByIdForUpdateLockingTarget(1L)).thenReturn(Optional.of(processed));
 
         assertThatThrownBy(() -> reportService.dismissReport(1L))
                 .isInstanceOf(ReportAlreadyProcessedException.class)

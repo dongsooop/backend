@@ -1,6 +1,7 @@
 package com.dongsoop.dongsoop.common.handler.exception;
 
 import com.dongsoop.dongsoop.common.exception.CustomException;
+import com.dongsoop.dongsoop.report.exception.MemberSanctionedException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<ProblemDetail> handleCustomException(CustomException exception) {
         return createExceptionResponse(exception, exception.getHttpStatus());
+    }
+
+    // 정지 회원 로그인 거절. 정지 후에는 회원 API가 모두 401이라 앱이 제재 내용을 받을 수 있는 곳이 로그인 응답뿐이다
+    @ExceptionHandler(MemberSanctionedException.class)
+    public ResponseEntity<ProblemDetail> handleMemberSanctionedException(MemberSanctionedException exception) {
+        ResponseEntity<ProblemDetail> response = createExceptionResponse(exception, exception.getHttpStatus());
+        response.getBody().setProperty("sanction", exception.getSanction());
+        return response;
     }
 
     // 인증 실패 (401 Unauthorized)

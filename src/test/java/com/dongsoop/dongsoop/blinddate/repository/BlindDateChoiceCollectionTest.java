@@ -141,4 +141,48 @@ class BlindDateChoiceCollectionTest {
             workers.shutdownNow();
         }
     }
+
+    @Test
+    void kickedMemberLeavesChoiceTargetsAndLosesRecordedResponse() {
+        var storage = storage(3);
+        storage.recordChoice("session", 1L, 2L);
+        storage.recordChoice("session", 2L, 1L);
+
+        assertThat(storage.kick("session", 2L).getAnonymousName()).isEqualTo("익명2");
+
+        assertThat(storage.claimMutualChoice("session", 1L)).isNull();
+        assertThat(storage.getChoices("session")).doesNotContainKey(2L);
+        assertThatThrownBy(() -> storage.recordChoice("session", 3L, 2L))
+                .isInstanceOfSatisfying(InvalidBlindDateChoiceException.class,
+                        e -> assertThat(e.getCode()).isEqualTo("CHOICE_TARGET_NOT_FOUND"));
+        assertThatThrownBy(() -> storage.recordChoice("session", 2L, null))
+                .isInstanceOfSatisfying(InvalidBlindDateChoiceException.class,
+                        e -> assertThat(e.getCode()).isEqualTo("CHOICE_FORBIDDEN"));
+    }
+
+    @Test
+    void kickRemovesParticipantAndBlocksUntilClear() {
+        var storage = storage(2);
+
+        storage.kick("session", 2L);
+
+        assertThat(storage.getByMemberId(2L)).isNull();
+        assertThat(storage.getBySocketId("socket-2")).isNull();
+        assertThat(storage.getAnonymousName(2L)).isNull();
+        assertThat(storage.findAllBySessionId("session")).extracting(p -> p.getMemberId()).containsExactly(1L);
+        assertThat(storage.isKicked(2L)).isTrue();
+        storage.clear();
+        assertThat(storage.isKicked(2L)).isFalse();
+    }
+
+    @Test
+    void kickIgnoresMemberOfOtherSessionOrWithoutRecord() {
+        var storage = storage(1);
+
+        assertThat(storage.kick("other-session", 1L)).isNull();
+        assertThat(storage.kick("session", 9L)).isNull();
+        assertThat(storage.getByMemberId(1L)).isNotNull();
+        assertThat(storage.isKicked(1L)).isFalse();
+        assertThat(storage.isKicked(9L)).isFalse();
+    }
 }

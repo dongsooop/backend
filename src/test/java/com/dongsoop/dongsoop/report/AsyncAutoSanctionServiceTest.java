@@ -58,7 +58,7 @@ class AsyncAutoSanctionServiceTest {
 
     private void stubReads(Report report) {
         when(reportRepository.findById(1L)).thenReturn(Optional.of(report));
-        lenient().when(reportRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(report));
+        lenient().when(reportRepository.findByIdForUpdateLockingTarget(1L)).thenReturn(Optional.of(report));
     }
 
     private Report boardReport() {
@@ -105,6 +105,8 @@ class AsyncAutoSanctionServiceTest {
         asyncAutoSanctionService.processReportAsync(report);
 
         verify(sanctionExecutor).issueBySystem(report, SanctionType.WARNING, "부적절한 언어 사용", "자동 제재에 의한 경고");
+        verify(reportRepository).resolveSameMessageReports(report, report);
+        verify(reportRepository, never()).resolveSameTargetMessageReports(any());
     }
 
     @Test
@@ -120,23 +122,29 @@ class AsyncAutoSanctionServiceTest {
         assertThat(report.getIsProcessed()).isFalse();
         assertThat(report.getIsAutoReviewed()).isTrue();
         verify(sanctionExecutor, never()).issueBySystem(any(), any(), any(), any());
+        verify(reportRepository, never()).resolveSameMessageReports(any(), any());
     }
 
     @Test
-    @DisplayName("같은 메시지에 이미 경고가 있으면 욕설이어도 새 경고 없이 처리 완료로 닫는다")
+    @DisplayName("같은 메시지에 이미 경고가 있으면 욕설이어도 새 경고 없이 그 경고 신고를 가리키며 닫는다")
     void processReportAsync_ChatProfanityAlreadyWarned_ClosesWithoutWarning() {
         Report report = Report.builder().id(1L).reportType(ReportType.CHAT_MESSAGE).targetId(2L)
                 .targetMember(target).messageId("m1").messageContent("욕설").build();
         stubReads(report);
         when(textFilteringService.hasProfanity("", "", "욕설")).thenReturn(true);
-        when(reportRepository.existsByMessageIdAndSanctionSanctionType("m1", SanctionType.WARNING))
-                .thenReturn(true);
+        Report warned = Report.builder().id(9L).reportType(ReportType.CHAT_MESSAGE).messageId("m1")
+                .isProcessed(true).build();
+        when(reportRepository.findFirstByMessageIdAndSanctionSanctionTypeOrderByIdAsc("m1", SanctionType.WARNING))
+                .thenReturn(Optional.of(warned));
 
         asyncAutoSanctionService.processReportAsync(report);
 
         assertThat(report.getIsProcessed()).isTrue();
         assertThat(report.getSanction()).isNull();
+        assertThat(report.getResolvedByReportId()).isEqualTo(9L);
         verify(sanctionExecutor, never()).issueBySystem(any(), any(), any(), any());
+        verify(reportRepository).resolveSameMessageReports(report, warned);
+        verify(reportRepository, never()).resolveSameTargetMessageReports(any());
     }
 
     @Test
@@ -162,7 +170,7 @@ class AsyncAutoSanctionServiceTest {
         Report dismissed = Report.builder().id(1L).reportType(ReportType.CHAT_MESSAGE).targetId(2L)
                 .targetMember(target).messageId("m1").messageContent("욕설").isProcessed(true).build();
         when(reportRepository.findById(1L)).thenReturn(Optional.of(unprocessed));
-        when(reportRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(dismissed));
+        when(reportRepository.findByIdForUpdateLockingTarget(1L)).thenReturn(Optional.of(dismissed));
         when(textFilteringService.hasProfanity("", "", "욕설")).thenReturn(true);
 
         asyncAutoSanctionService.processReportAsync(unprocessed);

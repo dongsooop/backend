@@ -12,6 +12,7 @@ import com.dongsoop.dongsoop.report.dto.CreateBlindDateReportRequest;
 import com.dongsoop.dongsoop.report.dto.MessageReportDraft;
 import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshot;
 import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshots;
+import com.dongsoop.dongsoop.report.entity.ReportChatRoomType;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.exception.BlindDateMessageNotFoundException;
 import com.dongsoop.dongsoop.report.exception.BlindDateSessionEndedException;
@@ -50,8 +51,9 @@ public class BlindDateReportTargetResolver {
         Member targetMember = memberRepository.findById(target.senderId())
                 .orElseThrow(MemberNotFoundException::new);
 
-        return new MessageReportDraft(ReportType.BLINDDATE_MESSAGE, sessionId, "/blinddate/session/" + sessionId,
-                targetMember, target.messageId(), ChatMessageSnapshot.truncate(target.content()), target.sentAt(),
+        return new MessageReportDraft(ReportType.BLINDDATE_MESSAGE, sessionId, ReportChatRoomType.BLINDDATE,
+                "/blinddate/session/" + sessionId, targetMember, target.messageId(),
+                ChatMessageSnapshot.truncate(target.content()), target.sentAt(),
                 buildContext(sessionId, target.messageId()));
     }
 

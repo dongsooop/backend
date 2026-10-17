@@ -67,6 +67,10 @@ public class Report extends BaseEntity {
     @Column(name = "chat_room_id", length = 64)
     private String chatRoomId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "chat_room_type", length = 20)
+    private ReportChatRoomType chatRoomType;
+
     @Column(name = "message_id", length = 64)
     private String messageId;
 
@@ -83,6 +87,9 @@ public class Report extends BaseEntity {
     @Convert(converter = ChatMessageSnapshotsConverter.class)
     @Column(name = "message_context_after", columnDefinition = "text")
     private ChatMessageSnapshots messageContextAfter;
+
+    @Column(name = "resolved_by_report_id")
+    private Long resolvedByReportId;
 
     // 기존 행이 있는 운영 테이블에 ddl-auto가 NOT NULL 컬럼을 추가하려면 기본값이 필요하다
     @Column(name = "is_auto_reviewed", nullable = false)
@@ -101,6 +108,7 @@ public class Report extends BaseEntity {
                 .description(description)
                 .targetUrl(draft.targetUrl())
                 .chatRoomId(draft.chatRoomId())
+                .chatRoomType(draft.chatRoomType())
                 .messageId(draft.messageId())
                 .messageContent(draft.messageContent())
                 .messageSentAt(draft.messageSentAt())
@@ -132,6 +140,13 @@ public class Report extends BaseEntity {
 
         this.admin = admin;
         this.isProcessed = true;
+    }
+
+    // 제재는 처리한 신고에만 연결한다. 함께 닫힌 신고에도 연결하면 경고 누적 수가 신고 수만큼 늘어난다
+    public void resolveWith(Report resolved) {
+        this.admin = resolved.admin;
+        this.isProcessed = true;
+        this.resolvedByReportId = resolved.id;
     }
 
     public void recordContextAfter(ChatMessageSnapshots contextAfter) {

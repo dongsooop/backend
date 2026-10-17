@@ -10,6 +10,7 @@ import com.dongsoop.dongsoop.report.dto.ReportContextResponse.AfterSource;
 import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshot;
 import com.dongsoop.dongsoop.report.entity.ChatMessageSnapshots;
 import com.dongsoop.dongsoop.report.entity.Report;
+import com.dongsoop.dongsoop.report.entity.ReportChatRoomType;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.exception.ReportNotFoundException;
 import com.dongsoop.dongsoop.report.exception.UnsupportedReportTypeException;
@@ -50,13 +51,15 @@ class ReportContextServiceTest {
 
     private void givenReport(ReportType type, ChatMessageSnapshots contextAfter) {
         when(reportRepository.findById(1L)).thenReturn(Optional.of(Report.builder()
-                .id(1L).reportType(type).chatRoomId("room").messageId("msg").messageContent("욕설")
+                .id(1L).reportType(type).chatRoomId("room").chatRoomType(ReportChatRoomType.GROUP)
+                .messageId("msg").messageContent("욕설")
                 .messageContext(BEFORE).messageContextAfter(contextAfter).build()));
     }
 
     private static void assertContext(ReportContextResponse response, List<String> after, AfterSource source) {
         assertThat(response.messageId()).isEqualTo("msg");
         assertThat(response.messageContent()).isEqualTo("욕설");
+        assertThat(response.chatRoomType()).isEqualTo(ReportChatRoomType.GROUP);
         assertThat(response.before()).extracting(ChatMessageSnapshot::content).containsExactly("앞말");
         assertThat(response.after()).extracting(ChatMessageSnapshot::content).containsExactlyElementsOf(after);
         assertThat(response.afterSource()).isEqualTo(source);

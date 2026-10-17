@@ -9,8 +9,11 @@ import com.dongsoop.dongsoop.chat.session.WebSocketSessionManager;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import com.dongsoop.dongsoop.jwt.dto.AuthenticationInformationByToken;
+import com.dongsoop.dongsoop.jwt.exception.BlacklistedTokenException;
+import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -34,6 +37,7 @@ class StompConnectionContractTest {
     @Mock JwtValidator validator;
     @Mock JwtUtil jwt;
     @Mock WebSocketSessionManager sessions;
+    @Mock DeviceBlacklistService blacklist;
     @InjectMocks StompHandler service;
 
     @AfterEach
@@ -80,6 +84,18 @@ class StompConnectionContractTest {
         Message<byte[]> message = message(connect("Bearer signed-token"));
         assertThatThrownBy(() -> service.preSend(message, null)).isInstanceOf(UnauthorizedChatAccessException.class);
         verifyNoInteractions(sessions, validator);
+    }
+
+    @Test
+    void blacklistedDeviceTokenCannotConnectOrRegisterSession() {
+        Date issuedAt = new Date(1_700_000_000_000L);
+        Claims claims = Jwts.claims().subject("7").add(JwtUtil.DEVICE_ID_CLAIM, 5L).issuedAt(issuedAt).build();
+        when(jwt.getClaims("signed-token")).thenReturn(claims);
+        doThrow(new BlacklistedTokenException()).when(blacklist).validateNotBlacklisted(5L, issuedAt.toInstant());
+        Message<byte[]> message = message(connect("Bearer signed-token"));
+        assertThatThrownBy(() -> service.preSend(message, null)).isInstanceOf(UnauthorizedChatAccessException.class);
+        verifyNoInteractions(sessions);
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 
     @Test

@@ -1,7 +1,9 @@
 package com.dongsoop.dongsoop.report;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.blinddate.entity.BlindDateMessage;
@@ -17,6 +19,7 @@ import java.util.List;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 class BlindDateContextAfterRecorderTest {
 
@@ -27,8 +30,8 @@ class BlindDateContextAfterRecorderTest {
     private final BlindDateContextAfterRecorder recorder = new BlindDateContextAfterRecorder(reportRepository);
 
     private static Report report(String messageId) {
-        return Report.builder().reportType(ReportType.BLINDDATE_MESSAGE).chatRoomId(SESSION_ID).messageId(messageId)
-                .build();
+        return Report.builder().id(1L).reportType(ReportType.BLINDDATE_MESSAGE).chatRoomId(SESSION_ID)
+                .messageId(messageId).build();
     }
 
     private static List<BlindDateMessage> messages(int count) {
@@ -37,45 +40,29 @@ class BlindDateContextAfterRecorderTest {
                 .toList();
     }
 
-    private void close(Report... reports) {
+    private ChatMessageSnapshots closeAndCaptureRecorded(Report report) {
         when(reportRepository.findByReportTypeAndChatRoomIdAndMessageContextAfterIsNull(
-                ReportType.BLINDDATE_MESSAGE, SESSION_ID)).thenReturn(List.of(reports));
+                ReportType.BLINDDATE_MESSAGE, SESSION_ID)).thenReturn(List.of(report));
         recorder.onSessionClosed(new BlindDateSessionClosedEvent(SESSION_ID, messages(15)));
+        ArgumentCaptor<ChatMessageSnapshots> recorded = ArgumentCaptor.forClass(ChatMessageSnapshots.class);
+        verify(reportRepository).recordContextAfter(eq(report.getId()), recorded.capture());
+        return recorded.getValue();
     }
 
     @Test
-    @DisplayName("신고된 메시지 다음 메시지만 오래된 순으로 최대 10개 저장한다")
+    @DisplayName("신고된 메시지 다음 메시지만 오래된 순으로 최대 10개를 부분 갱신으로 저장한다")
     void onSessionClosed_SavesNextTenInOrder() {
-        Report report = report("m2");
+        ChatMessageSnapshots recorded = closeAndCaptureRecorded(report("m2"));
 
-        close(report);
-
-        assertThat(report.getMessageContextAfter().messages())
+        assertThat(recorded.messages())
                 .extracting(ChatMessageSnapshot::content)
                 .containsExactly("내용3", "내용4", "내용5", "내용6", "내용7", "내용8", "내용9", "내용10", "내용11", "내용12");
-        assertThat(report.getMessageContextAfter().messages().get(0))
-                .isEqualTo(new ChatMessageSnapshot(3L, "내용3", SENT_AT.plusSeconds(3)));
+        assertThat(recorded.messages().get(0)).isEqualTo(new ChatMessageSnapshot(3L, "내용3", SENT_AT.plusSeconds(3)));
     }
 
     @Test
     @DisplayName("신고된 메시지가 기록에 없으면 빈 목록을 저장한다")
     void onSessionClosed_MissingMessage_SavesEmpty() {
-        Report report = report("gone");
-
-        close(report);
-
-        assertThat(report.getMessageContextAfter().messages()).isEmpty();
-    }
-
-    @Test
-    @DisplayName("이미 뒤쪽 맥락이 있는 신고는 덮어쓰지 않는다")
-    void onSessionClosed_AlreadyFilled_Skips() {
-        Report report = report("m2");
-        ChatMessageSnapshots saved = new ChatMessageSnapshots(List.of(ChatMessageSnapshot.of(9L, "먼저 저장", SENT_AT)));
-        report.recordContextAfter(saved);
-
-        close(report);
-
-        assertThat(report.getMessageContextAfter()).isSameAs(saved);
+        assertThat(closeAndCaptureRecorded(report("gone")).messages()).isEmpty();
     }
 }

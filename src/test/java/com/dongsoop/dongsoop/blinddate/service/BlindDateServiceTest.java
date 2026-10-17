@@ -8,6 +8,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
+import com.dongsoop.dongsoop.blinddate.config.BlindDateMessageProvider;
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
 import com.dongsoop.dongsoop.blinddate.dto.StartBlindDateRequest;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
@@ -35,7 +36,7 @@ class BlindDateServiceTest {
     private final SimpMessagingTemplate messaging = mock(SimpMessagingTemplate.class);
     private final List<Event> events = new ArrayList<>();
     private final BlindDateServiceImpl service = new BlindDateServiceImpl(
-            participants, operation, notification, sessions, messaging, time, queue);
+            participants, operation, notification, sessions, messaging, time, queue, new BlindDateMessageProvider());
 
     @BeforeEach
     void setUp() {
@@ -117,6 +118,22 @@ class BlindDateServiceTest {
     void joinedCountPublishesSessionAndPayload() {
         service.broadcastJoinedCount("session", 5);
         assertThat(events).containsExactly(new Event(BlindDateTopic.joined("session"), Map.of("volunteer", 5)));
+    }
+
+    @Test
+    void kickContinuesWhenKickedMemberNotificationFails() {
+        String id = sessions.create().getSessionId();
+        participants.addParticipant(id, 1L, "one");
+        participants.addParticipant(id, 2L, "two");
+        doThrow(new IllegalStateException("delivery failed")).when(messaging)
+                .convertAndSendToUser(anyString(), anyString(), any(Object.class));
+
+        service.kickParticipant(id, 2L);
+        queue.awaitIdle();
+
+        assertThat(participants.getByMemberId(2L)).isNull();
+        assertThat(events).extracting(Event::destination).contains(BlindDateTopic.system(id));
+        assertThat(events).contains(new Event(BlindDateTopic.joined(id), Map.of("volunteer", 1)));
     }
 
     private record Event(String destination, Object payload) {}

@@ -53,6 +53,13 @@ public class BlindDateConnectHandler {
     }
 
     private void handle(String socketId, Long memberId, Map<String, Object> sessionAttributes) {
+        if (participantStorage.isKicked(memberId)) {
+            log.info("[BlindDate] Kicked member tried to join: memberId={}", memberId);
+            sessionAttributes.remove(SESSION_ID_KEY);
+            sendStateEvent(memberId, "KICKED");
+            return;
+        }
+
         // 이미 참여 중인 경우 소켓만 추가 후 종료
         String existingSessionId;
         try {
@@ -281,6 +288,14 @@ public class BlindDateConnectHandler {
             );
         } catch (Exception e) {
             log.error("Failed to send JOIN_FAILED event: memberId={}", memberId, e);
+        }
+    }
+
+    private void sendStateEvent(Long memberId, String state) {
+        try {
+            messagingTemplate.convertAndSendToUser(memberId.toString(), JOIN_DESTINATION, Map.of(STATE_KEY, state));
+        } catch (Exception e) {
+            log.error("Failed to send {} event: memberId={}", state, memberId, e);
         }
     }
 
