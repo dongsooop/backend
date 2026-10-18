@@ -9,7 +9,6 @@ import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceBoard;
 import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceContact;
 import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceImage;
 import com.dongsoop.dongsoop.memberblock.annotation.ApplyBlockFilter;
-import com.dongsoop.dongsoop.mypage.dto.OpenedMarketplace;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
@@ -93,38 +92,6 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                 .fetchOne();
 
         return Optional.ofNullable(result);
-    }
-
-    public List<OpenedMarketplace> findOpenedMarketplaceByAuthorIdAndPage(Long memberId, Pageable pageable) {
-        return queryFactory.select(Projections.constructor(OpenedMarketplace.class,
-                        marketplaceBoard.id,
-                        marketplaceBoard.title,
-                        marketplaceBoard.content,
-                        marketplaceBoard.price,
-                        marketplaceBoard.createdAt,
-                        marketplaceContact.applicant.countDistinct(),
-                        marketplaceImage.url,
-                        marketplaceBoard.type,
-                        marketplaceBoard.status)) // 처음 저장된 이미지 URL 가져오기
-                .from(marketplaceBoard)
-                .leftJoin(marketplaceContact)
-                .on(marketplaceContact.marketplaceId.eq(marketplaceBoard.id))
-                .leftJoin(marketplaceImage)
-                .on(marketplaceImage.marketplaceBoard.id.eq(marketplaceBoard.id)
-                        .and(marketplaceImage.createdAt.eq(getMinCreated()))) // 가장 먼저 저장된 이미지 행 가져오기
-                .where(marketplaceBoard.author.id.eq(memberId))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .orderBy(marketplaceBoard.createdAt.desc())
-                .groupBy(marketplaceBoard.id,
-                        marketplaceBoard.title,
-                        marketplaceBoard.content,
-                        marketplaceBoard.price,
-                        marketplaceBoard.createdAt,
-                        marketplaceImage.url,
-                        marketplaceBoard.type,
-                        marketplaceBoard.status)
-                .fetch();
     }
 
     /**

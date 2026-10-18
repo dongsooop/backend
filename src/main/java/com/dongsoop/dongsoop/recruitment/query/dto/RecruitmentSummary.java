@@ -1,9 +1,9 @@
-package com.dongsoop.dongsoop.mypage.dto;
+package com.dongsoop.dongsoop.recruitment.query.dto;
 
 import com.dongsoop.dongsoop.recruitment.RecruitmentType;
 import java.time.LocalDateTime;
 
-public interface MyRecruitmentOverview {
+public interface RecruitmentSummary {
 
     Long getId();
 
