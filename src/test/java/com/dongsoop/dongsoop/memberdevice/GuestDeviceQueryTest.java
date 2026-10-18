@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.memberdevice;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.dongsoop.dongsoop.notice.notification.query.NoticeNotificationTargetQuery;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.department.repository.DepartmentRepository;
@@ -43,7 +44,7 @@ class GuestDeviceQueryTest {
     private MemberDeviceRepository memberDeviceRepository;
 
     @Autowired
-    private com.dongsoop.dongsoop.notice.notification.query.NoticeNotificationTargetQuery targetQuery;
+    private NoticeNotificationTargetQuery targetQuery;
 
     @Autowired
     private DeviceNoticePreferenceRepository preferenceRepository;

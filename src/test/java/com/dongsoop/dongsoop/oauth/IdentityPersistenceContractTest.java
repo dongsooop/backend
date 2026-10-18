@@ -2,6 +2,8 @@ package com.dongsoop.dongsoop.oauth;
 
 import static org.assertj.core.api.Assertions.*;
 
+import com.dongsoop.dongsoop.notification.recipient.query.NotificationRecipientQuery;
+import com.dongsoop.dongsoop.notification.recipient.query.JpaNotificationRecipientQuery;
 import com.dongsoop.dongsoop.AbstractIntegrationTest;
 import com.dongsoop.dongsoop.department.entity.*;
 import com.dongsoop.dongsoop.member.entity.Member;
@@ -28,10 +30,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({IdentityPersistenceContractTest.QueryConfig.class,
-        com.dongsoop.dongsoop.notification.recipient.query.JpaNotificationRecipientQuery.class})
+        JpaNotificationRecipientQuery.class})
 class IdentityPersistenceContractTest extends AbstractIntegrationTest {
     @Autowired EntityManager em;
-    @Autowired com.dongsoop.dongsoop.notification.recipient.query.NotificationRecipientQuery recipients;
+    @Autowired NotificationRecipientQuery recipients;
     @Autowired MemberRepositoryCustomImpl members;
     @Autowired MemberSocialAccountRepositoryCustomImpl accounts;
 
