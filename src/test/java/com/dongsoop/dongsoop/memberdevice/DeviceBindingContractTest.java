@@ -33,6 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class DeviceBindingContractTest {
     @Mock MemberDeviceRepository devices;
     @Mock MemberRepository members;
+    @Mock com.dongsoop.dongsoop.notification.recipient.query.NotificationRecipientQuery recipients;
     @InjectMocks MemberDeviceServiceImpl service;
     private final Member member = Member.builder().id(7L).build();
 
@@ -109,7 +110,7 @@ class DeviceBindingContractTest {
     @Test
     void notificationTargetsAreGroupedByOwnerWithoutMixingTokens() {
         var condition = new MemberDeviceFindCondition(List.of(7L, 8L), NotificationType.NOTICE);
-        when(devices.findDevicesWithNotification(condition)).thenReturn(List.of(new MemberDeviceDto(member, "a"),
+        when(recipients.findDevicesWithNotification(condition)).thenReturn(List.of(new MemberDeviceDto(member, "a"),
                 new MemberDeviceDto(Member.builder().id(8L).build(), "b"), new MemberDeviceDto(member, "c")));
         var result = service.getDeviceByMember(condition);
         assertThat(result).containsOnlyKeys(7L, 8L);

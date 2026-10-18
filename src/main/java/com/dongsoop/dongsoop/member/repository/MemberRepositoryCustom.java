@@ -2,9 +2,6 @@ package com.dongsoop.dongsoop.member.repository;
 
 import com.dongsoop.dongsoop.member.dto.DeleteMember;
 import com.dongsoop.dongsoop.member.dto.LoginMemberDetails;
-import com.dongsoop.dongsoop.member.entity.Member;
-import com.dongsoop.dongsoop.role.entity.RoleType;
-import java.util.List;
 import java.util.Optional;
 
 public interface MemberRepositoryCustom {
@@ -13,5 +10,4 @@ public interface MemberRepositoryCustom {
 
     long softDelete(DeleteMember deleteMember);
 
-    List<Member> findByRoleTypeWithDevice(RoleType roleType);
 }

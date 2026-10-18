@@ -1,7 +1,7 @@
 package com.dongsoop.dongsoop.feedback.notification;
 
 import com.dongsoop.dongsoop.member.entity.Member;
-import com.dongsoop.dongsoop.member.repository.MemberRepository;
+import com.dongsoop.dongsoop.notification.recipient.query.NotificationRecipientQuery;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.service.NotificationSaveService;
@@ -17,13 +17,13 @@ public class FeedbackNotificationImpl implements FeedbackNotification {
 
     private static final String FEEDBACK_BODY = "새로운 피드백이 등록되었습니다! 내용을 확인해주세요!";
 
-    private final MemberRepository memberRepository;
+    private final NotificationRecipientQuery recipientQuery;
     private final NotificationSaveService notificationSaveService;
     private final NotificationSendService notificationSendService;
 
     @Override
     public void send(String improvementSuggestions, Long feedbackId) {
-        List<Member> memberList = memberRepository.findByRoleTypeWithDevice(RoleType.ADMIN);
+        List<Member> memberList = recipientQuery.findMembersByRoleWithDevice(RoleType.ADMIN);
         if (memberList.isEmpty()) {
             return;
         }

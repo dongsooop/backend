@@ -5,7 +5,7 @@ import static org.mockito.Mockito.*;
 
 import com.dongsoop.dongsoop.feedback.notification.FeedbackNotificationImpl;
 import com.dongsoop.dongsoop.member.entity.Member;
-import com.dongsoop.dongsoop.member.repository.MemberRepository;
+import com.dongsoop.dongsoop.notification.recipient.query.NotificationRecipientQuery;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.service.NotificationSaveService;
@@ -20,7 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class FeedbackNotificationContractTest {
-    @Mock MemberRepository members;
+    @Mock NotificationRecipientQuery members;
     @Mock NotificationSaveService storage;
     @Mock NotificationSendService sender;
     @InjectMocks FeedbackNotificationImpl notification;
@@ -30,7 +30,7 @@ class FeedbackNotificationContractTest {
     void feedbackNotificationUsesAdministratorsAndSavedNotificationPayload() {
         var admins = List.of(Member.builder().id(7L).build());
         var saved = List.of(mock(MemberNotification.class));
-        when(members.findByRoleTypeWithDevice(RoleType.ADMIN)).thenReturn(admins);
+        when(members.findMembersByRoleWithDevice(RoleType.ADMIN)).thenReturn(admins);
         when(storage.saveAll(admins, "Improve search", BODY, NotificationType.FEEDBACK, "19")).thenReturn(saved);
         notification.send("Improve search", 19L);
         var order = inOrder(storage, sender);
@@ -40,7 +40,7 @@ class FeedbackNotificationContractTest {
 
     @Test
     void noAdministratorsMeansNoStorageOrDelivery() {
-        when(members.findByRoleTypeWithDevice(RoleType.ADMIN)).thenReturn(List.of());
+        when(members.findMembersByRoleWithDevice(RoleType.ADMIN)).thenReturn(List.of());
         notification.send("Improve search", 19L);
         verifyNoInteractions(storage, sender);
     }
@@ -48,7 +48,7 @@ class FeedbackNotificationContractTest {
     @Test
     void failedNotificationStorageCannotDeliver() {
         var admins = List.of(Member.builder().id(7L).build());
-        when(members.findByRoleTypeWithDevice(RoleType.ADMIN)).thenReturn(admins);
+        when(members.findMembersByRoleWithDevice(RoleType.ADMIN)).thenReturn(admins);
         when(storage.saveAll(admins, "Improve search", BODY, NotificationType.FEEDBACK, "19"))
                 .thenThrow(new IllegalStateException("notification storage unavailable"));
         assertThatThrownBy(() -> notification.send("Improve search", 19L)).isInstanceOf(IllegalStateException.class);

@@ -29,7 +29,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * {@code MemberDeviceRepositoryCustomImpl.searchDevicesByDepartment}는 회원/비회원을
+ * {@code JpaNoticeNotificationTargetQuery.searchDevicesByDepartments}는 회원/비회원을
  * 구분하지 않고 device_notice_preference 구독 여부로만 대상을 조회한다. 회원/비회원 분리는
  * 이 쿼리가 아니라 {@code NoticeNotificationImpl.send()}의 발송 단계에서 이루어진다
  * ({@link com.dongsoop.dongsoop.notice.NoticeNotificationTargetingTest} 참고).
@@ -41,6 +41,9 @@ class GuestDeviceQueryTest {
 
     @Autowired
     private MemberDeviceRepository memberDeviceRepository;
+
+    @Autowired
+    private com.dongsoop.dongsoop.notice.notification.query.NoticeNotificationTargetQuery targetQuery;
 
     @Autowired
     private DeviceNoticePreferenceRepository preferenceRepository;
@@ -94,7 +97,7 @@ class GuestDeviceQueryTest {
         MemberDevice matched = saveDevice("token-q-1", DepartmentType.DEPT_2001);
         saveDevice("token-q-2", DepartmentType.DEPT_3001);
 
-        List<MemberDevice> result = memberDeviceRepository.searchDevicesByDepartments(List.of(DepartmentType.DEPT_2001));
+        List<MemberDevice> result = targetQuery.searchDevicesByDepartments(List.of(DepartmentType.DEPT_2001));
 
         assertThat(result).extracting(MemberDevice::getId).containsExactly(matched.getId());
     }
@@ -105,7 +108,7 @@ class GuestDeviceQueryTest {
         MemberDevice withDept = saveDevice("token-q-3", DepartmentType.DEPT_2001);
         MemberDevice withoutDept = saveDevice("token-q-4", null);
 
-        List<MemberDevice> result = memberDeviceRepository.searchDevicesByDepartments(List.of(DepartmentType.DEPT_1001));
+        List<MemberDevice> result = targetQuery.searchDevicesByDepartments(List.of(DepartmentType.DEPT_1001));
 
         assertThat(result).extracting(MemberDevice::getId)
                 .contains(withDept.getId(), withoutDept.getId());
@@ -117,7 +120,7 @@ class GuestDeviceQueryTest {
         MemberDevice device = saveDevice("token-q-5", DepartmentType.DEPT_2001);
         notificationSettingRepository.save(new NotificationSetting(device, NotificationType.NOTICE, false));
 
-        List<MemberDevice> result = memberDeviceRepository.searchDevicesByDepartments(List.of(DepartmentType.DEPT_2001));
+        List<MemberDevice> result = targetQuery.searchDevicesByDepartments(List.of(DepartmentType.DEPT_2001));
 
         assertThat(result).isEmpty();
     }
@@ -128,7 +131,7 @@ class GuestDeviceQueryTest {
         // NOTICE.getDefaultActiveState() == true 이므로, 설정 행이 없는 기기는 활성 취급되어 포함되어야 한다
         MemberDevice device = saveDevice("token-q-6", DepartmentType.DEPT_2001);
 
-        List<MemberDevice> result = memberDeviceRepository.searchDevicesByDepartments(List.of(DepartmentType.DEPT_2001));
+        List<MemberDevice> result = targetQuery.searchDevicesByDepartments(List.of(DepartmentType.DEPT_2001));
 
         assertThat(result).extracting(MemberDevice::getId).contains(device.getId());
     }
@@ -138,7 +141,7 @@ class GuestDeviceQueryTest {
     void excludes_web_type_device() {
         saveDevice("token-q-7", DepartmentType.DEPT_2001, MemberDeviceType.WEB);
 
-        List<MemberDevice> result = memberDeviceRepository.searchDevicesByDepartments(List.of(DepartmentType.DEPT_2001));
+        List<MemberDevice> result = targetQuery.searchDevicesByDepartments(List.of(DepartmentType.DEPT_2001));
 
         assertThat(result).isEmpty();
     }
@@ -149,7 +152,7 @@ class GuestDeviceQueryTest {
         Department department = departmentRepository.getReferenceById(DepartmentType.DEPT_2001);
         MemberDevice device = saveDevice("token-q-8", DepartmentType.DEPT_2001);
 
-        assertThat(memberDeviceRepository.searchDevicesByDepartments(List.of(DepartmentType.DEPT_2001)))
+        assertThat(targetQuery.searchDevicesByDepartments(List.of(DepartmentType.DEPT_2001)))
                 .extracting(MemberDevice::getId)
                 .contains(device.getId());
 
@@ -164,7 +167,7 @@ class GuestDeviceQueryTest {
 
         // 이 쿼리 결과에서는 계속 포함된다 — 이제 이 디바이스는 회원 소유이므로,
         // NoticeNotificationImpl.send()가 이 결과를 회원/비회원으로 나눌 때 회원 쪽(알림함 저장) 경로로 간다.
-        assertThat(memberDeviceRepository.searchDevicesByDepartments(List.of(DepartmentType.DEPT_2001)))
+        assertThat(targetQuery.searchDevicesByDepartments(List.of(DepartmentType.DEPT_2001)))
                 .extracting(MemberDevice::getId)
                 .contains(device.getId());
     }
