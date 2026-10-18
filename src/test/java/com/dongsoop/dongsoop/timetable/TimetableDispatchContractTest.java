@@ -10,7 +10,7 @@ import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.timetable.dto.TodayTimetable;
 import com.dongsoop.dongsoop.timetable.entity.SemesterType;
 import com.dongsoop.dongsoop.timetable.notification.TimetableNotification;
-import com.dongsoop.dongsoop.timetable.repository.TimetableRepository;
+import com.dongsoop.dongsoop.timetable.notification.query.TimetableNotificationQuery;
 import com.dongsoop.dongsoop.timetable.schedule.TimetableScheduler;
 import java.time.*;
 import java.util.List;
@@ -24,19 +24,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class TimetableDispatchContractTest {
-    @Mock TimetableRepository timetables;
+    @Mock TimetableNotificationQuery timetables;
     @Mock TimetableNotification notification;
     @Mock MemberDeviceService devices;
     @InjectMocks TimetableScheduler scheduler;
 
     @Test
     void groupsClassesAndFormatsExactPayloadOnlyForMembersWithDevices() {
-        when(timetables.getTimetableNotificationDtoList(any(), any(), any())).thenReturn(List.of(
+        when(timetables.findTodayTimetables(any(), any(), any())).thenReturn(List.of(
                 row("알고리즘", 9, 0, 7L), row("데이터베이스", 13, 30, 7L), row("수학", 10, 0, 8L)));
         when(devices.getDeviceByMember(any())).thenReturn(Map.of(7L, List.of("a", "b")));
         LocalDate date = LocalDate.now(ZoneId.of("Asia/Seoul"));
         scheduler.scheduled();
-        verify(timetables).getTimetableNotificationDtoList(Year.of(date.getYear()), SemesterType.fromMonth(date.getMonthValue()), date.getDayOfWeek());
+        verify(timetables).findTodayTimetables(Year.of(date.getYear()), SemesterType.fromMonth(date.getMonthValue()), date.getDayOfWeek());
         ArgumentCaptor<MemberDeviceFindCondition> condition = ArgumentCaptor.forClass(MemberDeviceFindCondition.class);
         verify(devices).getDeviceByMember(condition.capture());
         assertThat(condition.getValue().memberIds()).containsOnly(7L, 8L);
@@ -48,14 +48,14 @@ class TimetableDispatchContractTest {
     @Test
     void noClassesOrNoSubscribedDevicesNeverSends() {
         scheduler.scheduled();
-        when(timetables.getTimetableNotificationDtoList(any(), any(), any())).thenReturn(List.of(row("수학", 9, 0, 7L)));
+        when(timetables.findTodayTimetables(any(), any(), any())).thenReturn(List.of(row("수학", 9, 0, 7L)));
         scheduler.scheduled();
         verifyNoInteractions(notification);
     }
 
     @Test
     void failedTimetableLookupCannotDispatchPartialNotification() {
-        when(timetables.getTimetableNotificationDtoList(any(), any(), any()))
+        when(timetables.findTodayTimetables(any(), any(), any()))
                 .thenThrow(new IllegalStateException("database unavailable"));
         assertThatThrownBy(scheduler::scheduled).isInstanceOf(IllegalStateException.class);
         verifyNoInteractions(devices, notification);

@@ -8,6 +8,8 @@ import com.dongsoop.dongsoop.memberdevice.entity.*;
 import com.dongsoop.dongsoop.timetable.dto.*;
 import com.dongsoop.dongsoop.timetable.entity.*;
 import com.dongsoop.dongsoop.timetable.repository.TimetableRepositoryCustomImpl;
+import com.dongsoop.dongsoop.timetable.notification.query.TimetableNotificationQuery;
+import com.dongsoop.dongsoop.timetable.notification.query.JpaTimetableNotificationQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import java.time.DayOfWeek;
@@ -28,10 +30,11 @@ import org.springframework.test.context.ActiveProfiles;
 @DataJpaTest
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import(TimetablePersistenceContractTest.QueryConfig.class)
+@Import({TimetablePersistenceContractTest.QueryConfig.class, JpaTimetableNotificationQuery.class})
 class TimetablePersistenceContractTest extends AbstractIntegrationTest {
     private static final Year YEAR = Year.of(2026);
     @Autowired EntityManager em;
+    @Autowired TimetableNotificationQuery notifications;
     @Autowired TimetableRepositoryCustomImpl queries;
     Member first;
     Member second;
@@ -99,11 +102,11 @@ class TimetablePersistenceContractTest extends AbstractIntegrationTest {
         em.persist(MemberDevice.builder().member(first).deviceToken("a").memberDeviceType(MemberDeviceType.IOS).build());
         em.persist(MemberDevice.builder().member(first).deviceToken("b").memberDeviceType(MemberDeviceType.ANDROID).build());
         Long id = first.getId(); flushAndClear();
-        var result = queries.getTimetableNotificationDtoList(YEAR, SemesterType.SECOND, DayOfWeek.MONDAY);
+        var result = notifications.findTodayTimetables(YEAR, SemesterType.SECOND, DayOfWeek.MONDAY);
         assertThat(result).extracting(TodayTimetable::name).containsExactly("early", "late");
         assertThat(result).extracting(TodayTimetable::memberId).containsOnly(id);
         queries.deleteByMemberIdAndYearAndSemester(id, YEAR, SemesterType.SECOND); flushAndClear();
-        assertThat(queries.getTimetableNotificationDtoList(YEAR, SemesterType.SECOND, DayOfWeek.MONDAY)).isEmpty();
+        assertThat(notifications.findTodayTimetables(YEAR, SemesterType.SECOND, DayOfWeek.MONDAY)).isEmpty();
     }
 
     @Test

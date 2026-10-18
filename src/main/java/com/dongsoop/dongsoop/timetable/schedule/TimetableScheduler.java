@@ -6,7 +6,7 @@ import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.timetable.dto.TodayTimetable;
 import com.dongsoop.dongsoop.timetable.entity.SemesterType;
 import com.dongsoop.dongsoop.timetable.notification.TimetableNotification;
-import com.dongsoop.dongsoop.timetable.repository.TimetableRepository;
+import com.dongsoop.dongsoop.timetable.notification.query.TimetableNotificationQuery;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.Year;
@@ -30,7 +30,7 @@ public class TimetableScheduler {
     private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm");
     private static final String TITLE_FORMAT = "[시간표 알림] 오늘 %d개의 수업이 있습니다";
 
-    private final TimetableRepository timetableRepository;
+    private final TimetableNotificationQuery timetableNotificationQuery;
     private final TimetableNotification timetableNotification;
     private final MemberDeviceService memberDeviceService;
 
@@ -82,7 +82,7 @@ public class TimetableScheduler {
 
         SemesterType semester = SemesterType.fromMonth(month);
 
-        return timetableRepository.getTimetableNotificationDtoList(year, semester, dayOfWeek);
+        return timetableNotificationQuery.findTodayTimetables(year, semester, dayOfWeek);
     }
 
     /**

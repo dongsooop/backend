@@ -2,7 +2,7 @@ package com.dongsoop.dongsoop.calendar.schedule;
 
 import com.dongsoop.dongsoop.calendar.dto.TodaySchedule;
 import com.dongsoop.dongsoop.calendar.notification.CalendarNotification;
-import com.dongsoop.dongsoop.calendar.repository.MemberScheduleRepository;
+import com.dongsoop.dongsoop.calendar.notification.query.CalendarNotificationQuery;
 import com.dongsoop.dongsoop.calendar.repository.OfficialScheduleRepository;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.memberdevice.dto.MemberDeviceFindCondition;
@@ -28,7 +28,7 @@ public class CalendarScheduler {
     private static final String TITLE_FORMAT = "[일정 알림] 오늘 %d개의 일정이 있습니다";
 
     private final MemberDeviceService memberDeviceService;
-    private final MemberScheduleRepository memberScheduleRepository;
+    private final CalendarNotificationQuery calendarNotificationQuery;
     private final OfficialScheduleRepository officialScheduleRepository;
     private final CalendarNotification calendarNotification;
 
@@ -36,7 +36,7 @@ public class CalendarScheduler {
     public void send() {
         log.info("Calendar Schedule started.");
         // 회원 일정 및 공통 일정 조회
-        List<TodaySchedule> memberCalendarList = memberScheduleRepository.searchTodaySchedule();
+        List<TodaySchedule> memberCalendarList = calendarNotificationQuery.findTodaySchedules();
         List<String> officialCalendarList = officialScheduleRepository.searchTodaySchedule();
 
         Map<Member, List<TodaySchedule>> membercalendarMap = memberCalendarsToMap(memberCalendarList);
