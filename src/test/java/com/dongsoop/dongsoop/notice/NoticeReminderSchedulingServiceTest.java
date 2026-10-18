@@ -78,7 +78,7 @@ class NoticeReminderSchedulingServiceTest {
         assertThat(saved.getValue().getNoticeDetails()).isSameAs(notice);
         assertThat(saved.getValue().getRemindAt()).isEqualTo(future);
         assertThat(saved.getValue().getStatus()).isEqualTo(NoticeReminderStatus.PENDING);
-        verify(reminders).lockDevice(7L);
+        verify(devices).lockById(7L);
         verifyNoInteractions(scheduler);
         TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
         verify(scheduler).scheduleIfUpcoming(9L);

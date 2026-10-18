@@ -120,7 +120,7 @@ class AppleIdentityContractTest {
     @Test
     void linkStoresProviderIdentityAndMemberAndReturnsSavedTime() {
         when(jwks.getAppleJwkMap()).thenReturn(keyMap());
-        when(accounts.findAndLockMember(7L)).thenReturn(member);
+        when(members.findAndLockById(7L)).thenReturn(member);
         when(accounts.save(any())).thenAnswer(call -> call.getArgument(0));
         String identity = token(ISSUER, "test-client", KEYS, Instant.now().plusSeconds(600));
         var created = provider.linkSocialAccount(7L, new SocialAccountLinkRequest(identity));

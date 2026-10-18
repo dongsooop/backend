@@ -8,6 +8,7 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.LockModeType;
 import io.micrometer.common.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -65,4 +66,14 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
                                 .or(memberDevice.deviceToken.isNull())))
                 .execute();
     }
+    @Override
+    public void lockById(Long deviceId) {
+        queryFactory
+                .select(memberDevice.id)
+                .from(memberDevice)
+                .where(memberDevice.id.eq(deviceId))
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+                .fetchOne();
+    }
+
 }

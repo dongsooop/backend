@@ -103,7 +103,7 @@ class SocialProviderContractTest {
         SocialProvider provider = provider(type);
         expectProfile(type);
         Member member = Member.builder().id(7L).build();
-        when(accounts.findAndLockMember(7L)).thenReturn(member);
+        when(members.findAndLockById(7L)).thenReturn(member);
         LocalDateTime createdAt = LocalDateTime.of(2026, 10, 14, 9, 0);
         MemberSocialAccount saved = mock(MemberSocialAccount.class);
         when(saved.getCreatedAt()).thenReturn(createdAt);

@@ -6,6 +6,7 @@ import java.util.List;
 
 public interface MemberDeviceRepositoryCustom {
 
+    void lockById(Long deviceId);
 
     List<String> getDeviceByMemberId(Long memberId);
 
