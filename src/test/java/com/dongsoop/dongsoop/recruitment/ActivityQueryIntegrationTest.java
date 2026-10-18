@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.recruitment;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dongsoop.dongsoop.AbstractIntegrationTest;
+import com.dongsoop.dongsoop.common.config.JpaAuditingConfig;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
@@ -39,7 +40,7 @@ import org.springframework.test.context.ActiveProfiles;
 @DataJpaTest
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({ActivityQueryIntegrationTest.QueryConfig.class, JpaMarketplaceActivityQuery.class})
+@Import({ActivityQueryIntegrationTest.QueryConfig.class, JpaMarketplaceActivityQuery.class, JpaAuditingConfig.class})
 class ActivityQueryIntegrationTest extends AbstractIntegrationTest {
     @Autowired EntityManager em;
     @Autowired RecruitmentQuery recruitment;
@@ -77,6 +78,7 @@ class ActivityQueryIntegrationTest extends AbstractIntegrationTest {
         em.persist(TutoringApply.builder().tutoringBoard(tutoring).member(applicant).introduction("소개")
                 .motivation("동기").applyTime(now.minusHours(2)).build());
         project("deleted", 0).setDeleted(true);
+        fixApplicationTimes(project, study, tutoring);
         flushAndClear();
 
         var opened = recruitment.findOpenedRecruitmentsByMemberId(author.getId(), PageRequest.of(0, 10));
@@ -152,6 +154,20 @@ class ActivityQueryIntegrationTest extends AbstractIntegrationTest {
         assertThat(rows.get(1).imageUrl()).isNull();
         assertThat(marketplace.findOpenedMarketplaceByAuthorIdAndPage(author.getId(), PageRequest.of(1, 1)))
                 .extracting(MarketplaceSummary::id).containsExactly(first.getId());
+    }
+
+    private void fixApplicationTimes(ProjectBoard project, StudyBoard study, TutoringBoard tutoring) {
+        // Auditing can replace @CreatedDate values when the full suite has initialized its listener.
+        em.flush();
+        em.createNativeQuery("UPDATE project_apply SET apply_time = :at WHERE project_board_id = :id AND member_id = :member")
+                .setParameter("at", now.minusHours(1)).setParameter("id", project.getId())
+                .setParameter("member", applicant.getId()).executeUpdate();
+        em.createNativeQuery("UPDATE study_apply SET apply_time = :at WHERE study_board_id = :id AND member_id = :member")
+                .setParameter("at", now.minusHours(3)).setParameter("id", study.getId())
+                .setParameter("member", applicant.getId()).executeUpdate();
+        em.createNativeQuery("UPDATE tutoring_apply SET apply_time = :at WHERE tutoring_board_id = :id AND member_id = :member")
+                .setParameter("at", now.minusHours(2)).setParameter("id", tutoring.getId())
+                .setParameter("member", applicant.getId()).executeUpdate();
     }
 
     private ProjectBoard project(String title, int age) {
