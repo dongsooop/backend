@@ -101,7 +101,7 @@ public class GoogleSocialProvider implements SocialProvider {
     @Transactional
     public LocalDateTime linkSocialAccount(Long memberId, SocialAccountLinkRequest request) {
         // 락 획득
-        Member member = this.memberSocialAccountRepository.findAndLockMember(memberId);
+        Member member = this.memberRepository.findAndLockById(memberId);
 
         String providerId = this.getProviderId(request.providerToken());
         MemberSocialAccountId socialAccountId = new MemberSocialAccountId(providerId, OAuthProviderType.GOOGLE);

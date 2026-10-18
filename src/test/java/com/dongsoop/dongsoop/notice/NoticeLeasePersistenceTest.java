@@ -32,6 +32,7 @@ import org.springframework.test.context.ActiveProfiles;
 class NoticeLeasePersistenceTest extends AbstractIntegrationTest {
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 10, 15, 12, 0);
     @Autowired EntityManager em;
+    @Autowired com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository devices;
     @Autowired NoticeReminderRepository reminders;
     @Autowired NoticeRepositoryCustomImpl notices;
     @TestConfiguration
@@ -54,7 +55,7 @@ class NoticeLeasePersistenceTest extends AbstractIntegrationTest {
         assertThat(reminders.claimForScheduling(id, NoticeReminderStatus.PENDING, expected, grace)).isEmpty();
         assertThat(reminders.findByDeviceIdAndNoticeDetailsIdForUpdate(deviceId, 1L)).isPresent();
         assertThat(reminders.findByDeviceIdAndNoticeDetailsIdForUpdate(deviceId, -1L)).isEmpty();
-        reminders.lockDevice(deviceId);
+        devices.lockById(deviceId);
         assertThat(reminders.claimForScheduling(id, NoticeReminderStatus.PENDING, expected.plusNanos(1), grace)).contains(due);
         assertThat(reminders.claimForScheduling(-1L, NoticeReminderStatus.PENDING, NOW, grace)).isEmpty();
     }
