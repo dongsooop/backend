@@ -46,10 +46,6 @@ eclass:
 authentication:
   path:
     all:
-      /tutoring-board/**,
-      /project-board/**,
-      /study-board/**,
-      /marketplace-board/**,
       /member/login,
       /member/signup,
       /member/validate/**,
