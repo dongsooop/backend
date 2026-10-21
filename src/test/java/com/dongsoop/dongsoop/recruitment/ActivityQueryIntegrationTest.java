@@ -8,9 +8,9 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.marketplace.entity.*;
-import com.dongsoop.dongsoop.marketplace.query.JpaMarketplaceActivityQuery;
-import com.dongsoop.dongsoop.marketplace.query.MarketplaceActivityQuery;
 import com.dongsoop.dongsoop.marketplace.query.dto.MarketplaceSummary;
+import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepositoryCustom;
+import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepositoryCustomImpl;
 import com.dongsoop.dongsoop.recruitment.apply.project.entity.ProjectApply;
 import com.dongsoop.dongsoop.recruitment.apply.study.entity.StudyApply;
 import com.dongsoop.dongsoop.recruitment.apply.tutoring.entity.TutoringApply;
@@ -40,11 +40,12 @@ import org.springframework.test.context.ActiveProfiles;
 @DataJpaTest
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({ActivityQueryIntegrationTest.QueryConfig.class, JpaMarketplaceActivityQuery.class, JpaAuditingConfig.class})
+@Import({ActivityQueryIntegrationTest.QueryConfig.class, MarketplaceBoardRepositoryCustomImpl.class,
+        JpaAuditingConfig.class})
 class ActivityQueryIntegrationTest extends AbstractIntegrationTest {
     @Autowired EntityManager em;
     @Autowired RecruitmentQuery recruitment;
-    @Autowired MarketplaceActivityQuery marketplace;
+    @Autowired MarketplaceBoardRepositoryCustom marketplace;
     private Member author;
     private Member applicant;
     private Department department;

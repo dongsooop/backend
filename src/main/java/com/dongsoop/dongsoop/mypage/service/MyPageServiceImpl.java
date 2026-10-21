@@ -1,6 +1,6 @@
 package com.dongsoop.dongsoop.mypage.service;
 
-import com.dongsoop.dongsoop.marketplace.query.MarketplaceActivityQuery;
+import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepositoryCustom;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.recruitment.query.dto.RecruitmentSummary;
 import com.dongsoop.dongsoop.mypage.dto.MyRecruitmentOverviewResponse;
@@ -18,7 +18,7 @@ public class MyPageServiceImpl implements MyPageService {
 
     private final MemberService memberService;
 
-    private final MarketplaceActivityQuery marketplaceActivityQuery;
+    private final MarketplaceBoardRepositoryCustom marketplaceBoardRepository;
 
     private final RecruitmentQuery recruitmentRepository;
 
@@ -43,7 +43,7 @@ public class MyPageServiceImpl implements MyPageService {
     @Override
     public List<OpenedMarketplace> getOpenedMarketplacesByMemberId(Pageable pageable) {
         Long memberId = memberService.getMemberIdByAuthentication();
-        return marketplaceActivityQuery.findOpenedMarketplaceByAuthorIdAndPage(memberId, pageable).stream()
+        return marketplaceBoardRepository.findOpenedMarketplaceByAuthorIdAndPage(memberId, pageable).stream()
                 .map(OpenedMarketplace::new)
                 .toList();
     }

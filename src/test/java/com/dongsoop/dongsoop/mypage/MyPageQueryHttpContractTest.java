@@ -7,8 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoardStatus;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
-import com.dongsoop.dongsoop.marketplace.query.MarketplaceActivityQuery;
 import com.dongsoop.dongsoop.marketplace.query.dto.MarketplaceSummary;
+import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepositoryCustom;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.mypage.controller.MyPageController;
 import com.dongsoop.dongsoop.mypage.service.MyPageServiceImpl;
@@ -35,7 +35,7 @@ class MyPageQueryHttpContractTest {
     private static final LocalDateTime CREATED = LocalDateTime.of(2026, 10, 18, 12, 0);
     private static final PageRequest PAGE = PageRequest.of(1, 2);
     @Mock MemberService members;
-    @Mock MarketplaceActivityQuery marketplace;
+    @Mock MarketplaceBoardRepositoryCustom marketplace;
     @Mock RecruitmentQuery recruitment;
     private MockMvc mvc;
 
