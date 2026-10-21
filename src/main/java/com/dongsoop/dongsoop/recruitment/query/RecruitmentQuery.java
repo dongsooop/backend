@@ -1,15 +1,16 @@
-package com.dongsoop.dongsoop.recruitment.repository;
+package com.dongsoop.dongsoop.recruitment.query;
 
-import com.dongsoop.dongsoop.mypage.dto.MyRecruitmentOverview;
+import com.dongsoop.dongsoop.recruitment.query.dto.RecruitmentSummary;
 import com.dongsoop.dongsoop.recruitment.board.dto.HomeRecruitment;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.entity.TutoringBoard;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.Repository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long> {
+/** 읽기 전용 통합 조회. TutoringBoard는 Spring Data 쿼리 생성에 필요한 메타데이터 기준이다. */
+public interface RecruitmentQuery extends Repository<TutoringBoard, Long> {
 
     /**
      * 특정 회원이 신청한 전체 타입의 모집 게시판 목록을 페이지 단위로 조회합니다.
@@ -112,7 +113,7 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
             """,
             nativeQuery = true
     )
-    List<MyRecruitmentOverview> findApplyRecruitmentsByMemberId(@Param("memberId") Long memberId,
+    List<RecruitmentSummary> findApplyRecruitmentsByMemberId(@Param("memberId") Long memberId,
                                                                 @Param("pageable") Pageable pageable);
 
     /**
@@ -210,7 +211,7 @@ public interface RecruitmentRepository extends JpaRepository<TutoringBoard, Long
             """,
             nativeQuery = true
     )
-    List<MyRecruitmentOverview> findOpenedRecruitmentsByMemberId(@Param("memberId") Long memberId,
+    List<RecruitmentSummary> findOpenedRecruitmentsByMemberId(@Param("memberId") Long memberId,
                                                                  @Param("pageable") Pageable pageable);
 
     /**

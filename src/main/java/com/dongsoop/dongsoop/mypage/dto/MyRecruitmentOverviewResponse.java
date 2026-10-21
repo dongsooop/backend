@@ -1,6 +1,8 @@
 package com.dongsoop.dongsoop.mypage.dto;
 
 import com.dongsoop.dongsoop.recruitment.RecruitmentType;
+import com.dongsoop.dongsoop.recruitment.query.dto.RecruitmentSummary;
+import com.dongsoop.dongsoop.recruitment.query.dto.RecruitmentStatusType;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -19,7 +21,7 @@ public record MyRecruitmentOverviewResponse(
         LocalDateTime createdAt,
         RecruitmentStatusType status
 ) {
-    public MyRecruitmentOverviewResponse(MyRecruitmentOverview openedRecruitment) {
+    public MyRecruitmentOverviewResponse(RecruitmentSummary openedRecruitment) {
         this(
                 openedRecruitment.getId(),
                 openedRecruitment.getVolunteer(),

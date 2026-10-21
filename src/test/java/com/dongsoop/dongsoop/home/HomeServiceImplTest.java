@@ -25,7 +25,7 @@ import com.dongsoop.dongsoop.home.service.HomeServiceImpl;
 import com.dongsoop.dongsoop.notice.dto.HomeNotice;
 import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
 import com.dongsoop.dongsoop.recruitment.board.dto.HomeRecruitment;
-import com.dongsoop.dongsoop.recruitment.repository.RecruitmentRepository;
+import com.dongsoop.dongsoop.recruitment.query.RecruitmentQuery;
 import com.dongsoop.dongsoop.timetable.dto.HomeTimetable;
 import com.dongsoop.dongsoop.timetable.repository.TimetableRepository;
 import java.time.LocalDate;
@@ -51,7 +51,7 @@ class HomeServiceImplTest {
     @Mock private OfficialScheduleRepository officialSchedules;
     @Mock private MemberScheduleRepository memberSchedules;
     @Mock private NoticeRepository notices;
-    @Mock private RecruitmentRepository recruitments;
+    @Mock private RecruitmentQuery recruitments;
     @Mock private EclassAssignmentService assignments;
     private HomeServiceImpl service;
 

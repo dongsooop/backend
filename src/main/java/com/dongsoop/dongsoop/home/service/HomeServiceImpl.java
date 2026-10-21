@@ -11,7 +11,7 @@ import com.dongsoop.dongsoop.home.exception.HomeAsyncException;
 import com.dongsoop.dongsoop.notice.dto.HomeNotice;
 import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
 import com.dongsoop.dongsoop.recruitment.board.dto.HomeRecruitment;
-import com.dongsoop.dongsoop.recruitment.repository.RecruitmentRepository;
+import com.dongsoop.dongsoop.recruitment.query.RecruitmentQuery;
 import com.dongsoop.dongsoop.timetable.dto.HomeTimetable;
 import com.dongsoop.dongsoop.timetable.entity.SemesterType;
 import com.dongsoop.dongsoop.timetable.repository.TimetableRepository;
@@ -48,7 +48,7 @@ public class HomeServiceImpl implements HomeService {
     private final OfficialScheduleRepository officialScheduleRepository;
     private final MemberScheduleRepository memberScheduleRepository;
     private final NoticeRepository noticeRepository;
-    private final RecruitmentRepository recruitmentRepository;
+    private final RecruitmentQuery recruitmentRepository;
     private final EclassAssignmentService eclassAssignmentService;
 
     @Value("${home.async.timeout.seconds:3}")

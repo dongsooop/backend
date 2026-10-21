@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.marketplace.repository;
 
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardDetails;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
+import com.dongsoop.dongsoop.marketplace.dto.MarketplaceSummary;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceViewType;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoardStatus;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
@@ -9,7 +10,6 @@ import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceBoard;
 import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceContact;
 import com.dongsoop.dongsoop.marketplace.entity.QMarketplaceImage;
 import com.dongsoop.dongsoop.memberblock.annotation.ApplyBlockFilter;
-import com.dongsoop.dongsoop.mypage.dto.OpenedMarketplace;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
@@ -95,8 +95,9 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
         return Optional.ofNullable(result);
     }
 
-    public List<OpenedMarketplace> findOpenedMarketplaceByAuthorIdAndPage(Long memberId, Pageable pageable) {
-        return queryFactory.select(Projections.constructor(OpenedMarketplace.class,
+    @Override
+    public List<MarketplaceSummary> findOpenedMarketplaceByAuthorIdAndPage(Long memberId, Pageable pageable) {
+        return queryFactory.select(Projections.constructor(MarketplaceSummary.class,
                         marketplaceBoard.id,
                         marketplaceBoard.title,
                         marketplaceBoard.content,
@@ -105,13 +106,13 @@ public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRep
                         marketplaceContact.applicant.countDistinct(),
                         marketplaceImage.url,
                         marketplaceBoard.type,
-                        marketplaceBoard.status)) // 처음 저장된 이미지 URL 가져오기
+                        marketplaceBoard.status))
                 .from(marketplaceBoard)
                 .leftJoin(marketplaceContact)
                 .on(marketplaceContact.marketplaceId.eq(marketplaceBoard.id))
                 .leftJoin(marketplaceImage)
                 .on(marketplaceImage.marketplaceBoard.id.eq(marketplaceBoard.id)
-                        .and(marketplaceImage.createdAt.eq(getMinCreated()))) // 가장 먼저 저장된 이미지 행 가져오기
+                        .and(marketplaceImage.createdAt.eq(getMinCreated())))
                 .where(marketplaceBoard.author.id.eq(memberId))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
