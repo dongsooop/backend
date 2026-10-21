@@ -12,6 +12,7 @@ import com.dongsoop.dongsoop.memberdevice.exception.AlreadyRegisteredDeviceExcep
 import com.dongsoop.dongsoop.memberdevice.exception.UnauthorizedDeviceAccessException;
 import com.dongsoop.dongsoop.memberdevice.exception.UnregisteredDeviceException;
 import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
+import com.dongsoop.dongsoop.notification.recipient.query.NotificationRecipientQuery;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -35,6 +36,7 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final MemberDeviceRepository memberDeviceRepository;
+    private final NotificationRecipientQuery recipientQuery;
     private final MemberRepository memberRepository;
 
     @Override
@@ -151,7 +153,7 @@ public class MemberDeviceServiceImpl implements MemberDeviceService {
      */
     @Override
     public Map<Long, List<String>> getDeviceByMember(MemberDeviceFindCondition condition) {
-        List<MemberDeviceDto> memberDeviceDtos = memberDeviceRepository.findDevicesWithNotification(condition);
+        List<MemberDeviceDto> memberDeviceDtos = recipientQuery.findDevicesWithNotification(condition);
 
         return memberDeviceDtos.stream()
                 .collect(deviceGroupByMemberId());

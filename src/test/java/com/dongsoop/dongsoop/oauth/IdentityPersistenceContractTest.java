@@ -2,6 +2,8 @@ package com.dongsoop.dongsoop.oauth;
 
 import static org.assertj.core.api.Assertions.*;
 
+import com.dongsoop.dongsoop.notification.recipient.query.NotificationRecipientQuery;
+import com.dongsoop.dongsoop.notification.recipient.query.JpaNotificationRecipientQuery;
 import com.dongsoop.dongsoop.AbstractIntegrationTest;
 import com.dongsoop.dongsoop.department.entity.*;
 import com.dongsoop.dongsoop.member.entity.Member;
@@ -27,9 +29,11 @@ import org.springframework.test.util.ReflectionTestUtils;
 @DataJpaTest
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import(IdentityPersistenceContractTest.QueryConfig.class)
+@Import({IdentityPersistenceContractTest.QueryConfig.class,
+        JpaNotificationRecipientQuery.class})
 class IdentityPersistenceContractTest extends AbstractIntegrationTest {
     @Autowired EntityManager em;
+    @Autowired NotificationRecipientQuery recipients;
     @Autowired MemberRepositoryCustomImpl members;
     @Autowired MemberSocialAccountRepositoryCustomImpl accounts;
 
@@ -79,8 +83,8 @@ class IdentityPersistenceContractTest extends AbstractIntegrationTest {
     void lockLoadsRequestedMemberAndMissingMemberHasDomainError() {
         Member first = member("first");
         Long id = first.getId(); flushAndClear();
-        assertThat(accounts.findAndLockMember(id).getId()).isEqualTo(id);
-        assertThatThrownBy(() -> accounts.findAndLockMember(-1L)).isInstanceOf(MemberNotFoundException.class);
+        assertThat(members.findAndLockById(id).getId()).isEqualTo(id);
+        assertThatThrownBy(() -> members.findAndLockById(-1L)).isInstanceOf(MemberNotFoundException.class);
     }
 
     @Test
@@ -115,10 +119,10 @@ class IdentityPersistenceContractTest extends AbstractIntegrationTest {
         assertThat(login.getEmail()).isEqualTo("first@example.com");
         assertThat(login.getDepartmentType()).isEqualTo(DepartmentType.DEPT_2001);
         assertThat(login.getRole()).containsExactly(RoleType.USER);
-        assertThat(members.findByRoleTypeWithDevice(RoleType.USER)).extracting(Member::getId).containsExactly(id);
+        assertThat(recipients.findMembersByRoleWithDevice(RoleType.USER)).extracting(Member::getId).containsExactly(id);
         assertThat(members.findLoginMemberDetailById(-1L)).isEmpty();
         members.softDelete(new DeleteMember(id, "alias")); flushAndClear();
-        assertThat(members.findByRoleTypeWithDevice(RoleType.USER)).isEmpty();
+        assertThat(recipients.findMembersByRoleWithDevice(RoleType.USER)).isEmpty();
     }
 
     private Member member(String name) {

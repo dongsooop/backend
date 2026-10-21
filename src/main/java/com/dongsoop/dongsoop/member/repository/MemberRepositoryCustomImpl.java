@@ -3,17 +3,16 @@ package com.dongsoop.dongsoop.member.repository;
 import com.dongsoop.dongsoop.member.dto.DeleteMember;
 import com.dongsoop.dongsoop.member.dto.LoginMemberDetails;
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
+import jakarta.persistence.LockModeType;
 import com.dongsoop.dongsoop.member.entity.QMember;
-import com.dongsoop.dongsoop.memberdevice.entity.QMemberDevice;
 import com.dongsoop.dongsoop.role.entity.QMemberRole;
-import com.dongsoop.dongsoop.role.entity.RoleType;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,7 +27,6 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
     private static final String ROLE_DELIMITER = ",";
 
     private static final QMember member = QMember.member;
-    private static final QMemberDevice memberDevice = QMemberDevice.memberDevice;
     private static final QMemberRole memberRole = QMemberRole.memberRole;
 
     private final JPAQueryFactory queryFactory;
@@ -75,16 +73,19 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
         return QMember.member.id.eq(id);
     }
 
+    // 회원에 대해 비관적 잠금(PESSIMISTIC_WRITE) 을 획득하고 반환
     @Override
-    public List<Member> findByRoleTypeWithDevice(RoleType roleType) {
-        return queryFactory.selectFrom(member)
-                .innerJoin(memberDevice)
-                .on(memberDevice.member.eq(member))
-                .innerJoin(memberRole)
-                .on(memberRole.member.eq(member))
-                .where(memberRole.role.roleType.eq(roleType)
-                        .and(member.isDeleted.isFalse()))
-                .distinct()
-                .fetch();
+    public Member findAndLockById(Long memberId) {
+        Member lockedMember = queryFactory
+                .selectFrom(member)
+                .where(member.id.eq(memberId))
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+                .fetchOne();
+
+        if (lockedMember == null) {
+            throw new MemberNotFoundException();
+        }
+
+        return lockedMember;
     }
 }

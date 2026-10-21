@@ -37,7 +37,7 @@ public class NoticeReminderService {
         validateRemindAt(remindAt);
 
         MemberDevice device = resolveDevice(fid, deviceToken);
-        noticeReminderRepository.lockDevice(device.getId());
+        memberDeviceRepository.lockById(device.getId());
 
         NoticeDetails noticeDetails = noticeDetailsRepository.findById(noticeId)
                 .orElseThrow(() -> new NoticeDetailsNotFoundException(noticeId));

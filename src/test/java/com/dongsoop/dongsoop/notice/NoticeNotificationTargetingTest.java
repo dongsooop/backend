@@ -16,7 +16,7 @@ import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.memberdevice.dto.DeviceSubscription;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDeviceType;
-import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
+import com.dongsoop.dongsoop.notice.notification.query.NoticeNotificationTargetQuery;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notice.entity.NoticeDetails;
 import com.dongsoop.dongsoop.notice.keyword.service.NoticeKeywordFilter;
@@ -53,7 +53,7 @@ class NoticeNotificationTargetingTest {
     private NotificationSendService notificationSendService;
 
     @Mock
-    private MemberDeviceRepository memberDeviceRepository;
+    private NoticeNotificationTargetQuery memberDeviceRepository;
 
     @Mock
     private NoticeKeywordService noticeKeywordService;

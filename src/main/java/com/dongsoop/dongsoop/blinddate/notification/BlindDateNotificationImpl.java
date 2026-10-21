@@ -1,7 +1,7 @@
 package com.dongsoop.dongsoop.blinddate.notification;
 
 import com.dongsoop.dongsoop.member.entity.Member;
-import com.dongsoop.dongsoop.member.repository.MemberRepository;
+import com.dongsoop.dongsoop.notification.recipient.query.NotificationRecipientQuery;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.entity.MemberNotification;
 import com.dongsoop.dongsoop.notification.service.NotificationSaveService;
@@ -20,11 +20,11 @@ public class BlindDateNotificationImpl implements BlindDateNotification {
 
     private final NotificationSaveService notificationSaveService;
     private final NotificationSendService notificationSendService;
-    private final MemberRepository memberRepository;
+    private final NotificationRecipientQuery recipientQuery;
 
     @Override
     public void send() {
-        List<Member> memberList = memberRepository.findByRoleTypeWithDevice(RoleType.ADMIN);
+        List<Member> memberList = recipientQuery.findMembersByRoleWithDevice(RoleType.ADMIN);
         if (memberList.isEmpty()) {
             return;
         }

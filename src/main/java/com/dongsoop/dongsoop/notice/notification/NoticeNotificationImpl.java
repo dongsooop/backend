@@ -5,7 +5,7 @@ import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.memberdevice.dto.DeviceSubscription;
 import com.dongsoop.dongsoop.memberdevice.entity.MemberDevice;
-import com.dongsoop.dongsoop.memberdevice.repository.MemberDeviceRepository;
+import com.dongsoop.dongsoop.notice.notification.query.NoticeNotificationTargetQuery;
 import com.dongsoop.dongsoop.notice.entity.Notice;
 import com.dongsoop.dongsoop.notice.keyword.service.NoticeKeywordFilter;
 import com.dongsoop.dongsoop.notice.keyword.service.NoticeKeywordService;
@@ -38,7 +38,7 @@ public class NoticeNotificationImpl implements NoticeNotification {
 
     private final NotificationSaveService notificationSaveService;
     private final NotificationSendService notificationSendService;
-    private final MemberDeviceRepository memberDeviceRepository;
+    private final NoticeNotificationTargetQuery targetQuery;
     private final NoticeKeywordService noticeKeywordService;
 
     @Value("${university.domain}")
@@ -61,7 +61,7 @@ public class NoticeNotificationImpl implements NoticeNotification {
                 .map(notice -> notice.getDepartment().getId())
                 .collect(Collectors.toSet());
 
-        List<MemberDevice> allDevices = memberDeviceRepository.searchDevicesByDepartments(departmentTypes);
+        List<MemberDevice> allDevices = targetQuery.searchDevicesByDepartments(departmentTypes);
         Map<DepartmentType, List<MemberDevice>> devicesByDepartment = groupByDepartment(allDevices, departmentTypes);
         NoticeKeywordFilter keywordFilter = noticeKeywordService.loadFilter(allDevices);
 
@@ -118,7 +118,7 @@ public class NoticeNotificationImpl implements NoticeNotification {
                 .map(MemberDevice::getId)
                 .toList();
 
-        return memberDeviceRepository.findSubscriptionsByDeviceIds(deviceIds).stream()
+        return targetQuery.findSubscriptionsByDeviceIds(deviceIds).stream()
                 .collect(Collectors.groupingBy(DeviceSubscription::deviceId,
                         Collectors.mapping(DeviceSubscription::departmentType, Collectors.toSet())));
     }
