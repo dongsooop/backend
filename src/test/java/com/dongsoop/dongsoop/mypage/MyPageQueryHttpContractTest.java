@@ -7,7 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoardStatus;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
-import com.dongsoop.dongsoop.marketplace.query.dto.MarketplaceSummary;
+import com.dongsoop.dongsoop.marketplace.dto.MarketplaceSummary;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepositoryCustom;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import com.dongsoop.dongsoop.mypage.controller.MyPageController;

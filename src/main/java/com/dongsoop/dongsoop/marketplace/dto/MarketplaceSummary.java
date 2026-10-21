@@ -1,4 +1,4 @@
-package com.dongsoop.dongsoop.marketplace.query.dto;
+package com.dongsoop.dongsoop.marketplace.dto;
 
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoardStatus;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;

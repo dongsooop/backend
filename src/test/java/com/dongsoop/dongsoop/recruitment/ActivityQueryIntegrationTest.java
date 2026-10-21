@@ -8,7 +8,7 @@ import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.marketplace.entity.*;
-import com.dongsoop.dongsoop.marketplace.query.dto.MarketplaceSummary;
+import com.dongsoop.dongsoop.marketplace.dto.MarketplaceSummary;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepositoryCustom;
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepositoryCustomImpl;
 import com.dongsoop.dongsoop.recruitment.apply.project.entity.ProjectApply;

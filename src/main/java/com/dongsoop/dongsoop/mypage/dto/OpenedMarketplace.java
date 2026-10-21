@@ -3,7 +3,7 @@ package com.dongsoop.dongsoop.mypage.dto;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceBoardStatus;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
 import java.time.LocalDateTime;
-import com.dongsoop.dongsoop.marketplace.query.dto.MarketplaceSummary;
+import com.dongsoop.dongsoop.marketplace.dto.MarketplaceSummary;
 
 public record OpenedMarketplace(
 

@@ -2,9 +2,9 @@ package com.dongsoop.dongsoop.marketplace.repository;
 
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardDetails;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceBoardOverview;
+import com.dongsoop.dongsoop.marketplace.dto.MarketplaceSummary;
 import com.dongsoop.dongsoop.marketplace.dto.MarketplaceViewType;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceType;
-import com.dongsoop.dongsoop.marketplace.query.dto.MarketplaceSummary;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
