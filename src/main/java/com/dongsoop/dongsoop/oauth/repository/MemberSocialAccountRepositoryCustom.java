@@ -19,5 +19,4 @@ public interface MemberSocialAccountRepositoryCustom {
 
     Optional<MemberSocialAccount> findByMemberAndProviderType(Member member, OAuthProviderType providerType);
 
-    Member findAndLockMember(Long memberId);
 }
