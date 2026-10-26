@@ -41,7 +41,7 @@ class BlindDateConnectionScenarioTest {
             flow.queue.awaitIdle();
             assertThat(flow.participants.getByMemberId(1L)).isNull();
             assertThat(flow.participants.getBySocketId("one")).isNull();
-            assertThat(flow.join(2, "two").get("sessionId")).isEqualTo(session);
+            assertThat(flow.join(2, "two")).containsEntry("sessionId", session);
             assertThat(flow.participants.findAllBySessionId(session)).hasSize(1);
         }
     }
@@ -55,7 +55,7 @@ class BlindDateConnectionScenarioTest {
             flow.disconnect.execute("socket-1", 1L, session);
             flow.queue.awaitIdle();
             assertThat(flow.participants.getByMemberId(1L)).isNotNull();
-            assertThat(flow.join(1, "new").get("sessionId")).isEqualTo(session);
+            assertThat(flow.join(1, "new")).containsEntry("sessionId", session);
             assertThat(flow.participants.getAnonymousName(1L)).isEqualTo(name);
             assertThat(flow.sessions.getState(session)).isEqualTo(SessionState.PROCESSING);
             assertThat(flow.participants.getByMemberId(1L).getSocketIds()).containsExactly("new");

@@ -12,6 +12,7 @@ import com.dongsoop.dongsoop.blinddate.dto.BlindDateMessageDto;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateDisconnectHandler;
 import com.dongsoop.dongsoop.blinddate.support.BlindDateScenarioFixture;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -100,9 +101,10 @@ class BlindDateGatewayTest {
             gateway(flow).handleChoice(new BlindDateChoiceDto(2L), accessor);
             flow.choice.execute(session, 2L, 1L);
             flow.queue.awaitIdle();
-            var payload = (Map<?, ?>) flow.events.get(0).payload();
-            assertThat(payload.get("senderId")).isEqualTo(1L);
-            assertThat(payload.get("message")).isEqualTo("text");
+            assertThat(flow.events.get(0).payload())
+                    .asInstanceOf(InstanceOfAssertFactories.MAP)
+                    .containsEntry("senderId", 1L)
+                    .containsEntry("message", "text");
             assertThat(flow.recipients("/chatroom")).containsExactlyInAnyOrder(1L, 2L);
         }
     }

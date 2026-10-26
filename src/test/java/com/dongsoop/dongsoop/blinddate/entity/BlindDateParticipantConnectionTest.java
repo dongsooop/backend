@@ -31,8 +31,8 @@ class BlindDateParticipantConnectionTest {
     @DisplayName("E03 조회한 소켓 목록을 외부에서 수정할 수 없음")
     void socketViewCannotBeMutated() {
         var member = ParticipantInfo.create("session", 1L, "one", "익명1");
-        assertThatThrownBy(() -> member.getSocketIds().clear())
-                .isInstanceOf(UnsupportedOperationException.class);
+        var sockets = member.getSocketIds();
+        assertThatThrownBy(sockets::clear).isInstanceOf(UnsupportedOperationException.class);
         assertThat(member.getSocketIds()).containsExactly("one");
     }
 }

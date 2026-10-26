@@ -148,8 +148,8 @@ class BlindDateFullFlowIntegrationTest {
         eventQueue.awaitIdle();
 
         String sessionId = (String) first.get("sessionId");
-        assertThat(second.get("sessionId")).isEqualTo(sessionId);
-        assertThat(third.get("sessionId")).isEqualTo(sessionId);
+        assertThat(second).containsEntry("sessionId", sessionId);
+        assertThat(third).containsEntry("sessionId", sessionId);
         assertThat(blindDateStorage.getPointer()).isEqualTo(sessionId);
         assertThat(sessionStorage.getState(sessionId)).isEqualTo(SessionState.PROCESSING);
         assertThat(participantStorage.findAllBySessionId(sessionId)).hasSize(3);
@@ -197,8 +197,8 @@ class BlindDateFullFlowIntegrationTest {
             choiceRequests.shutdownNow();
         }
 
-        assertThat(resultEvents).hasSize(2);
         assertThat(resultEvents)
+                .hasSize(2)
                 .containsExactlyInAnyOrder(
                         chatRoomCreated(sessionId, 2L), chatRoomCreated(sessionId, 1L));
         assertThat(sessionStorage.getState(sessionId)).isNull();

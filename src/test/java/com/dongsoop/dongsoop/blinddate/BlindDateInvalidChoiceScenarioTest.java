@@ -4,11 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dongsoop.dongsoop.blinddate.support.BlindDateScenarioFixture;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-
-import java.util.Map;
 
 @Timeout(15)
 @DisplayName("잘못된 과팅 선택은 매칭으로 처리하지 않는다")
@@ -116,10 +115,13 @@ class BlindDateInvalidChoiceScenarioTest {
                 .singleElement()
                 .satisfies(
                         event -> {
-                            var payload = (Map<?, ?>) event.payload();
-                            assertThat(payload.get("status")).isEqualTo(status);
-                            assertThat(payload.get("code")).isEqualTo(code);
-                            assertThat(payload.get("message")).isInstanceOf(String.class);
+                            assertThat(event.payload())
+                                    .asInstanceOf(InstanceOfAssertFactories.MAP)
+                                    .containsEntry("status", status)
+                                    .containsEntry("code", code)
+                                    .hasEntrySatisfying(
+                                            "message",
+                                            value -> assertThat(value).isInstanceOf(String.class));
                         });
     }
 }
