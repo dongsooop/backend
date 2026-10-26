@@ -53,10 +53,12 @@ class RepositoryLockOwnershipTest extends AbstractIntegrationTest {
             Member member = Member.builder().email("lock-" + memberLock + "@example.test")
                     .nickname("l" + memberLock).password("encoded").build();
             em.persist(member);
-            MemberDevice device = MemberDevice.builder().member(member).memberDeviceType(MemberDeviceType.IOS)
-                    .deviceToken("lock-" + memberLock).build();
-            em.persist(device);
+            MemberDevice device = persistDevice(member, "lock-" + memberLock);
+            if (device.getId().equals(member.getId())) {
+                device = persistDevice(member, "distinct-lock-" + memberLock);
+            }
             em.flush();
+            assertThat(device.getId()).isNotEqualTo(member.getId());
             if (memberLock) {
                 return member.getId();
             }
@@ -81,7 +83,7 @@ class RepositoryLockOwnershipTest extends AbstractIntegrationTest {
             assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
             assertThatThrownBy(() -> tx.executeWithoutResult(status -> {
                 em.createNativeQuery("SET LOCAL lock_timeout = '250ms'").executeUpdate();
-                lock(memberLock, id);
+                updateTargetRow(memberLock, id);
             })).hasRootCauseInstanceOf(SQLException.class).hasStackTraceContaining("lock timeout");
         } finally {
             release.countDown();
@@ -91,7 +93,26 @@ class RepositoryLockOwnershipTest extends AbstractIntegrationTest {
                 executor.shutdownNow();
             }
         }
-        tx.executeWithoutResult(status -> lock(memberLock, id));
+        Integer updatedRows = tx.execute(status -> updateTargetRow(memberLock, id));
+        assertThat(updatedRows).isEqualTo(1);
+    }
+
+    private MemberDevice persistDevice(Member member, String token) {
+        MemberDevice device = MemberDevice.builder().member(member).memberDeviceType(MemberDeviceType.IOS)
+                .deviceToken(token).build();
+        em.persist(device);
+        return device;
+    }
+
+    private int updateTargetRow(boolean memberLock, Long id) {
+        if (memberLock) {
+            return em.createNativeQuery("UPDATE member SET password = password WHERE id = :id")
+                    .setParameter("id", id)
+                    .executeUpdate();
+        }
+        return em.createNativeQuery("UPDATE member_device SET device_token = device_token WHERE id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
     }
 
     private void lock(boolean memberLock, Long id) {
