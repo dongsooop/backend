@@ -3,6 +3,8 @@ package com.dongsoop.dongsoop.member.repository;
 import com.dongsoop.dongsoop.member.dto.DeleteMember;
 import com.dongsoop.dongsoop.member.dto.LoginMemberDetails;
 import com.dongsoop.dongsoop.member.entity.Member;
+import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
+import jakarta.persistence.LockModeType;
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.memberdevice.entity.QMemberDevice;
 import com.dongsoop.dongsoop.role.entity.QMemberRole;
@@ -86,5 +88,20 @@ public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
                         .and(member.isDeleted.isFalse()))
                 .distinct()
                 .fetch();
+    }
+    // 회원에 대해 비관적 잠금(PESSIMISTIC_WRITE) 을 획득하고 반환
+    @Override
+    public Member findAndLockById(Long memberId) {
+        Member lockedMember = queryFactory
+                .selectFrom(member)
+                .where(member.id.eq(memberId))
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+                .fetchOne();
+
+        if (lockedMember == null) {
+            throw new MemberNotFoundException();
+        }
+
+        return lockedMember;
     }
 }

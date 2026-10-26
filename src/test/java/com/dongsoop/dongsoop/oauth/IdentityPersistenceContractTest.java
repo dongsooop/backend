@@ -79,8 +79,8 @@ class IdentityPersistenceContractTest extends AbstractIntegrationTest {
     void lockLoadsRequestedMemberAndMissingMemberHasDomainError() {
         Member first = member("first");
         Long id = first.getId(); flushAndClear();
-        assertThat(accounts.findAndLockMember(id).getId()).isEqualTo(id);
-        assertThatThrownBy(() -> accounts.findAndLockMember(-1L)).isInstanceOf(MemberNotFoundException.class);
+        assertThat(members.findAndLockById(id).getId()).isEqualTo(id);
+        assertThatThrownBy(() -> members.findAndLockById(-1L)).isInstanceOf(MemberNotFoundException.class);
     }
 
     @Test
