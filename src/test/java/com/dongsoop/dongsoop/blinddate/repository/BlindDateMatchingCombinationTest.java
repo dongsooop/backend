@@ -58,11 +58,12 @@ class BlindDateMatchingCombinationTest {
     private void verifyOutcome(
             int size, Map<Long, Long> choices, List<Long> order, Set<Long> matched) {
         var storage = new BlindDateParticipantStorageImpl();
-        Set<Long> expectedFailed = new HashSet<>();
+        Set<Long> expectedUnmatched = new HashSet<>();
         for (long member = 1; member <= size; member++) {
             storage.addParticipant("session", member, "socket-" + member);
-            if (!matched.contains(member)) expectedFailed.add(member);
+            if (!matched.contains(member)) expectedUnmatched.add(member);
         }
+        storage.openChoices("session");
         order.forEach(member -> storage.recordChoice("session", member, choices.get(member)));
         for (long member = 1; member <= size; member++) {
             assertThat(storage.isMatched("session", member))
@@ -70,6 +71,6 @@ class BlindDateMatchingCombinationTest {
                     .isEqualTo(matched.contains(member));
         }
         assertThat(storage.getNotMatched("session"))
-                .containsExactlyInAnyOrderElementsOf(expectedFailed);
+                .containsExactlyInAnyOrderElementsOf(expectedUnmatched);
     }
 }

@@ -15,8 +15,8 @@ public class MarketplaceContactRepositoryCustomImpl implements MarketplaceContac
 
     public boolean existsByBoardIdAndMemberId(Long boardId, Long memberId) {
         return queryFactory.selectFrom(marketplaceContact)
-                .where(marketplaceContact.id.marketplaceId.eq(boardId)
-                        .and(marketplaceContact.id.applicant.id.eq(memberId)))
+                .where(marketplaceContact.marketplaceId.eq(boardId)
+                        .and(marketplaceContact.applicant.id.eq(memberId)))
                 .fetchFirst() != null;
     }
 }

@@ -8,6 +8,9 @@ import java.util.List;
 
 public class SearchDtoMapper {
 
+    private SearchDtoMapper() {
+    }
+
     public static BoardSearchResult toBoardSearchResult(BoardDocument document) {
         return BoardSearchResult.builder()
                 .id(document.getId())

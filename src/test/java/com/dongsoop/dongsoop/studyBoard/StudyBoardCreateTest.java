@@ -127,10 +127,10 @@ class StudyBoardCreateTest {
                 .build();
 
         List<StudyBoardDepartment> compareDepartmentList = List.of(
-                new StudyBoardDepartment(new StudyBoardDepartment.StudyBoardDepartmentId(board,
-                        new Department(VALID_DEPARTMENT_TYPE_A, null, null))),
-                new StudyBoardDepartment(new StudyBoardDepartment.StudyBoardDepartmentId(board,
-                        new Department(VALID_DEPARTMENT_TYPE_B, null, null)))
+                new StudyBoardDepartment(board,
+                        new Department(VALID_DEPARTMENT_TYPE_A, null, null)),
+                new StudyBoardDepartment(board,
+                        new Department(VALID_DEPARTMENT_TYPE_B, null, null))
         );
 
         assertThat(board)

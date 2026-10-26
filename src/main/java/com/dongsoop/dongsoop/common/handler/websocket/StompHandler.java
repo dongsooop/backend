@@ -5,9 +5,11 @@ import com.dongsoop.dongsoop.chat.session.WebSocketSessionManager;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
 import com.dongsoop.dongsoop.jwt.dto.AuthenticationInformationByToken;
+import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 import io.jsonwebtoken.Claims;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.Nullable;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -29,8 +31,11 @@ public class StompHandler implements ChannelInterceptor {
     private final JwtValidator jwtValidator;
     private final JwtUtil jwtUtil;
     private final WebSocketSessionManager sessionManager;
+    private final DeviceBlacklistService deviceBlacklistService;
 
     @Override
+    @Nullable
+    @SuppressWarnings("java:S2638") // SONARJAVA-5865: Spring @NonNullApi and @Nullable override false positive
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
@@ -100,6 +105,12 @@ public class StompHandler implements ChannelInterceptor {
         try {
             Claims claims = jwtUtil.getClaims(token);
             jwtValidator.validate(claims);
+
+            // HTTP 요청(JwtFilter)과 같이 로그아웃·정지로 블랙리스트된 디바이스의 토큰은 연결을 거절한다
+            Long deviceId = claims.get(JwtUtil.DEVICE_ID_CLAIM, Long.class);
+            if (deviceId != null) {
+                deviceBlacklistService.validateNotBlacklisted(deviceId, JwtUtil.getIssuedAt(claims));
+            }
         } catch (Exception e) {
             throw new UnauthorizedChatAccessException(e);
         }

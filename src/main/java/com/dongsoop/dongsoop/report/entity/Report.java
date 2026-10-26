@@ -2,12 +2,15 @@ package com.dongsoop.dongsoop.report.entity;
 
 import com.dongsoop.dongsoop.common.BaseEntity;
 import com.dongsoop.dongsoop.member.entity.Member;
-import com.dongsoop.dongsoop.report.exception.SanctionAlreadyExistsException;
+import com.dongsoop.dongsoop.report.dto.MessageReportDraft;
+import com.dongsoop.dongsoop.report.exception.ReportAlreadyProcessedException;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Getter
@@ -61,10 +64,66 @@ public class Report extends BaseEntity {
     @Builder.Default
     private Boolean isSanctionActive = false;
 
-    public void processSanction(Member admin, Member targetMember, Sanction sanction) {
-        if (this.isProcessed) {
-            throw new SanctionAlreadyExistsException(this.id);
+    @Column(name = "chat_room_id", length = 64)
+    private String chatRoomId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "chat_room_type", length = 20)
+    private ReportChatRoomType chatRoomType;
+
+    @Column(name = "message_id", length = 64)
+    private String messageId;
+
+    @Column(name = "message_content", length = 1000)
+    private String messageContent;
+
+    @Column(name = "message_sent_at")
+    private LocalDateTime messageSentAt;
+
+    @Convert(converter = ChatMessageSnapshotsConverter.class)
+    @Column(name = "message_context", columnDefinition = "text")
+    private ChatMessageSnapshots messageContext;
+
+    @Convert(converter = ChatMessageSnapshotsConverter.class)
+    @Column(name = "message_context_after", columnDefinition = "text")
+    private ChatMessageSnapshots messageContextAfter;
+
+    @Column(name = "resolved_by_report_id")
+    private Long resolvedByReportId;
+
+    // 기존 행이 있는 운영 테이블에 ddl-auto가 NOT NULL 컬럼을 추가하려면 기본값이 필요하다
+    @Column(name = "is_auto_reviewed", nullable = false)
+    @ColumnDefault("false")
+    @Builder.Default
+    private Boolean isAutoReviewed = false;
+
+    public static Report messageReport(Member reporter, MessageReportDraft draft, ReportReason reason,
+                                       String description) {
+        return Report.builder()
+                .reporter(reporter)
+                .reportType(draft.reportType())
+                .targetId(draft.targetMember().getId())
+                .targetMember(draft.targetMember())
+                .reportReason(reason)
+                .description(description)
+                .targetUrl(draft.targetUrl())
+                .chatRoomId(draft.chatRoomId())
+                .chatRoomType(draft.chatRoomType())
+                .messageId(draft.messageId())
+                .messageContent(draft.messageContent())
+                .messageSentAt(draft.messageSentAt())
+                .messageContext(draft.messageContext())
+                .build();
+    }
+
+    public void ensureNotProcessed() {
+        if (Boolean.TRUE.equals(this.isProcessed)) {
+            throw new ReportAlreadyProcessedException(this.id);
         }
+    }
+
+    public void processSanction(Member admin, Member targetMember, Sanction sanction) {
+        ensureNotProcessed();
 
         this.admin = admin;
         this.targetMember = targetMember;
@@ -74,5 +133,29 @@ public class Report extends BaseEntity {
 
     public void markAsProcessedWithoutSanction() {
         this.isProcessed = true;
+    }
+
+    public void dismiss(Member admin) {
+        ensureNotProcessed();
+
+        this.admin = admin;
+        this.isProcessed = true;
+    }
+
+    // 제재는 처리한 신고에만 연결한다. 함께 닫힌 신고에도 연결하면 경고 누적 수가 신고 수만큼 늘어난다
+    public void resolveWith(Report resolved) {
+        this.admin = resolved.admin;
+        this.isProcessed = true;
+        this.resolvedByReportId = resolved.id;
+    }
+
+    public void recordContextAfter(ChatMessageSnapshots contextAfter) {
+        if (this.messageContextAfter == null) {
+            this.messageContextAfter = contextAfter;
+        }
+    }
+
+    public void markAutoReviewed() {
+        this.isAutoReviewed = true;
     }
 }

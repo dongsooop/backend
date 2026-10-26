@@ -16,6 +16,7 @@ import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateChoiceHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateConnectHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateDisconnectHandler;
+import com.dongsoop.dongsoop.blinddate.notification.BlindDateMatchNotification;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorageImpl;
@@ -26,6 +27,16 @@ import com.dongsoop.dongsoop.blinddate.service.BlindDateServiceImpl;
 import com.dongsoop.dongsoop.blinddate.service.BlindDateSessionServiceImpl;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -36,12 +47,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @Timeout(15)
 @DisplayName("과팅 시작부터 매칭 결과까지 통합 흐름")
@@ -54,86 +59,83 @@ class BlindDateFullFlowIntegrationTest {
         eventQueue.shutdown();
     }
 
-    @Test
-    @DisplayName("일부 매칭 성공을 먼저 알리고 나머지 참가자에게 실패를 알린 뒤 세션을 종료한다")
-    void sendsSuccessThenFailureAndTerminatesSession() throws Exception {
-        verifyResultFlow(false);
-    }
-
-    @Test
-    @DisplayName("선택 마감 시 진행 중인 매칭 성공 전송을 기다린 뒤 실패를 알리고 세션을 종료한다")
-    void waitsForInFlightMatchBeforeFailureAndTermination() throws Exception {
-        verifyResultFlow(true);
-    }
-
-    private void verifyResultFlow(boolean pauseChatRoomCreation) throws Exception {
+    @ParameterizedTest(name = "채팅방 생성 지연={0}")
+    @ValueSource(booleans = {false, true})
+    @DisplayName("즉시 성공 알림과 진행 중 작업 이후 타임아웃 종료")
+    void deliversSuccessBeforeSessionTermination(boolean pauseChatRoomCreation) throws Exception {
         var blindDateStorage = new BlindDateStorageImpl();
         var participantStorage = new BlindDateParticipantStorageImpl();
-        var sessionStorage = new BlindDateSessionStorageImpl();
+        var sessionStorage = new BlindDateSessionStorageImpl(mock(ApplicationEventPublisher.class));
         var taskScheduler = new ControllableTaskScheduler();
         var resultEvents = new CopyOnWriteArrayList<ResultEvent>();
         var messaging = resultCapturingMessagingTemplate(resultEvents);
         var notification = mock(BlindDateNotification.class);
         var chatRoomService = mock(ChatRoomService.class);
         var chatRoomCreationStarted = new CountDownLatch(1);
-        var allowChatRoomCreation = new CountDownLatch(pauseChatRoomCreation ? 1 : 0);
+        var allowChatRoomCreation = new CountDownLatch(1);
+        if (!pauseChatRoomCreation) {
+            allowChatRoomCreation.countDown();
+        }
         when(chatRoomService.createOneToOneChatRoom(anyLong(), anyLong(), anyString()))
-                .thenAnswer(invocation -> {
-                    chatRoomCreationStarted.countDown();
-                    assertThat(allowChatRoomCreation.await(5, TimeUnit.SECONDS))
-                            .as("테스트가 채팅방 생성을 재개해야 한다").isTrue();
-                    return ChatRoom.builder().roomId("room-1").build();
-                });
+                .thenAnswer(
+                        invocation -> {
+                            chatRoomCreationStarted.countDown();
+                            assertThat(allowChatRoomCreation.await(5, TimeUnit.SECONDS))
+                                    .as("테스트가 채팅방 생성을 재개해야 한다")
+                                    .isTrue();
+                            return ChatRoom.builder().roomId("room-1").build();
+                        });
 
-        var service = new BlindDateServiceImpl(
-                participantStorage,
-                blindDateStorage,
-                notification,
-                sessionStorage,
-                messaging,
-                taskScheduler,
-                eventQueue
-        );
+        var service =
+                new BlindDateServiceImpl(
+                        participantStorage,
+                        blindDateStorage,
+                        notification,
+                        sessionStorage,
+                        messaging,
+                        taskScheduler,
+                        eventQueue,
+                        mock(BlindDateMessageProvider.class));
         var sessionService = new BlindDateSessionServiceImpl(participantStorage, blindDateStorage);
         var messages = mock(BlindDateMessageProvider.class);
         when(messages.getStartMessages()).thenReturn(List.of());
         when(messages.getRandomEventMessages(1)).thenReturn(List.of("event"));
         when(messages.getSessionManagerName()).thenReturn("manager");
 
-        var sessionScheduler = new BlindDateSessionSchedulerImpl(
-                participantStorage,
-                sessionStorage,
-                messages,
-                messaging,
-                taskScheduler,
-                eventQueue
-        );
+        var choiceHandler =
+                new BlindDateChoiceHandler(
+                        participantStorage,
+                        sessionStorage,
+                        messaging,
+                        chatRoomService,
+                        eventQueue,
+                        mock(BlindDateMatchNotification.class));
+
+        var sessionScheduler =
+                new BlindDateSessionSchedulerImpl(
+                        participantStorage,
+                        sessionStorage,
+                        messages,
+                        messaging,
+                        taskScheduler,
+                        eventQueue,
+                        choiceHandler);
         ReflectionTestUtils.setField(sessionScheduler, "eventMessageAmount", 1);
 
-        var disconnectHandler = new BlindDateDisconnectHandler(
-                participantStorage,
-                sessionStorage,
-                service,
-                eventQueue
-        );
-        var connectHandler = new BlindDateConnectHandler(
-                participantStorage,
-                blindDateStorage,
-                sessionStorage,
-                service,
-                sessionService,
-                sessionScheduler,
-                messaging,
-                eventQueue,
-                disconnectHandler
-        );
-        var choiceHandler = new BlindDateChoiceHandler(
-                participantStorage,
-                sessionStorage,
-                messaging,
-                chatRoomService,
-                eventQueue
-        );
+        var disconnectHandler =
+                new BlindDateDisconnectHandler(
+                        participantStorage, sessionStorage, service, eventQueue);
+        var connectHandler =
+                new BlindDateConnectHandler(
+                        participantStorage,
+                        blindDateStorage,
+                        sessionStorage,
+                        service,
+                        sessionService,
+                        sessionScheduler,
+                        messaging,
+                        eventQueue,
+                        disconnectHandler);
 
         service.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 3));
 
@@ -162,17 +164,26 @@ class BlindDateFullFlowIntegrationTest {
         // 요청 스레드와 무관하게 채팅방 생성 중 선택 마감을 실행할 수 있어야 한다.
         var choiceRequests = Executors.newSingleThreadExecutor();
         try {
-            var choices = choiceRequests.submit(() -> {
-                choiceHandler.execute(sessionId, 1L, 2L);
-                choiceHandler.execute(sessionId, 2L, 1L);
-            });
+            var choices =
+                    choiceRequests.submit(
+                            () -> {
+                                choiceHandler.execute(sessionId, 1L, 2L);
+                                choiceHandler.execute(sessionId, 2L, 1L);
+                            });
             assertThat(chatRoomCreationStarted.await(5, TimeUnit.SECONDS))
-                    .as("상호 선택의 채팅방 생성이 시작되어야 한다").isTrue();
+                    .as("상호 선택의 채팅방 생성이 시작되어야 한다")
+                    .isTrue();
 
-            // 채팅방 생성이 끝나기 전에 실제 스케줄러의 선택 마감 작업을 실행한다.
+            if (!pauseChatRoomCreation) {
+                eventQueue.awaitIdle();
+                assertThat(resultEvents).hasSize(2);
+                assertThat(sessionStorage.getState(sessionId)).isEqualTo(SessionState.PROCESSING);
+            }
+
+            // 타임아웃은 진행 중 작업 뒤에 세션 종료를 예약한다.
             taskScheduler.runNext();
             if (pauseChatRoomCreation) {
-                assertThat(resultEvents).as("성공 처리 중에는 실패를 먼저 전송하면 안 된다").isEmpty();
+                assertThat(resultEvents).as("채팅방 생성 중에는 성공 결과가 없어야 한다").isEmpty();
                 assertThat(sessionStorage.getState(sessionId))
                         .as("성공 처리 중에는 세션을 종료하면 안 된다")
                         .isEqualTo(SessionState.PROCESSING);
@@ -186,12 +197,10 @@ class BlindDateFullFlowIntegrationTest {
             choiceRequests.shutdownNow();
         }
 
-        assertThat(resultEvents).hasSize(3);
-        assertThat(resultEvents.subList(0, 2)).containsExactlyInAnyOrder(
-                chatRoomCreated(sessionId, 2L),
-                chatRoomCreated(sessionId, 1L)
-        );
-        assertThat(resultEvents.get(2)).isEqualTo(matchFailed(sessionId, 3L));
+        assertThat(resultEvents).hasSize(2);
+        assertThat(resultEvents)
+                .containsExactlyInAnyOrder(
+                        chatRoomCreated(sessionId, 2L), chatRoomCreated(sessionId, 1L));
         assertThat(sessionStorage.getState(sessionId)).isNull();
     }
 
@@ -199,13 +208,13 @@ class BlindDateFullFlowIntegrationTest {
             BlindDateParticipantStorageImpl participantStorage,
             String sessionId,
             Long memberId,
-            String socketId
-    ) {
+            String socketId) {
         var byMember = participantStorage.getByMemberId(memberId);
         var bySocket = participantStorage.getBySocketId(socketId);
 
         assertThat(byMember).isNotNull();
-        assertThat(bySocket).isSameAs(byMember);
+        assertThat(bySocket.getMemberId()).isEqualTo(memberId);
+        assertThat(bySocket.getSessionId()).isEqualTo(sessionId);
         assertThat(byMember.getSessionId()).isEqualTo(sessionId);
         assertThat(byMember.getMemberId()).isEqualTo(memberId);
         assertThat(byMember.getSocketIds()).containsExactly(socketId);
@@ -213,32 +222,28 @@ class BlindDateFullFlowIntegrationTest {
 
     private SimpMessagingTemplate resultCapturingMessagingTemplate(List<ResultEvent> resultEvents) {
         SimpMessagingTemplate messaging = mock(SimpMessagingTemplate.class);
-        doAnswer(invocation -> {
-            String destination = invocation.getArgument(0);
-            if (destination.endsWith("/chatroom") || destination.endsWith("/failed")) {
-                resultEvents.add(new ResultEvent(destination, invocation.getArgument(1)));
-            }
-            return null;
-        }).when(messaging).convertAndSend(anyString(), any(Object.class));
+        doAnswer(
+                        invocation -> {
+                            String destination = invocation.getArgument(0);
+                            if (destination.endsWith("/chatroom")
+                                    || destination.endsWith("/failed")) {
+                                resultEvents.add(
+                                        new ResultEvent(destination, invocation.getArgument(1)));
+                            }
+                            return null;
+                        })
+                .when(messaging)
+                .convertAndSend(anyString(), any(Object.class));
         return messaging;
     }
 
     private ResultEvent chatRoomCreated(String sessionId, Long memberId) {
         return new ResultEvent(
                 BlindDateTopic.chatRoomCreated(sessionId, memberId),
-                Map.of("chatRoomId", "room-1")
-        );
+                Map.of("chatRoomId", "room-1"));
     }
 
-    private ResultEvent matchFailed(String sessionId, Long memberId) {
-        return new ResultEvent(
-                BlindDateTopic.matchFailed(sessionId, memberId),
-                Map.of("message", "매칭에 실패했습니다.")
-        );
-    }
-
-    private record ResultEvent(String destination, Object payload) {
-    }
+    private record ResultEvent(String destination, Object payload) {}
 
     private static final class ControllableTaskScheduler extends BlindDateTaskScheduler {
 

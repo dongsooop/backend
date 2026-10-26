@@ -5,32 +5,39 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 @Entity
+@IdClass(RestaurantLike.RestaurantLikeKey.class)
 @SuperBuilder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@ToString(exclude = "id")
+@ToString(exclude = {"restaurant", "member"})
 public class RestaurantLike {
 
-    @EmbeddedId
-    private RestaurantLikeKey id;
+    @Id
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "restaurant_id", updatable = false)
+    private Restaurant restaurant;
 
-    @Embeddable
+    @Id
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "member_id", updatable = false)
+    private Member member;
+
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     @Getter
     @EqualsAndHashCode
-    @ToString(exclude = {"restaurant", "member"})
+    @ToString
     public static class RestaurantLikeKey implements Serializable {
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(nullable = false, name = "restaurant_id", updatable = false)
-        private Restaurant restaurant;
+        @Serial
+        private static final long serialVersionUID = 1L;
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(nullable = false, name = "member_id", updatable = false)
-        private Member member;
+        private Long restaurant;
+
+        private Long member;
     }
 }

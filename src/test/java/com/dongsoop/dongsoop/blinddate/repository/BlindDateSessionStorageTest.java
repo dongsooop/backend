@@ -1,15 +1,18 @@
 package com.dongsoop.dongsoop.blinddate.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo.SessionState;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 
 @DisplayName("과팅 세션 저장소 단위 결과")
 class BlindDateSessionStorageTest {
-    private final BlindDateSessionStorageImpl storage = new BlindDateSessionStorageImpl();
+    private final BlindDateSessionStorageImpl storage =
+            new BlindDateSessionStorageImpl(mock(ApplicationEventPublisher.class));
 
     @Test
     @DisplayName("R09 생성·시작·종료 상태 전환")

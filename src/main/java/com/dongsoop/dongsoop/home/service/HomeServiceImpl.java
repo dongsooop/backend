@@ -11,7 +11,7 @@ import com.dongsoop.dongsoop.home.exception.HomeAsyncException;
 import com.dongsoop.dongsoop.notice.dto.HomeNotice;
 import com.dongsoop.dongsoop.notice.repository.NoticeRepository;
 import com.dongsoop.dongsoop.recruitment.board.dto.HomeRecruitment;
-import com.dongsoop.dongsoop.recruitment.repository.RecruitmentRepository;
+import com.dongsoop.dongsoop.recruitment.query.RecruitmentQuery;
 import com.dongsoop.dongsoop.timetable.dto.HomeTimetable;
 import com.dongsoop.dongsoop.timetable.entity.SemesterType;
 import com.dongsoop.dongsoop.timetable.repository.TimetableRepository;
@@ -48,7 +48,7 @@ public class HomeServiceImpl implements HomeService {
     private final OfficialScheduleRepository officialScheduleRepository;
     private final MemberScheduleRepository memberScheduleRepository;
     private final NoticeRepository noticeRepository;
-    private final RecruitmentRepository recruitmentRepository;
+    private final RecruitmentQuery recruitmentRepository;
     private final EclassAssignmentService eclassAssignmentService;
 
     @Value("${home.async.timeout.seconds:3}")
@@ -108,10 +108,7 @@ public class HomeServiceImpl implements HomeService {
         CompletableFuture<List<HomeSchedule>> fOfficialSchedules = call(
                 () -> officialScheduleRepository.searchHomeSchedule(today));
         CompletableFuture<List<HomeNotice>> fNotices = call(() -> noticeRepository.searchHomeNotices(departmentTypes));
-        CompletableFuture<List<HomeRecruitment>> fRecruitments = departmentTypes.isEmpty()
-                ? call(recruitmentRepository::searchHomeRecruitment)
-                : call(() -> recruitmentRepository.searchHomeRecruitment(
-                        departmentTypes.iterator().next().name()));
+        CompletableFuture<List<HomeRecruitment>> fRecruitments = call(getRecruitmentSupplier(departmentTypes));
         CompletableFuture<HomeEclassSummary> fEclass = call(
                 () -> eclassAssignmentService.getHomeSummary(fid, deviceToken));
 
@@ -129,6 +126,14 @@ public class HomeServiceImpl implements HomeService {
         HomeEclassSummary eclassSummary = fEclass.join();
 
         return new HomeDto(Collections.emptyList(), schedules, notices, popularRecruitments, eclassSummary);
+    }
+
+    private Supplier<List<HomeRecruitment>> getRecruitmentSupplier(Set<DepartmentType> departmentTypes) {
+        if (departmentTypes.isEmpty()) {
+            return recruitmentRepository::searchHomeRecruitment;
+        }
+
+        return () -> recruitmentRepository.searchHomeRecruitment(departmentTypes.iterator().next().name());
     }
 
     private <T> CompletableFuture<T> call(Supplier<T> supplier) {

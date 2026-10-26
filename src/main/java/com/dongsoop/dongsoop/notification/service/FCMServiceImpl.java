@@ -237,34 +237,29 @@ public class FCMServiceImpl implements FCMService {
                 continue;
             }
 
-            FirebaseMessagingException exception = response.getException();
-            if (exception == null) {
-                continue;
-            }
-
-            // 만료된 토큰 확인
-            if (isValidToken(exception)) {
-                String invalidToken = tokens.get(i);
-                memberDeviceService.unbindByToken(invalidToken);
-                log.warn("Invalid FCM token unbound: {}", invalidToken);
-
-                continue;
-            }
-
-            log.error("Error sending FCM message: {}", exception.getMessage());
+            handleFailedResponse(response, tokens.get(i));
         }
     }
 
-    private boolean isValidToken(FirebaseMessagingException exception) {
-        MessagingErrorCode messagingErrorCode = exception.getMessagingErrorCode();
-        if (messagingErrorCode == null) {
-            return false;
+    private void handleFailedResponse(SendResponse response, String token) {
+        FirebaseMessagingException exception = response.getException();
+        if (exception == null) {
+            return;
         }
 
-        boolean isUnregistered = messagingErrorCode.equals(MessagingErrorCode.UNREGISTERED);
-        boolean isInvalidArgument = messagingErrorCode.equals(MessagingErrorCode.INVALID_ARGUMENT);
+        // 만료된 토큰 확인
+        if (isUnregisteredToken(exception)) {
+            memberDeviceService.unbindByToken(token);
+            log.warn("Invalid FCM token unbound: {}", token);
+            return;
+        }
 
-        return isUnregistered || isInvalidArgument;
+        log.error("Error sending FCM message: {}", exception.getMessage());
+    }
+
+    private boolean isUnregisteredToken(FirebaseMessagingException exception) {
+        // INVALID_ARGUMENT can also indicate a payload error, not an invalid token.
+        return exception.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED;
     }
 
     @Override

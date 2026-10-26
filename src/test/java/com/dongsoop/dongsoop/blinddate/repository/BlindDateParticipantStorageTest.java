@@ -80,6 +80,7 @@ class BlindDateParticipantStorageTest {
     void clearResetsAllPublicState() {
         storage.addParticipant("a", 1L, "one");
         storage.addParticipant("a", 2L, "two");
+        storage.openChoices("a");
         storage.recordChoice("a", 1L, 2L);
         storage.recordChoice("a", 2L, 1L);
         storage.clear();
@@ -89,7 +90,8 @@ class BlindDateParticipantStorageTest {
         assertThat(storage.findAllBySessionId("a")).isEmpty();
         assertThat(storage.addParticipant("a", 1L, "new").getAnonymousName()).isEqualTo("익명1");
         storage.addParticipant("a", 2L, "new2");
-        assertThat(storage.recordChoice("a", 1L, 2L)).isFalse();
+        storage.openChoices("a");
+        assertThat(storage.recordChoice("a", 1L, 2L)).isTrue();
         assertThat(storage.recordChoice("a", 2L, 1L)).isTrue();
     }
 
@@ -100,10 +102,12 @@ class BlindDateParticipantStorageTest {
             storage.addParticipant("a", member, "a-" + member);
         storage.addParticipant("b", 4L, "b-4");
         storage.addParticipant("b", 5L, "b-5");
-        assertThat(storage.recordChoice("a", 1L, 2L)).isFalse();
+        storage.openChoices("a");
+        assertThat(storage.recordChoice("a", 1L, 2L)).isTrue();
         assertThat(storage.recordChoice("a", 1L, 3L)).isFalse();
-        assertThat(storage.recordChoice("a", 3L, 1L)).isFalse();
-        assertThat(storage.recordChoice("b", 4L, 5L)).isFalse();
+        assertThat(storage.recordChoice("a", 3L, 1L)).isTrue();
+        storage.openChoices("b");
+        assertThat(storage.recordChoice("b", 4L, 5L)).isTrue();
         assertThat(storage.recordChoice("a", 2L, 1L)).isTrue();
         assertThat(storage.isMatched("b", 1L)).isFalse();
     }
@@ -113,6 +117,7 @@ class BlindDateParticipantStorageTest {
     void matchedPairIsExcludedFromUnmatchedMembers() {
         for (long member = 1; member <= 3; member++)
             storage.addParticipant("a", member, "s" + member);
+        storage.openChoices("a");
         storage.recordChoice("a", 1L, 2L);
         storage.recordChoice("a", 2L, 1L);
         assertThat(storage.isMatched("a", 1L)).isTrue();

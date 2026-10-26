@@ -11,7 +11,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -73,14 +72,19 @@ class BlindDateMatchingScenarioTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("scenarios")
-    void deliversExactlyOneResultPerMember(Scenario scenario) {
+    void deliversOnlyMatchedMembersTheirCreatedRoom(Scenario scenario) {
         try (var flow = new BlindDateScenarioFixture(scenario.members())) {
             String session = flow.joinMembers(scenario.members());
             flow.openChoices(session);
             for (long[] choice : scenario.choices())
                 flow.choice.execute(session, choice[0], choice[1]);
+            flow.queue.awaitIdle();
+            assertThat(flow.sessions.getState(session)).isNotNull();
+            assertResults(flow, scenario.matched());
+            var beforeTimeout = List.copyOf(flow.results());
             flow.finishChoices();
-            assertResults(flow, session, scenario.members(), scenario.matched());
+            assertThat(flow.results()).containsExactlyElementsOf(beforeTimeout);
+            assertThat(flow.sessions.getState(session)).isNull();
         }
     }
 
@@ -107,7 +111,8 @@ class BlindDateMatchingScenarioTest {
                 start.countDown();
                 for (var request : requests) request.get(5, TimeUnit.SECONDS);
                 flow.finishChoices();
-                assertResults(flow, session, 2, Set.of(1L, 2L));
+                assertResults(flow, Set.of(1L, 2L));
+                assertThat(flow.sessions.getState(session)).isNull();
             } finally {
                 start.countDown();
                 executor.shutdownNow();
@@ -115,28 +120,29 @@ class BlindDateMatchingScenarioTest {
         }
     }
 
-    private void assertResults(
-            BlindDateScenarioFixture flow, String session, int count, Set<Long> matched) {
-        Set<Long> failed = new HashSet<>();
-        for (long member = 1; member <= count; member++)
-            if (!matched.contains(member)) failed.add(member);
+    private void assertResults(BlindDateScenarioFixture flow, Set<Long> matched) {
         assertThat(flow.recipients("/chatroom")).containsExactlyInAnyOrderElementsOf(matched);
-        assertThat(flow.recipients("/failed")).containsExactlyInAnyOrderElementsOf(failed);
-        assertThat(flow.results()).hasSize(count);
-        assertThat(flow.createdPairs).hasSize(matched.size() / 2);
-        for (var pair : flow.createdPairs) {
-            assertThat(pair).hasSize(2).doesNotHaveDuplicates();
-            assertThat(matched).containsAll(pair);
+        assertThat(flow.recipients("/failed")).isEmpty();
+        assertThat(flow.results()).hasSize(matched.size());
+        assertThat(flow.createdRooms).hasSize(matched.size() / 2);
+        assertThat(flow.createdRooms)
+                .extracting(BlindDateScenarioFixture.CreatedRoom::id)
+                .doesNotHaveDuplicates();
+        for (var room : flow.createdRooms) {
+            assertThat(room.members()).hasSize(2).doesNotHaveDuplicates();
+            assertThat(matched).containsAll(room.members());
+            for (Long member : room.members()) {
+                assertThat(flow.results())
+                        .filteredOn(
+                                event ->
+                                        event.destination()
+                                                .endsWith("/member/" + member + "/chatroom"))
+                        .singleElement()
+                        .satisfies(
+                                event ->
+                                        assertThat(event.payload())
+                                                .isEqualTo(Map.of("chatRoomId", room.id())));
+            }
         }
-        for (int index = 0; index < matched.size(); index++) {
-            assertThat(flow.results().get(index).destination()).endsWith("/chatroom");
-        }
-        var successfulPayloads =
-                flow.results().stream()
-                        .filter(event -> event.destination().endsWith("/chatroom"))
-                        .map(event -> (Map<?, ?>) event.payload())
-                        .toList();
-        for (var payload : successfulPayloads) assertThat(payload.get("chatRoomId")).isNotNull();
-        assertThat(flow.sessions.getState(session)).isNull();
     }
 }

@@ -33,7 +33,7 @@ class BlindDateFailureScenarioTest {
             flow.choice.execute(session, 4L, 3L);
             flow.finishChoices();
             assertThat(flow.recipients("/chatroom")).containsExactlyInAnyOrder(3L, 4L);
-            assertThat(flow.recipients("/failed")).contains(5L);
+            assertThat(flow.recipients("/failed")).isEmpty();
             assertThat(flow.sessions.getState(session)).isNull();
         }
     }
@@ -53,27 +53,24 @@ class BlindDateFailureScenarioTest {
             flow.choice.execute(session, 4L, 3L);
             flow.finishChoices();
             assertThat(flow.recipients("/chatroom")).contains(3L, 4L);
-            assertThat(flow.recipients("/failed")).contains(5L);
+            assertThat(flow.recipients("/failed")).isEmpty();
             assertThat(flow.sessions.getState(session)).isNull();
         }
     }
 
     @Test
-    @DisplayName("F07 모든 실패 전송이 예외여도 세션 종료와 늦은 선택 차단")
-    void failedDeliveryStillTerminatesAndRejectsLateChoice() {
+    @DisplayName("F07 무응답 타임아웃은 결과 없이 종료하고 늦은 선택 차단")
+    void unansweredTimeoutTerminatesAndRejectsLateChoice() {
         try (var flow = new BlindDateScenarioFixture(2)) {
             String session = flow.joinMembers(2);
             flow.openChoices(session);
-            doThrow(new IllegalStateException("delivery failed"))
-                    .when(flow.messaging)
-                    .convertAndSend(endsWith("/failed"), any(Object.class));
             flow.finishChoices();
             flow.choice.execute(session, 1L, 2L);
             flow.choice.execute(session, 2L, 1L);
             flow.queue.awaitIdle();
             assertThat(flow.sessions.getState(session)).isNull();
             assertThat(flow.createdPairs).isEmpty();
-            assertThat(flow.recipients("/chatroom")).isEmpty();
+            assertThat(flow.results()).isEmpty();
         }
     }
 
@@ -87,7 +84,7 @@ class BlindDateFailureScenarioTest {
                     .convertAndSend(endsWith("/participants"), any(Object.class));
             flow.openChoices(session);
             flow.finishChoices();
-            assertThat(flow.recipients("/failed")).containsExactlyInAnyOrder(1L, 2L);
+            assertThat(flow.recipients("/failed")).isEmpty();
             assertThat(flow.sessions.getState(session)).isNull();
         }
     }

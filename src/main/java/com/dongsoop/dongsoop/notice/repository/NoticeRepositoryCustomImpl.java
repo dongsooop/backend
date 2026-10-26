@@ -32,8 +32,8 @@ public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
     @Override
     public List<Notice> findRecentNoticesIncludingDeleted(Department department, int limit) {
         return queryFactory.selectFrom(notice)
-                .where(notice.id.department.eq(department))
-                .orderBy(notice.id.noticeDetails.id.desc())
+                .where(notice.department.eq(department))
+                .orderBy(notice.noticeDetails.id.desc())
                 .limit(limit)
                 .fetch();
     }
@@ -48,9 +48,9 @@ public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
                         noticeDetails.createdAt,
                         department.id))
                 .from(notice)
-                .innerJoin(notice.id.noticeDetails, noticeDetails)
-                .innerJoin(notice.id.department, department)
-                .where(notice.id.department.id.in(List.of(DepartmentType.DEPT_1001, departmentType)),
+                .innerJoin(notice.noticeDetails, noticeDetails)
+                .innerJoin(notice.department, department)
+                .where(notice.department.id.in(List.of(DepartmentType.DEPT_1001, departmentType)),
                         notice.deletedAt.isNull()) // 사용자 학과 및 대학 공지
                 .orderBy(orderLeastId())
                 .limit(3)
@@ -67,9 +67,9 @@ public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
                         noticeDetails.createdAt,
                         department.id))
                 .from(notice)
-                .innerJoin(notice.id.noticeDetails, noticeDetails)
-                .innerJoin(notice.id.department, department)
-                .where(notice.id.department.id.eq(DepartmentType.DEPT_1001),
+                .innerJoin(notice.noticeDetails, noticeDetails)
+                .innerJoin(notice.department, department)
+                .where(notice.department.id.eq(DepartmentType.DEPT_1001),
                         notice.deletedAt.isNull()) // 대학 공지만
                 .orderBy(orderLeastId())
                 .limit(3)
@@ -89,9 +89,9 @@ public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
                         noticeDetails.createdAt,
                         department.id))
                 .from(notice)
-                .innerJoin(notice.id.noticeDetails, noticeDetails)
-                .innerJoin(notice.id.department, department)
-                .where(notice.id.department.id.in(targetDepartments),
+                .innerJoin(notice.noticeDetails, noticeDetails)
+                .innerJoin(notice.department, department)
+                .where(notice.department.id.in(targetDepartments),
                         notice.deletedAt.isNull()) // 구독한 학과들 및 대학 공지
                 .orderBy(orderLeastId())
                 .limit(3)

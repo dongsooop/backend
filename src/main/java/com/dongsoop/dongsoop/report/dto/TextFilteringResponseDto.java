@@ -1,5 +1,8 @@
 package com.dongsoop.dongsoop.report.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class TextFilteringResponseDto {
     private FieldResultDto title;
     private FieldResultDto tags;

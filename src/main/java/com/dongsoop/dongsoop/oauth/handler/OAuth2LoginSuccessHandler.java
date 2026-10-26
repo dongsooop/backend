@@ -38,8 +38,8 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
                 .toList();
         Authentication auth = new UsernamePasswordAuthenticationToken(oAuth2User.getMemberId(), null, authorityList);
 
-        String targetUrl = determineTargetUrl(auth);
-        getRedirectStrategy().sendRedirect(request, response, targetUrl);
+        String redirectUrl = determineTargetUrl(auth);
+        getRedirectStrategy().sendRedirect(request, response, redirectUrl);
         log.info("OAuth2 login success. memberId: {}", oAuth2User.getMemberId());
     }
 

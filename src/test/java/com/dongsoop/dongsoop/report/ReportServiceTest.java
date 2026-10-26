@@ -16,7 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.List;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -43,7 +43,7 @@ class ReportServiceTest {
         // given
         Long memberId = 1L;
         when(memberService.getMemberIdByAuthentication()).thenReturn(memberId);
-        when(sanctionRepository.findActiveSanctionByMemberId(memberId)).thenReturn(Optional.empty());
+        when(sanctionRepository.findActiveSanctionsByMemberId(memberId)).thenReturn(List.of());
 
         // when
         SanctionStatusResponse response = reportService.checkAndUpdateSanctionStatus();
@@ -79,7 +79,7 @@ class ReportServiceTest {
                 .build();
 
         when(memberService.getMemberIdByAuthentication()).thenReturn(memberId);
-        when(sanctionRepository.findActiveSanctionByMemberId(memberId)).thenReturn(Optional.of(sanction));
+        when(sanctionRepository.findActiveSanctionsByMemberId(memberId)).thenReturn(List.of(sanction));
 
         // when
         SanctionStatusResponse response = reportService.checkAndUpdateSanctionStatus();
@@ -113,7 +113,7 @@ class ReportServiceTest {
                 .build();
 
         when(memberService.getMemberIdByAuthentication()).thenReturn(memberId);
-        when(sanctionRepository.findActiveSanctionByMemberId(memberId)).thenReturn(Optional.of(expiredSanction));
+        when(sanctionRepository.findActiveSanctionsByMemberId(memberId)).thenReturn(List.of(expiredSanction));
 
         // when
         SanctionStatusResponse response = reportService.checkAndUpdateSanctionStatus();
@@ -124,5 +124,46 @@ class ReportServiceTest {
 
         verify(sanctionRepository).save(expiredSanction);
         assertThat(expiredSanction.getIsActive()).isFalse();
+    }
+
+    @Test
+    @DisplayName("경고만 있는 사용자는 제재 없음으로 반환하고 경고를 비활성화하지 않는다")
+    void checkAndUpdateSanctionStatus_WhenOnlyWarning_ShouldReturnNormal() {
+        Long memberId = 1L;
+        Sanction warning = Sanction.builder()
+                .sanctionType(SanctionType.WARNING)
+                .startDate(LocalDateTime.now().minusDays(10))
+                .endDate(LocalDateTime.now().minusDays(1))
+                .isActive(true)
+                .build();
+        when(memberService.getMemberIdByAuthentication()).thenReturn(memberId);
+        when(sanctionRepository.findActiveSanctionsByMemberId(memberId)).thenReturn(List.of(warning));
+
+        SanctionStatusResponse response = reportService.checkAndUpdateSanctionStatus();
+
+        assertThat(response.isSanctioned()).isFalse();
+        assertThat(warning.getIsActive()).isTrue();
+        verify(sanctionRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("활성 정지가 여러 개면 종료일이 가장 늦은 정지를 반환한다")
+    void checkAndUpdateSanctionStatus_WhenMultipleBans_ShouldReturnLatestEnding() {
+        Long memberId = 1L;
+        LocalDateTime now = LocalDateTime.now();
+        Sanction shortBan = Sanction.builder().sanctionType(SanctionType.TEMPORARY_BAN).reason("짧은 정지")
+                .startDate(now.minusDays(1)).endDate(now.plusDays(3)).isActive(true).build();
+        Sanction longBan = Sanction.builder().sanctionType(SanctionType.TEMPORARY_BAN).reason("긴 정지")
+                .startDate(now.minusDays(1)).endDate(now.plusDays(30)).isActive(true).build();
+        Sanction warning = Sanction.builder().sanctionType(SanctionType.WARNING).reason("경고")
+                .startDate(now).endDate(SanctionType.PERMANENT_END_DATE).isActive(true).build();
+        when(memberService.getMemberIdByAuthentication()).thenReturn(memberId);
+        when(sanctionRepository.findActiveSanctionsByMemberId(memberId))
+                .thenReturn(List.of(shortBan, warning, longBan));
+
+        SanctionStatusResponse response = reportService.checkAndUpdateSanctionStatus();
+
+        assertThat(response.isSanctioned()).isTrue();
+        assertThat(response.reason()).isEqualTo("긴 정지");
     }
 }

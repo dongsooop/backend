@@ -17,6 +17,7 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.LockModeType;
 import io.micrometer.common.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -71,7 +72,7 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
                 .leftJoin(notificationSetting)
                 .on(notificationSettingEq(NotificationType.NOTICE))
                 .leftJoin(deviceNoticePreference)
-                .on(deviceNoticePreference.id.device.id.eq(memberDevice.id))
+                .on(deviceNoticePreference.device.id.eq(memberDevice.id))
                 .where(memberDevice.deviceToken.isNotNull()
                         .and(isNotWebDevice())
                         .and(departmentPreferenceIn(departmentTypes))
@@ -87,10 +88,10 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
         }
 
         return queryFactory.select(Projections.constructor(DeviceSubscription.class,
-                        deviceNoticePreference.id.device.id,
-                        deviceNoticePreference.id.department.id))
+                        deviceNoticePreference.device.id,
+                        deviceNoticePreference.department.id))
                 .from(deviceNoticePreference)
-                .where(deviceNoticePreference.id.device.id.in(deviceIds))
+                .where(deviceNoticePreference.device.id.in(deviceIds))
                 .fetch();
     }
 
@@ -134,7 +135,7 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
     }
 
     private BooleanExpression notificationSettingEq(NotificationType notificationType) {
-        return notificationSetting.id.device.eq(memberDevice)
+        return notificationSetting.device.eq(memberDevice)
                 .and(notificationSetting.id.notificationType.eq(notificationType));
     }
 
@@ -149,7 +150,7 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
             return null;
         }
 
-        return deviceNoticePreference.id.department.id.in(departmentTypes);
+        return deviceNoticePreference.department.id.in(departmentTypes);
     }
 
     @Override
@@ -160,4 +161,14 @@ public class MemberDeviceRepositoryCustomImpl implements MemberDeviceRepositoryC
                                 .or(memberDevice.deviceToken.isNull())))
                 .execute();
     }
+    @Override
+    public void lockById(Long deviceId) {
+        queryFactory
+                .select(memberDevice.id)
+                .from(memberDevice)
+                .where(memberDevice.id.eq(deviceId))
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+                .fetchOne();
+    }
+
 }

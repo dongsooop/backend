@@ -11,7 +11,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -48,133 +49,23 @@ class JwtFilterShouldNotFilterTest {
         jwtFilter = new JwtFilter(jwtUtil, jwtValidator, deviceBlacklistService, exceptionResolver, ignorePaths);
     }
 
-    @Test
-    @DisplayName("필터 제외 경로(/api/public/*)는 필터를 적용하지 않는다")
-    void whenPublicApiPath_thenShouldNotFilter() {
-        // given
-        when(request.getRequestURI()).thenReturn("/api/public/test");
+    @ParameterizedTest(name = "{0}: 제외={1}")
+    @CsvSource(value = {
+            "/api/public/test, true",
+            "/oauth2/authorization/google, true",
+            "/login, true",
+            "/api/auth/refresh, true",
+            "/api/user/profile, false",
+            "/api/admin/users, false",
+            "/api/public/boards/123/comments, true",
+            "/public/test, false",
+            "'', false",
+            "/, false"
+    })
+    @DisplayName("기존 제외 패턴의 정확한 경로와 하위 경로만 JWT 필터를 건너뛴다")
+    void filtersPath(String path, boolean excluded) {
+        when(request.getRequestURI()).thenReturn(path);
 
-        // when
-        boolean result = jwtFilter.shouldNotFilter(request);
-
-        // then
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    @DisplayName("필터 제외 경로(/oauth2/*)는 필터를 적용하지 않는다")
-    void whenOAuth2Path_thenShouldNotFilter() {
-        // given
-        when(request.getRequestURI()).thenReturn("/oauth2/authorization/google");
-
-        // when
-        boolean result = jwtFilter.shouldNotFilter(request);
-
-        // then
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    @DisplayName("필터 제외 경로(/login)는 필터를 적용하지 않는다")
-    void whenLoginPath_thenShouldNotFilter() {
-        // given
-        when(request.getRequestURI()).thenReturn("/login");
-
-        // when
-        boolean result = jwtFilter.shouldNotFilter(request);
-
-        // then
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    @DisplayName("필터 제외 경로(/api/auth/refresh)는 필터를 적용하지 않는다")
-    void whenRefreshPath_thenShouldNotFilter() {
-        // given
-        when(request.getRequestURI()).thenReturn("/api/auth/refresh");
-
-        // when
-        boolean result = jwtFilter.shouldNotFilter(request);
-
-        // then
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    @DisplayName("일반 API 경로는 필터를 적용한다")
-    void whenNormalApiPath_thenShouldFilter() {
-        // given
-        when(request.getRequestURI()).thenReturn("/api/user/profile");
-
-        // when
-        boolean result = jwtFilter.shouldNotFilter(request);
-
-        // then
-        assertThat(result).isFalse();
-    }
-
-    @Test
-    @DisplayName("보호된 경로는 필터를 적용한다")
-    void whenProtectedPath_thenShouldFilter() {
-        // given
-        when(request.getRequestURI()).thenReturn("/api/admin/users");
-
-        // when
-        boolean result = jwtFilter.shouldNotFilter(request);
-
-        // then
-        assertThat(result).isFalse();
-    }
-
-    @Test
-    @DisplayName("와일드카드 패턴이 하위 경로에도 적용된다")
-    void whenWildcardPattern_thenMatchesSubPaths() {
-        // given
-        when(request.getRequestURI()).thenReturn("/api/public/boards/123/comments");
-
-        // when
-        boolean result = jwtFilter.shouldNotFilter(request);
-
-        // then
-        assertThat(result).isTrue();
-    }
-
-    @Test
-    @DisplayName("경로가 정확히 일치하지 않으면 필터를 적용한다")
-    void whenPathDoesNotMatch_thenShouldFilter() {
-        // given
-        when(request.getRequestURI()).thenReturn("/public/test"); // /api/public이 아님
-
-        // when
-        boolean result = jwtFilter.shouldNotFilter(request);
-
-        // then
-        assertThat(result).isFalse();
-    }
-
-    @Test
-    @DisplayName("빈 경로는 필터를 적용한다")
-    void whenEmptyPath_thenShouldFilter() {
-        // given
-        when(request.getRequestURI()).thenReturn("");
-
-        // when
-        boolean result = jwtFilter.shouldNotFilter(request);
-
-        // then
-        assertThat(result).isFalse();
-    }
-
-    @Test
-    @DisplayName("루트 경로는 필터를 적용한다")
-    void whenRootPath_thenShouldFilter() {
-        // given
-        when(request.getRequestURI()).thenReturn("/");
-
-        // when
-        boolean result = jwtFilter.shouldNotFilter(request);
-
-        // then
-        assertThat(result).isFalse();
+        assertThat(jwtFilter.shouldNotFilter(request)).isEqualTo(excluded);
     }
 }

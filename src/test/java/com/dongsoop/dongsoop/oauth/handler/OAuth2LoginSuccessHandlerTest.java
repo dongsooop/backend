@@ -70,8 +70,7 @@ class OAuth2LoginSuccessHandlerTest {
         verify(redirectStrategy).sendRedirect(any(), any(), urlCaptor.capture());
 
         String redirectUrl = urlCaptor.getValue();
-        assertThat(redirectUrl).contains(TARGET_URL);
-        assertThat(redirectUrl).contains("socialToken=" + SOCIAL_TOKEN);
+        assertThat(redirectUrl).contains(TARGET_URL, "socialToken=" + SOCIAL_TOKEN);
         verify(tokenGenerator).generateSocialToken(any());
     }
 }

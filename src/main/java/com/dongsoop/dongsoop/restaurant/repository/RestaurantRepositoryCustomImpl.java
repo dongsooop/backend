@@ -2,7 +2,9 @@ package com.dongsoop.dongsoop.restaurant.repository;
 
 import static com.dongsoop.dongsoop.restaurant.entity.QRestaurantLike.restaurantLike;
 import static com.dongsoop.dongsoop.restaurant.entity.QRestaurant.restaurant;
+import com.dongsoop.dongsoop.restaurant.dto.QRestaurantInfo;
 import com.dongsoop.dongsoop.restaurant.dto.QRestaurantOverview;
+import com.dongsoop.dongsoop.restaurant.dto.QRestaurantStats;
 import com.dongsoop.dongsoop.restaurant.dto.RestaurantOverview;
 import com.dongsoop.dongsoop.restaurant.entity.RestaurantCategory;
 import com.dongsoop.dongsoop.restaurant.entity.RestaurantTag;
@@ -30,15 +32,15 @@ public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCusto
     public List<RestaurantOverview> findNearbyRestaurants(Long memberId, RestaurantCategory category, Pageable pageable) {
         return queryFactory
                 .select(new QRestaurantOverview(
-                        restaurant.id,
-                        restaurant.name,
-                        restaurant.category,
-                        restaurant.distance,
-                        restaurant.placeUrl,
-                        getLikeCountSubQuery(),
-                        Expressions.stringTemplate("STRING_AGG({0}, ',')", tagAlias),
-                        restaurant.externalMapId,
-                        isLikedByMember(memberId)
+                        new QRestaurantInfo(
+                                restaurant.id,
+                                restaurant.name,
+                                restaurant.category,
+                                restaurant.distance,
+                                restaurant.placeUrl,
+                                restaurant.externalMapId),
+                        new QRestaurantStats(getLikeCountSubQuery(), isLikedByMember(memberId)),
+                        Expressions.stringTemplate("STRING_AGG({0}, ',')", tagAlias)
                 ))
                 .from(restaurant)
                 .leftJoin(restaurant.tags, tagAlias)
@@ -81,8 +83,8 @@ public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCusto
         return JPAExpressions
                 .selectOne()
                 .from(restaurantLike)
-                .where(restaurantLike.id.restaurant.id.eq(restaurant.id),
-                        restaurantLike.id.member.id.eq(memberId))
+                .where(restaurantLike.restaurant.id.eq(restaurant.id),
+                        restaurantLike.member.id.eq(memberId))
                 .exists();
     }
 
@@ -90,7 +92,7 @@ public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCusto
         return ExpressionUtils.as(
                 JPAExpressions.select(restaurantLike.count())
                         .from(restaurantLike)
-                        .where(restaurantLike.id.restaurant.id.eq(restaurant.id)),
+                        .where(restaurantLike.restaurant.id.eq(restaurant.id)),
                 "likeCount"
         );
     }

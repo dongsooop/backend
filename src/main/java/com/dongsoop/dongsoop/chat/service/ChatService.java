@@ -8,7 +8,6 @@ import com.dongsoop.dongsoop.chat.entity.ChatMessage;
 import com.dongsoop.dongsoop.chat.entity.ChatNotificationType;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.entity.ChatRoomInitResponse;
-import com.dongsoop.dongsoop.chat.entity.ChatRoomType;
 import com.dongsoop.dongsoop.chat.notification.ChatNotification;
 import com.dongsoop.dongsoop.chat.session.WebSocketSessionManager;
 import com.dongsoop.dongsoop.chat.validator.ChatValidator;
@@ -221,6 +220,10 @@ public class ChatService {
 
     public List<ChatMessage> syncOfflineMessages(String roomId, Long userId, List<ChatMessage> offlineMessages) {
         chatValidator.validateUserForRoom(roomId, userId);
+        // 소켓 전송과 같은 규칙. 거절 사유를 따로 알리지 않고 처리 0건으로 응답한다
+        if (getBlockStatus(roomId, userId) != BlockStatus.NONE) {
+            return List.of();
+        }
         return chatMessageService.processOfflineMessages(roomId, userId, offlineMessages);
     }
 
@@ -277,13 +280,7 @@ public class ChatService {
 
     // 채팅방 유형 판별
     private String determineRoomType(ChatRoom room) {
-        if (room.isContactRoom()) {
-            return ChatRoomType.CONTACT.getValue();
-        }
-        if (room.isGroupChat()) {
-            return ChatRoomType.GROUP.getValue();
-        }
-        return ChatRoomType.ONE_TO_ONE.getValue();
+        return room.roomType().getValue();
     }
 
     public BlockStatus getBlockStatus(String roomId, Long userId) {

@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.dongsoop.dongsoop.blinddate.dto.BlindDateChoiceDto;
 import com.dongsoop.dongsoop.blinddate.dto.BlindDateMessageDto;
@@ -73,11 +72,10 @@ class BlindDateGatewayTest {
     void missingIdentityDoesNotSendMessageOrChoice(String missing) {
         try (var flow = new BlindDateScenarioFixture(2)) {
             String session = flow.joinMembers(2);
-            flow.queue.openChoices(session, 10_000);
+            flow.participants.openChoices(session);
+            flow.queue.openChoices(session, () -> true);
             Map<String, Object> data = new HashMap<>(Map.of("memberId", 1L, "sessionId", session));
-            if (missing.equals("attributes")) data = null;
-            else if (missing.equals("member")) data.remove("memberId");
-            else data.remove("sessionId");
+            data = withoutIdentity(data, missing);
             var accessor = attributes(data);
             flow.events.clear();
             gateway(flow).handleMessage(new BlindDateMessageDto("text"), accessor);
@@ -94,7 +92,8 @@ class BlindDateGatewayTest {
     void authenticatedAttributesDetermineSenderAndChoice() {
         try (var flow = new BlindDateScenarioFixture(2)) {
             String session = flow.joinMembers(2);
-            flow.queue.openChoices(session, 10_000);
+            flow.participants.openChoices(session);
+            flow.queue.openChoices(session, () -> true);
             var accessor = attributes(new HashMap<>(Map.of("memberId", 1L, "sessionId", session)));
             flow.events.clear();
             gateway(flow).handleMessage(new BlindDateMessageDto("text"), accessor);
@@ -121,7 +120,8 @@ class BlindDateGatewayTest {
                             MessageBuilder.createMessage(new byte[0], missing.getMessageHeaders()),
                             "socket",
                             CloseStatus.NORMAL));
-            verifyNoInteractions(handler);
+            assertThat(flow.events).isEmpty();
+            assertThat(flow.participants.findAllBySessionId("session")).isEmpty();
             doThrow(new IllegalStateException("disconnect failed"))
                     .when(handler)
                     .execute(anyString(), anyLong(), anyString());
@@ -138,6 +138,18 @@ class BlindDateGatewayTest {
                                                     CloseStatus.NORMAL)))
                     .doesNotThrowAnyException();
         }
+    }
+
+    private Map<String, Object> withoutIdentity(Map<String, Object> data, String missing) {
+        if (missing.equals("attributes")) {
+            return null;
+        }
+        if (missing.equals("member")) {
+            data.remove("memberId");
+            return data;
+        }
+        data.remove("sessionId");
+        return data;
     }
 
     @Test

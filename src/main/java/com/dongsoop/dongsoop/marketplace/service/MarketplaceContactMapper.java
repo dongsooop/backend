@@ -2,7 +2,6 @@ package com.dongsoop.dongsoop.marketplace.service;
 
 import com.dongsoop.dongsoop.marketplace.dto.ContactMarketplaceRequest;
 import com.dongsoop.dongsoop.marketplace.entity.MarketplaceContact;
-import com.dongsoop.dongsoop.marketplace.entity.MarketplaceContact.MarketplaceContactId;
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
@@ -17,10 +16,9 @@ public class MarketplaceContactMapper {
     public MarketplaceContact toEntity(ContactMarketplaceRequest request) {
         Member applicant = memberService.getMemberReferenceByContext();
 
-        MarketplaceContactId id = new MarketplaceContactId(request.boardId(), applicant);
-
         return MarketplaceContact.builder()
-                .id(id)
+                .marketplaceId(request.boardId())
+                .applicant(applicant)
                 .build();
     }
 }

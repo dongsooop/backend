@@ -2,7 +2,7 @@ package com.dongsoop.dongsoop.jwt.service;
 
 import com.dongsoop.dongsoop.jwt.exception.BlacklistedTokenException;
 import java.time.Duration;
-import java.util.Date;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -62,7 +62,7 @@ public class DeviceBlacklistService {
      * @param issuedAt JWT의 발급일 (iat claim), null 허용
      * @throws BlacklistedTokenException 토큰이 블랙리스트 등록 시각 이하에 발급된 경우
      */
-    public void validateNotBlacklisted(Long deviceId, Date issuedAt) {
+    public void validateNotBlacklisted(Long deviceId, Instant issuedAt) {
         if (issuedAt == null) {
             return;
         }
@@ -74,7 +74,7 @@ public class DeviceBlacklistService {
         }
 
         long blacklistedAt = Long.parseLong(value);
-        if (issuedAt.getTime() <= blacklistedAt) {
+        if (issuedAt.toEpochMilli() <= blacklistedAt) {
             throw new BlacklistedTokenException();
         }
     }

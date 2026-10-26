@@ -31,14 +31,9 @@ class BlindDateMultiSessionScenarioTest {
             flow.choice.execute(second, 4L, 3L);
             flow.finishChoices();
             assertThat(flow.recipients("/chatroom")).containsExactlyInAnyOrder(3L, 4L);
-            assertThat(flow.recipients("/failed")).containsExactlyInAnyOrder(1L, 2L);
+            assertThat(flow.recipients("/failed")).isEmpty();
             assertThat(flow.results())
-                    .allSatisfy(
-                            event -> {
-                                if (event.destination().endsWith("/chatroom"))
-                                    assertThat(event.destination()).contains(second);
-                                else assertThat(event.destination()).contains(first);
-                            });
+                    .allSatisfy(event -> assertThat(event.destination()).contains(second));
         }
     }
 }

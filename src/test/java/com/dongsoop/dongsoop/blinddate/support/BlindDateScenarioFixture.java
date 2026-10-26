@@ -15,6 +15,7 @@ import com.dongsoop.dongsoop.blinddate.handler.BlindDateChoiceHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateConnectHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateDisconnectHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateMessageHandler;
+import com.dongsoop.dongsoop.blinddate.notification.BlindDateMatchNotification;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorageImpl;
@@ -27,6 +28,7 @@ import com.dongsoop.dongsoop.blinddate.service.BlindDateSessionServiceImpl;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -45,7 +47,8 @@ public final class BlindDateScenarioFixture implements AutoCloseable {
     public final BlindDateEventQueue queue = new BlindDateEventQueue();
     public final BlindDateParticipantStorageImpl participants =
             new BlindDateParticipantStorageImpl();
-    public final BlindDateSessionStorageImpl sessions = new BlindDateSessionStorageImpl();
+    public final BlindDateSessionStorageImpl sessions =
+            new BlindDateSessionStorageImpl(mock(ApplicationEventPublisher.class));
     public final BlindDateStorageImpl operation = new BlindDateStorageImpl();
     public final SimpMessagingTemplate messaging = mock(SimpMessagingTemplate.class);
     public final ChatRoomService rooms = mock(ChatRoomService.class);
@@ -53,6 +56,7 @@ public final class BlindDateScenarioFixture implements AutoCloseable {
     public final BlindDateNotification notification = mock(BlindDateNotification.class);
     public final BlindDateSessionScheduler sessionStarter = mock(BlindDateSessionScheduler.class);
     public final List<Event> events = new CopyOnWriteArrayList<>();
+    public final List<CreatedRoom> createdRooms = new CopyOnWriteArrayList<>();
     public final List<List<Long>> createdPairs = new CopyOnWriteArrayList<>();
     public final BlockingQueue<Runnable> timers = new LinkedBlockingQueue<>();
     public final BlindDateServiceImpl service;
@@ -89,14 +93,22 @@ public final class BlindDateScenarioFixture implements AutoCloseable {
         when(rooms.createOneToOneChatRoom(anyLong(), anyLong(), anyString()))
                 .thenAnswer(
                         call -> {
-                            createdPairs.add(List.of(call.getArgument(0), call.getArgument(1)));
-                            return ChatRoom.builder()
-                                    .roomId("room-" + number.incrementAndGet())
-                                    .build();
+                            var pair = List.<Long>of(call.getArgument(0), call.getArgument(1));
+                            String roomId = "room-" + number.incrementAndGet();
+                            createdPairs.add(pair);
+                            createdRooms.add(new CreatedRoom(pair, roomId));
+                            return ChatRoom.builder().roomId(roomId).build();
                         });
         service =
                 new BlindDateServiceImpl(
-                        participants, operation, notification, sessions, messaging, tasks, queue);
+                        participants,
+                        operation,
+                        notification,
+                        sessions,
+                        messaging,
+                        tasks,
+                        queue,
+                        mock(BlindDateMessageProvider.class));
         disconnect = new BlindDateDisconnectHandler(participants, sessions, service, queue);
         connect =
                 new BlindDateConnectHandler(
@@ -109,15 +121,22 @@ public final class BlindDateScenarioFixture implements AutoCloseable {
                         messaging,
                         queue,
                         disconnect);
-        choice = new BlindDateChoiceHandler(participants, sessions, messaging, rooms, queue);
-        message = new BlindDateMessageHandler(participants, messaging);
+        choice =
+                new BlindDateChoiceHandler(
+                        participants,
+                        sessions,
+                        messaging,
+                        rooms,
+                        queue,
+                        mock(BlindDateMatchNotification.class));
+        message = new BlindDateMessageHandler(participants, messaging, sessions);
         var messages = mock(BlindDateMessageProvider.class);
         when(messages.getStartMessages()).thenReturn(List.of());
         when(messages.getRandomEventMessages(1)).thenReturn(List.of("event"));
         when(messages.getSessionManagerName()).thenReturn("manager");
         scheduler =
                 new BlindDateSessionSchedulerImpl(
-                        participants, sessions, messages, messaging, tasks, queue);
+                        participants, sessions, messages, messaging, tasks, queue, choice);
         ReflectionTestUtils.setField(scheduler, "eventMessageAmount", 1);
         service.startBlindDate(
                 new StartBlindDateRequest(LocalDateTime.now().plusHours(1), capacity));
@@ -184,6 +203,8 @@ public final class BlindDateScenarioFixture implements AutoCloseable {
                         })
                 .toList();
     }
+
+    public record CreatedRoom(List<Long> members, String id) {}
 
     public record Event(String destination, Object payload) {}
 

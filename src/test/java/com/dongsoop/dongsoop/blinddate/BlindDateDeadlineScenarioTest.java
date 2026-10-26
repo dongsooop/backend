@@ -21,8 +21,8 @@ class BlindDateDeadlineScenarioTest {
             deadline.run();
             deadline.run();
             flow.queue.awaitIdle();
-            assertThat(flow.recipients("/failed")).containsExactlyInAnyOrder(1L, 2L);
-            assertThat(flow.results()).hasSize(2);
+            assertThat(flow.recipients("/failed")).isEmpty();
+            assertThat(flow.results()).isEmpty();
             assertThat(flow.sessions.getState(session)).isNull();
         }
     }
@@ -32,7 +32,8 @@ class BlindDateDeadlineScenarioTest {
     void waitingSessionCannotMatch() {
         try (var flow = new BlindDateScenarioFixture(3)) {
             String session = flow.joinMembers(2);
-            flow.queue.openChoices(session, 10_000);
+            flow.participants.openChoices(session);
+            flow.queue.openChoices(session, () -> true);
             flow.choice.execute(session, 1L, 2L);
             flow.choice.execute(session, 2L, 1L);
             flow.queue.awaitIdle();
