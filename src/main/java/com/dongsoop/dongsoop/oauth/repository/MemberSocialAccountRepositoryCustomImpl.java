@@ -4,7 +4,6 @@ import static com.dongsoop.dongsoop.role.entity.QMemberRole.memberRole;
 import static com.dongsoop.dongsoop.member.entity.QMember.member;
 import static com.dongsoop.dongsoop.oauth.entity.QMemberSocialAccount.memberSocialAccount;
 import com.dongsoop.dongsoop.member.entity.Member;
-import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountDto;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountOverview;
 import com.dongsoop.dongsoop.oauth.entity.MemberSocialAccount;
@@ -14,7 +13,6 @@ import com.dongsoop.dongsoop.role.entity.RoleType;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -36,10 +34,10 @@ public class MemberSocialAccountRepositoryCustomImpl implements MemberSocialAcco
                 .select(member,
                         memberSocialAccount.id.providerId,
                         memberSocialAccount.id.providerType,
-                        memberRole.id.role)
+                        memberRole.role)
                 .from(memberSocialAccount)
                 .leftJoin(memberSocialAccount.member, member)
-                .leftJoin(memberRole).on(memberRole.id.member.eq(member))
+                .leftJoin(memberRole).on(memberRole.member.eq(member))
                 .where(memberSocialAccount.id.providerId.eq(providerId)
                         .and(memberSocialAccount.id.providerType.eq(providerType)))
                 .fetch();
@@ -50,7 +48,7 @@ public class MemberSocialAccountRepositoryCustomImpl implements MemberSocialAcco
 
         Tuple firstRow = rows.get(0);
         List<RoleType> roles = rows.stream()
-                .map(t -> t.get(memberRole.id.role))
+                .map(t -> t.get(memberRole.role))
                 .filter(Objects::nonNull)
                 .map(Role::getRoleType)
                 .distinct()
@@ -99,19 +97,4 @@ public class MemberSocialAccountRepositoryCustomImpl implements MemberSocialAcco
         return Optional.ofNullable(result);
     }
 
-    // 회원에 대해 비관적 잠금(PESSIMISTIC_WRITE) 을 획득하고 반환
-    @Override
-    public Member findAndLockMember(Long memberId) {
-        Member lockedMember = queryFactory
-                .selectFrom(member)
-                .where(member.id.eq(memberId))
-                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
-                .fetchOne();
-
-        if (lockedMember == null) {
-            throw new MemberNotFoundException();
-        }
-
-        return lockedMember;
-    }
 }

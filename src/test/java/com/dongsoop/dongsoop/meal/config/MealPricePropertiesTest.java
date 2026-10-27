@@ -2,6 +2,7 @@ package com.dongsoop.dongsoop.meal.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -35,7 +36,7 @@ class MealPricePropertiesTest {
 
         MealPriceProperties.Item ramen = item(properties, "라면류", "신라면");
         assertEquals(3500, ramen.price());
-        assertTrue(ramen.largePrice() == null);
+        assertNull(ramen.largePrice());
         assertTrue(ramen.days() == null || ramen.days().isEmpty());
     }
 

@@ -3,6 +3,7 @@ package com.dongsoop.dongsoop.blinddate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import com.dongsoop.dongsoop.blinddate.config.BlindDateMessageProvider;
 import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateConnectHandler;
@@ -70,7 +71,7 @@ class BlindDateConcurrencyTest {
     void setUp() {
         blindDateStorage = new BlindDateStorageImpl();
         participantStorage = new BlindDateParticipantStorageImpl();
-        sessionStorage = new BlindDateSessionStorageImpl();
+        sessionStorage = new BlindDateSessionStorageImpl(event -> {});
 
         eventQueue = new BlindDateEventQueue();
 
@@ -86,7 +87,8 @@ class BlindDateConcurrencyTest {
                 sessionStorage,
                 messagingTemplate,
                 taskScheduler,
-                eventQueue
+                eventQueue,
+                new BlindDateMessageProvider()
         );
 
         sessionService = new BlindDateSessionServiceImpl(
@@ -178,6 +180,18 @@ class BlindDateConcurrencyTest {
 
             int participantCount = getParticipantCount(sessionIds.iterator().next());
             assertThat(participantCount).as("모든 참가자가 입장해야 함").isEqualTo(10);
+
+            String assignedSessionId = sessionIds.iterator().next();
+            for (long memberId = 1; memberId <= threadCount; memberId++) {
+                ParticipantInfo byMember = participantStorage.getByMemberId(memberId);
+                ParticipantInfo bySocket = participantStorage.getBySocketId("socket-" + memberId);
+                assertThat(byMember).as("회원 인덱스가 존재해야 함: %s", memberId).isNotNull();
+                assertThat(bySocket).as("소켓 인덱스가 존재해야 함: %s", memberId).isNotNull();
+                assertThat(bySocket.getMemberId()).isEqualTo(memberId);
+                assertThat(bySocket.getSessionId()).isEqualTo(assignedSessionId);
+                assertThat(byMember.getSessionId()).isEqualTo(assignedSessionId);
+                assertThat(byMember.getSocketIds()).contains("socket-" + memberId);
+            }
         }
 
         @RepeatedTest(10)
@@ -580,6 +594,11 @@ class BlindDateConcurrencyTest {
             int socketCount = participant.getSocketIds().size();
             log.info("Member 1 has {} sockets", socketCount);
             assertThat(socketCount).as("모든 소켓이 등록되어야 함").isEqualTo(tabCount);
+            for (int socketNum = 1; socketNum <= tabCount; socketNum++) {
+                assertThat(participantStorage.getBySocketId("socket-" + socketNum).getMemberId())
+                        .as("각 소켓 역인덱스가 같은 회원을 가리켜야 함")
+                        .isEqualTo(1L);
+            }
         }
     }
 

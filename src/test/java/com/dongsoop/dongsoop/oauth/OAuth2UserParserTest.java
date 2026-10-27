@@ -14,6 +14,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * OAuth2UserParser 단위 테스트
@@ -54,36 +56,13 @@ class OAuth2UserParserTest {
         assertThat(oAuth2UserParser).isNotNull();
     }
 
-    @Test
-    @DisplayName("Google 프로바이더를 정상적으로 추출")
-    void extractGoogleProvider() {
-        // when
-        SocialProvider provider = oAuth2UserParser.extractProvider("google");
+    @ParameterizedTest
+    @ValueSource(strings = {"google", "kakao", "apple"})
+    @DisplayName("등록된 프로바이더를 서비스명으로 추출한다")
+    void extractsRegisteredProvider(String serviceName) {
+        SocialProvider provider = oAuth2UserParser.extractProvider(serviceName);
 
-        // then
         assertThat(provider).isNotNull();
-        assertThat(provider.serviceName()).isEqualTo("google");
-    }
-
-    @Test
-    @DisplayName("Kakao 프로바이더를 정상적으로 추출")
-    void extractKakaoProvider() {
-        // when
-        SocialProvider provider = oAuth2UserParser.extractProvider("kakao");
-
-        // then
-        assertThat(provider).isNotNull();
-        assertThat(provider.serviceName()).isEqualTo("kakao");
-    }
-
-    @Test
-    @DisplayName("Apple 프로바이더를 정상적으로 추출")
-    void extractAppleProvider() {
-        // when
-        SocialProvider provider = oAuth2UserParser.extractProvider("apple");
-
-        // then
-        assertThat(provider).isNotNull();
-        assertThat(provider.serviceName()).isEqualTo("apple");
+        assertThat(provider.serviceName()).isEqualTo(serviceName);
     }
 }

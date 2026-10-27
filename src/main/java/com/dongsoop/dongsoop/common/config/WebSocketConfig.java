@@ -1,9 +1,12 @@
 package com.dongsoop.dongsoop.common.config;
 
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateStompAuthorizationInterceptor;
+import com.dongsoop.dongsoop.common.handler.websocket.ChatAuthorizationInterceptor;
 import com.dongsoop.dongsoop.common.handler.websocket.CustomStompErrorHandler;
 import com.dongsoop.dongsoop.common.handler.websocket.StompHandler;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
@@ -21,6 +24,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final StompHandler stompHandler;
     private final BlindDateStompAuthorizationInterceptor blindDateStompAuthorizationInterceptor;
+    private final ChatAuthorizationInterceptor chatAuthorizationInterceptor;
     private final CustomStompErrorHandler customStompErrorHandler;
 
     @Override
@@ -50,11 +54,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(stompHandler, blindDateStompAuthorizationInterceptor);
-        registration.taskExecutor()
-                .corePoolSize(16)
-                .maxPoolSize(50)
-                .queueCapacity(300);
+        registration.interceptors(
+                stompHandler, chatAuthorizationInterceptor, blindDateStompAuthorizationInterceptor);
+        registration.taskExecutor().corePoolSize(16).maxPoolSize(50).queueCapacity(300);
     }
 
     @Bean

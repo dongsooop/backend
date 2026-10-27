@@ -53,18 +53,14 @@ public class EclassReminderScheduler {
         List<EclassAssignment> sent = new ArrayList<>();
         for (EclassAssignment assignment : targets) {
             int remainingDays = (int) ChronoUnit.DAYS.between(today, assignment.getDueAt().toLocalDate());
-            if (!daysBefore.contains(remainingDays) || !assignment.needsReminder(remainingDays)) {
-                continue;
+            if (daysBefore.contains(remainingDays)
+                    && assignment.needsReminder(remainingDays)
+                    && send(assignment, remainingDays)) {
+                // 실제로 보낸 것만 기록한다 — 기기 토큰이 없거나 알림이 꺼져 건너뛴 과제까지 보냈다고 적으면
+                // 그 사용자는 이 단계의 알림을 영영 받지 못한다
+                assignment.markReminded(remainingDays);
+                sent.add(assignment);
             }
-
-            // 실제로 보낸 것만 기록한다 — 기기 토큰이 없거나 알림이 꺼져 건너뛴 과제까지 보냈다고 적으면
-            // 그 사용자는 이 단계의 알림을 영영 받지 못한다
-            if (!send(assignment, remainingDays)) {
-                continue;
-            }
-
-            assignment.markReminded(remainingDays);
-            sent.add(assignment);
         }
 
         assignmentRepository.saveAll(sent);

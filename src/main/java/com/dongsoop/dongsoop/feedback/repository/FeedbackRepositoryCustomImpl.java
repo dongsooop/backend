@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.feedback.repository;
 
-import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.feedback.dto.FeedbackDetail;
 import com.dongsoop.dongsoop.feedback.dto.FeedbackOverview;
 import com.dongsoop.dongsoop.feedback.dto.ServiceFeatureFeedback;
@@ -10,16 +9,17 @@ import com.dongsoop.dongsoop.feedback.entity.ServiceFeature;
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.PathBuilder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.support.Querydsl;
 import org.springframework.stereotype.Repository;
 
 @Repository
-@RequiredArgsConstructor
 public class FeedbackRepositoryCustomImpl implements FeedbackRepositoryCustom {
 
     private static final Integer CONTENT_LIMIT = 3;
@@ -28,7 +28,14 @@ public class FeedbackRepositoryCustomImpl implements FeedbackRepositoryCustom {
     private static final QMember member = QMember.member;
 
     private final JPAQueryFactory queryFactory;
-    private final PageableUtil pageableUtil;
+    private final Querydsl querydsl;
+
+    public FeedbackRepositoryCustomImpl(EntityManager entityManager,
+            JPAQueryFactory queryFactory) {
+        this.queryFactory = queryFactory;
+        this.querydsl = new Querydsl(entityManager,
+                new PathBuilder<>(feedback.getType(), feedback.getMetadata()));
+    }
 
     @Override
     public Optional<FeedbackDetail> searchFeedbackById(Long id) {
@@ -51,9 +58,9 @@ public class FeedbackRepositoryCustomImpl implements FeedbackRepositoryCustom {
         }
 
         List<ServiceFeature> serviceFeatureList = queryFactory
-                .select(feedbackServiceFeature.id.serviceFeature)
+                .select(feedbackServiceFeature.serviceFeature)
                 .from(feedbackServiceFeature)
-                .where(feedbackServiceFeature.id.feedback.id.eq(id))
+                .where(feedbackServiceFeature.feedback.id.eq(id))
                 .fetch();
 
         FeedbackDetail result = base.fromBase(serviceFeatureList);
@@ -65,11 +72,11 @@ public class FeedbackRepositoryCustomImpl implements FeedbackRepositoryCustom {
     public FeedbackOverview searchFeedbackOverview() {
         List<ServiceFeatureFeedback> serviceFeatureList = queryFactory
                 .select(
-                        feedbackServiceFeature.id.serviceFeature,
-                        feedbackServiceFeature.id.serviceFeature.count()
+                        feedbackServiceFeature.serviceFeature,
+                        feedbackServiceFeature.serviceFeature.count()
                 )
                 .from(feedbackServiceFeature)
-                .groupBy(feedbackServiceFeature.id.serviceFeature)
+                .groupBy(feedbackServiceFeature.serviceFeature)
                 .fetch()
                 .stream()
                 .map(this::parseServiceFeature)
@@ -102,23 +109,17 @@ public class FeedbackRepositoryCustomImpl implements FeedbackRepositoryCustom {
 
     @Override
     public List<String> searchAllImprovementSuggestions(Pageable pageable) {
-        return queryFactory
+        return querydsl.applyPagination(pageable, queryFactory
                 .select(feedback.improvementSuggestions)
-                .from(feedback)
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), feedback))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
+                .from(feedback))
                 .fetch();
     }
 
     @Override
     public List<String> searchAllFeatureRequests(Pageable pageable) {
-        return queryFactory
+        return querydsl.applyPagination(pageable, queryFactory
                 .select(feedback.featureRequests)
-                .from(feedback)
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), feedback))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
+                .from(feedback))
                 .fetch();
     }
 

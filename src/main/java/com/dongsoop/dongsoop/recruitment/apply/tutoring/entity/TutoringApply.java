@@ -5,8 +5,6 @@ import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.recruitment.apply.entity.RecruitmentApplyStatus;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.entity.TutoringBoard;
 import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
@@ -14,6 +12,10 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
+import java.io.Serial;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import lombok.AllArgsConstructor;
@@ -25,14 +27,22 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
+@IdClass(TutoringApply.TutoringApplyKey.class)
 @SuperBuilder
 @NoArgsConstructor
 @SQLRestriction("is_deleted = false")
 @EntityListeners(AuditingEntityListener.class)
 public class TutoringApply extends BaseEntity {
 
-    @EmbeddedId
-    private TutoringApplyKey id;
+    @Id
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "tutoring_board_id", updatable = false)
+    private TutoringBoard tutoringBoard;
+
+    @Id
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "member_id", updatable = false)
+    private Member member;
 
     @Column(name = "introduction", length = 500)
     private String introduction;
@@ -54,21 +64,19 @@ public class TutoringApply extends BaseEntity {
     }
 
     public TutoringBoard getTutoringBoard() {
-        return id.tutoringBoard;
+        return tutoringBoard;
     }
 
-    @Embeddable
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class TutoringApplyKey {
+    public static class TutoringApplyKey implements Serializable {
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(nullable = false, name = "tutoring_board_id", updatable = false)
-        private TutoringBoard tutoringBoard;
+        @Serial
+        private static final long serialVersionUID = 1L;
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(nullable = false, name = "member_id", updatable = false)
-        private Member member;
+        private Long tutoringBoard;
+
+        private Long member;
 
         @Override
         public boolean equals(Object o) {
@@ -80,13 +88,13 @@ public class TutoringApply extends BaseEntity {
             }
 
             TutoringApplyKey that = (TutoringApplyKey) o;
-            return this.tutoringBoard.equalsId(that.tutoringBoard)
-                    && Objects.equals(this.member.getId(), that.member.getId());
+            return Objects.equals(tutoringBoard, that.tutoringBoard)
+                    && Objects.equals(member, that.member);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(tutoringBoard.getId(), member.getId());
+            return Objects.hash(tutoringBoard, member);
         }
     }
 }

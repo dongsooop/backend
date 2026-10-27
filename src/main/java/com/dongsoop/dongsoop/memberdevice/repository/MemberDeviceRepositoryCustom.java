@@ -12,6 +12,8 @@ import java.util.List;
 
 public interface MemberDeviceRepositoryCustom {
 
+    void lockById(Long deviceId);
+
     List<MemberDeviceDto> findDevicesWithNotification(MemberDeviceFindCondition condition);
 
     List<String> getDeviceByMemberId(Long memberId);

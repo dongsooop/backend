@@ -2,11 +2,19 @@ package com.dongsoop.dongsoop.blinddate.handler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
+import com.dongsoop.dongsoop.chat.session.WebSocketSessionManager;
+import com.dongsoop.dongsoop.common.handler.websocket.StompHandler;
+import com.dongsoop.dongsoop.jwt.JwtUtil;
+import com.dongsoop.dongsoop.jwt.JwtValidator;
+import com.dongsoop.dongsoop.jwt.service.DeviceBlacklistService;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
@@ -17,8 +25,12 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ExecutorSubscribableChannel;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.messaging.StompSubProtocolHandler;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 class StompChoiceErrorBrokerTest {
@@ -56,6 +68,27 @@ class StompChoiceErrorBrokerTest {
         }
     }
 
+    @ParameterizedTest(name = "raw {0}, sender={1}")
+    @CsvSource({"SEND,1", "SEND,2", "MESSAGE,1", "MESSAGE,2"})
+    void rawClientFrameCannotForgeServerError(StompCommand command, long member) {
+        try (var fixture = new BrokerFixture()) {
+            fixture.subscribe("owner", 1L, TOPIC);
+            fixture.rawClientSend(command, member, TOPIC, "forged-error");
+            assertThat(fixture.delivered).isEmpty();
+            fixture.serverSend(TOPIC, "server-error");
+            assertThat(fixture.delivered)
+                    .singleElement()
+                    .satisfies(
+                            message -> {
+                                assertThat(message.getPayload()).isEqualTo("server-error");
+                                assertThat(
+                                                SimpMessageHeaderAccessor.getSessionId(
+                                                        message.getHeaders()))
+                                        .isEqualTo("owner");
+                            });
+        }
+    }
+
     private static final class BrokerFixture implements AutoCloseable {
         private final ExecutorSubscribableChannel inbound = new ExecutorSubscribableChannel();
         private final ExecutorSubscribableChannel internal = new ExecutorSubscribableChannel();
@@ -69,6 +102,12 @@ class StompChoiceErrorBrokerTest {
                         if (SimpMessageHeaderAccessor.getMessageType(message.getHeaders())
                                 == SimpMessageType.MESSAGE) delivered.add(message);
                     });
+            inbound.addInterceptor(
+                    new StompHandler(
+                            mock(JwtValidator.class),
+                            mock(JwtUtil.class),
+                            mock(WebSocketSessionManager.class),
+                            mock(DeviceBlacklistService.class)));
             inbound.addInterceptor(new BlindDateStompAuthorizationInterceptor());
             broker = new SimpleBrokerMessageHandler(inbound, outbound, internal, List.of("/topic"));
             broker.start();
@@ -86,6 +125,28 @@ class StompChoiceErrorBrokerTest {
         private void clientSend(long member, String destination, String payload) {
             inbound.send(
                     frame(StompCommand.SEND, "sender-" + member, member, destination, payload));
+        }
+
+        private void rawClientSend(
+                StompCommand command, long member, String destination, String payload) {
+            var socket = mock(WebSocketSession.class);
+            when(socket.getId()).thenReturn("sender-" + member);
+            when(socket.isOpen()).thenReturn(true);
+            when(socket.getAttributes()).thenReturn(new HashMap<>());
+            when(socket.getPrincipal())
+                    .thenReturn(new UsernamePasswordAuthenticationToken(member, null, List.of()));
+            var protocol = new StompSubProtocolHandler();
+            protocol.afterSessionStarted(socket, inbound);
+            protocol.handleMessageFromClient(
+                    socket,
+                    new TextMessage(
+                            command.name()
+                                    + "\ndestination:"
+                                    + destination
+                                    + "\n\n"
+                                    + payload
+                                    + "\u0000"),
+                    inbound);
         }
 
         private void serverSend(String destination, String payload) {

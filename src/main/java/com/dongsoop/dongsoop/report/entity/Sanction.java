@@ -69,10 +69,4 @@ public class Sanction extends BaseEntity {
     public boolean isSanctionActive() {
         return isActive && !isCurrentlyExpired();
     }
-
-    public void expireIfNeeded() {
-        if (isCurrentlyExpired()) {
-            deactivate();
-        }
-    }
 }

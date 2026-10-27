@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.report.repository;
 
-import com.dongsoop.dongsoop.common.PageableUtil;
 import com.dongsoop.dongsoop.member.entity.QMember;
 import com.dongsoop.dongsoop.report.dto.ReportResponse;
 import com.dongsoop.dongsoop.report.dto.ReportSummaryResponse;
@@ -9,18 +8,18 @@ import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.core.types.dsl.PathBuilder;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Repository;
-
+import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.support.Querydsl;
+import org.springframework.stereotype.Repository;
 
 @Repository
-@RequiredArgsConstructor
 public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
 
     private static final QReport report = QReport.report;
@@ -28,9 +27,17 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     private static final QMember admin = new QMember("admin");
     private static final QMember targetMember = new QMember("targetMember");
     private static final QSanction sanction = QSanction.sanction;
+    private static final QReport resolvedBy = new QReport("resolvedBy");
 
     private final JPAQueryFactory queryFactory;
-    private final PageableUtil pageableUtil;
+    private final Querydsl querydsl;
+
+    public ReportRepositoryCustomImpl(EntityManager entityManager,
+            JPAQueryFactory queryFactory) {
+        this.queryFactory = queryFactory;
+        this.querydsl = new Querydsl(entityManager,
+                new PathBuilder<>(report.getType(), report.getMetadata()));
+    }
 
     @Override
     public List<ReportResponse> findDetailedReportsByFilter(ReportFilterType filterType, Pageable pageable) {
@@ -55,10 +62,7 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     }
 
     private List<ReportSummaryResponse> applySummaryPaginationAndSorting(JPAQuery<ReportSummaryResponse> query, Pageable pageable) {
-        return query
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), report))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
+        return querydsl.applyPagination(pageable, query)
                 .fetch();
     }
 
@@ -95,7 +99,14 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 sanction.startDate,
                 sanction.endDate,
                 sanction.isActive,
-                report.createdAt);
+                report.createdAt,
+                report.chatRoomId,
+                report.chatRoomType,
+                report.messageId,
+                report.messageContent,
+                report.messageSentAt,
+                report.messageContext,
+                report.resolvedByReportId);
     }
 
     private Expression<ReportSummaryResponse> createSummaryProjection() {
@@ -108,10 +119,15 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 report.createdAt,
                 report.targetMember.id,
                 report.targetId,
-                report.description
+                report.description,
+                report.chatRoomId,
+                report.chatRoomType,
+                report.messageId,
+                report.messageContent,
+                report.messageSentAt,
+                report.messageContext
         );
     }
-
 
     private JPAQuery<ReportResponse> createBaseQuery(Expression<ReportResponse> projection,
                                                      BooleanExpression filterCondition) {
@@ -121,7 +137,9 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
                 .leftJoin(report.reporter, reporter)
                 .leftJoin(report.admin, admin)
                 .leftJoin(report.targetMember, targetMember)
-                .leftJoin(report.sanction, sanction)
+                .leftJoin(resolvedBy).on(resolvedBy.id.eq(report.resolvedByReportId))
+                // 함께 닫힌 신고는 자기 제재가 없으므로 처리한 신고의 제재를 보여 준다. 제재 행은 처리한 신고에만 있다
+                .leftJoin(sanction).on(sanction.eq(report.sanction).or(sanction.eq(resolvedBy.sanction)))
                 .where(filterCondition);
     }
 
@@ -135,18 +153,15 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
         return Optional.ofNullable(
                 queryFactory
                         .selectFrom(report)
-                        .leftJoin(report.sanction, sanction)
+                        .leftJoin(report.sanction, sanction).fetchJoin()
                         .where(condition)
-                        .orderBy(report.createdAt.desc())
+                        .orderBy(sanction.endDate.desc())
                         .fetchFirst()
         );
     }
 
     private List<ReportResponse> applyPaginationAndSorting(JPAQuery<ReportResponse> query, Pageable pageable) {
-        return query
-                .orderBy(pageableUtil.getAllOrderSpecifiers(pageable.getSort(), report))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
+        return querydsl.applyPagination(pageable, query)
                 .fetch();
     }
 
@@ -175,17 +190,22 @@ public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
     }
 
     private BooleanExpression isSanctionActive() {
-        return sanction.isActive.eq(true).and(report.sanction.isNotNull());
+        return sanction.isActive.eq(true);
     }
 
     @Override
     public List<Report> findUnprocessedReports(Pageable pageable) {
         return queryFactory
                 .selectFrom(report)
-                .where(report.isProcessed.eq(false))
+                .where(report.isProcessed.eq(false), isAutoSanctionTarget())
                 .orderBy(report.createdAt.asc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
+    }
+
+    private BooleanExpression isAutoSanctionTarget() {
+        return report.reportType.in(ReportType.BOARD_TYPES)
+                .or(report.reportType.eq(ReportType.CHAT_MESSAGE).and(report.isAutoReviewed.eq(false)));
     }
 }

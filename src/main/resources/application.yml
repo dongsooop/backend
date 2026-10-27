@@ -19,6 +19,7 @@ rest:
 
 eclass:
   base-url: https://eclass.dongyang.ac.kr
+  web-service-path: /webservice/rest/server.php
   user-agent: "Mozilla/5.0 (Compatible; DongsoopEclass/1.0)"
   connect-timeout-ms: 5000
   read-timeout-ms: 15000
@@ -82,7 +83,11 @@ authentication:
       /notice/keywords,
       /notice/keywords/**
     admin:
-      /admin
+      /admin,
+      /reports/admin,
+      /reports/sanctions,
+      /reports/*/dismiss,
+      /reports/*/context
   origins:
     http://localhost:3000,
     http://dongsoop.site,
@@ -142,6 +147,7 @@ notice:
 meal:
   crawler:
     base-url: "https://www.dongyang.ac.kr/dmu/4902/subview.do?enc="
+    diet-path-template: "/diet/dmu/13/view.do?monday=%s&week=%s&"
     timeout: 15000 # 15 seconds
     user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 

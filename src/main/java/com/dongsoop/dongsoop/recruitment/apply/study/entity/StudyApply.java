@@ -4,8 +4,6 @@ import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.recruitment.apply.entity.RecruitmentApplyStatus;
 import com.dongsoop.dongsoop.recruitment.board.study.entity.StudyBoard;
 import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
@@ -13,6 +11,10 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
+import java.io.Serial;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import lombok.AllArgsConstructor;
@@ -23,13 +25,21 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
+@IdClass(StudyApply.StudyApplyKey.class)
 @SuperBuilder
 @NoArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
 public class StudyApply {
 
-    @EmbeddedId
-    private StudyApplyKey id;
+    @Id
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "study_board_id", updatable = false)
+    private StudyBoard studyBoard;
+
+    @Id
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "member_id", updatable = false)
+    private Member member;
 
     @Column(name = "introduction", length = 500)
     private String introduction;
@@ -51,21 +61,19 @@ public class StudyApply {
     }
 
     public StudyBoard getStudyBoard() {
-        return id.studyBoard;
+        return studyBoard;
     }
 
-    @Embeddable
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class StudyApplyKey {
+    public static class StudyApplyKey implements Serializable {
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(nullable = false, name = "study_board_id", updatable = false)
-        private StudyBoard studyBoard;
+        @Serial
+        private static final long serialVersionUID = 1L;
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(nullable = false, name = "member_id", updatable = false)
-        private Member member;
+        private Long studyBoard;
+
+        private Long member;
 
         @Override
         public boolean equals(Object o) {
@@ -77,13 +85,13 @@ public class StudyApply {
             }
 
             StudyApplyKey that = (StudyApplyKey) o;
-            return this.studyBoard.equalsId(that.studyBoard)
-                    && Objects.equals(this.member.getId(), that.member.getId());
+            return Objects.equals(studyBoard, that.studyBoard)
+                    && Objects.equals(member, that.member);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(studyBoard.getId(), member.getId());
+            return Objects.hash(studyBoard, member);
         }
     }
 }

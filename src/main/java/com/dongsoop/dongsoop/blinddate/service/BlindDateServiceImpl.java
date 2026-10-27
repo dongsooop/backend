@@ -1,7 +1,9 @@
 package com.dongsoop.dongsoop.blinddate.service;
 
+import com.dongsoop.dongsoop.blinddate.config.BlindDateMessageProvider;
 import com.dongsoop.dongsoop.blinddate.config.BlindDateTopic;
 import com.dongsoop.dongsoop.blinddate.dto.StartBlindDateRequest;
+import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 public class BlindDateServiceImpl implements BlindDateService {
 
     private static final int BLINDDATE_CLOSE_DELAY = 30 * 60 * 1000; // 30분
+    private static final String JOIN_DESTINATION = "/queue/blinddate/join";
 
     private final BlindDateParticipantStorage participantStorage;
     private final BlindDateStorage blindDateStorage;
@@ -31,6 +34,7 @@ public class BlindDateServiceImpl implements BlindDateService {
     private final SimpMessagingTemplate messagingTemplate;
     private final BlindDateTaskScheduler taskScheduler;
     private final BlindDateEventQueue eventQueue;
+    private final BlindDateMessageProvider messageProvider;
 
     /**
      * 과팅 운영 상태 확인
@@ -74,7 +78,7 @@ public class BlindDateServiceImpl implements BlindDateService {
      */
     @Override
     public void resetParticipants() {
-        eventQueue.submit(() -> {
+        eventQueue.submitCleanup(() -> {
             blindDateStorage.setPointer(null);
             sessionStorage.clear();
             participantStorage.clear();
@@ -93,7 +97,7 @@ public class BlindDateServiceImpl implements BlindDateService {
             blindDateStorage.close();
 
             // 세션/참가자 데이터 정리는 큐를 통해 순서대로 처리
-            eventQueue.submit(() -> {
+            eventQueue.submitCleanup(() -> {
                 // 모든 세션 정보 삭제
                 sessionStorage.clear();
 
@@ -117,5 +121,37 @@ public class BlindDateServiceImpl implements BlindDateService {
                 BlindDateTopic.joined(sessionId),
                 Map.of("volunteer", count)
         );
+    }
+
+    /**
+     * 참가자 강퇴. 세션이 이미 끝났으면 알림 없이 재입장만 막고, 전체 초기화로 참가 기록이 없으면 아무것도 하지 않는다.
+     *
+     * @param sessionId 강퇴할 세션 id
+     * @param memberId  강퇴 대상 회원 id
+     */
+    @Override
+    public void kickParticipant(String sessionId, Long memberId) {
+        eventQueue.submit(() -> {
+            ParticipantInfo kicked = participantStorage.kick(sessionId, memberId);
+            if (kicked == null || sessionStorage.getState(sessionId) == null) {
+                return;
+            }
+
+            try {
+                messagingTemplate.convertAndSendToUser(memberId.toString(), JOIN_DESTINATION,
+                        Map.of("state", "KICKED"));
+            } catch (Exception e) {
+                log.error("Failed to send KICKED event: memberId={}", memberId, e);
+            }
+            messagingTemplate.convertAndSend(BlindDateTopic.system(sessionId), Map.of(
+                    "message", kicked.getAnonymousName() + "님이 퇴장당했습니다.",
+                    "senderId", 0L,
+                    "senderName", messageProvider.getSessionManagerName(),
+                    "timestamp", System.currentTimeMillis()
+            ));
+            if (sessionStorage.isWaiting(sessionId)) {
+                broadcastJoinedCount(sessionId, participantStorage.findAllBySessionId(sessionId).size());
+            }
+        });
     }
 }

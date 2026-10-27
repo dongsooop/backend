@@ -10,6 +10,6 @@ import org.springframework.data.repository.query.Param;
 
 public interface MemberRoleRepository extends JpaRepository<MemberRole, MemberRoleKey> {
 
-    @Query("SELECT mr.id.role FROM MemberRole mr WHERE mr.id.member.id = :memberId")
+    @Query("SELECT mr.role FROM MemberRole mr WHERE mr.member.id = :memberId")
     List<Role> findAllByMemberId(@Param("memberId") Long memberId);
 }

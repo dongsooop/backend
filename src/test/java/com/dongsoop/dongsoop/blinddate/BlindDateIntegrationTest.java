@@ -4,12 +4,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.dongsoop.dongsoop.blinddate.config.BlindDateMessageProvider;
 import com.dongsoop.dongsoop.blinddate.dto.StartBlindDateRequest;
 import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo.SessionState;
@@ -18,6 +22,7 @@ import com.dongsoop.dongsoop.blinddate.handler.BlindDateConnectHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateDisconnectHandler;
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
+import com.dongsoop.dongsoop.blinddate.notification.BlindDateMatchNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
@@ -46,7 +51,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -73,19 +77,24 @@ class BlindDateIntegrationTest {
     private BlindDateTaskScheduler taskScheduler;
     private BlindDateEventQueue eventQueue;
     private SimpMessagingTemplate messagingTemplate;
+    private final List<JoinResponse> joinResponses = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     @BeforeEach
     void setUp() {
         // Repository 초기화
         blindDateStorage = new BlindDateStorageImpl();
         participantStorage = new BlindDateParticipantStorageImpl();
-        sessionStorage = new BlindDateSessionStorageImpl();
+        sessionStorage = new BlindDateSessionStorageImpl(event -> {});
 
         // 큐 초기화
         eventQueue = new BlindDateEventQueue();
 
         // Mock 초기화
         messagingTemplate = mock(SimpMessagingTemplate.class);
+        doAnswer(call -> {
+            joinResponses.add(new JoinResponse(call.getArgument(0), call.getArgument(1), call.getArgument(2)));
+            return null;
+        }).when(messagingTemplate).convertAndSendToUser(anyString(), anyString(), any(Object.class));
         BlindDateNotification notification = mock(BlindDateNotification.class);
         sessionScheduler = mock(BlindDateSessionScheduler.class);
         ChatRoomService chatRoomService = mock(ChatRoomService.class);
@@ -113,7 +122,8 @@ class BlindDateIntegrationTest {
                 sessionStorage,
                 messagingTemplate,
                 taskScheduler,
-                eventQueue
+                eventQueue,
+                new BlindDateMessageProvider()
         );
 
         sessionService = new BlindDateSessionServiceImpl(
@@ -146,7 +156,8 @@ class BlindDateIntegrationTest {
                 sessionStorage,
                 messagingTemplate,
                 chatRoomService,
-                eventQueue
+                eventQueue,
+                mock(BlindDateMatchNotification.class)
         );
     }
 
@@ -199,14 +210,9 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-1", 1L, new HashMap<>());
             eventQueue.awaitIdle();
 
-            @SuppressWarnings("unchecked")
-            ArgumentCaptor<Map<String, Object>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
-            verify(messagingTemplate).convertAndSendToUser(
-                    eq("1"),
-                    eq("/queue/blinddate/join"),
-                    payloadCaptor.capture()
-            );
-            assertThat(payloadCaptor.getValue()).containsEntry("maxCount", 5);
+            assertThat(joinResponses).filteredOn(response -> response.member().equals("1"))
+                    .extracting(JoinResponse::destination).containsExactly("/queue/blinddate/join");
+            assertThat(joinResponses.get(0).payload()).containsEntry("maxCount", 5);
         }
 
         @Test
@@ -290,14 +296,8 @@ class BlindDateIntegrationTest {
             assertThat(getParticipantCount(session1)).isEqualTo(1); // 인원 증가 안 함
             assertThat(participantStorage.getByMemberId(1L).getAnonymousName()).isEqualTo(originalName);
 
-            @SuppressWarnings("unchecked")
-            ArgumentCaptor<Map<String, Object>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
-            verify(messagingTemplate, times(2)).convertAndSendToUser(
-                    eq("1"),
-                    eq("/queue/blinddate/join"),
-                    payloadCaptor.capture()
-            );
-            Map<String, Object> reconnectPayload = payloadCaptor.getAllValues().get(1);
+            assertThat(joinResponses).hasSize(2);
+            Map<String, Object> reconnectPayload = joinResponses.get(1).payload();
             assertThat(reconnectPayload)
                     .containsEntry("state", "PROCESSING")
                     .containsEntry("name", originalName);
@@ -337,8 +337,7 @@ class BlindDateIntegrationTest {
             ParticipantInfo byMember = participantStorage.getByMemberId(1L);
             ParticipantInfo bySocket = participantStorage.getBySocketId("socket-1");
 
-            assertThat(byMember).isNotNull();
-            assertThat(byMember).isEqualTo(bySocket);
+            assertThat(byMember).isNotNull().isEqualTo(bySocket);
             assertThat(byMember.getSessionId()).isEqualTo(sessionId);
             assertThat(byMember.getMemberId()).isEqualTo(1L);
             assertThat(byMember.getSocketIds()).contains("socket-1");
@@ -574,7 +573,8 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-2", 2L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
-            eventQueue.openChoices(sessionId, 10_000);
+            participantStorage.openChoices(sessionId);
+            eventQueue.openChoices(sessionId);
 
             // when
             choiceHandler.execute(sessionId, 1L, 2L);
@@ -600,7 +600,8 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-2", 2L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
-            eventQueue.openChoices(sessionId, 10_000);
+            participantStorage.openChoices(sessionId);
+            eventQueue.openChoices(sessionId);
 
             // when
             choiceHandler.execute(sessionId, 1L, 2L);
@@ -623,7 +624,8 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-2", 2L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
-            eventQueue.openChoices(sessionId, 10_000);
+            participantStorage.openChoices(sessionId);
+            eventQueue.openChoices(sessionId);
             sessionStorage.terminate(sessionId);
 
             choiceHandler.execute(sessionId, 1L, 2L);
@@ -645,7 +647,8 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-3", 3L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
-            eventQueue.openChoices(sessionId, 10_000);
+            participantStorage.openChoices(sessionId);
+            eventQueue.openChoices(sessionId);
 
             // when - 1→2, 2→3, 3→1
             choiceHandler.execute(sessionId, 1L, 2L);
@@ -670,7 +673,8 @@ class BlindDateIntegrationTest {
             }
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
-            eventQueue.openChoices(sessionId, 10_000);
+            participantStorage.openChoices(sessionId);
+            eventQueue.openChoices(sessionId);
 
             // when - 1↔2, 3↔4, 5 혼자
             choiceHandler.execute(sessionId, 1L, 2L);
@@ -707,11 +711,15 @@ class BlindDateIntegrationTest {
             connectHandler.execute("socket-3", 3L, attr);
             eventQueue.awaitIdle();
             String sessionId = (String) attr.get("sessionId");
-            eventQueue.openChoices(sessionId, 10_000);
+            participantStorage.openChoices(sessionId);
+            eventQueue.openChoices(sessionId);
 
             // 3. 사랑의 작대기 - 1↔2 매칭
             choiceHandler.execute(sessionId, 1L, 2L);
             choiceHandler.execute(sessionId, 2L, 1L);
+            eventQueue.awaitIdle();
+
+            choiceHandler.execute(sessionId, 3L, null);
             eventQueue.awaitIdle();
 
             // 4. 매칭 결과 확인
@@ -723,4 +731,113 @@ class BlindDateIntegrationTest {
             assertThat(participantStorage.isMatched(sessionId, 3L)).isFalse();
         }
     }
+    @Nested
+    @DisplayName("관리자 강퇴")
+    class KickScenarios {
+
+        private List<Map<String, Object>> joinStatesOf(long memberId) {
+            return joinResponses.stream()
+                    .filter(response -> response.member().equals(String.valueOf(memberId)))
+                    .map(JoinResponse::payload)
+                    .toList();
+        }
+
+        @Test
+        @DisplayName("진행 중 세션에서 강퇴하면 본인에게 KICKED, 다른 참가자에게 익명 이름 퇴장 안내를 보내고 재입장을 막는다")
+        void kickFromProcessingSession_NotifiesAndBlocksReconnect() {
+            blindDateStorage.start(3, LocalDateTime.now().plusHours(1));
+            Map<String, Object> attr = new HashMap<>();
+            connectHandler.execute("socket-1", 1L, attr);
+            connectHandler.execute("socket-2", 2L, new HashMap<>());
+            connectHandler.execute("socket-3", 3L, new HashMap<>());
+            eventQueue.awaitIdle();
+            String sessionId = (String) attr.get("sessionId");
+            assertThat(sessionStorage.isProcessing(sessionId)).isTrue();
+
+            blindDateService.kickParticipant(sessionId, 2L);
+            eventQueue.awaitIdle();
+
+            assertThat(joinStatesOf(2L)).last().isEqualTo(Map.of("state", "KICKED"));
+            verify(messagingTemplate).convertAndSend(
+                    eq("/topic/blinddate/session/" + sessionId + "/system"),
+                    (Object) argThat(payload -> payload instanceof Map<?, ?> map
+                            && "익명2님이 퇴장당했습니다.".equals(map.get("message"))
+                            && Long.valueOf(0L).equals(map.get("senderId"))));
+            assertThat(participantStorage.getAnonymousName(2L)).isNull();
+            assertThat(participantStorage.findAllBySessionId(sessionId))
+                    .extracting(ParticipantInfo::getMemberId).containsExactlyInAnyOrder(1L, 3L);
+
+            Map<String, Object> reconnect = new HashMap<>();
+            connectHandler.execute("socket-2b", 2L, reconnect);
+            eventQueue.awaitIdle();
+
+            assertThat(reconnect).doesNotContainKey("sessionId");
+            assertThat(participantStorage.getByMemberId(2L)).isNull();
+            assertThat(joinStatesOf(2L)).last().isEqualTo(Map.of("state", "KICKED"));
+        }
+
+        @Test
+        @DisplayName("대기 중 세션에서 강퇴하면 인원을 갱신하고, 전체 초기화 뒤에는 다시 입장할 수 있다")
+        void kickFromWaitingSession_UpdatesCountAndResetAllowsRejoin() {
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+            Map<String, Object> attr = new HashMap<>();
+            connectHandler.execute("socket-1", 1L, attr);
+            connectHandler.execute("socket-2", 2L, new HashMap<>());
+            eventQueue.awaitIdle();
+            String sessionId = (String) attr.get("sessionId");
+            clearInvocations(messagingTemplate);
+
+            blindDateService.kickParticipant(sessionId, 2L);
+            eventQueue.awaitIdle();
+
+            verify(messagingTemplate).convertAndSend(
+                    "/topic/blinddate/session/" + sessionId + "/joined", Map.of("volunteer", 1));
+
+            blindDateService.resetParticipants();
+            eventQueue.awaitIdle();
+            Map<String, Object> rejoin = new HashMap<>();
+            connectHandler.execute("socket-2b", 2L, rejoin);
+            eventQueue.awaitIdle();
+
+            assertThat(rejoin).containsKey("sessionId");
+            assertThat(participantStorage.getByMemberId(2L)).isNotNull();
+        }
+
+        @Test
+        @DisplayName("이미 끝난 세션의 참가자를 강퇴하면 안내 없이 재입장만 막는다")
+        void kickAfterSessionTerminated_OnlyBlocksRejoin() {
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+            Map<String, Object> attr = new HashMap<>();
+            connectHandler.execute("socket-1", 1L, attr);
+            eventQueue.awaitIdle();
+            String sessionId = (String) attr.get("sessionId");
+            sessionStorage.terminate(sessionId);
+            int responsesBeforeKick = joinStatesOf(1L).size();
+
+            blindDateService.kickParticipant(sessionId, 1L);
+            eventQueue.awaitIdle();
+
+            assertThat(joinStatesOf(1L)).hasSize(responsesBeforeKick);
+            connectHandler.execute("socket-1b", 1L, new HashMap<>());
+            eventQueue.awaitIdle();
+            assertThat(joinStatesOf(1L)).last().isEqualTo(Map.of("state", "KICKED"));
+        }
+
+        @Test
+        @DisplayName("전체 초기화로 참가 기록이 없으면 강퇴해도 다음 입장을 막지 않는다")
+        void kickWithoutParticipantRecord_DoesNothing() {
+            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+
+            blindDateService.kickParticipant("cleared-session", 1L);
+            eventQueue.awaitIdle();
+            Map<String, Object> join = new HashMap<>();
+            connectHandler.execute("socket-1", 1L, join);
+            eventQueue.awaitIdle();
+
+            assertThat(join).containsKey("sessionId");
+            assertThat(joinStatesOf(1L)).noneMatch(payload -> "KICKED".equals(payload.get("state")));
+        }
+    }
+
+    private record JoinResponse(String member, String destination, Map<String, Object> payload) {}
 }

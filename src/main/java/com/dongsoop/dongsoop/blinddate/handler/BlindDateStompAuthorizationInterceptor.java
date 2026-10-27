@@ -1,26 +1,32 @@
 package com.dongsoop.dongsoop.blinddate.handler;
 
 import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
-import java.util.regex.Pattern;
+
+import org.springframework.lang.Nullable;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.simp.SimpMessageType;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
-import org.springframework.lang.Nullable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 
+import java.util.regex.Pattern;
+
 @Component
 public class BlindDateStompAuthorizationInterceptor implements ChannelInterceptor {
     private static final AntPathMatcher SUBSCRIPTION_MATCHER = new AntPathMatcher();
-    private static final Pattern CHOICE_ERROR_TOPIC = Pattern.compile(
-            "^/topic/blinddate/session/[^/]+/member/([^/]+)/choice-error$");
+    private static final Pattern CHOICE_ERROR_TOPIC =
+            Pattern.compile("^/topic/blinddate/session/[^/]+/member/([^/]+)/choice-error$");
 
     @Override
     @Nullable
+    @SuppressWarnings(
+            "java:S2638") // SONARJAVA-5865: Spring @NonNullApi and @Nullable override false
+                          // positive
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor =
                 MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
@@ -29,8 +35,8 @@ public class BlindDateStompAuthorizationInterceptor implements ChannelIntercepto
         }
 
         StompCommand command = accessor.getCommand();
-        if (StompCommand.SEND == command) {
-            rejectClientChoiceErrorSend(accessor);
+        if (SimpMessageType.MESSAGE == accessor.getMessageType()) {
+            rejectClientChoiceErrorPublish(accessor);
         }
         if (StompCommand.SUBSCRIBE == command) {
             authorizeChoiceErrorSubscription(accessor);
@@ -39,7 +45,7 @@ public class BlindDateStompAuthorizationInterceptor implements ChannelIntercepto
     }
 
     /** 선택 오류는 서버만 발행한다. 서버의 brokerChannel 전송에는 이 검사가 적용되지 않는다. */
-    private void rejectClientChoiceErrorSend(StompHeaderAccessor accessor) {
+    private void rejectClientChoiceErrorPublish(StompHeaderAccessor accessor) {
         String destination = accessor.getDestination();
         if (destination != null && CHOICE_ERROR_TOPIC.matcher(destination).matches()) {
             throw new UnauthorizedChatAccessException();

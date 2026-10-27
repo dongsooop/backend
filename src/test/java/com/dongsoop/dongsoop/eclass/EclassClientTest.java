@@ -39,7 +39,7 @@ class EclassClientTest {
     void setUp() {
         RestTemplate restTemplate = new RestTemplate();
         server = MockRestServiceServer.bindTo(restTemplate).build();
-        client = new EclassClient(restTemplate, new ObjectMapper());
+        client = new EclassClient(restTemplate, new ObjectMapper(), "/webservice/rest/server.php");
         ReflectionTestUtils.setField(client, "baseUrl", BASE);
         ReflectionTestUtils.setField(client, "userAgent", "test-agent");
     }

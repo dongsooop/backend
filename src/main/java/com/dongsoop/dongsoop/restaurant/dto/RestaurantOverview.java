@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.restaurant.dto;
 
-import com.dongsoop.dongsoop.restaurant.entity.RestaurantCategory;
 import com.querydsl.core.annotations.QueryProjection;
 import lombok.Getter;
 
@@ -21,19 +20,16 @@ public final class RestaurantOverview {
     private final String placeUrl;
 
     @QueryProjection
-    public RestaurantOverview(Long id, String name, RestaurantCategory categoryEnum,
-                              Double distance, String placeUrl,
-                              Long likeCount, String tags,
-                              String externalMapId, Boolean isLikedByMe) {
-        this.id = id;
-        this.name = name;
-        this.category = categoryEnum.getDisplayName();
-        this.distance = distance;
-        this.likeCount = likeCount;
-        this.isLikedByMe = isLikedByMe;
+    public RestaurantOverview(RestaurantInfo info, RestaurantStats stats, String tags) {
+        this.id = info.id();
+        this.name = info.name();
+        this.category = info.category().getDisplayName();
+        this.distance = info.distance();
+        this.likeCount = stats.likeCount();
+        this.isLikedByMe = stats.isLikedByMe();
         this.tags = parseTags(tags);
-        this.externalMapId = externalMapId;
-        this.placeUrl = placeUrl;
+        this.externalMapId = info.externalMapId();
+        this.placeUrl = info.placeUrl();
     }
 
     private static List<String> parseTags(String tags) {

@@ -67,8 +67,5 @@ class ParticipantInfoTest {
         assertThat(participant.getSocketIds()).containsExactly("socket-1"); // Modified
         assertThat(participant.getAnonymousName()).isEqualTo("익명1");
         // JoinedAt은 create() 시점에 생성되므로, 이제 now와 직접 비교할 수 없음
-        // 이 테스트는 create()로 대체되면서 의미가 없어지므로, joinedAt 관련 검증은 제거하거나 다른 방식으로 테스트해야 함.
-        // 여기서는 joinedAt 검증을 제거합니다.
-        // assertThat(participant.getJoinedAt()).isEqualTo(now);
     }
 }

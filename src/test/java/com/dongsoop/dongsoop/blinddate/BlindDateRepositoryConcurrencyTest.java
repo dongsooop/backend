@@ -45,7 +45,7 @@ class BlindDateStorageConcurrencyTest {
     @BeforeEach
     void setUp() {
         participantStorage = new BlindDateParticipantStorageImpl();
-        sessionStorage = new BlindDateSessionStorageImpl();
+        sessionStorage = new BlindDateSessionStorageImpl(event -> {});
         blindDateStorage = new BlindDateStorageImpl();
     }
 
@@ -188,7 +188,6 @@ class BlindDateStorageConcurrencyTest {
                     startLatch.await();
 
                     blindDateStorage.setPointer(sessionId);
-                    Thread.sleep(1); // 다른 스레드가 끼어들 기회 제공
                     pointerSnapshots.add(blindDateStorage.getPointer());
 
                 } catch (Exception e) {

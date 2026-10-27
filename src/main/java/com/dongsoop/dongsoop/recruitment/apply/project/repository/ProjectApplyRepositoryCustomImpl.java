@@ -29,8 +29,8 @@ public class ProjectApplyRepositoryCustomImpl implements ProjectApplyRepositoryC
     public boolean existsByBoardIdAndMemberId(Long boardId, Long memberId) {
         return queryFactory.selectOne()
                 .from(projectApply)
-                .where(projectApply.id.projectBoard.id.eq(boardId)
-                        .and(projectApply.id.member.id.eq(memberId)))
+                .where(projectApply.projectBoard.id.eq(boardId)
+                        .and(projectApply.member.id.eq(memberId)))
                 .fetchFirst() != null;
     }
 
@@ -38,11 +38,11 @@ public class ProjectApplyRepositoryCustomImpl implements ProjectApplyRepositoryC
     public Optional<ApplyDetails> findApplyDetailsByBoardIdAndApplierId(Long boardId, Long applierId) {
         ApplyDetails result = queryFactory.select(projectRecruitmentApplyProjection.getApplyDetailsExpression())
                 .from(projectApply)
-                .leftJoin(projectApply.id.projectBoard, projectBoard)
-                .leftJoin(projectApply.id.member, member)
+                .leftJoin(projectApply.projectBoard, projectBoard)
+                .leftJoin(projectApply.member, member)
                 .leftJoin(member.department, department)
-                .where(projectApply.id.projectBoard.id.eq(boardId)
-                        .and(projectApply.id.member.id.eq(applierId)))
+                .where(projectApply.projectBoard.id.eq(boardId)
+                        .and(projectApply.member.id.eq(applierId)))
                 .fetchOne();
 
         return Optional.ofNullable(result);
@@ -51,8 +51,8 @@ public class ProjectApplyRepositoryCustomImpl implements ProjectApplyRepositoryC
     @Override
     public Optional<ProjectApply> findByBoardIdAndApplierId(Long boardId, Long applierId) {
         ProjectApply result = queryFactory.selectFrom(projectApply)
-                .where(projectApply.id.projectBoard.id.eq(boardId)
-                        .and(projectApply.id.member.id.eq(applierId)))
+                .where(projectApply.projectBoard.id.eq(boardId)
+                        .and(projectApply.member.id.eq(applierId)))
                 .fetchOne();
 
         return Optional.ofNullable(result);

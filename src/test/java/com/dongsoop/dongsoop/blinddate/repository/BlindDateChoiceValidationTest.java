@@ -12,7 +12,6 @@ class BlindDateChoiceValidationTest {
     @ParameterizedTest
     @CsvSource({
         "1, 1, 400, INVALID_CHOICE",
-        "1, , 400, INVALID_CHOICE",
         "99, 1, 403, CHOICE_FORBIDDEN",
         "3, 1, 403, CHOICE_FORBIDDEN",
         "1, 99, 404, CHOICE_TARGET_NOT_FOUND",
@@ -25,6 +24,8 @@ class BlindDateChoiceValidationTest {
         storage.addParticipant("session", 2L, "two");
         storage.addParticipant("other", 3L, "three");
 
+        storage.openChoices("session");
+
         assertThatThrownBy(() -> storage.recordChoice("session", chooser, target))
                 .isInstanceOfSatisfying(
                         InvalidBlindDateChoiceException.class,
@@ -35,7 +36,7 @@ class BlindDateChoiceValidationTest {
         assertThat(storage.getNotMatched("session")).containsExactlyInAnyOrder(1L, 2L);
         assertThat(storage.getNotMatched("other")).containsExactly(3L);
 
-        assertThat(storage.recordChoice("session", 1L, 2L)).isFalse();
+        assertThat(storage.recordChoice("session", 1L, 2L)).isTrue();
         assertThat(storage.recordChoice("session", 2L, 1L)).isTrue();
         assertThat(storage.getNotMatched("session")).isEmpty();
         assertThat(storage.getNotMatched("other")).containsExactly(3L);

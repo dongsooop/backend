@@ -17,7 +17,7 @@ public abstract class SettingChanges {
 
     protected boolean targetState;
 
-    public SettingChanges(NotificationSetting setting, MemberDevice device, NotificationType type,
+    protected SettingChanges(NotificationSetting setting, MemberDevice device, NotificationType type,
                           boolean targetState) {
         this.device = Objects.requireNonNull(device);
         this.type = Objects.requireNonNull(type);

@@ -1,40 +1,45 @@
 package com.dongsoop.dongsoop.feedback.entity;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
 @Entity
+@IdClass(FeedbackServiceFeature.FeedbackServiceFeatureId.class)
 @NoArgsConstructor
 @AllArgsConstructor
 public class FeedbackServiceFeature {
 
-    @EmbeddedId
-    private FeedbackServiceFeatureId id;
+    @Id
+    @JoinColumn(name = "feedback_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Feedback feedback;
 
-    public FeedbackServiceFeature(Feedback feedback, ServiceFeature serviceFeature) {
-        this.id = new FeedbackServiceFeatureId(feedback, serviceFeature);
-    }
+    @Id
+    @Column(name = "service_feature")
+    @Enumerated(EnumType.STRING)
+    private ServiceFeature serviceFeature;
 
-    @Embeddable
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class FeedbackServiceFeatureId {
+    public static class FeedbackServiceFeatureId implements Serializable {
 
-        @JoinColumn(name = "feedback_id")
-        @ManyToOne(fetch = FetchType.LAZY)
-        private Feedback feedback;
+        @Serial
+        private static final long serialVersionUID = 1L;
 
-        @Column(name = "service_feature")
+        private Long feedback;
+
         @Enumerated(EnumType.STRING)
         private ServiceFeature serviceFeature;
 

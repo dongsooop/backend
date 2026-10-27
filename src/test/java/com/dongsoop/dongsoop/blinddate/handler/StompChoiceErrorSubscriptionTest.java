@@ -83,12 +83,8 @@ class StompChoiceErrorSubscriptionTest {
         headers.setDestination(OWN_TOPIC);
         headers.setUser(authenticated(member));
         headers.setLeaveMutable(true);
-        assertThatThrownBy(
-                        () ->
-                                interceptor.preSend(
-                                        MessageBuilder.createMessage(
-                                                new byte[0], headers.getMessageHeaders()),
-                                        null))
+        var message = MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
+        assertThatThrownBy(() -> interceptor.preSend(message, null))
                 .isInstanceOf(UnauthorizedChatAccessException.class);
     }
 
@@ -118,7 +114,8 @@ class StompChoiceErrorSubscriptionTest {
     }
 
     private void assertDenied(String destination, Principal principal) {
-        assertThatThrownBy(() -> interceptor.preSend(subscription(destination, principal), null))
+        var message = subscription(destination, principal);
+        assertThatThrownBy(() -> interceptor.preSend(message, null))
                 .isInstanceOf(UnauthorizedChatAccessException.class);
     }
 

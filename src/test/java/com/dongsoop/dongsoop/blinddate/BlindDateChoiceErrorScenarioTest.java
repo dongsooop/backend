@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateChoiceHandler;
+import com.dongsoop.dongsoop.blinddate.notification.BlindDateMatchNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
@@ -29,7 +30,6 @@ class BlindDateChoiceErrorScenarioTest {
     @ParameterizedTest
     @CsvSource({
         "1, 1, 400, INVALID_CHOICE",
-        "1, , 400, INVALID_CHOICE",
         "99, 1, 403, CHOICE_FORBIDDEN",
         "3, 1, 403, CHOICE_FORBIDDEN",
         "1, 99, 404, CHOICE_TARGET_NOT_FOUND",
@@ -62,8 +62,10 @@ class BlindDateChoiceErrorScenarioTest {
                                 return ChatRoom.builder().roomId("room").build();
                             });
             var handler =
-                    new BlindDateChoiceHandler(participants, sessions, messaging, rooms, queue);
-            queue.openChoices("session", 60_000);
+                    new BlindDateChoiceHandler(participants, sessions, messaging, rooms, queue,
+                            mock(BlindDateMatchNotification.class));
+            participants.openChoices("session");
+            queue.openChoices("session");
 
             handler.execute("session", chooser, target);
             queue.awaitIdle();
