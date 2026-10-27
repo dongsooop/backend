@@ -7,6 +7,10 @@ import static org.mockito.Mockito.when;
 
 import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
 import com.dongsoop.dongsoop.chat.session.WebSocketSessionManager;
+import com.dongsoop.dongsoop.chat.validator.ChatValidator;
+import com.dongsoop.dongsoop.common.config.WebSocketConfig;
+import com.dongsoop.dongsoop.common.handler.websocket.ChatAuthorizationInterceptor;
+import com.dongsoop.dongsoop.common.handler.websocket.CustomStompErrorHandler;
 import com.dongsoop.dongsoop.common.handler.websocket.StompHandler;
 import com.dongsoop.dongsoop.jwt.JwtUtil;
 import com.dongsoop.dongsoop.jwt.JwtValidator;
@@ -20,8 +24,10 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessageType;
 import org.springframework.messaging.simp.broker.SimpleBrokerMessageHandler;
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.ExecutorSubscribableChannel;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -35,6 +41,7 @@ import java.util.List;
 
 class StompChoiceErrorBrokerTest {
     private static final String TOPIC = "/topic/blinddate/session/session-1/member/1/choice-error";
+    private static final String PUBLIC_TOPIC = "/topic/blinddate/session/session-1/start";
 
     @ParameterizedTest
     @ValueSource(longs = {1L, 2L})
@@ -89,6 +96,20 @@ class StompChoiceErrorBrokerTest {
         }
     }
 
+    @Test
+    void normalClientSendStillReachesBroker() {
+        try (var broker = new BrokerFixture()) {
+            broker.subscribe("owner", 1L, PUBLIC_TOPIC);
+
+            broker.clientSend(1L, PUBLIC_TOPIC, "client-message");
+
+            assertThat(broker.delivered).hasSize(1);
+            assertThat(broker.delivered.get(0).getPayload()).isEqualTo("client-message");
+            assertThat(SimpMessageHeaderAccessor.getSessionId(broker.delivered.get(0).getHeaders()))
+                    .isEqualTo("owner");
+        }
+    }
+
     private static final class BrokerFixture implements AutoCloseable {
         private final ExecutorSubscribableChannel inbound = new ExecutorSubscribableChannel();
         private final ExecutorSubscribableChannel internal = new ExecutorSubscribableChannel();
@@ -102,15 +123,26 @@ class StompChoiceErrorBrokerTest {
                         if (SimpMessageHeaderAccessor.getMessageType(message.getHeaders())
                                 == SimpMessageType.MESSAGE) delivered.add(message);
                     });
-            inbound.addInterceptor(
+            configuredInterceptors().forEach(inbound::addInterceptor);
+            broker = new SimpleBrokerMessageHandler(inbound, outbound, internal, List.of("/topic"));
+            broker.start();
+        }
+
+        private List<ChannelInterceptor> configuredInterceptors() {
+            var stompHandler =
                     new StompHandler(
                             mock(JwtValidator.class),
                             mock(JwtUtil.class),
                             mock(WebSocketSessionManager.class),
-                            mock(DeviceBlacklistService.class)));
-            inbound.addInterceptor(new BlindDateStompAuthorizationInterceptor());
-            broker = new SimpleBrokerMessageHandler(inbound, outbound, internal, List.of("/topic"));
-            broker.start();
+                            mock(DeviceBlacklistService.class));
+            var registration = new InspectableChannelRegistration();
+            new WebSocketConfig(
+                            stompHandler,
+                            new BlindDateStompAuthorizationInterceptor(),
+                            new ChatAuthorizationInterceptor(mock(ChatValidator.class)),
+                            new CustomStompErrorHandler())
+                    .configureClientInboundChannel(registration);
+            return registration.configuredInterceptors();
         }
 
         private void subscribe(String socket, long member, String destination) {
@@ -173,6 +205,12 @@ class StompChoiceErrorBrokerTest {
         @Override
         public void close() {
             broker.stop();
+        }
+    }
+
+    private static final class InspectableChannelRegistration extends ChannelRegistration {
+        private List<ChannelInterceptor> configuredInterceptors() {
+            return getInterceptors();
         }
     }
 }
