@@ -170,6 +170,8 @@ PR에는 다음을 담는다.
 ```bash
 ./gradlew test
 ./gradlew build
+./gradlew spotlessApply  # Java 포맷 수정
+./gradlew spotlessCheck  # 포맷 검사
 ```
 
 ## 컨벤션
@@ -185,3 +187,10 @@ PR에는 다음을 담는다.
 - 규칙은 이 파일에 쓴다. Claude 전용 동작에만 해당하는 내용이 아니면 `CLAUDE.md`에 쓰지 않는다.
 - `CLAUDE.md`는 `@AGENTS.md` 한 줄로 이 파일을 가리키며, 그 아래에는 Claude 종속적인 내용만 덧붙인다.
 - 커밋 메시지와 PR 본문에 에이전트 흔적(`Co-Authored-By: Claude`, `Generated with ...` 등)을 남기지 않는다.
+
+## Java 포맷과 훅
+
+- Java는 Spotless에 고정한 Google Java Format을 사용한다. 변경 후 `./gradlew spotlessApply`와 `./gradlew spotlessCheck`를 실행한다.
+- 최초 clone 후 `bash scripts/install-hooks.sh`로 공통 pre-commit/pre-push 훅을 설치한다. 기존 훅은 덮어쓰지 않는다.
+- Codex와 Claude Code의 Stop 훅은 Java/Gradle 작업이 남았을 때 같은 검사를 호출한다. 신뢰·활성화 절차와 재시도 범위는 `docs/formatting.md`를 따른다.
+- PR의 `Java format` 검사는 필수다. 포맷 검사 우회 옵션이나 제외 설정으로 위반을 숨기지 않는다.

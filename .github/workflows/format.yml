@@ -1,0 +1,35 @@
+name: Format
+
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  java-format:
+    name: Java format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-format-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-format-
+      - name: Check Google Java Format
+        run: bash scripts/check-format.sh
+      - name: Check hook contracts
+        run: python3 -m unittest discover -s scripts/tests -v
