@@ -18,8 +18,6 @@ class SessionInfoTest {
 
     // then
     assertThat(session.getState()).isEqualTo(SessionState.WAITING);
-    // assertThat(session.getParticipantCount()).isEqualTo(0); // Removed as participant count is
-    // managed elsewhere
     assertThat(session.getSessionId()).isNotNull();
     assertThat(session.getCreatedAt()).isNotNull();
   }
