@@ -4,5 +4,5 @@ import com.dongsoop.dongsoop.jwt.dto.IssuedToken;
 
 public interface JwtService {
 
-    IssuedToken issuedTokenByRefreshToken(String refreshToken);
+  IssuedToken issuedTokenByRefreshToken(String refreshToken);
 }

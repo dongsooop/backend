@@ -36,126 +36,154 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ReportSanctionProcessTest {
 
-    @InjectMocks
-    private ReportServiceImpl reportService;
+  @InjectMocks private ReportServiceImpl reportService;
 
-    @Mock
-    private ReportRepository reportRepository;
-    @Mock
-    private MemberRepository memberRepository;
-    @Mock
-    private MemberService memberService;
-    @Mock
-    private SanctionExecutor sanctionExecutor;
+  @Mock private ReportRepository reportRepository;
+  @Mock private MemberRepository memberRepository;
+  @Mock private MemberService memberService;
+  @Mock private SanctionExecutor sanctionExecutor;
 
-    private final Member admin = Member.builder().id(100L).build();
-    private final Member target = Member.builder().id(2L).build();
-    private Report report;
+  private final Member admin = Member.builder().id(100L).build();
+  private final Member target = Member.builder().id(2L).build();
+  private Report report;
 
-    @BeforeEach
-    void setUp() {
-        report = Report.builder().id(1L).reportType(ReportType.MEMBER).targetId(2L).build();
-        when(reportRepository.findByIdForUpdateLockingTarget(1L)).thenReturn(Optional.of(report));
-        // 이미 처리된 신고는 회원 조회 전에 거절돼 두 스텁이 쓰이지 않는다
-        lenient().when(memberRepository.findById(2L)).thenReturn(Optional.of(target));
-        lenient().when(memberService.getMemberReferenceByContext()).thenReturn(admin);
-    }
+  @BeforeEach
+  void setUp() {
+    report = Report.builder().id(1L).reportType(ReportType.MEMBER).targetId(2L).build();
+    when(reportRepository.findByIdForUpdateLockingTarget(1L)).thenReturn(Optional.of(report));
+    // 이미 처리된 신고는 회원 조회 전에 거절돼 두 스텁이 쓰이지 않는다
+    lenient().when(memberRepository.findById(2L)).thenReturn(Optional.of(target));
+    lenient().when(memberService.getMemberReferenceByContext()).thenReturn(admin);
+  }
 
-    @Test
-    @DisplayName("관리자 제재는 신고·관리자·대상·요청 내용을 제재 실행기에 넘긴다")
-    void processSanction_DelegatesToIssue() {
-        LocalDateTime endAt = LocalDateTime.of(2026, 10, 5, 0, 0);
+  @Test
+  @DisplayName("관리자 제재는 신고·관리자·대상·요청 내용을 제재 실행기에 넘긴다")
+  void processSanction_DelegatesToIssue() {
+    LocalDateTime endAt = LocalDateTime.of(2026, 10, 5, 0, 0);
 
-        reportService.processSanction(new ProcessSanctionRequest(1L, 2L, SanctionType.TEMPORARY_BAN, "욕설", endAt));
+    reportService.processSanction(
+        new ProcessSanctionRequest(1L, 2L, SanctionType.TEMPORARY_BAN, "욕설", endAt));
 
-        verify(sanctionExecutor).issue(report, admin, target, SanctionType.TEMPORARY_BAN, "욕설", endAt, null);
-        verify(reportRepository).resolveSameTargetMessageReports(report);
-    }
+    verify(sanctionExecutor)
+        .issue(report, admin, target, SanctionType.TEMPORARY_BAN, "욕설", endAt, null);
+    verify(reportRepository).resolveSameTargetMessageReports(report);
+  }
 
-    @Test
-    @DisplayName("기각하면 관리자 명의로 닫고 같은 대상의 다른 메시지 신고도 함께 닫는다")
-    void dismissReport_ClosesAndResolvesSameTargetMessageReports() {
-        reportService.dismissReport(1L);
+  @Test
+  @DisplayName("기각하면 관리자 명의로 닫고 같은 대상의 다른 메시지 신고도 함께 닫는다")
+  void dismissReport_ClosesAndResolvesSameTargetMessageReports() {
+    reportService.dismissReport(1L);
 
-        assertThat(report.getIsProcessed()).isTrue();
-        assertThat(report.getAdmin()).isEqualTo(admin);
-        verify(reportRepository).resolveSameTargetMessageReports(report);
-    }
+    assertThat(report.getIsProcessed()).isTrue();
+    assertThat(report.getAdmin()).isEqualTo(admin);
+    verify(reportRepository).resolveSameTargetMessageReports(report);
+  }
 
-    @Test
-    @DisplayName("이미 처리된 신고에 제재를 요청하면 409로 거절한다")
-    void processSanction_AlreadyProcessed_Throws() {
-        Report processed = Report.builder().id(1L).reportType(ReportType.MEMBER).targetId(2L).isProcessed(true).build();
-        when(reportRepository.findByIdForUpdateLockingTarget(1L)).thenReturn(Optional.of(processed));
-        ProcessSanctionRequest request = new ProcessSanctionRequest(1L, 2L, SanctionType.WARNING, null, null);
+  @Test
+  @DisplayName("이미 처리된 신고에 제재를 요청하면 409로 거절한다")
+  void processSanction_AlreadyProcessed_Throws() {
+    Report processed =
+        Report.builder()
+            .id(1L)
+            .reportType(ReportType.MEMBER)
+            .targetId(2L)
+            .isProcessed(true)
+            .build();
+    when(reportRepository.findByIdForUpdateLockingTarget(1L)).thenReturn(Optional.of(processed));
+    ProcessSanctionRequest request =
+        new ProcessSanctionRequest(1L, 2L, SanctionType.WARNING, null, null);
 
-        assertThatThrownBy(() -> reportService.processSanction(request))
-                .isInstanceOf(ReportAlreadyProcessedException.class)
-                .hasMessage("이미 처리된 신고입니다. ID : 1");
-        verify(memberRepository, never()).findById(any());
-        verifyNoInteractions(sanctionExecutor);
-    }
+    assertThatThrownBy(() -> reportService.processSanction(request))
+        .isInstanceOf(ReportAlreadyProcessedException.class)
+        .hasMessage("이미 처리된 신고입니다. ID : 1");
+    verify(memberRepository, never()).findById(any());
+    verifyNoInteractions(sanctionExecutor);
+  }
 
-    @Test
-    @DisplayName("메시지 신고가 아니면 채팅방 추방을 거절한다")
-    void processSanction_ChatKickOnNonChatReport_Throws() {
-        ProcessSanctionRequest request = new ProcessSanctionRequest(1L, 2L, SanctionType.CHAT_KICK, null, null);
+  @Test
+  @DisplayName("메시지 신고가 아니면 채팅방 추방을 거절한다")
+  void processSanction_ChatKickOnNonChatReport_Throws() {
+    ProcessSanctionRequest request =
+        new ProcessSanctionRequest(1L, 2L, SanctionType.CHAT_KICK, null, null);
 
-        assertThatThrownBy(() -> reportService.processSanction(request))
-                .isInstanceOf(GroupChatOnlyException.class);
-        verify(sanctionExecutor, never()).issue(any(), any(), any(), any(), any(), any(), any());
-    }
+    assertThatThrownBy(() -> reportService.processSanction(request))
+        .isInstanceOf(GroupChatOnlyException.class);
+    verify(sanctionExecutor, never()).issue(any(), any(), any(), any(), any(), any(), any());
+  }
 
-    @Test
-    @DisplayName("과팅 메시지 신고에는 채팅방 추방(과팅 강퇴)을 허용한다")
-    void processSanction_ChatKickOnBlindDateReport_Delegates() {
-        Report blindDateReport = Report.builder().id(1L).reportType(ReportType.BLINDDATE_MESSAGE).targetId(2L)
-                .targetMember(target).chatRoomId("session-1").messageId("m1").build();
-        when(reportRepository.findByIdForUpdateLockingTarget(1L)).thenReturn(Optional.of(blindDateReport));
+  @Test
+  @DisplayName("과팅 메시지 신고에는 채팅방 추방(과팅 강퇴)을 허용한다")
+  void processSanction_ChatKickOnBlindDateReport_Delegates() {
+    Report blindDateReport =
+        Report.builder()
+            .id(1L)
+            .reportType(ReportType.BLINDDATE_MESSAGE)
+            .targetId(2L)
+            .targetMember(target)
+            .chatRoomId("session-1")
+            .messageId("m1")
+            .build();
+    when(reportRepository.findByIdForUpdateLockingTarget(1L))
+        .thenReturn(Optional.of(blindDateReport));
 
-        reportService.processSanction(new ProcessSanctionRequest(1L, 2L, SanctionType.CHAT_KICK, null, null));
+    reportService.processSanction(
+        new ProcessSanctionRequest(1L, 2L, SanctionType.CHAT_KICK, null, null));
 
-        verify(sanctionExecutor).issue(blindDateReport, admin, target, SanctionType.CHAT_KICK, null, null, null);
-    }
+    verify(sanctionExecutor)
+        .issue(blindDateReport, admin, target, SanctionType.CHAT_KICK, null, null, null);
+  }
 
-    private void stubChatMessageReport(Member reportedMember) {
-        Report chatReport = Report.builder().id(1L).reportType(ReportType.CHAT_MESSAGE).targetId(reportedMember.getId())
-                .targetMember(reportedMember).messageId("m1").build();
-        when(reportRepository.findByIdForUpdateLockingTarget(1L)).thenReturn(Optional.of(chatReport));
-    }
+  private void stubChatMessageReport(Member reportedMember) {
+    Report chatReport =
+        Report.builder()
+            .id(1L)
+            .reportType(ReportType.CHAT_MESSAGE)
+            .targetId(reportedMember.getId())
+            .targetMember(reportedMember)
+            .messageId("m1")
+            .build();
+    when(reportRepository.findByIdForUpdateLockingTarget(1L)).thenReturn(Optional.of(chatReport));
+  }
 
-    @Test
-    @DisplayName("메시지 신고는 신고된 메시지 작성자가 아닌 회원에게 제재할 수 없다")
-    void processSanction_MessageReportTargetMismatch_Throws() {
-        stubChatMessageReport(Member.builder().id(3L).build());
-        ProcessSanctionRequest request = new ProcessSanctionRequest(1L, 2L, SanctionType.WARNING, null, null);
+  @Test
+  @DisplayName("메시지 신고는 신고된 메시지 작성자가 아닌 회원에게 제재할 수 없다")
+  void processSanction_MessageReportTargetMismatch_Throws() {
+    stubChatMessageReport(Member.builder().id(3L).build());
+    ProcessSanctionRequest request =
+        new ProcessSanctionRequest(1L, 2L, SanctionType.WARNING, null, null);
 
-        assertThatThrownBy(() -> reportService.processSanction(request))
-                .isInstanceOf(SanctionTargetMismatchException.class);
-        verify(sanctionExecutor, never()).issue(any(), any(), any(), any(), any(), any(), any());
-    }
+    assertThatThrownBy(() -> reportService.processSanction(request))
+        .isInstanceOf(SanctionTargetMismatchException.class);
+    verify(sanctionExecutor, never()).issue(any(), any(), any(), any(), any(), any(), any());
+  }
 
-    @Test
-    @DisplayName("메시지 신고에는 게시글 삭제 제재를 쓸 수 없다")
-    void processSanction_MessageReportContentDeletion_Throws() {
-        stubChatMessageReport(target);
-        ProcessSanctionRequest request = new ProcessSanctionRequest(1L, 2L, SanctionType.CONTENT_DELETION, null, null);
+  @Test
+  @DisplayName("메시지 신고에는 게시글 삭제 제재를 쓸 수 없다")
+  void processSanction_MessageReportContentDeletion_Throws() {
+    stubChatMessageReport(target);
+    ProcessSanctionRequest request =
+        new ProcessSanctionRequest(1L, 2L, SanctionType.CONTENT_DELETION, null, null);
 
-        assertThatThrownBy(() -> reportService.processSanction(request))
-                .isInstanceOf(UnsupportedSanctionTypeException.class);
-        verify(sanctionExecutor, never()).issue(any(), any(), any(), any(), any(), any(), any());
-    }
+    assertThatThrownBy(() -> reportService.processSanction(request))
+        .isInstanceOf(UnsupportedSanctionTypeException.class);
+    verify(sanctionExecutor, never()).issue(any(), any(), any(), any(), any(), any(), any());
+  }
 
-    @Test
-    @DisplayName("잠금 조회한 신고가 이미 처리됐으면 기각도 409로 거절한다")
-    void dismissReport_AlreadyProcessed_Throws() {
-        Report processed = Report.builder().id(1L).reportType(ReportType.CHAT_MESSAGE).targetId(2L).isProcessed(true)
-                .build();
-        when(reportRepository.findByIdForUpdateLockingTarget(1L)).thenReturn(Optional.of(processed));
+  @Test
+  @DisplayName("잠금 조회한 신고가 이미 처리됐으면 기각도 409로 거절한다")
+  void dismissReport_AlreadyProcessed_Throws() {
+    Report processed =
+        Report.builder()
+            .id(1L)
+            .reportType(ReportType.CHAT_MESSAGE)
+            .targetId(2L)
+            .isProcessed(true)
+            .build();
+    when(reportRepository.findByIdForUpdateLockingTarget(1L)).thenReturn(Optional.of(processed));
 
-        assertThatThrownBy(() -> reportService.dismissReport(1L))
-                .isInstanceOf(ReportAlreadyProcessedException.class)
-                .hasMessage("이미 처리된 신고입니다. ID : 1");
-        assertThat(processed.getAdmin()).isNull();
-    }
+    assertThatThrownBy(() -> reportService.dismissReport(1L))
+        .isInstanceOf(ReportAlreadyProcessedException.class)
+        .hasMessage("이미 처리된 신고입니다. ID : 1");
+    assertThat(processed.getAdmin()).isNull();
+  }
 }

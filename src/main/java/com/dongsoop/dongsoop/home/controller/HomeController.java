@@ -23,41 +23,42 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class HomeController {
 
-    private final HomeService homeService;
-    private final MemberService memberService;
-    private final NoticePreferenceService noticePreferenceService;
+  private final HomeService homeService;
+  private final MemberService memberService;
+  private final NoticePreferenceService noticePreferenceService;
 
-    @GetMapping("/{departmentType}")
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<HomeDto> getHomeData(@PathVariable("departmentType") DepartmentType departmentType,
-                                               @RequestHeader(value = "X-Device-Fid", required = false) String fid,
-                                               @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
-        Long requesterId = memberService.getMemberIdByAuthentication();
-        HomeDto home = homeService.getHome(requesterId, departmentType, fid, deviceToken);
+  @GetMapping("/{departmentType}")
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<HomeDto> getHomeData(
+      @PathVariable("departmentType") DepartmentType departmentType,
+      @RequestHeader(value = "X-Device-Fid", required = false) String fid,
+      @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
+    Long requesterId = memberService.getMemberIdByAuthentication();
+    HomeDto home = homeService.getHome(requesterId, departmentType, fid, deviceToken);
 
-        return ResponseEntity.ok(home);
+    return ResponseEntity.ok(home);
+  }
+
+  @GetMapping
+  public ResponseEntity<HomeDto> getHomeDataForAnonymous(
+      @RequestHeader(value = "X-Device-Fid", required = false) String fid,
+      @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
+    HomeDto home = getHomeForDevice(fid, deviceToken);
+
+    return ResponseEntity.ok(home);
+  }
+
+  /**
+   * fid/deviceToken이 없거나 미등록 기기여도 에러 없이 기본(대학 공지만) 홈으로 떨어뜨린다 — 홈 화면은 어떤 상태에서도 항상 떠야 한다. {@code
+   * getHome(Set)}이 빈 Set도 안전하게 처리하므로(대학 공지 자동 포함) 별도의 무인자 폴백 메서드가 필요 없다.
+   */
+  private HomeDto getHomeForDevice(String fid, String deviceToken) {
+    try {
+      List<DepartmentType> departmentTypes =
+          noticePreferenceService.getDepartmentTypes(fid, deviceToken);
+      return homeService.getHome(Set.copyOf(departmentTypes), fid, deviceToken);
+    } catch (UnregisteredDeviceException e) {
+      return homeService.getHome(Set.of(), fid, deviceToken);
     }
-
-    @GetMapping
-    public ResponseEntity<HomeDto> getHomeDataForAnonymous(
-            @RequestHeader(value = "X-Device-Fid", required = false) String fid,
-            @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
-        HomeDto home = getHomeForDevice(fid, deviceToken);
-
-        return ResponseEntity.ok(home);
-    }
-
-    /**
-     * fid/deviceToken이 없거나 미등록 기기여도 에러 없이 기본(대학 공지만) 홈으로 떨어뜨린다 —
-     * 홈 화면은 어떤 상태에서도 항상 떠야 한다. {@code getHome(Set)}이 빈 Set도 안전하게
-     * 처리하므로(대학 공지 자동 포함) 별도의 무인자 폴백 메서드가 필요 없다.
-     */
-    private HomeDto getHomeForDevice(String fid, String deviceToken) {
-        try {
-            List<DepartmentType> departmentTypes = noticePreferenceService.getDepartmentTypes(fid, deviceToken);
-            return homeService.getHome(Set.copyOf(departmentTypes), fid, deviceToken);
-        } catch (UnregisteredDeviceException e) {
-            return homeService.getHome(Set.of(), fid, deviceToken);
-        }
-    }
+  }
 }

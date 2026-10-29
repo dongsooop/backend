@@ -6,10 +6,10 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
@@ -23,54 +23,53 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ProjectBoardDepartment {
 
-    @Id
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_board_id")
-    private ProjectBoard projectBoard;
+  @Id
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "project_board_id")
+  private ProjectBoard projectBoard;
 
-    @Id
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id")
-    private Department department;
+  @Id
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "department_id")
+  private Department department;
 
-    public boolean isSameDepartmentType(DepartmentType that) {
-        DepartmentType thisDepartmentType = this.department.getId();
+  public boolean isSameDepartmentType(DepartmentType that) {
+    DepartmentType thisDepartmentType = this.department.getId();
 
-        return thisDepartmentType.equals(that);
+    return thisDepartmentType.equals(that);
+  }
+
+  public Department getDepartment() {
+    return this.department;
+  }
+
+  @NoArgsConstructor
+  @AllArgsConstructor
+  public static class ProjectBoardDepartmentId implements Serializable {
+
+    @Serial private static final long serialVersionUID = 1L;
+
+    private Long projectBoard;
+
+    @Enumerated(EnumType.STRING)
+    private DepartmentType department;
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      ProjectBoardDepartmentId that = (ProjectBoardDepartmentId) o;
+      return Objects.equals(projectBoard, that.projectBoard)
+          && Objects.equals(department, that.department);
     }
 
-    public Department getDepartment() {
-        return this.department;
+    @Override
+    public int hashCode() {
+      return Objects.hash(projectBoard, department);
     }
-
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class ProjectBoardDepartmentId implements Serializable {
-
-        @Serial
-        private static final long serialVersionUID = 1L;
-
-        private Long projectBoard;
-
-        @Enumerated(EnumType.STRING)
-        private DepartmentType department;
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            ProjectBoardDepartmentId that = (ProjectBoardDepartmentId) o;
-            return Objects.equals(projectBoard, that.projectBoard)
-                    && Objects.equals(department, that.department);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(projectBoard, department);
-        }
-    }
+  }
 }

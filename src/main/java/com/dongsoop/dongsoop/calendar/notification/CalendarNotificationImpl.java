@@ -1,6 +1,5 @@
 package com.dongsoop.dongsoop.calendar.notification;
 
-
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.notification.constant.NotificationType;
 import com.dongsoop.dongsoop.notification.dto.NotificationSend;
@@ -17,50 +16,46 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CalendarNotificationImpl implements CalendarNotification {
 
-    private static final Long NON_SAVE_NOTIFICATION_ID = -1L;
+  private static final Long NON_SAVE_NOTIFICATION_ID = -1L;
 
-    private final NotificationSaveService notificationSaveService;
-    private final NotificationSendService notificationSendService;
+  private final NotificationSaveService notificationSaveService;
+  private final NotificationSendService notificationSendService;
 
-    @Value("${notification.topic.anonymous}")
-    private String anonymousTopic;
+  @Value("${notification.topic.anonymous}")
+  private String anonymousTopic;
 
-    /**
-     * 비회원 디바이스로 알림 전송
-     *
-     * @param officialCalendarSize 공통 일정 수
-     * @param title                알림 제목
-     * @param body                 알림 내용
-     */
-    @Override
-    public void sendForAnonymous(int officialCalendarSize, String title, String body) {
-        if (officialCalendarSize == 0) {
-            return;
-        }
-
-        NotificationSend notificationSend = new NotificationSend(
-                NON_SAVE_NOTIFICATION_ID,
-                title,
-                body,
-                NotificationType.CALENDAR,
-                "");
-
-        notificationSendService.send(anonymousTopic, notificationSend);
+  /**
+   * 비회원 디바이스로 알림 전송
+   *
+   * @param officialCalendarSize 공통 일정 수
+   * @param title 알림 제목
+   * @param body 알림 내용
+   */
+  @Override
+  public void sendForAnonymous(int officialCalendarSize, String title, String body) {
+    if (officialCalendarSize == 0) {
+      return;
     }
 
-    @Override
-    @Transactional
-    public void saveAndSendForMember(Member member, List<String> devices, String title, String body) {
-        // 알림 저장 및 저장된 알림 ID 반환
-        MemberNotification save = notificationSaveService.save(member, title, body, NotificationType.CALENDAR, "");
-        Long notificationId = save.getDetails()
-                .getId();
+    NotificationSend notificationSend =
+        new NotificationSend(NON_SAVE_NOTIFICATION_ID, title, body, NotificationType.CALENDAR, "");
 
-        // 알림 저장용 DTO
-        NotificationSend notificationSend = new NotificationSend(notificationId, title, body,
-                NotificationType.CALENDAR, "");
+    notificationSendService.send(anonymousTopic, notificationSend);
+  }
 
-        // 알림 내용 전송
-        notificationSendService.send(devices, notificationSend);
-    }
+  @Override
+  @Transactional
+  public void saveAndSendForMember(Member member, List<String> devices, String title, String body) {
+    // 알림 저장 및 저장된 알림 ID 반환
+    MemberNotification save =
+        notificationSaveService.save(member, title, body, NotificationType.CALENDAR, "");
+    Long notificationId = save.getDetails().getId();
+
+    // 알림 저장용 DTO
+    NotificationSend notificationSend =
+        new NotificationSend(notificationId, title, body, NotificationType.CALENDAR, "");
+
+    // 알림 내용 전송
+    notificationSendService.send(devices, notificationSend);
+  }
 }

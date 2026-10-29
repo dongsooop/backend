@@ -29,57 +29,56 @@ import org.springframework.util.StringUtils;
 @SequenceGenerator(name = "marketplace_board_sequence_generator")
 @SQLRestriction("is_deleted = false")
 @SQLDelete(sql = "UPDATE marketplace_board SET is_deleted = true WHERE id = ?")
-@FilterDef(
-        name = "blockFilter",
-        parameters = @ParamDef(name = "blockerId", type = Long.class)
-)
+@FilterDef(name = "blockFilter", parameters = @ParamDef(name = "blockerId", type = Long.class))
 @Filter(
-        name = "blockFilter",
-        condition = "NOT EXISTS ( " +
-                "SELECT 1 FROM member_block mb " +
-                "WHERE mb.blocker_id = :blockerId " +
-                "AND mb.blocked_member_id = author " +
-                ")"
-)
+    name = "blockFilter",
+    condition =
+        "NOT EXISTS ( "
+            + "SELECT 1 FROM member_block mb "
+            + "WHERE mb.blocker_id = :blockerId "
+            + "AND mb.blocked_member_id = author "
+            + ")")
 public class MarketplaceBoard extends Board {
 
-    @Id
-    @Getter
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "marketplace_board_sequence_generator")
-    private Long id;
+  @Id
+  @Getter
+  @GeneratedValue(
+      strategy = GenerationType.SEQUENCE,
+      generator = "marketplace_board_sequence_generator")
+  private Long id;
 
-    @Column(name = "price", nullable = false)
-    private Long price;
+  @Column(name = "price", nullable = false)
+  private Long price;
 
-    @Builder.Default
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private MarketplaceBoardStatus status = MarketplaceBoardStatus.OPEN;
+  @Builder.Default
+  @Enumerated(EnumType.STRING)
+  @Column(name = "status", nullable = false)
+  private MarketplaceBoardStatus status = MarketplaceBoardStatus.OPEN;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false)
-    private MarketplaceType type;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "type", nullable = false)
+  private MarketplaceType type;
 
-    public void update(UpdateMarketplaceBoardRequest request) {
-        if (request.price() != null) {
-            this.price = request.price();
-        }
-        if (request.type() != null) {
-            this.type = request.type();
-        }
-        if (StringUtils.hasText(request.title())) {
-            super.title = request.title();
-        }
-        if (StringUtils.hasText(request.content())) {
-            super.content = request.content();
-        }
+  public void update(UpdateMarketplaceBoardRequest request) {
+    if (request.price() != null) {
+      this.price = request.price();
+    }
+    if (request.type() != null) {
+      this.type = request.type();
+    }
+    if (StringUtils.hasText(request.title())) {
+      super.title = request.title();
+    }
+    if (StringUtils.hasText(request.content())) {
+      super.content = request.content();
+    }
+  }
+
+  public void close() {
+    if (this.status != MarketplaceBoardStatus.OPEN) {
+      throw new MarketplaceBoardAlreadyClosedException(this.id);
     }
 
-    public void close() {
-        if (this.status != MarketplaceBoardStatus.OPEN) {
-            throw new MarketplaceBoardAlreadyClosedException(this.id);
-        }
-
-        this.status = MarketplaceBoardStatus.CLOSED;
-    }
+    this.status = MarketplaceBoardStatus.CLOSED;
+  }
 }

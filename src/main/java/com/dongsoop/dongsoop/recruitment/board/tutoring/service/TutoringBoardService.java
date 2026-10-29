@@ -10,13 +10,14 @@ import org.springframework.data.domain.Pageable;
 
 public interface TutoringBoardService {
 
-    List<RecruitmentOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType, Pageable pageable);
+  List<RecruitmentOverview> getBoardByPageAndDepartmentType(
+      DepartmentType departmentType, Pageable pageable);
 
-    List<RecruitmentOverview> getBoardByPage(Pageable pageable);
+  List<RecruitmentOverview> getBoardByPage(Pageable pageable);
 
-    TutoringBoard create(CreateTutoringBoardRequest request);
+  TutoringBoard create(CreateTutoringBoardRequest request);
 
-    RecruitmentDetails getBoardDetailsById(Long boardId);
+  RecruitmentDetails getBoardDetailsById(Long boardId);
 
-    void deleteBoardById(Long boardId);
+  void deleteBoardById(Long boardId);
 }

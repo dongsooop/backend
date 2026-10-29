@@ -1,9 +1,9 @@
 package com.dongsoop.dongsoop.mypage.controller;
 
-import com.dongsoop.dongsoop.recruitment.query.dto.RecruitmentSummary;
 import com.dongsoop.dongsoop.mypage.dto.MyRecruitmentOverviewResponse;
 import com.dongsoop.dongsoop.mypage.dto.OpenedMarketplace;
 import com.dongsoop.dongsoop.mypage.service.MyPageService;
+import com.dongsoop.dongsoop.recruitment.query.dto.RecruitmentSummary;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -17,23 +17,25 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class MyPageController {
 
-    private final MyPageService myPageService;
+  private final MyPageService myPageService;
 
-    @GetMapping("/apply-recruitments")
-    public ResponseEntity<List<RecruitmentSummary>> getApplyRecruitmentList(Pageable pageable) {
-        List<RecruitmentSummary> response = myPageService.getApplyRecruitmentsByMemberId(pageable);
-        return ResponseEntity.ok(response);
-    }
+  @GetMapping("/apply-recruitments")
+  public ResponseEntity<List<RecruitmentSummary>> getApplyRecruitmentList(Pageable pageable) {
+    List<RecruitmentSummary> response = myPageService.getApplyRecruitmentsByMemberId(pageable);
+    return ResponseEntity.ok(response);
+  }
 
-    @GetMapping("/opened-recruitments")
-    public ResponseEntity<List<MyRecruitmentOverviewResponse>> getOpenedRecruitmentList(Pageable pageable) {
-        List<MyRecruitmentOverviewResponse> response = myPageService.getOpenedRecruitmentsByMemberId(pageable);
-        return ResponseEntity.ok(response);
-    }
+  @GetMapping("/opened-recruitments")
+  public ResponseEntity<List<MyRecruitmentOverviewResponse>> getOpenedRecruitmentList(
+      Pageable pageable) {
+    List<MyRecruitmentOverviewResponse> response =
+        myPageService.getOpenedRecruitmentsByMemberId(pageable);
+    return ResponseEntity.ok(response);
+  }
 
-    @GetMapping("/opened-marketplace")
-    public ResponseEntity<List<OpenedMarketplace>> getOpenedMarketplaceList(Pageable pageable) {
-        List<OpenedMarketplace> response = myPageService.getOpenedMarketplacesByMemberId(pageable);
-        return ResponseEntity.ok(response);
-    }
+  @GetMapping("/opened-marketplace")
+  public ResponseEntity<List<OpenedMarketplace>> getOpenedMarketplaceList(Pageable pageable) {
+    List<OpenedMarketplace> response = myPageService.getOpenedMarketplacesByMemberId(pageable);
+    return ResponseEntity.ok(response);
+  }
 }

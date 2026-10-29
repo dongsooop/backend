@@ -10,21 +10,22 @@ import org.springframework.stereotype.Service;
 @Service
 public class MailTextGeneratorImpl implements MailTextGenerator {
 
-    @Value("${mail.format.file.name}")
-    private String mailFormatFileName;
+  @Value("${mail.format.file.name}")
+  private String mailFormatFileName;
 
-    @Value("${resource.static.base-path}")
-    private String staticResourceBasePath;
+  @Value("${resource.static.base-path}")
+  private String staticResourceBasePath;
 
-    @Override
-    public String generateVerificationText(String code) {
-        ClassPathResource resource = new ClassPathResource(staticResourceBasePath + mailFormatFileName);
+  @Override
+  public String generateVerificationText(String code) {
+    ClassPathResource resource = new ClassPathResource(staticResourceBasePath + mailFormatFileName);
 
-        try {
-            String staticForm = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            return staticForm.replace("{{code}}", code);
-        } catch (IOException exception) {
-            throw new MailSendingFormatFileCannotReadException(exception);
-        }
+    try {
+      String staticForm =
+          new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+      return staticForm.replace("{{code}}", code);
+    } catch (IOException exception) {
+      throw new MailSendingFormatFileCannotReadException(exception);
     }
+  }
 }

@@ -5,7 +5,7 @@ import org.springframework.http.HttpStatus;
 
 public class InvalidGoogleTokenException extends CustomException {
 
-    public InvalidGoogleTokenException() {
-        super("유효하지 않은 구글 토큰입니다.", HttpStatus.UNAUTHORIZED);
-    }
+  public InvalidGoogleTokenException() {
+    super("유효하지 않은 구글 토큰입니다.", HttpStatus.UNAUTHORIZED);
+  }
 }

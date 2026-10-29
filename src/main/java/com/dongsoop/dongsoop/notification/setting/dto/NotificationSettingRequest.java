@@ -5,11 +5,4 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record NotificationSettingRequest(
-
-        @NotBlank
-        String deviceToken,
-
-        @NotNull
-        NotificationType notificationType
-) {
-}
+    @NotBlank String deviceToken, @NotNull NotificationType notificationType) {}

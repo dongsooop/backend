@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+# Prevent an uncommitted formatting fix from hiding a malformed commit.
+if ! git diff HEAD --quiet -- 'src/**/*.java' build.gradle settings.gradle gradle.properties gradlew gradle/wrapper; then
+    echo 'Java/Gradle 변경을 커밋한 후 push하세요. push 검사는 HEAD와 동일한 소스로 실행합니다.' >&2
+    exit 1
+fi
+exec bash scripts/check-format.sh

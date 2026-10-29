@@ -10,11 +10,11 @@ import org.springframework.data.domain.Pageable;
 
 public interface ProjectBoardRepositoryCustom {
 
-    List<RecruitmentOverview> findProjectBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
-                                                                               Pageable pageable);
+  List<RecruitmentOverview> findProjectBoardOverviewsByPageAndDepartmentType(
+      DepartmentType departmentType, Pageable pageable);
 
-    List<RecruitmentOverview> findProjectBoardOverviewsByPage(Pageable pageable);
+  List<RecruitmentOverview> findProjectBoardOverviewsByPage(Pageable pageable);
 
-    Optional<RecruitmentDetails> findBoardDetailsByIdAndViewType(Long projectBoardId, RecruitmentViewType viewType,
-                                                                 boolean isAlreadyApplied);
+  Optional<RecruitmentDetails> findBoardDetailsByIdAndViewType(
+      Long projectBoardId, RecruitmentViewType viewType, boolean isAlreadyApplied);
 }

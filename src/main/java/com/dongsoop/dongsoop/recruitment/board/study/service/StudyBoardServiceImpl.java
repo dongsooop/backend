@@ -32,103 +32,108 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class StudyBoardServiceImpl implements StudyBoardService {
 
-    private final StudyBoardRepository studyBoardRepository;
-    private final StudyBoardRepositoryCustom studyBoardRepositoryCustom;
-    private final MemberService memberService;
-    private final DepartmentRepository departmentRepository;
-    private final StudyBoardDepartmentRepository studyBoardDepartmentRepository;
-    private final StudyApplyRepositoryCustom studyApplyRepositoryCustom;
-    private final ChatService chatService;
-    private final ChatRoomService chatRoomService;
-    private final ChatCommonUtils chatCommonUtils;
+  private final StudyBoardRepository studyBoardRepository;
+  private final StudyBoardRepositoryCustom studyBoardRepositoryCustom;
+  private final MemberService memberService;
+  private final DepartmentRepository departmentRepository;
+  private final StudyBoardDepartmentRepository studyBoardDepartmentRepository;
+  private final StudyApplyRepositoryCustom studyApplyRepositoryCustom;
+  private final ChatService chatService;
+  private final ChatRoomService chatRoomService;
+  private final ChatCommonUtils chatCommonUtils;
 
-    @Transactional
-    public StudyBoard create(CreateStudyBoardRequest request) {
-        StudyBoard studyBoardToSave = transformToStudyBoard(request);
-        List<Department> departmentList = getDepartmentReferenceList(request.departmentTypeList());
+  @Transactional
+  public StudyBoard create(CreateStudyBoardRequest request) {
+    StudyBoard studyBoardToSave = transformToStudyBoard(request);
+    List<Department> departmentList = getDepartmentReferenceList(request.departmentTypeList());
 
-        StudyBoard savedBoard = studyBoardRepository.save(studyBoardToSave);
-        createAndLinkChatRoom(savedBoard);
-        
-        List<StudyBoardDepartment> studyBoardDepartmentList = departmentList.stream()
-                .map(department -> new StudyBoardDepartment(savedBoard, department))
-                .toList();
+    StudyBoard savedBoard = studyBoardRepository.save(studyBoardToSave);
+    createAndLinkChatRoom(savedBoard);
 
-        studyBoardDepartmentRepository.saveAll(studyBoardDepartmentList);
-        return savedBoard;
+    List<StudyBoardDepartment> studyBoardDepartmentList =
+        departmentList.stream()
+            .map(department -> new StudyBoardDepartment(savedBoard, department))
+            .toList();
+
+    studyBoardDepartmentRepository.saveAll(studyBoardDepartmentList);
+    return savedBoard;
+  }
+
+  private void createAndLinkChatRoom(StudyBoard studyBoard) {
+    Member author = studyBoard.getAuthor();
+    String chatRoomTitle = String.format("[스터디] %s", studyBoard.getTitle());
+    Set<Long> initialParticipants = Set.of(author.getId());
+
+    ChatRoom chatRoom =
+        chatRoomService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
+
+    studyBoard.assignChatRoom(chatRoom.getRoomId());
+    chatCommonUtils.saveRecruitmentEndAt(chatRoom.getRoomId(), studyBoard.getEndAt());
+  }
+
+  public List<RecruitmentOverview> getBoardByPageAndDepartmentType(
+      DepartmentType departmentType, Pageable pageable) {
+    return studyBoardRepositoryCustom.findStudyBoardOverviewsByPageAndDepartmentType(
+        departmentType, pageable);
+  }
+
+  public List<RecruitmentOverview> getBoardByPage(Pageable pageable) {
+    return studyBoardRepositoryCustom.findStudyBoardOverviewsByPage(pageable);
+  }
+
+  public RecruitmentDetails getBoardDetailsById(Long boardId) {
+    try {
+      Long memberId = memberService.getMemberIdByAuthentication();
+      boolean isOwner = studyBoardRepository.existsByIdAndAuthorId(boardId, memberId);
+      if (isOwner) {
+        return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
+      }
+
+      boolean isAlreadyApplied =
+          studyApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
+
+      return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
+    } catch (NotAuthenticationException exception) {
+      return getBoardDetailsWithViewType(boardId, RecruitmentViewType.GUEST);
+    }
+  }
+
+  private RecruitmentDetails getBoardDetailsWithViewType(
+      Long boardId, RecruitmentViewType viewType) {
+    return getBoardDetailsWithViewType(boardId, viewType, false);
+  }
+
+  private RecruitmentDetails getBoardDetailsWithViewType(
+      Long boardId, RecruitmentViewType viewType, boolean isAlreadyApplied) {
+    return studyBoardRepositoryCustom
+        .findBoardDetailsByIdAndViewType(boardId, viewType, isAlreadyApplied)
+        .orElseThrow(() -> new StudyBoardNotFound(boardId));
+  }
+
+  private StudyBoard transformToStudyBoard(CreateStudyBoardRequest request) {
+    Member member = memberService.getMemberReferenceByContext();
+
+    return StudyBoard.builder()
+        .title(request.title())
+        .content(request.content())
+        .startAt(request.startAt())
+        .endAt(request.endAt())
+        .tags(request.tags())
+        .author(member)
+        .build();
+  }
+
+  private List<Department> getDepartmentReferenceList(List<DepartmentType> departmentTypeList) {
+    return departmentTypeList.stream().map(departmentRepository::getReferenceById).toList();
+  }
+
+  @Override
+  public void deleteBoardById(Long boardId) {
+    Long requesterId = memberService.getMemberIdByAuthentication();
+    if (!studyBoardRepository.existsByIdAndAuthorId(boardId, requesterId)) {
+      throw new StudyBoardNotFound(boardId, requesterId);
     }
 
-    private void createAndLinkChatRoom(StudyBoard studyBoard) {
-        Member author = studyBoard.getAuthor();
-        String chatRoomTitle = String.format("[스터디] %s", studyBoard.getTitle());
-        Set<Long> initialParticipants = Set.of(author.getId());
-
-        ChatRoom chatRoom = chatRoomService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
-
-        studyBoard.assignChatRoom(chatRoom.getRoomId());
-        chatCommonUtils.saveRecruitmentEndAt(chatRoom.getRoomId(), studyBoard.getEndAt());
-    }
-
-    public List<RecruitmentOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType, Pageable pageable) {
-        return studyBoardRepositoryCustom.findStudyBoardOverviewsByPageAndDepartmentType(departmentType, pageable);
-    }
-
-    public List<RecruitmentOverview> getBoardByPage(Pageable pageable) {
-        return studyBoardRepositoryCustom.findStudyBoardOverviewsByPage(pageable);
-    }
-
-    public RecruitmentDetails getBoardDetailsById(Long boardId) {
-        try {
-            Long memberId = memberService.getMemberIdByAuthentication();
-            boolean isOwner = studyBoardRepository.existsByIdAndAuthorId(boardId, memberId);
-            if (isOwner) {
-                return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
-            }
-
-            boolean isAlreadyApplied = studyApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
-
-            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
-        } catch (NotAuthenticationException exception) {
-            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.GUEST);
-        }
-    }
-
-    private RecruitmentDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType) {
-        return getBoardDetailsWithViewType(boardId, viewType, false);
-    }
-
-    private RecruitmentDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType,
-                                                           boolean isAlreadyApplied) {
-        return studyBoardRepositoryCustom.findBoardDetailsByIdAndViewType(boardId, viewType, isAlreadyApplied)
-                .orElseThrow(() -> new StudyBoardNotFound(boardId));
-    }
-
-    private StudyBoard transformToStudyBoard(CreateStudyBoardRequest request) {
-        Member member = memberService.getMemberReferenceByContext();
-
-        return StudyBoard.builder()
-                .title(request.title())
-                .content(request.content())
-                .startAt(request.startAt())
-                .endAt(request.endAt())
-                .tags(request.tags())
-                .author(member)
-                .build();
-    }
-
-    private List<Department> getDepartmentReferenceList(List<DepartmentType> departmentTypeList) {
-        return departmentTypeList.stream()
-                .map(departmentRepository::getReferenceById)
-                .toList();
-    }
-
-    @Override
-    public void deleteBoardById(Long boardId) {
-        Long requesterId = memberService.getMemberIdByAuthentication();
-        if (!studyBoardRepository.existsByIdAndAuthorId(boardId, requesterId)) {
-            throw new StudyBoardNotFound(boardId, requesterId);
-        }
-
-        studyBoardRepository.deleteById(boardId);
-    }
+    studyBoardRepository.deleteById(boardId);
+  }
 }

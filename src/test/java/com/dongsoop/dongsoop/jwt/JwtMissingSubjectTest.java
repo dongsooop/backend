@@ -16,32 +16,44 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class JwtMissingSubjectTest {
-    private final JwtValidator validator = new JwtValidator();
+  private final JwtValidator validator = new JwtValidator();
 
-    @BeforeEach
-    void claimNames() {
-        ReflectionTestUtils.setField(validator, "roleClaimName", "role");
-        ReflectionTestUtils.setField(validator, "typeClaimName", "type");
-    }
+  @BeforeEach
+  void claimNames() {
+    ReflectionTestUtils.setField(validator, "roleClaimName", "role");
+    ReflectionTestUtils.setField(validator, "typeClaimName", "type");
+  }
 
-    @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = {" ", "\t", "-7", "7x"})
-    void missingBlankOrNonNumericSubjectHasTokenError(String subject) {
-        Claims claims = Jwts.claims().subject(subject).add("role", List.of("ROLE_USER")).add("type", "ACCESS").build();
-        assertThatThrownBy(() -> validator.validate(claims)).isInstanceOf(TokenMalformedException.class);
-    }
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(strings = {" ", "\t", "-7", "7x"})
+  void missingBlankOrNonNumericSubjectHasTokenError(String subject) {
+    Claims claims =
+        Jwts.claims()
+            .subject(subject)
+            .add("role", List.of("ROLE_USER"))
+            .add("type", "ACCESS")
+            .build();
+    assertThatThrownBy(() -> validator.validate(claims))
+        .isInstanceOf(TokenMalformedException.class);
+  }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"7", "007", "9223372036854775807"})
-    void numericSubjectKeepsExistingContract(String subject) {
-        Claims claims = Jwts.claims().subject(subject).add("role", List.of("ROLE_USER")).add("type", "ACCESS").build();
-        assertThatCode(() -> validator.validate(claims)).doesNotThrowAnyException();
-    }
+  @ParameterizedTest
+  @ValueSource(strings = {"7", "007", "9223372036854775807"})
+  void numericSubjectKeepsExistingContract(String subject) {
+    Claims claims =
+        Jwts.claims()
+            .subject(subject)
+            .add("role", List.of("ROLE_USER"))
+            .add("type", "ACCESS")
+            .build();
+    assertThatCode(() -> validator.validate(claims)).doesNotThrowAnyException();
+  }
 
-    @Test
-    void validSubjectStillRequiresRoles() {
-        Claims claims = Jwts.claims().subject("7").add("type", "ACCESS").build();
-        assertThatThrownBy(() -> validator.validate(claims)).isInstanceOf(TokenRoleNotAvailableException.class);
-    }
+  @Test
+  void validSubjectStillRequiresRoles() {
+    Claims claims = Jwts.claims().subject("7").add("type", "ACCESS").build();
+    assertThatThrownBy(() -> validator.validate(claims))
+        .isInstanceOf(TokenRoleNotAvailableException.class);
+  }
 }

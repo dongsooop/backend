@@ -9,17 +9,17 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ReCaptchaVerificationResponse {
 
-    private boolean success;
+  private boolean success;
 
-    private double score;
+  private double score;
 
-    private String action;
+  private String action;
 
-    @JsonProperty("challenge_ts")
-    private String challengeTs;
+  @JsonProperty("challenge_ts")
+  private String challengeTs;
 
-    private String hostname;
+  private String hostname;
 
-    @JsonProperty("error-codes")
-    private List<String> errorCodes;
+  @JsonProperty("error-codes")
+  private List<String> errorCodes;
 }

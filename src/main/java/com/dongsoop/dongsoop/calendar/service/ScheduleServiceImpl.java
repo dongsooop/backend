@@ -21,129 +21,123 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ScheduleServiceImpl implements ScheduleService {
 
-    private final MemberScheduleRepository memberScheduleRepository;
+  private final MemberScheduleRepository memberScheduleRepository;
 
-    private final OfficialScheduleRepository officialScheduleRepository;
+  private final OfficialScheduleRepository officialScheduleRepository;
 
-    @Override
-    public MemberSchedule createMemberSchedule(Member requester,
-                                               CreateMemberScheduleRequest createMemberScheduleRequest) {
-        MemberSchedule schedule = createMemberScheduleRequest.toEntity();
-        schedule.setMember(requester);
+  @Override
+  public MemberSchedule createMemberSchedule(
+      Member requester, CreateMemberScheduleRequest createMemberScheduleRequest) {
+    MemberSchedule schedule = createMemberScheduleRequest.toEntity();
+    schedule.setMember(requester);
 
-        return memberScheduleRepository.save(schedule);
+    return memberScheduleRepository.save(schedule);
+  }
+
+  @Override
+  public List<ScheduleDetails> getSchedule(Long memberId, YearMonth yearMonth) {
+    LocalDate startDate = getStartDate(yearMonth);
+    LocalDate endDate = getEndDate(yearMonth);
+
+    List<ScheduleDetails> officialScheduleDetails = getOfficialSchedule(startDate, endDate);
+    List<ScheduleDetails> memberScheduleDetails = getMemberSchedule(memberId, startDate, endDate);
+
+    List<ScheduleDetails> totalScheduleDetails = new ArrayList<>();
+    totalScheduleDetails.addAll(officialScheduleDetails);
+    totalScheduleDetails.addAll(memberScheduleDetails);
+
+    return totalScheduleDetails.stream().sorted(this::sortedByDate).toList();
+  }
+
+  @Override
+  public List<ScheduleDetails> getSchedule(YearMonth yearMonth) {
+    LocalDate startDate = getStartDate(yearMonth);
+    LocalDate endDate = getEndDate(yearMonth);
+
+    List<ScheduleDetails> officialScheduleDetails = getOfficialSchedule(startDate, endDate);
+
+    return officialScheduleDetails.stream().sorted(this::sortedByDate).toList();
+  }
+
+  private int sortedByDate(ScheduleDetails a, ScheduleDetails b) {
+    int startAtCompareResult = a.getStartAt().compareTo(b.getStartAt());
+    if (startAtCompareResult != 0) {
+      return startAtCompareResult;
     }
 
-    @Override
-    public List<ScheduleDetails> getSchedule(Long memberId, YearMonth yearMonth) {
-        LocalDate startDate = getStartDate(yearMonth);
-        LocalDate endDate = getEndDate(yearMonth);
+    return a.getEndAt().compareTo(b.getEndAt());
+  }
 
-        List<ScheduleDetails> officialScheduleDetails = getOfficialSchedule(startDate, endDate);
-        List<ScheduleDetails> memberScheduleDetails = getMemberSchedule(memberId, startDate, endDate);
+  private List<ScheduleDetails> getOfficialSchedule(LocalDate startDate, LocalDate endDate) {
+    List<OfficialSchedule> officialScheduleList =
+        officialScheduleRepository.findOfficialScheduleByDuration(startDate, endDate);
 
-        List<ScheduleDetails> totalScheduleDetails = new ArrayList<>();
-        totalScheduleDetails.addAll(officialScheduleDetails);
-        totalScheduleDetails.addAll(memberScheduleDetails);
+    return officialScheduleList.stream().map(OfficialSchedule::toDetails).toList();
+  }
 
-        return totalScheduleDetails.stream()
-                .sorted(this::sortedByDate)
-                .toList();
+  private List<ScheduleDetails> getMemberSchedule(
+      Long memberId, LocalDate startDate, LocalDate endDate) {
+    List<MemberSchedule> memberScheduleList =
+        memberScheduleRepository.findMemberScheduleByDuration(
+            memberId, startDate.atStartOfDay(), endDate.atStartOfDay());
+
+    return memberScheduleList.stream().map(MemberSchedule::toDetails).toList();
+  }
+
+  private LocalDate getStartDate(YearMonth yearMonth) {
+    // 지난달 마지막 날
+    LocalDate lastDayOfLastMonth = yearMonth.minusMonths(1L).atEndOfMonth();
+
+    int week = lastDayOfLastMonth.getDayOfWeek().getValue();
+
+    // 그 주의 시작일
+    return lastDayOfLastMonth.minusDays(week % 7);
+  }
+
+  private LocalDate getEndDate(YearMonth yearMonth) {
+    // 이번달 마지막 날
+    LocalDate firstDayOfNextMonth = yearMonth.atEndOfMonth();
+
+    long week = firstDayOfNextMonth.getDayOfWeek().getValue();
+
+    // 그 주의 시작일
+    return firstDayOfNextMonth.plusDays(7L - (week % 7));
+  }
+
+  @Override
+  public void deleteMemberSchedule(Long scheduleId, Long requesterId) {
+    MemberSchedule schedule =
+        memberScheduleRepository
+            .findById(scheduleId)
+            .orElseThrow(() -> new MemberScheduleNotFoundException(scheduleId));
+
+    Long scheduleOwnerId = schedule.getMember().getId();
+
+    validateScheduleOwner(scheduleOwnerId, scheduleId, requesterId);
+
+    memberScheduleRepository.deleteById(scheduleId);
+  }
+
+  @Override
+  public void updateMemberSchedule(
+      Long scheduleId, Long requesterId, MemberScheduleUpdateRequest request) {
+    MemberSchedule schedule =
+        memberScheduleRepository
+            .findById(scheduleId)
+            .orElseThrow(() -> new MemberScheduleNotFoundException(scheduleId));
+
+    Long scheduleOwnerId = schedule.getMember().getId();
+
+    validateScheduleOwner(scheduleOwnerId, scheduleId, requesterId);
+    schedule.update(request);
+
+    memberScheduleRepository.save(schedule);
+  }
+
+  /** 요청을 보낸 회원과 일정의 주인이 같은지 검증한다. */
+  private void validateScheduleOwner(Long scheduleOwnerId, Long scheduleId, Long requesterId) {
+    if (!scheduleOwnerId.equals(requesterId)) {
+      throw new NotScheduleOwnerException(requesterId, scheduleOwnerId, scheduleId);
     }
-
-    @Override
-    public List<ScheduleDetails> getSchedule(YearMonth yearMonth) {
-        LocalDate startDate = getStartDate(yearMonth);
-        LocalDate endDate = getEndDate(yearMonth);
-
-        List<ScheduleDetails> officialScheduleDetails = getOfficialSchedule(startDate, endDate);
-
-        return officialScheduleDetails.stream()
-                .sorted(this::sortedByDate)
-                .toList();
-    }
-
-    private int sortedByDate(ScheduleDetails a, ScheduleDetails b) {
-        int startAtCompareResult = a.getStartAt().compareTo(b.getStartAt());
-        if (startAtCompareResult != 0) {
-            return startAtCompareResult;
-        }
-
-        return a.getEndAt().compareTo(b.getEndAt());
-    }
-
-    private List<ScheduleDetails> getOfficialSchedule(LocalDate startDate, LocalDate endDate) {
-        List<OfficialSchedule> officialScheduleList = officialScheduleRepository.findOfficialScheduleByDuration(
-                startDate, endDate);
-
-        return officialScheduleList.stream()
-                .map(OfficialSchedule::toDetails)
-                .toList();
-    }
-
-    private List<ScheduleDetails> getMemberSchedule(Long memberId, LocalDate startDate, LocalDate endDate) {
-        List<MemberSchedule> memberScheduleList = memberScheduleRepository.findMemberScheduleByDuration(
-                memberId, startDate.atStartOfDay(), endDate.atStartOfDay());
-
-        return memberScheduleList.stream()
-                .map(MemberSchedule::toDetails)
-                .toList();
-    }
-
-    private LocalDate getStartDate(YearMonth yearMonth) {
-        // 지난달 마지막 날
-        LocalDate lastDayOfLastMonth = yearMonth.minusMonths(1L)
-                .atEndOfMonth();
-
-        int week = lastDayOfLastMonth.getDayOfWeek().getValue();
-
-        // 그 주의 시작일
-        return lastDayOfLastMonth.minusDays(week % 7);
-    }
-
-    private LocalDate getEndDate(YearMonth yearMonth) {
-        // 이번달 마지막 날
-        LocalDate firstDayOfNextMonth = yearMonth.atEndOfMonth();
-
-        long week = firstDayOfNextMonth.getDayOfWeek().getValue();
-
-        // 그 주의 시작일
-        return firstDayOfNextMonth.plusDays(7L - (week % 7));
-    }
-
-    @Override
-    public void deleteMemberSchedule(Long scheduleId, Long requesterId) {
-        MemberSchedule schedule = memberScheduleRepository.findById(scheduleId)
-                .orElseThrow(() -> new MemberScheduleNotFoundException(scheduleId));
-
-        Long scheduleOwnerId = schedule.getMember()
-                .getId();
-
-        validateScheduleOwner(scheduleOwnerId, scheduleId, requesterId);
-
-        memberScheduleRepository.deleteById(scheduleId);
-    }
-
-    @Override
-    public void updateMemberSchedule(Long scheduleId, Long requesterId, MemberScheduleUpdateRequest request) {
-        MemberSchedule schedule = memberScheduleRepository.findById(scheduleId)
-                .orElseThrow(() -> new MemberScheduleNotFoundException(scheduleId));
-
-        Long scheduleOwnerId = schedule.getMember()
-                .getId();
-
-        validateScheduleOwner(scheduleOwnerId, scheduleId, requesterId);
-        schedule.update(request);
-
-        memberScheduleRepository.save(schedule);
-    }
-
-    /**
-     * 요청을 보낸 회원과 일정의 주인이 같은지 검증한다.
-     */
-    private void validateScheduleOwner(Long scheduleOwnerId, Long scheduleId, Long requesterId) {
-        if (!scheduleOwnerId.equals(requesterId)) {
-            throw new NotScheduleOwnerException(requesterId, scheduleOwnerId, scheduleId);
-        }
-    }
+  }
 }

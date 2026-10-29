@@ -9,9 +9,10 @@ import java.util.List;
 
 public interface MemberScheduleRepositoryCustom {
 
-    List<MemberSchedule> findMemberScheduleByDuration(Long memberId, LocalDateTime startAt, LocalDateTime endAt);
+  List<MemberSchedule> findMemberScheduleByDuration(
+      Long memberId, LocalDateTime startAt, LocalDateTime endAt);
 
-    List<TodaySchedule> searchTodaySchedule();
+  List<TodaySchedule> searchTodaySchedule();
 
-    List<HomeSchedule> searchHomeSchedule(Long memberId, LocalDate date);
+  List<HomeSchedule> searchHomeSchedule(Long memberId, LocalDate date);
 }

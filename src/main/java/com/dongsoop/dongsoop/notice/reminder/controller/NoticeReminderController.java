@@ -20,34 +20,32 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class NoticeReminderController {
 
-    private final NoticeReminderService noticeReminderService;
+  private final NoticeReminderService noticeReminderService;
 
-    @PutMapping
-    public ResponseEntity<NoticeReminderResponse> upsert(
-            @PathVariable Long noticeId,
-            @RequestHeader(value = "X-Device-Fid", required = false) String fid,
-            @RequestHeader(value = "X-Device-Token", required = false) String deviceToken,
-            @RequestBody @Valid NoticeReminderRequest request
-    ) {
-        return ResponseEntity.ok(noticeReminderService.upsert(noticeId, fid, deviceToken, request.remindAt()));
-    }
+  @PutMapping
+  public ResponseEntity<NoticeReminderResponse> upsert(
+      @PathVariable Long noticeId,
+      @RequestHeader(value = "X-Device-Fid", required = false) String fid,
+      @RequestHeader(value = "X-Device-Token", required = false) String deviceToken,
+      @RequestBody @Valid NoticeReminderRequest request) {
+    return ResponseEntity.ok(
+        noticeReminderService.upsert(noticeId, fid, deviceToken, request.remindAt()));
+  }
 
-    @GetMapping
-    public ResponseEntity<NoticeReminderResponse> get(
-            @PathVariable Long noticeId,
-            @RequestHeader(value = "X-Device-Fid", required = false) String fid,
-            @RequestHeader(value = "X-Device-Token", required = false) String deviceToken
-    ) {
-        return ResponseEntity.ok(noticeReminderService.get(noticeId, fid, deviceToken));
-    }
+  @GetMapping
+  public ResponseEntity<NoticeReminderResponse> get(
+      @PathVariable Long noticeId,
+      @RequestHeader(value = "X-Device-Fid", required = false) String fid,
+      @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
+    return ResponseEntity.ok(noticeReminderService.get(noticeId, fid, deviceToken));
+  }
 
-    @DeleteMapping
-    public ResponseEntity<Void> delete(
-            @PathVariable Long noticeId,
-            @RequestHeader(value = "X-Device-Fid", required = false) String fid,
-            @RequestHeader(value = "X-Device-Token", required = false) String deviceToken
-    ) {
-        noticeReminderService.delete(noticeId, fid, deviceToken);
-        return ResponseEntity.noContent().build();
-    }
+  @DeleteMapping
+  public ResponseEntity<Void> delete(
+      @PathVariable Long noticeId,
+      @RequestHeader(value = "X-Device-Fid", required = false) String fid,
+      @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
+    noticeReminderService.delete(noticeId, fid, deviceToken);
+    return ResponseEntity.noContent().build();
+  }
 }

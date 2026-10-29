@@ -27,50 +27,48 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class StudyBoardController {
 
-    private final StudyBoardService studyBoardService;
+  private final StudyBoardService studyBoardService;
 
-    @GetMapping("/{boardId}")
-    public ResponseEntity<RecruitmentDetails> getStudyBoardDetails(@PathVariable("boardId") Long boardId) {
-        RecruitmentDetails details = studyBoardService.getBoardDetailsById(boardId);
+  @GetMapping("/{boardId}")
+  public ResponseEntity<RecruitmentDetails> getStudyBoardDetails(
+      @PathVariable("boardId") Long boardId) {
+    RecruitmentDetails details = studyBoardService.getBoardDetailsById(boardId);
 
-        return ResponseEntity.ok(details);
-    }
+    return ResponseEntity.ok(details);
+  }
 
-    @PostMapping
-    @Secured(value = RoleType.USER_ROLE)
-    public ResponseEntity<Void> createStudyBoard(@RequestBody @Valid CreateStudyBoardRequest request) {
-        StudyBoard studyBoard = studyBoardService.create(request);
+  @PostMapping
+  @Secured(value = RoleType.USER_ROLE)
+  public ResponseEntity<Void> createStudyBoard(
+      @RequestBody @Valid CreateStudyBoardRequest request) {
+    StudyBoard studyBoard = studyBoardService.create(request);
 
-        URI uri = URI.create("/study-board/" + studyBoard.getId());
+    URI uri = URI.create("/study-board/" + studyBoard.getId());
 
-        return ResponseEntity.created(uri)
-                .build();
-    }
+    return ResponseEntity.created(uri).build();
+  }
 
-    @GetMapping("/department/{departmentType}")
-    public ResponseEntity<List<RecruitmentOverview>> getStudyBoardListByDepartmentType(
-            @PathVariable("departmentType") DepartmentType departmentType,
-            Pageable pageable) {
-        List<RecruitmentOverview> overviews = studyBoardService.getBoardByPageAndDepartmentType(
-                departmentType,
-                pageable);
+  @GetMapping("/department/{departmentType}")
+  public ResponseEntity<List<RecruitmentOverview>> getStudyBoardListByDepartmentType(
+      @PathVariable("departmentType") DepartmentType departmentType, Pageable pageable) {
+    List<RecruitmentOverview> overviews =
+        studyBoardService.getBoardByPageAndDepartmentType(departmentType, pageable);
 
-        return ResponseEntity.ok(overviews);
-    }
+    return ResponseEntity.ok(overviews);
+  }
 
-    @GetMapping
-    public ResponseEntity<List<RecruitmentOverview>> getStudyBoardList(Pageable pageable) {
-        List<RecruitmentOverview> overviews = studyBoardService.getBoardByPage(pageable);
+  @GetMapping
+  public ResponseEntity<List<RecruitmentOverview>> getStudyBoardList(Pageable pageable) {
+    List<RecruitmentOverview> overviews = studyBoardService.getBoardByPage(pageable);
 
-        return ResponseEntity.ok(overviews);
-    }
+    return ResponseEntity.ok(overviews);
+  }
 
-    @DeleteMapping("/{boardId}")
-    @Secured(value = RoleType.USER_ROLE)
-    public ResponseEntity<Void> deleteStudyBoard(@PathVariable("boardId") Long boardId) {
-        studyBoardService.deleteBoardById(boardId);
+  @DeleteMapping("/{boardId}")
+  @Secured(value = RoleType.USER_ROLE)
+  public ResponseEntity<Void> deleteStudyBoard(@PathVariable("boardId") Long boardId) {
+    studyBoardService.deleteBoardById(boardId);
 
-        return ResponseEntity.noContent()
-                .build();
-    }
+    return ResponseEntity.noContent().build();
+  }
 }

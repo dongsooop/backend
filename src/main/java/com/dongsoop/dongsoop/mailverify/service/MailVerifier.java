@@ -8,75 +8,77 @@ import org.springframework.data.redis.core.RedisTemplate;
 
 public abstract class MailVerifier {
 
-    protected static final Integer AUTH_SUCCESS_TTL_SECONDS = 60 * 10; // 10 minutes
+  protected static final Integer AUTH_SUCCESS_TTL_SECONDS = 60 * 10; // 10 minutes
 
-    protected final String opportunityKey;
-    protected final String codeKey;
-    protected final String successKey;
-    protected final RedisTemplate<String, Object> redisTemplate;
-    protected final MailVerifyNumberGenerator mailVerifyNumberGenerator;
+  protected final String opportunityKey;
+  protected final String codeKey;
+  protected final String successKey;
+  protected final RedisTemplate<String, Object> redisTemplate;
+  protected final MailVerifyNumberGenerator mailVerifyNumberGenerator;
 
-    protected MailVerifier(RedisTemplate<String, Object> redisTemplate,
-                           MailVerifyNumberGenerator mailVerifyNumberGenerator,
-                           String opportunityKey,
-                           String codeKey,
-                           String successKey) {
-        this.redisTemplate = redisTemplate;
-        this.mailVerifyNumberGenerator = mailVerifyNumberGenerator;
-        this.opportunityKey = opportunityKey;
-        this.codeKey = codeKey;
-        this.successKey = successKey;
+  protected MailVerifier(
+      RedisTemplate<String, Object> redisTemplate,
+      MailVerifyNumberGenerator mailVerifyNumberGenerator,
+      String opportunityKey,
+      String codeKey,
+      String successKey) {
+    this.redisTemplate = redisTemplate;
+    this.mailVerifyNumberGenerator = mailVerifyNumberGenerator;
+    this.opportunityKey = opportunityKey;
+    this.codeKey = codeKey;
+    this.successKey = successKey;
+  }
+
+  protected abstract String getVerifyCodeKeyPrefix();
+
+  public void validateVerificationCodeWithOpportunity(String userEmail, String code) {
+    String redisKey =
+        mailVerifyNumberGenerator.getRedisKeyByHashed(getVerifyCodeKeyPrefix(), userEmail);
+    validateOpportunity(redisKey);
+
+    String storedCode = getTypedValueFromRedisHashAsType(redisKey, codeKey, String.class);
+    if (storedCode == null || !storedCode.equals(code)) {
+      redisTemplate.opsForHash().increment(redisKey, opportunityKey, -1);
+      throw new VerifyMailCodeNotAvailableException();
     }
 
-    protected abstract String getVerifyCodeKeyPrefix();
+    // 인증 완료 후 만료 시간 추가
+    redisTemplate.opsForHash().put(redisKey, successKey, true);
 
-    public void validateVerificationCodeWithOpportunity(String userEmail, String code) {
-        String redisKey = mailVerifyNumberGenerator.getRedisKeyByHashed(getVerifyCodeKeyPrefix(), userEmail);
-        validateOpportunity(redisKey);
+    redisTemplate.expire(redisKey, Duration.ofSeconds(AUTH_SUCCESS_TTL_SECONDS));
+  }
 
-        String storedCode = getTypedValueFromRedisHashAsType(redisKey, codeKey, String.class);
-        if (storedCode == null || !storedCode.equals(code)) {
-            redisTemplate.opsForHash()
-                    .increment(redisKey, opportunityKey, -1);
-            throw new VerifyMailCodeNotAvailableException();
-        }
+  private void validateOpportunity(String redisKey) {
+    Integer storedOpportunity =
+        getTypedValueFromRedisHashAsType(redisKey, opportunityKey, Integer.class);
+    if (storedOpportunity == null || storedOpportunity <= 0) {
+      throw new UsingAllMailVerifyOpportunityException();
+    }
+  }
 
-        // 인증 완료 후 만료 시간 추가
-        redisTemplate.opsForHash()
-                .put(redisKey, successKey, true);
+  protected <T> T getTypedValueFromRedisHashAsType(String redisKey, String hashKey, Class<T> type) {
+    Object value = redisTemplate.opsForHash().get(redisKey, hashKey);
 
-        redisTemplate.expire(redisKey, Duration.ofSeconds(AUTH_SUCCESS_TTL_SECONDS));
+    if (type.isInstance(value)) {
+      return type.cast(value);
     }
 
-    private void validateOpportunity(String redisKey) {
-        Integer storedOpportunity = getTypedValueFromRedisHashAsType(redisKey, opportunityKey, Integer.class);
-        if (storedOpportunity == null || storedOpportunity <= 0) {
-            throw new UsingAllMailVerifyOpportunityException();
-        }
+    return null;
+  }
+
+  public void removeVerificationCode(String userEmail) {
+    String redisKey =
+        mailVerifyNumberGenerator.getRedisKeyByHashed(getVerifyCodeKeyPrefix(), userEmail);
+    redisTemplate.delete(redisKey);
+  }
+
+  public void validateVerifySuccess(String email) {
+    String redisKey =
+        mailVerifyNumberGenerator.getRedisKeyByHashed(getVerifyCodeKeyPrefix(), email);
+    Boolean isSuccess = getTypedValueFromRedisHashAsType(redisKey, successKey, Boolean.class);
+
+    if (isSuccess == null || !isSuccess) {
+      throw new MissingMailVerifyException(AUTH_SUCCESS_TTL_SECONDS / 60);
     }
-
-    protected <T> T getTypedValueFromRedisHashAsType(String redisKey, String hashKey, Class<T> type) {
-        Object value = redisTemplate.opsForHash()
-                .get(redisKey, hashKey);
-
-        if (type.isInstance(value)) {
-            return type.cast(value);
-        }
-
-        return null;
-    }
-
-    public void removeVerificationCode(String userEmail) {
-        String redisKey = mailVerifyNumberGenerator.getRedisKeyByHashed(getVerifyCodeKeyPrefix(), userEmail);
-        redisTemplate.delete(redisKey);
-    }
-
-    public void validateVerifySuccess(String email) {
-        String redisKey = mailVerifyNumberGenerator.getRedisKeyByHashed(getVerifyCodeKeyPrefix(), email);
-        Boolean isSuccess = getTypedValueFromRedisHashAsType(redisKey, successKey, Boolean.class);
-
-        if (isSuccess == null || !isSuccess) {
-            throw new MissingMailVerifyException(AUTH_SUCCESS_TTL_SECONDS / 60);
-        }
-    }
+  }
 }

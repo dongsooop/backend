@@ -23,43 +23,42 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 @RequiredArgsConstructor
 public class FeedbackController {
 
-    private final FeedbackService feedbackService;
+  private final FeedbackService feedbackService;
 
-    @PostMapping
-    public ResponseEntity<Void> feedback(@Valid @RequestBody FeedbackCreate request) {
-        Long id = feedbackService.submitFeedback(request);
+  @PostMapping
+  public ResponseEntity<Void> feedback(@Valid @RequestBody FeedbackCreate request) {
+    Long id = feedbackService.submitFeedback(request);
 
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentRequest()           // 현재 요청(/feedback)의 스킴/호스트/포트/컨텍스트를 유지
-                .path("/{id}")                  // 상대 경로 확장
-                .buildAndExpand(id)             // {id} 변수 치환
-                .toUri();                       // 절대 URI 생성
+    URI location =
+        ServletUriComponentsBuilder.fromCurrentRequest() // 현재 요청(/feedback)의 스킴/호스트/포트/컨텍스트를 유지
+            .path("/{id}") // 상대 경로 확장
+            .buildAndExpand(id) // {id} 변수 치환
+            .toUri(); // 절대 URI 생성
 
-        return ResponseEntity.created(location)
-                .build();
-    }
+    return ResponseEntity.created(location).build();
+  }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<FeedbackDetail> getFeedbackDetail(@PathVariable Long id) {
-        FeedbackDetail detail = feedbackService.getFeedbackDetail(id);
-        return ResponseEntity.ok(detail);
-    }
+  @GetMapping("/{id}")
+  public ResponseEntity<FeedbackDetail> getFeedbackDetail(@PathVariable Long id) {
+    FeedbackDetail detail = feedbackService.getFeedbackDetail(id);
+    return ResponseEntity.ok(detail);
+  }
 
-    @GetMapping
-    public ResponseEntity<FeedbackOverview> getFeedbackOverview() {
-        FeedbackOverview detail = feedbackService.getFeedbackOverview();
-        return ResponseEntity.ok(detail);
-    }
+  @GetMapping
+  public ResponseEntity<FeedbackOverview> getFeedbackOverview() {
+    FeedbackOverview detail = feedbackService.getFeedbackOverview();
+    return ResponseEntity.ok(detail);
+  }
 
-    @GetMapping("/improvement-suggestions")
-    public ResponseEntity<List<String>> getImprovementSuggestions(Pageable pageable) {
-        List<String> suggestions = feedbackService.getImprovementSuggestions(pageable);
-        return ResponseEntity.ok(suggestions);
-    }
+  @GetMapping("/improvement-suggestions")
+  public ResponseEntity<List<String>> getImprovementSuggestions(Pageable pageable) {
+    List<String> suggestions = feedbackService.getImprovementSuggestions(pageable);
+    return ResponseEntity.ok(suggestions);
+  }
 
-    @GetMapping("/feature-requests")
-    public ResponseEntity<List<String>> getFeatureRequests(Pageable pageable) {
-        List<String> suggestions = feedbackService.getFeatureRequests(pageable);
-        return ResponseEntity.ok(suggestions);
-    }
+  @GetMapping("/feature-requests")
+  public ResponseEntity<List<String>> getFeatureRequests(Pageable pageable) {
+    List<String> suggestions = feedbackService.getFeatureRequests(pageable);
+    return ResponseEntity.ok(suggestions);
+  }
 }

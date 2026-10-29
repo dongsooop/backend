@@ -18,46 +18,47 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 @RequiredArgsConstructor
 public class S3ServiceImpl implements S3Service {
 
-    private static final String KEY_DELIMITER = Character.toString('/');
+  private static final String KEY_DELIMITER = Character.toString('/');
 
-    private final S3Client client;
+  private final S3Client client;
 
-    @Value("${cloud.aws.s3.bucket}")
-    private String bucket;
+  @Value("${cloud.aws.s3.bucket}")
+  private String bucket;
 
-    @Value("${cloud.aws.region.static}")
-    private String region;
+  @Value("${cloud.aws.region.static}")
+  private String region;
 
-    @Value("${cloud.oci.namespace}")
-    private String namespace;
+  @Value("${cloud.oci.namespace}")
+  private String namespace;
 
-    public String upload(MultipartFile file, String dirName, long boardId) throws IOException {
-        String fileName = file.getOriginalFilename();
+  public String upload(MultipartFile file, String dirName, long boardId) throws IOException {
+    String fileName = file.getOriginalFilename();
 
-        if (Objects.isNull(fileName)) {
-            throw new InvalidFileNameException(null);
-        }
-
-        int separateIndex = fileName.lastIndexOf(".");
-        if (separateIndex < 0) {
-            throw new InvalidFileNameException(fileName);
-        }
-        String extension = fileName.substring(separateIndex);
-        String saveFileName = UUID.randomUUID() + extension;
-        String saveFilePath = String.join(KEY_DELIMITER, dirName, String.valueOf(boardId), saveFileName);
-
-        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(bucket)
-                .key(saveFilePath)
-                .contentType(file.getContentType())
-                .build();
-
-        client.putObject(
-                putObjectRequest,
-                RequestBody.fromInputStream(file.getInputStream(), file.getSize())
-        );
-
-        return String.format("https://objectstorage.%s.oraclecloud.com/n/%s/b/%s/o/%s",
-                region, namespace, bucket, saveFilePath);
+    if (Objects.isNull(fileName)) {
+      throw new InvalidFileNameException(null);
     }
+
+    int separateIndex = fileName.lastIndexOf(".");
+    if (separateIndex < 0) {
+      throw new InvalidFileNameException(fileName);
+    }
+    String extension = fileName.substring(separateIndex);
+    String saveFileName = UUID.randomUUID() + extension;
+    String saveFilePath =
+        String.join(KEY_DELIMITER, dirName, String.valueOf(boardId), saveFileName);
+
+    PutObjectRequest putObjectRequest =
+        PutObjectRequest.builder()
+            .bucket(bucket)
+            .key(saveFilePath)
+            .contentType(file.getContentType())
+            .build();
+
+    client.putObject(
+        putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+
+    return String.format(
+        "https://objectstorage.%s.oraclecloud.com/n/%s/b/%s/o/%s",
+        region, namespace, bucket, saveFilePath);
+  }
 }

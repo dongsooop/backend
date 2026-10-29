@@ -11,20 +11,20 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class ChatBackupWorker {
-    private final ChatRoomJpaRepository chatRoomJpaRepository;
+  private final ChatRoomJpaRepository chatRoomJpaRepository;
 
-    public void backupRoom(ChatRoom room) {
-        ChatRoomEntity entity = room.toChatRoomEntity();
-        chatRoomJpaRepository.save(entity);
-        logBackupSuccess(entity.getRoomId(), entity.isGroupChat());
-    }
+  public void backupRoom(ChatRoom room) {
+    ChatRoomEntity entity = room.toChatRoomEntity();
+    chatRoomJpaRepository.save(entity);
+    logBackupSuccess(entity.getRoomId(), entity.isGroupChat());
+  }
 
-    public boolean isRoomNotBackedUp(String roomId) {
-        return !chatRoomJpaRepository.existsById(roomId);
-    }
+  public boolean isRoomNotBackedUp(String roomId) {
+    return !chatRoomJpaRepository.existsById(roomId);
+  }
 
-    private void logBackupSuccess(String roomId, boolean isGroupChat) {
-        String roomType = isGroupChat ? "그룹" : "1:1";
-        log.info("{} 채팅방 백업 완료: {}", roomType, roomId);
-    }
+  private void logBackupSuccess(String roomId, boolean isGroupChat) {
+    String roomType = isGroupChat ? "그룹" : "1:1";
+    log.info("{} 채팅방 백업 완료: {}", roomType, roomId);
+  }
 }

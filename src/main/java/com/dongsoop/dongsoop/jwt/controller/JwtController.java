@@ -14,12 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class JwtController {
 
-    private final JwtService jwtService;
+  private final JwtService jwtService;
 
-    @PostMapping("/reissue")
-    public ResponseEntity<IssuedToken> reissueByRefreshToken(@RequestBody String refreshToken) {
-        IssuedToken issuedToken = jwtService.issuedTokenByRefreshToken(refreshToken);
+  @PostMapping("/reissue")
+  public ResponseEntity<IssuedToken> reissueByRefreshToken(@RequestBody String refreshToken) {
+    IssuedToken issuedToken = jwtService.issuedTokenByRefreshToken(refreshToken);
 
-        return ResponseEntity.ok(issuedToken);
-    }
+    return ResponseEntity.ok(issuedToken);
+  }
 }

@@ -14,30 +14,28 @@ import org.hibernate.validator.constraints.Length;
 @AllArgsConstructor
 public class CreateMemberScheduleRequest {
 
-    @NotNull
-    @Length(min = 1, max = 60)
-    private String title;
+  @NotNull
+  @Length(min = 1, max = 60)
+  private String title;
 
-    @NotNull
-    @Length(max = 20)
-    private String location;
+  @NotNull
+  @Length(max = 20)
+  private String location;
 
-    @NotNull
-    private LocalDateTime startAt;
+  @NotNull private LocalDateTime startAt;
 
-    @NotNull
-    private LocalDateTime endAt;
+  @NotNull private LocalDateTime endAt;
 
-    @Pattern(regexp = "^[A-Fa-f0-9]{6}$", message = "색상은 # 없이 6자리 HEX 형식이어야 합니다 (예: FFFFFF)")
-    private String color;
+  @Pattern(regexp = "^[A-Fa-f0-9]{6}$", message = "색상은 # 없이 6자리 HEX 형식이어야 합니다 (예: FFFFFF)")
+  private String color;
 
-    public MemberSchedule toEntity() {
-        return MemberSchedule.builder()
-                .title(title)
-                .location(location)
-                .startAt(startAt)
-                .endAt(endAt)
-                .color(color)
-                .build();
-    }
+  public MemberSchedule toEntity() {
+    return MemberSchedule.builder()
+        .title(title)
+        .location(location)
+        .startAt(startAt)
+        .endAt(endAt)
+        .color(color)
+        .build();
+  }
 }

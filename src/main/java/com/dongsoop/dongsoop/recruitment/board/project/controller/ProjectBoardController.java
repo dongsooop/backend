@@ -27,50 +27,48 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ProjectBoardController {
 
-    private final ProjectBoardService projectBoardService;
+  private final ProjectBoardService projectBoardService;
 
-    @GetMapping("/{boardId}")
-    public ResponseEntity<RecruitmentDetails> getProjectBoardDetails(@PathVariable("boardId") Long boardId) {
-        RecruitmentDetails details = projectBoardService.getBoardDetailsById(boardId);
+  @GetMapping("/{boardId}")
+  public ResponseEntity<RecruitmentDetails> getProjectBoardDetails(
+      @PathVariable("boardId") Long boardId) {
+    RecruitmentDetails details = projectBoardService.getBoardDetailsById(boardId);
 
-        return ResponseEntity.ok(details);
-    }
+    return ResponseEntity.ok(details);
+  }
 
-    @PostMapping
-    @Secured(value = RoleType.USER_ROLE)
-    public ResponseEntity<Void> createProjectBoard(@RequestBody @Valid CreateProjectBoardRequest request) {
-        ProjectBoard projectBoard = projectBoardService.create(request);
+  @PostMapping
+  @Secured(value = RoleType.USER_ROLE)
+  public ResponseEntity<Void> createProjectBoard(
+      @RequestBody @Valid CreateProjectBoardRequest request) {
+    ProjectBoard projectBoard = projectBoardService.create(request);
 
-        URI uri = URI.create("/project-board/" + projectBoard.getId());
+    URI uri = URI.create("/project-board/" + projectBoard.getId());
 
-        return ResponseEntity.created(uri)
-                .build();
-    }
+    return ResponseEntity.created(uri).build();
+  }
 
-    @GetMapping
-    public ResponseEntity<List<RecruitmentOverview>> getProjectBoardList(Pageable pageable) {
-        List<RecruitmentOverview> overviews = projectBoardService.getBoardByPage(pageable);
+  @GetMapping
+  public ResponseEntity<List<RecruitmentOverview>> getProjectBoardList(Pageable pageable) {
+    List<RecruitmentOverview> overviews = projectBoardService.getBoardByPage(pageable);
 
-        return ResponseEntity.ok(overviews);
-    }
+    return ResponseEntity.ok(overviews);
+  }
 
-    @GetMapping("/department/{departmentType}")
-    public ResponseEntity<List<RecruitmentOverview>> getProjectBoardListByDepartment(
-            @PathVariable("departmentType") DepartmentType departmentType,
-            Pageable pageable) {
-        List<RecruitmentOverview> overviews = projectBoardService.getBoardByPageAndDepartmentType(
-                departmentType,
-                pageable);
+  @GetMapping("/department/{departmentType}")
+  public ResponseEntity<List<RecruitmentOverview>> getProjectBoardListByDepartment(
+      @PathVariable("departmentType") DepartmentType departmentType, Pageable pageable) {
+    List<RecruitmentOverview> overviews =
+        projectBoardService.getBoardByPageAndDepartmentType(departmentType, pageable);
 
-        return ResponseEntity.ok(overviews);
-    }
+    return ResponseEntity.ok(overviews);
+  }
 
-    @DeleteMapping("/{boardId}")
-    @Secured(value = RoleType.USER_ROLE)
-    public ResponseEntity<Void> deleteStudyBoard(@PathVariable("boardId") Long boardId) {
-        projectBoardService.deleteBoardById(boardId);
+  @DeleteMapping("/{boardId}")
+  @Secured(value = RoleType.USER_ROLE)
+  public ResponseEntity<Void> deleteStudyBoard(@PathVariable("boardId") Long boardId) {
+    projectBoardService.deleteBoardById(boardId);
 
-        return ResponseEntity.noContent()
-                .build();
-    }
+    return ResponseEntity.noContent().build();
+  }
 }

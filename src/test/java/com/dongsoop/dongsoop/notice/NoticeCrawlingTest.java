@@ -29,73 +29,65 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-@SpringBootTest(classes = {
-        NoticeCrawl.class,
-        NoticeLinkParser.class,
-        NoticeParser.class,
-        NoticeCollectionService.class,
-        NoticeSchedulerImpl.class
-})
+@SpringBootTest(
+    classes = {
+      NoticeCrawl.class,
+      NoticeLinkParser.class,
+      NoticeParser.class,
+      NoticeCollectionService.class,
+      NoticeSchedulerImpl.class
+    })
 // 실제 학교 홈페이지에 접속한다. GitHub Actions 러너에서는 학교 사이트 접속이 막혀 로컬에서만 돌린다
 @DisabledIfEnvironmentVariable(named = "CI", matches = "true")
 class NoticeCrawlingTest {
 
-    private static final Integer MIN_NUMBER_OF_INVOCATIONS = 1;
+  private static final Integer MIN_NUMBER_OF_INVOCATIONS = 1;
 
-    private static final List<Department> TEST_DEPARTMENT_LIST = List.of(
-            new Department(DepartmentType.DEPT_1001, null, "/dmu/4904/subview.do"),
-            new Department(DepartmentType.DEPT_2001, null, "/dmu/4580/subview.do")
-    );
+  private static final List<Department> TEST_DEPARTMENT_LIST =
+      List.of(
+          new Department(DepartmentType.DEPT_1001, null, "/dmu/4904/subview.do"),
+          new Department(DepartmentType.DEPT_2001, null, "/dmu/4580/subview.do"));
 
-    // NoticeSchedulerImpl 의존성 주입
-    @MockitoBean
-    private NoticeRepository noticeRepository;
-    @MockitoBean
-    private NoticeDetailsRepository noticeDetailsRepository;
-    @MockitoBean
-    private DepartmentService departmentService;
-    @MockitoBean
-    private NoticeService noticeService;
-    @MockitoBean
-    private NoticeNotification noticeNotification;
+  // NoticeSchedulerImpl 의존성 주입
+  @MockitoBean private NoticeRepository noticeRepository;
+  @MockitoBean private NoticeDetailsRepository noticeDetailsRepository;
+  @MockitoBean private DepartmentService departmentService;
+  @MockitoBean private NoticeService noticeService;
+  @MockitoBean private NoticeNotification noticeNotification;
 
-    // NoticeCrawl 의존성 주입
-    @Autowired
-    private NoticeLinkParser noticeLinkParser;
-    @Autowired
-    private NoticeParser noticeParser;
+  // NoticeCrawl 의존성 주입
+  @Autowired private NoticeLinkParser noticeLinkParser;
+  @Autowired private NoticeParser noticeParser;
 
-    @Autowired
-    private NoticeCrawl noticeCrawl;
+  @Autowired private NoticeCrawl noticeCrawl;
 
-    @Autowired
-    private NoticeSchedulerImpl noticeScheduler;
+  @Autowired private NoticeSchedulerImpl noticeScheduler;
 
-    @Test
-    void get_at_least_one_notice_from_each_department() {
-        // given
-        when(departmentService.getAllDepartments())
-                .thenReturn(TEST_DEPARTMENT_LIST);
+  @Test
+  void get_at_least_one_notice_from_each_department() {
+    // given
+    when(departmentService.getAllDepartments()).thenReturn(TEST_DEPARTMENT_LIST);
 
-        when(noticeService.getNoticeRecentIdMap())
-                .thenReturn(Map.of(
-                        TEST_DEPARTMENT_LIST.get(0), 0L,
-                        TEST_DEPARTMENT_LIST.get(1), 0L
-                ));
+    when(noticeService.getNoticeRecentIdMap())
+        .thenReturn(
+            Map.of(
+                TEST_DEPARTMENT_LIST.get(0), 0L,
+                TEST_DEPARTMENT_LIST.get(1), 0L));
 
-        // when
-        noticeScheduler.scheduled();
+    // when
+    noticeScheduler.scheduled();
 
-        // then
-        verify(noticeRepository, atLeast(MIN_NUMBER_OF_INVOCATIONS)).saveAll(
-                argThat(this::validateSavedNoticeByDepartment));
-    }
+    // then
+    verify(noticeRepository, atLeast(MIN_NUMBER_OF_INVOCATIONS))
+        .saveAll(argThat(this::validateSavedNoticeByDepartment));
+  }
 
-    boolean validateSavedNoticeByDepartment(Iterable<Notice> notices) {
-        Set<Department> departmentSet = StreamSupport.stream(notices.spliterator(), false)
-                .map(Notice::getDepartment)
-                .collect(Collectors.toSet());
+  boolean validateSavedNoticeByDepartment(Iterable<Notice> notices) {
+    Set<Department> departmentSet =
+        StreamSupport.stream(notices.spliterator(), false)
+            .map(Notice::getDepartment)
+            .collect(Collectors.toSet());
 
-        return departmentSet.size() == TEST_DEPARTMENT_LIST.size();
-    }
+    return departmentSet.size() == TEST_DEPARTMENT_LIST.size();
+  }
 }

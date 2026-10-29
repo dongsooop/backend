@@ -9,8 +9,8 @@ import org.springframework.stereotype.Service;
 @Profile({"local", "test"})
 public class LocalReCaptchaServiceImpl implements ReCaptchaService {
 
-    @Override
-    public void verify(String token, String action) {
-        log.debug("reCAPTCHA verification skipped in local profile. action: {}", action);
-    }
+  @Override
+  public void verify(String token, String action) {
+    log.debug("reCAPTCHA verification skipped in local profile. action: {}", action);
+  }
 }

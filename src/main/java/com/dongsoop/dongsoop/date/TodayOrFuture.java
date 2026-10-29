@@ -12,9 +12,9 @@ import java.lang.annotation.Target;
 @Constraint(validatedBy = {TodayOrFutureValidator.class})
 public @interface TodayOrFuture {
 
-    String message() default "오늘보다 과거일 수 없습니다";
+  String message() default "오늘보다 과거일 수 없습니다";
 
-    Class<?>[] groups() default {};
+  Class<?>[] groups() default {};
 
-    Class<? extends Payload>[] payload() default {};
+  Class<? extends Payload>[] payload() default {};
 }

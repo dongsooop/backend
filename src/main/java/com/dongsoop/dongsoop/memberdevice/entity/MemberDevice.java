@@ -28,54 +28,55 @@ import lombok.experimental.SuperBuilder;
 @SequenceGenerator(name = "member_device_sequence_generator")
 public class MemberDevice extends BaseEntity {
 
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+  private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
-    @Id
-    @Getter
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "member_device_sequence_generator")
-    private Long id;
+  @Id
+  @Getter
+  @GeneratedValue(
+      strategy = GenerationType.SEQUENCE,
+      generator = "member_device_sequence_generator")
+  private Long id;
 
-    @Getter
-    @JoinColumn(name = "member_id")
-    @ManyToOne
-    private Member member;
+  @Getter
+  @JoinColumn(name = "member_id")
+  @ManyToOne
+  private Member member;
 
-    @Getter
-    @Column(unique = true)
-    private String deviceToken;
+  @Getter
+  @Column(unique = true)
+  private String deviceToken;
 
-    @Getter
-    @Column(unique = true)
-    private String fid;
+  @Getter
+  @Column(unique = true)
+  private String fid;
 
-    @Getter
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private MemberDeviceType memberDeviceType;
+  @Getter
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private MemberDeviceType memberDeviceType;
 
-    public void bindMember(Member member) {
-        this.member = member;
+  public void bindMember(Member member) {
+    this.member = member;
+  }
+
+  @Column private LocalDateTime lastAccess;
+
+  @PrePersist
+  protected void initLastAccess() {
+    if (this.lastAccess == null) {
+      this.lastAccess = LocalDateTime.now(KST);
     }
+  }
 
-    @Column
-    private LocalDateTime lastAccess;
+  public void updateDeviceToken(String deviceToken) {
+    this.deviceToken = deviceToken;
+  }
 
-    @PrePersist
-    protected void initLastAccess() {
-        if (this.lastAccess == null) {
-            this.lastAccess = LocalDateTime.now(KST);
-        }
-    }
+  public void updateFid(String fid) {
+    this.fid = fid;
+  }
 
-    public void updateDeviceToken(String deviceToken) {
-        this.deviceToken = deviceToken;
-    }
-
-    public void updateFid(String fid) {
-        this.fid = fid;
-    }
-
-    public void updateLastAccess(LocalDateTime lastAccess) {
-        this.lastAccess = lastAccess;
-    }
+  public void updateLastAccess(LocalDateTime lastAccess) {
+    this.lastAccess = lastAccess;
+  }
 }

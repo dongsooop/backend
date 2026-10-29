@@ -52,155 +52,170 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
 class MemberLifecycleServiceTest {
-    @Mock MemberRepository members;
-    @Mock RoleRepository roles;
-    @Mock MemberRoleRepository memberRoles;
-    @Mock DepartmentService departments;
-    @Mock PasswordEncoder encoder;
-    @Mock TokenGenerator tokens;
-    @Mock MemberDuplicationValidator duplicates;
-    @Mock ReportValidator reports;
-    @Mock MemberDeviceRepository devices;
-    @Mock MemberDeviceService deviceService;
-    @Mock OAuth2Service oauth;
-    @InjectMocks MemberServiceImpl service;
+  @Mock MemberRepository members;
+  @Mock RoleRepository roles;
+  @Mock MemberRoleRepository memberRoles;
+  @Mock DepartmentService departments;
+  @Mock PasswordEncoder encoder;
+  @Mock TokenGenerator tokens;
+  @Mock MemberDuplicationValidator duplicates;
+  @Mock ReportValidator reports;
+  @Mock MemberDeviceRepository devices;
+  @Mock MemberDeviceService deviceService;
+  @Mock OAuth2Service oauth;
+  @InjectMocks MemberServiceImpl service;
 
-    @AfterEach
-    void clearContext() {
-        SecurityContextHolder.clearContext();
-    }
+  @AfterEach
+  void clearContext() {
+    SecurityContextHolder.clearContext();
+  }
 
-    @Test
-    void signupStoresEncodedPasswordAndDepartment() {
-        Department department = mock(Department.class);
-        Role role = mock(Role.class);
-        when(departments.getReferenceById(DepartmentType.DEPT_2001)).thenReturn(department);
-        when(encoder.encode("raw-password")).thenReturn("encoded-password");
-        when(roles.findByRoleType(RoleType.USER)).thenReturn(role);
-        SignupRequest request = signupRequest();
+  @Test
+  void signupStoresEncodedPasswordAndDepartment() {
+    Department department = mock(Department.class);
+    Role role = mock(Role.class);
+    when(departments.getReferenceById(DepartmentType.DEPT_2001)).thenReturn(department);
+    when(encoder.encode("raw-password")).thenReturn("encoded-password");
+    when(roles.findByRoleType(RoleType.USER)).thenReturn(role);
+    SignupRequest request = signupRequest();
 
-        service.signup(request);
+    service.signup(request);
 
-        ArgumentCaptor<Member> stored = ArgumentCaptor.forClass(Member.class);
-        verify(members).save(stored.capture());
-        assertThat(stored.getValue().getEmail()).isEqualTo("member@example.com");
-        assertThat(stored.getValue().getNickname()).isEqualTo("회원");
-        assertThat(stored.getValue().getPassword()).isEqualTo("encoded-password");
-        assertThat(stored.getValue().getDepartment()).isSameAs(department);
-        verify(duplicates).validateEmailDuplication(request.getEmail());
-        verify(duplicates).validateNicknameDuplication(request.getNickname());
-        verify(memberRoles).save(any());
-    }
+    ArgumentCaptor<Member> stored = ArgumentCaptor.forClass(Member.class);
+    verify(members).save(stored.capture());
+    assertThat(stored.getValue().getEmail()).isEqualTo("member@example.com");
+    assertThat(stored.getValue().getNickname()).isEqualTo("회원");
+    assertThat(stored.getValue().getPassword()).isEqualTo("encoded-password");
+    assertThat(stored.getValue().getDepartment()).isSameAs(department);
+    verify(duplicates).validateEmailDuplication(request.getEmail());
+    verify(duplicates).validateNicknameDuplication(request.getNickname());
+    verify(memberRoles).save(any());
+  }
 
-    @Test
-    void duplicateEmailStopsSignupBeforeSaving() {
-        doThrow(new IllegalStateException("duplicate")).when(duplicates)
-                .validateEmailDuplication("member@example.com");
-        SignupRequest request = signupRequest();
-        assertThatThrownBy(() -> service.signup(request)).isInstanceOf(IllegalStateException.class);
-        verifyNoInteractions(members, roles, memberRoles, encoder);
-    }
+  @Test
+  void duplicateEmailStopsSignupBeforeSaving() {
+    doThrow(new IllegalStateException("duplicate"))
+        .when(duplicates)
+        .validateEmailDuplication("member@example.com");
+    SignupRequest request = signupRequest();
+    assertThatThrownBy(() -> service.signup(request)).isInstanceOf(IllegalStateException.class);
+    verifyNoInteractions(members, roles, memberRoles, encoder);
+  }
 
-    @Test
-    void duplicateNicknameStopsSignupBeforeSaving() {
-        doThrow(new IllegalStateException("duplicate")).when(duplicates).validateNicknameDuplication("회원");
-        SignupRequest request = signupRequest();
-        assertThatThrownBy(() -> service.signup(request)).isInstanceOf(IllegalStateException.class);
-        verifyNoInteractions(members, roles, memberRoles, encoder);
-    }
+  @Test
+  void duplicateNicknameStopsSignupBeforeSaving() {
+    doThrow(new IllegalStateException("duplicate"))
+        .when(duplicates)
+        .validateNicknameDuplication("회원");
+    SignupRequest request = signupRequest();
+    assertThatThrownBy(() -> service.signup(request)).isInstanceOf(IllegalStateException.class);
+    verifyNoInteractions(members, roles, memberRoles, encoder);
+  }
 
-    @Test
-    void passwordChangeUpdatesExistingMember() {
-        Member member = Member.builder().email("member@example.com").password("old").build();
-        when(members.findByEmail(member.getEmail())).thenReturn(Optional.of(member));
-        when(encoder.encode("new-password")).thenReturn("new-encoded");
-        UpdatePasswordRequest request = new UpdatePasswordRequest(member.getEmail(), "new-password");
-        service.updatePassword(request);
-        assertThat(member.getPassword()).isEqualTo("new-encoded");
-    }
+  @Test
+  void passwordChangeUpdatesExistingMember() {
+    Member member = Member.builder().email("member@example.com").password("old").build();
+    when(members.findByEmail(member.getEmail())).thenReturn(Optional.of(member));
+    when(encoder.encode("new-password")).thenReturn("new-encoded");
+    UpdatePasswordRequest request = new UpdatePasswordRequest(member.getEmail(), "new-password");
+    service.updatePassword(request);
+    assertThat(member.getPassword()).isEqualTo("new-encoded");
+  }
 
-    @Test
-    void missingMemberCannotChangePassword() {
-        UpdatePasswordRequest request = new UpdatePasswordRequest("missing@example.com", "new-password");
-        assertThatThrownBy(() -> service.updatePassword(request)).isInstanceOf(MemberNotFoundException.class);
-        verifyNoInteractions(encoder);
-    }
+  @Test
+  void missingMemberCannotChangePassword() {
+    UpdatePasswordRequest request =
+        new UpdatePasswordRequest("missing@example.com", "new-password");
+    assertThatThrownBy(() -> service.updatePassword(request))
+        .isInstanceOf(MemberNotFoundException.class);
+    verifyNoInteractions(encoder);
+  }
 
-    @Test
-    void deletionUnlinksAccountAndReleasesDevices() {
-        authenticate("7");
-        Member member = Member.builder().id(7L).build();
-        MemberDevice device = MemberDevice.builder().member(member).build();
-        when(encoder.encode(anyString())).thenReturn("anonymized");
-        when(members.softDelete(any())).thenReturn(1L);
-        when(devices.findByMemberId(7L)).thenReturn(List.of(device));
-        service.deleteMember();
-        ArgumentCaptor<DeleteMember> deletion = ArgumentCaptor.forClass(DeleteMember.class);
-        verify(members).softDelete(deletion.capture());
-        assertThat(deletion.getValue().memberId()).isEqualTo(7L);
-        assertThat(deletion.getValue().passwordAlias()).isEqualTo("anonymized");
-        ArgumentCaptor<String> rawAlias = ArgumentCaptor.forClass(String.class);
-        verify(encoder).encode(rawAlias.capture());
-        assertThat(rawAlias.getValue()).matches("[0-9a-f]{32}");
-        assertThat(device.getMember()).isNull();
-        verify(oauth).unlinkMember(7L);
-    }
+  @Test
+  void deletionUnlinksAccountAndReleasesDevices() {
+    authenticate("7");
+    Member member = Member.builder().id(7L).build();
+    MemberDevice device = MemberDevice.builder().member(member).build();
+    when(encoder.encode(anyString())).thenReturn("anonymized");
+    when(members.softDelete(any())).thenReturn(1L);
+    when(devices.findByMemberId(7L)).thenReturn(List.of(device));
+    service.deleteMember();
+    ArgumentCaptor<DeleteMember> deletion = ArgumentCaptor.forClass(DeleteMember.class);
+    verify(members).softDelete(deletion.capture());
+    assertThat(deletion.getValue().memberId()).isEqualTo(7L);
+    assertThat(deletion.getValue().passwordAlias()).isEqualTo("anonymized");
+    ArgumentCaptor<String> rawAlias = ArgumentCaptor.forClass(String.class);
+    verify(encoder).encode(rawAlias.capture());
+    assertThat(rawAlias.getValue()).matches("[0-9a-f]{32}");
+    assertThat(device.getMember()).isNull();
+    verify(oauth).unlinkMember(7L);
+  }
 
-    @Test
-    void missingDeletionStopsDeviceChanges() {
-        authenticate("7");
-        when(encoder.encode(anyString())).thenReturn("anonymized");
-        assertThatThrownBy(service::deleteMember).isInstanceOf(MemberNotFoundException.class);
-        verifyNoInteractions(devices);
-    }
+  @Test
+  void missingDeletionStopsDeviceChanges() {
+    authenticate("7");
+    when(encoder.encode(anyString())).thenReturn("anonymized");
+    assertThatThrownBy(service::deleteMember).isInstanceOf(MemberNotFoundException.class);
+    verifyNoInteractions(devices);
+  }
 
-    @ParameterizedTest
-    @NullAndEmptySource
-    @ValueSource(strings = {" ", "anonymousUser", "-7", "7x"})
-    void invalidAuthenticationNameIsRejected(String name) {
-        authenticate(name);
-        assertThatThrownBy(service::getMemberIdByAuthentication).isInstanceOf(NotAuthenticationException.class);
-    }
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(strings = {" ", "anonymousUser", "-7", "7x"})
+  void invalidAuthenticationNameIsRejected(String name) {
+    authenticate(name);
+    assertThatThrownBy(service::getMemberIdByAuthentication)
+        .isInstanceOf(NotAuthenticationException.class);
+  }
 
-    @Test
-    void absentAuthenticationIsRejected() {
-        assertThatThrownBy(service::getMemberIdByAuthentication).isInstanceOf(NotAuthenticationException.class);
-        assertThat(service.isAuthenticated()).isFalse();
-    }
+  @Test
+  void absentAuthenticationIsRejected() {
+    assertThatThrownBy(service::getMemberIdByAuthentication)
+        .isInstanceOf(NotAuthenticationException.class);
+    assertThat(service.isAuthenticated()).isFalse();
+  }
 
-    @Test
-    void validContextResolvesMemberReference() {
-        authenticate("7");
-        Member member = Member.builder().id(7L).nickname("회원").build();
-        when(members.getReferenceById(7L)).thenReturn(member);
-        when(members.findById(7L)).thenReturn(Optional.of(member));
-        assertThat(service.getMemberIdByAuthentication()).isEqualTo(7L);
-        assertThat(service.getMemberReferenceByContext()).isSameAs(member);
-        assertThat(service.getNicknameById(7L)).isEqualTo("회원");
-        assertThat(service.isAuthenticated()).isTrue();
-    }
+  @Test
+  void validContextResolvesMemberReference() {
+    authenticate("7");
+    Member member = Member.builder().id(7L).nickname("회원").build();
+    when(members.getReferenceById(7L)).thenReturn(member);
+    when(members.findById(7L)).thenReturn(Optional.of(member));
+    assertThat(service.getMemberIdByAuthentication()).isEqualTo(7L);
+    assertThat(service.getMemberReferenceByContext()).isSameAs(member);
+    assertThat(service.getNicknameById(7L)).isEqualTo("회원");
+    assertThat(service.isAuthenticated()).isTrue();
+  }
 
-    @Test
-    void missingNicknameAndInvalidReferenceAreRejected() {
-        authenticate("anonymousUser");
-        assertThatThrownBy(service::getMemberReferenceByContext).isInstanceOf(MemberNotFoundException.class);
-        assertThatThrownBy(() -> service.getNicknameById(7L)).isInstanceOf(MemberNotFoundException.class);
-    }
+  @Test
+  void missingNicknameAndInvalidReferenceAreRejected() {
+    authenticate("anonymousUser");
+    assertThatThrownBy(service::getMemberReferenceByContext)
+        .isInstanceOf(MemberNotFoundException.class);
+    assertThatThrownBy(() -> service.getNicknameById(7L))
+        .isInstanceOf(MemberNotFoundException.class);
+  }
 
-    @Test
-    void anonymousTokenIsNotAuthenticated() {
-        SecurityContextHolder.getContext().setAuthentication(new AnonymousAuthenticationToken(
+  @Test
+  void anonymousTokenIsNotAuthenticated() {
+    SecurityContextHolder.getContext()
+        .setAuthentication(
+            new AnonymousAuthenticationToken(
                 "key", "anonymousUser", List.of(new SimpleGrantedAuthority("ROLE_ANONYMOUS"))));
-        assertThat(service.isAuthenticated()).isFalse();
-    }
+    assertThat(service.isAuthenticated()).isFalse();
+  }
 
-    private void authenticate(String name) {
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(name, null, List.of()));
-    }
+  private void authenticate(String name) {
+    SecurityContextHolder.getContext()
+        .setAuthentication(new UsernamePasswordAuthenticationToken(name, null, List.of()));
+  }
 
-    private SignupRequest signupRequest() {
-        return SignupRequest.builder().email("member@example.com").nickname("회원")
-                .password("raw-password").departmentType(DepartmentType.DEPT_2001).build();
-    }
+  private SignupRequest signupRequest() {
+    return SignupRequest.builder()
+        .email("member@example.com")
+        .nickname("회원")
+        .password("raw-password")
+        .departmentType(DepartmentType.DEPT_2001)
+        .build();
+  }
 }

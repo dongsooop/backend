@@ -12,20 +12,20 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 @Component
 public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
-    private final HandlerExceptionResolver resolver;
+  private final HandlerExceptionResolver resolver;
 
-    public CustomAuthenticationEntryPoint(@Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver) {
-        this.resolver = resolver;
-    }
+  public CustomAuthenticationEntryPoint(
+      @Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver) {
+    this.resolver = resolver;
+  }
 
-    /**
-     * Spring MVC 레이어의 예외 처리 체계로 위임
-     */
-    @Override
-    public void commence(@NonNull HttpServletRequest request,
-                         @NonNull HttpServletResponse response,
-                         @NonNull AuthenticationException authException) {
+  /** Spring MVC 레이어의 예외 처리 체계로 위임 */
+  @Override
+  public void commence(
+      @NonNull HttpServletRequest request,
+      @NonNull HttpServletResponse response,
+      @NonNull AuthenticationException authException) {
 
-        resolver.resolveException(request, response, null, authException);
-    }
+    resolver.resolveException(request, response, null, authException);
+  }
 }

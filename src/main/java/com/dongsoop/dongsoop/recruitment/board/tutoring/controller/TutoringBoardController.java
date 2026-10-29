@@ -27,46 +27,44 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class TutoringBoardController {
 
-    private final TutoringBoardService tutoringBoardService;
+  private final TutoringBoardService tutoringBoardService;
 
-    @GetMapping("/department/{departmentType}")
-    public ResponseEntity<List<RecruitmentOverview>> getTutoringBoardOverviewsByDepartment(
-            @PathVariable("departmentType") DepartmentType departmentType, Pageable pageable) {
-        List<RecruitmentOverview> tutoringBoardList = tutoringBoardService.getBoardByPageAndDepartmentType(
-                departmentType,
-                pageable);
-        return ResponseEntity.ok(tutoringBoardList);
-    }
+  @GetMapping("/department/{departmentType}")
+  public ResponseEntity<List<RecruitmentOverview>> getTutoringBoardOverviewsByDepartment(
+      @PathVariable("departmentType") DepartmentType departmentType, Pageable pageable) {
+    List<RecruitmentOverview> tutoringBoardList =
+        tutoringBoardService.getBoardByPageAndDepartmentType(departmentType, pageable);
+    return ResponseEntity.ok(tutoringBoardList);
+  }
 
-    @GetMapping
-    public ResponseEntity<List<RecruitmentOverview>> getTutoringBoardOverviews(Pageable pageable) {
-        List<RecruitmentOverview> tutoringBoardList = tutoringBoardService.getBoardByPage(pageable);
-        return ResponseEntity.ok(tutoringBoardList);
-    }
+  @GetMapping
+  public ResponseEntity<List<RecruitmentOverview>> getTutoringBoardOverviews(Pageable pageable) {
+    List<RecruitmentOverview> tutoringBoardList = tutoringBoardService.getBoardByPage(pageable);
+    return ResponseEntity.ok(tutoringBoardList);
+  }
 
-    @GetMapping("/{boardId}")
-    public ResponseEntity<RecruitmentDetails> getTutoringBoard(
-            @PathVariable("boardId") Long boardId) {
-        RecruitmentDetails tutoringBoard = tutoringBoardService.getBoardDetailsById(boardId);
-        return ResponseEntity.ok(tutoringBoard);
-    }
+  @GetMapping("/{boardId}")
+  public ResponseEntity<RecruitmentDetails> getTutoringBoard(
+      @PathVariable("boardId") Long boardId) {
+    RecruitmentDetails tutoringBoard = tutoringBoardService.getBoardDetailsById(boardId);
+    return ResponseEntity.ok(tutoringBoard);
+  }
 
-    @PostMapping
-    @Secured(value = RoleType.USER_ROLE)
-    public ResponseEntity<Void> createTutoringBoard(@Valid @RequestBody CreateTutoringBoardRequest request) {
-        TutoringBoard createdBoard = tutoringBoardService.create(request);
-        URI uri = URI.create("/tutoring-board/" + createdBoard.getId());
+  @PostMapping
+  @Secured(value = RoleType.USER_ROLE)
+  public ResponseEntity<Void> createTutoringBoard(
+      @Valid @RequestBody CreateTutoringBoardRequest request) {
+    TutoringBoard createdBoard = tutoringBoardService.create(request);
+    URI uri = URI.create("/tutoring-board/" + createdBoard.getId());
 
-        return ResponseEntity.created(uri)
-                .build();
-    }
+    return ResponseEntity.created(uri).build();
+  }
 
-    @DeleteMapping("/{boardId}")
-    @Secured(value = RoleType.USER_ROLE)
-    public ResponseEntity<Void> deleteStudyBoard(@PathVariable("boardId") Long boardId) {
-        tutoringBoardService.deleteBoardById(boardId);
+  @DeleteMapping("/{boardId}")
+  @Secured(value = RoleType.USER_ROLE)
+  public ResponseEntity<Void> deleteStudyBoard(@PathVariable("boardId") Long boardId) {
+    tutoringBoardService.deleteBoardById(boardId);
 
-        return ResponseEntity.noContent()
-                .build();
-    }
+    return ResponseEntity.noContent().build();
+  }
 }

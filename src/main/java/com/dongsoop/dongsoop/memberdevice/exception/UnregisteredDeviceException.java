@@ -5,7 +5,7 @@ import org.springframework.http.HttpStatus;
 
 public class UnregisteredDeviceException extends CustomException {
 
-    public UnregisteredDeviceException() {
-        super("등록되지 않은 기기입니다.", HttpStatus.NOT_FOUND);
-    }
+  public UnregisteredDeviceException() {
+    super("등록되지 않은 기기입니다.", HttpStatus.NOT_FOUND);
+  }
 }

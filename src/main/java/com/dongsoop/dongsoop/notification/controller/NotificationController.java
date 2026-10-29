@@ -22,49 +22,47 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class NotificationController {
 
-    private final NotificationService notificationService;
-    private final MemberService memberService;
+  private final NotificationService notificationService;
+  private final MemberService memberService;
 
-    @GetMapping
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<NotificationOverview> getNotifications(Pageable pageable) {
-        Long requesterId = memberService.getMemberIdByAuthentication();
+  @GetMapping
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<NotificationOverview> getNotifications(Pageable pageable) {
+    Long requesterId = memberService.getMemberIdByAuthentication();
 
-        NotificationOverview notifications = notificationService.getNotifications(pageable, requesterId);
+    NotificationOverview notifications =
+        notificationService.getNotifications(pageable, requesterId);
 
-        return ResponseEntity.ok(notifications);
-    }
+    return ResponseEntity.ok(notifications);
+  }
 
-    @PostMapping("/read")
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> readNotification(@RequestBody NotificationReadRequest request) {
-        Long requesterId = memberService.getMemberIdByAuthentication();
+  @PostMapping("/read")
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<Void> readNotification(@RequestBody NotificationReadRequest request) {
+    Long requesterId = memberService.getMemberIdByAuthentication();
 
-        notificationService.read(request.id(), requesterId);
+    notificationService.read(request.id(), requesterId);
 
-        return ResponseEntity.noContent()
-                .build();
-    }
+    return ResponseEntity.noContent().build();
+  }
 
-    @PostMapping("/read-all")
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> readAllNotification() {
-        Long requesterId = memberService.getMemberIdByAuthentication();
+  @PostMapping("/read-all")
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<Void> readAllNotification() {
+    Long requesterId = memberService.getMemberIdByAuthentication();
 
-        notificationService.readAll(requesterId);
+    notificationService.readAll(requesterId);
 
-        return ResponseEntity.noContent()
-                .build();
-    }
+    return ResponseEntity.noContent().build();
+  }
 
-    @DeleteMapping("/{id}")
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> deleteNotifications(@PathVariable("id") Long id) {
-        Long requesterId = memberService.getMemberIdByAuthentication();
+  @DeleteMapping("/{id}")
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<Void> deleteNotifications(@PathVariable("id") Long id) {
+    Long requesterId = memberService.getMemberIdByAuthentication();
 
-        notificationService.deleteMemberNotification(id, requesterId);
+    notificationService.deleteMemberNotification(id, requesterId);
 
-        return ResponseEntity.noContent()
-                .build();
-    }
+    return ResponseEntity.noContent().build();
+  }
 }

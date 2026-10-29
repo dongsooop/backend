@@ -22,64 +22,63 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class MemberScheduleRepositoryCustomImpl implements MemberScheduleRepositoryCustom {
 
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+  private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
-    private static final QMemberSchedule memberSchedule = QMemberSchedule.memberSchedule;
-    private static final QMemberDevice memberDevice = QMemberDevice.memberDevice;
-    private static final QMember member = QMember.member;
+  private static final QMemberSchedule memberSchedule = QMemberSchedule.memberSchedule;
+  private static final QMemberDevice memberDevice = QMemberDevice.memberDevice;
+  private static final QMember member = QMember.member;
 
-    private final JPAQueryFactory queryFactory;
+  private final JPAQueryFactory queryFactory;
 
-    @Override
-    public List<MemberSchedule> findMemberScheduleByDuration(Long memberId, LocalDateTime startAt,
-                                                             LocalDateTime endAt) {
-        return queryFactory.selectFrom(memberSchedule)
-                .where(memberSchedule.member.id.eq(memberId))
-                .where(ScheduleDurationChecker.isDurationWithin(
-                        memberSchedule.startAt,
-                        memberSchedule.endAt,
-                        startAt,
-                        endAt))
-                .fetch();
-    }
+  @Override
+  public List<MemberSchedule> findMemberScheduleByDuration(
+      Long memberId, LocalDateTime startAt, LocalDateTime endAt) {
+    return queryFactory
+        .selectFrom(memberSchedule)
+        .where(memberSchedule.member.id.eq(memberId))
+        .where(
+            ScheduleDurationChecker.isDurationWithin(
+                memberSchedule.startAt, memberSchedule.endAt, startAt, endAt))
+        .fetch();
+  }
 
-    @Override
-    public List<TodaySchedule> searchTodaySchedule() {
-        LocalDate now = LocalDate.now(KST);
+  @Override
+  public List<TodaySchedule> searchTodaySchedule() {
+    LocalDate now = LocalDate.now(KST);
 
-        // startAt to LocalDate
-        DateExpression<LocalDate> startAtDate = Expressions.dateTemplate(LocalDate.class, "DATE({0})",
-                memberSchedule.startAt);
+    // startAt to LocalDate
+    DateExpression<LocalDate> startAtDate =
+        Expressions.dateTemplate(LocalDate.class, "DATE({0})", memberSchedule.startAt);
 
-        return queryFactory.selectDistinct(Projections.constructor(
-                        TodaySchedule.class,
-                        memberSchedule.id,
-                        memberSchedule.title,
-                        member))
-                .from(member)
-                .leftJoin(memberSchedule)
-                .on(member.eq(memberSchedule.member).and(startAtDate.eq(now)))
-                .innerJoin(memberDevice)
-                .on(member.eq(memberDevice.member))
-                .fetch();
-    }
+    return queryFactory
+        .selectDistinct(
+            Projections.constructor(
+                TodaySchedule.class, memberSchedule.id, memberSchedule.title, member))
+        .from(member)
+        .leftJoin(memberSchedule)
+        .on(member.eq(memberSchedule.member).and(startAtDate.eq(now)))
+        .innerJoin(memberDevice)
+        .on(member.eq(memberDevice.member))
+        .fetch();
+  }
 
-    @Override
-    public List<HomeSchedule> searchHomeSchedule(Long memberId, LocalDate date) {
-        // startAt to LocalDate
-        DateExpression<LocalDate> startAtDate = Expressions.dateTemplate(LocalDate.class, "DATE({0})",
-                memberSchedule.startAt);
+  @Override
+  public List<HomeSchedule> searchHomeSchedule(Long memberId, LocalDate date) {
+    // startAt to LocalDate
+    DateExpression<LocalDate> startAtDate =
+        Expressions.dateTemplate(LocalDate.class, "DATE({0})", memberSchedule.startAt);
 
-        return queryFactory.selectDistinct(Projections.constructor(
-                        HomeSchedule.class,
-                        memberSchedule.title,
-                        memberSchedule.startAt,
-                        memberSchedule.endAt,
-                        Expressions.constant(ScheduleType.MEMBER)))
-                .from(memberSchedule)
-                .innerJoin(memberSchedule.member, member)
-                .where(startAtDate.eq(date)
-                        .and(member.id.eq(memberId)))
-                .fetch();
-    }
+    return queryFactory
+        .selectDistinct(
+            Projections.constructor(
+                HomeSchedule.class,
+                memberSchedule.title,
+                memberSchedule.startAt,
+                memberSchedule.endAt,
+                Expressions.constant(ScheduleType.MEMBER)))
+        .from(memberSchedule)
+        .innerJoin(memberSchedule.member, member)
+        .where(startAtDate.eq(date).and(member.id.eq(memberId)))
+        .fetch();
+  }
 }

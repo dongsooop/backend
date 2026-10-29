@@ -4,11 +4,4 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record RecruitmentSettingUpdateRequest(
-
-        @NotBlank
-        String deviceToken,
-
-        @NotNull
-        Boolean targetState
-) {
-}
+    @NotBlank String deviceToken, @NotNull Boolean targetState) {}

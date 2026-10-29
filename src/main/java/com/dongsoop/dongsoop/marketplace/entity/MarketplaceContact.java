@@ -5,10 +5,10 @@ import com.dongsoop.dongsoop.member.entity.Member;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
@@ -23,43 +23,42 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class MarketplaceContact extends BaseEntity {
 
-    @Id
-    @Column(name = "marketplace_id", nullable = false, updatable = false)
+  @Id
+  @Column(name = "marketplace_id", nullable = false, updatable = false)
+  private Long marketplaceId;
+
+  @Id
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "applicant", nullable = false, updatable = false)
+  private Member applicant;
+
+  @NoArgsConstructor
+  @AllArgsConstructor
+  public static class MarketplaceContactId implements Serializable {
+
+    @Serial private static final long serialVersionUID = 1L;
+
     private Long marketplaceId;
 
-    @Id
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "applicant", nullable = false, updatable = false)
-    private Member applicant;
+    private Long applicant;
 
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class MarketplaceContactId implements Serializable {
+    @Override
+    public boolean equals(Object that) {
+      if (this == that) {
+        return true;
+      }
 
-        @Serial
-        private static final long serialVersionUID = 1L;
+      if (that == null || getClass() != that.getClass()) {
+        return false;
+      }
 
-        private Long marketplaceId;
-
-        private Long applicant;
-
-        @Override
-        public boolean equals(Object that) {
-            if (this == that) {
-                return true;
-            }
-
-            if (that == null || getClass() != that.getClass()) {
-                return false;
-            }
-
-            MarketplaceContactId thatId = (MarketplaceContactId) that;
-            return marketplaceId.equals(thatId.marketplaceId) && applicant.equals(thatId.applicant);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(marketplaceId, applicant);
-        }
+      MarketplaceContactId thatId = (MarketplaceContactId) that;
+      return marketplaceId.equals(thatId.marketplaceId) && applicant.equals(thatId.applicant);
     }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(marketplaceId, applicant);
+    }
+  }
 }

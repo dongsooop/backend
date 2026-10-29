@@ -28,49 +28,41 @@ import org.springframework.test.util.ReflectionTestUtils;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("OAuth2LoginSuccessHandler 테스트")
 class OAuth2LoginSuccessHandlerTest {
-    private static final Long MEMBER_ID = 1L;
-    private static final String SOCIAL_TOKEN = "social-token";
-    private static final String TARGET_URL = "https://app.dongsoop.com/auth/callback";
-    @Mock
-    private TokenGenerator tokenGenerator;
-    @Mock
-    private HttpServletRequest request;
-    @Mock
-    private HttpServletResponse response;
-    @Mock
-    private RedirectStrategy redirectStrategy;
-    @InjectMocks
-    private OAuth2LoginSuccessHandler handler;
+  private static final Long MEMBER_ID = 1L;
+  private static final String SOCIAL_TOKEN = "social-token";
+  private static final String TARGET_URL = "https://app.dongsoop.com/auth/callback";
+  @Mock private TokenGenerator tokenGenerator;
+  @Mock private HttpServletRequest request;
+  @Mock private HttpServletResponse response;
+  @Mock private RedirectStrategy redirectStrategy;
+  @InjectMocks private OAuth2LoginSuccessHandler handler;
 
-    @BeforeEach
-    void setUp() {
-        ReflectionTestUtils.setField(handler, "targetUrl", TARGET_URL);
-        handler.setRedirectStrategy(redirectStrategy);
-    }
+  @BeforeEach
+  void setUp() {
+    ReflectionTestUtils.setField(handler, "targetUrl", TARGET_URL);
+    handler.setRedirectStrategy(redirectStrategy);
+  }
 
-    @Test
-    @DisplayName("OAuth2 로그인 성공 처리")
-    void onAuthenticationSuccess() throws Exception {
-        // given
-        OAuth2User oAuth2User = mock(OAuth2User.class);
-        CustomOAuth2User customUser = new CustomOAuth2User(
-                oAuth2User,
-                MEMBER_ID,
-                List.of(RoleType.USER)
-        );
-        Authentication authentication = mock(Authentication.class);
-        when(authentication.getPrincipal()).thenReturn(customUser);
-        when(tokenGenerator.generateSocialToken(any())).thenReturn(SOCIAL_TOKEN);
+  @Test
+  @DisplayName("OAuth2 로그인 성공 처리")
+  void onAuthenticationSuccess() throws Exception {
+    // given
+    OAuth2User oAuth2User = mock(OAuth2User.class);
+    CustomOAuth2User customUser =
+        new CustomOAuth2User(oAuth2User, MEMBER_ID, List.of(RoleType.USER));
+    Authentication authentication = mock(Authentication.class);
+    when(authentication.getPrincipal()).thenReturn(customUser);
+    when(tokenGenerator.generateSocialToken(any())).thenReturn(SOCIAL_TOKEN);
 
-        // when
-        handler.onAuthenticationSuccess(request, response, authentication);
+    // when
+    handler.onAuthenticationSuccess(request, response, authentication);
 
-        // then
-        ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
-        verify(redirectStrategy).sendRedirect(any(), any(), urlCaptor.capture());
+    // then
+    ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+    verify(redirectStrategy).sendRedirect(any(), any(), urlCaptor.capture());
 
-        String redirectUrl = urlCaptor.getValue();
-        assertThat(redirectUrl).contains(TARGET_URL, "socialToken=" + SOCIAL_TOKEN);
-        verify(tokenGenerator).generateSocialToken(any());
-    }
+    String redirectUrl = urlCaptor.getValue();
+    assertThat(redirectUrl).contains(TARGET_URL, "socialToken=" + SOCIAL_TOKEN);
+    verify(tokenGenerator).generateSocialToken(any());
+  }
 }

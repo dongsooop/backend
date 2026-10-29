@@ -17,61 +17,59 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
 public class RedisConfig {
-    @Value("${spring.data.redis.host:localhost}")
-    private String redisHost;
+  @Value("${spring.data.redis.host:localhost}")
+  private String redisHost;
 
-    @Value("${spring.data.redis.port:6379}")
-    private int redisPort;
+  @Value("${spring.data.redis.port:6379}")
+  private int redisPort;
 
-    @Bean
-    public RedisConnectionFactory redisConnectionFactory() {
-        return new LettuceConnectionFactory(redisHost, redisPort);
-    }
+  @Bean
+  public RedisConnectionFactory redisConnectionFactory() {
+    return new LettuceConnectionFactory(redisHost, redisPort);
+  }
 
-    @Bean
-    public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory connectionFactory) {
-        return new StringRedisTemplate(connectionFactory);
-    }
+  @Bean
+  public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory connectionFactory) {
+    return new StringRedisTemplate(connectionFactory);
+  }
 
-    @Bean
-    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
-        RedisTemplate<String, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(connectionFactory);
+  @Bean
+  public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
+    RedisTemplate<String, Object> template = new RedisTemplate<>();
+    template.setConnectionFactory(connectionFactory);
 
-        StringRedisSerializer stringSerializer = new StringRedisSerializer();
-        GenericJackson2JsonRedisSerializer jsonSerializer = createJsonSerializer();
+    StringRedisSerializer stringSerializer = new StringRedisSerializer();
+    GenericJackson2JsonRedisSerializer jsonSerializer = createJsonSerializer();
 
-        template.setKeySerializer(stringSerializer);
-        template.setValueSerializer(jsonSerializer);
-        template.setHashKeySerializer(stringSerializer);
-        template.setHashValueSerializer(jsonSerializer);
+    template.setKeySerializer(stringSerializer);
+    template.setValueSerializer(jsonSerializer);
+    template.setHashKeySerializer(stringSerializer);
+    template.setHashValueSerializer(jsonSerializer);
 
-        return template;
-    }
+    return template;
+  }
 
-    private GenericJackson2JsonRedisSerializer createJsonSerializer() {
-        return new GenericJackson2JsonRedisSerializer(configureObjectMapper());
-    }
+  private GenericJackson2JsonRedisSerializer createJsonSerializer() {
+    return new GenericJackson2JsonRedisSerializer(configureObjectMapper());
+  }
 
-    private ObjectMapper configureObjectMapper() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
+  private ObjectMapper configureObjectMapper() {
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.registerModule(new JavaTimeModule());
 
-        PolymorphicTypeValidator typeValidator = BasicPolymorphicTypeValidator.builder()
-                .allowIfSubType("com.dongsoop.dongsoop.chat.entity.ChatRoom")
-                .allowIfSubType("com.dongsoop.dongsoop.chat.entity.ChatMessage")
-                .allowIfSubType("java.util.HashSet")
-                .allowIfSubType("java.util.ArrayList")
-                .allowIfSubType("java.time.LocalDateTime")
-                .allowIfSubType("java.util.HashMap")
-                .build();
+    PolymorphicTypeValidator typeValidator =
+        BasicPolymorphicTypeValidator.builder()
+            .allowIfSubType("com.dongsoop.dongsoop.chat.entity.ChatRoom")
+            .allowIfSubType("com.dongsoop.dongsoop.chat.entity.ChatMessage")
+            .allowIfSubType("java.util.HashSet")
+            .allowIfSubType("java.util.ArrayList")
+            .allowIfSubType("java.time.LocalDateTime")
+            .allowIfSubType("java.util.HashMap")
+            .build();
 
-        objectMapper.activateDefaultTyping(
-                typeValidator,
-                ObjectMapper.DefaultTyping.NON_FINAL,
-                JsonTypeInfo.As.PROPERTY
-        );
+    objectMapper.activateDefaultTyping(
+        typeValidator, ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
 
-        return objectMapper;
-    }
+    return objectMapper;
+  }
 }

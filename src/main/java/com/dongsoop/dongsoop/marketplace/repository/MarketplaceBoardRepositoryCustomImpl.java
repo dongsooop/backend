@@ -26,115 +26,142 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class MarketplaceBoardRepositoryCustomImpl implements MarketplaceBoardRepositoryCustom {
 
-    private static final QMarketplaceBoard marketplaceBoard = QMarketplaceBoard.marketplaceBoard;
+  private static final QMarketplaceBoard marketplaceBoard = QMarketplaceBoard.marketplaceBoard;
 
-    private static final QMarketplaceContact marketplaceContact = QMarketplaceContact.marketplaceContact;
+  private static final QMarketplaceContact marketplaceContact =
+      QMarketplaceContact.marketplaceContact;
 
-    private static final QMarketplaceImage marketplaceImage = QMarketplaceImage.marketplaceImage;
+  private static final QMarketplaceImage marketplaceImage = QMarketplaceImage.marketplaceImage;
 
-    private final JPAQueryFactory queryFactory;
+  private final JPAQueryFactory queryFactory;
 
-    @ApplyBlockFilter
-    public List<MarketplaceBoardOverview> findMarketplaceBoardOverviewByPage(Pageable pageable, MarketplaceType type) {
-        return queryFactory.select(Projections.constructor(MarketplaceBoardOverview.class,
-                        marketplaceBoard.id,
-                        marketplaceBoard.title,
-                        marketplaceBoard.content,
-                        marketplaceBoard.price,
-                        marketplaceBoard.createdAt,
-                        marketplaceContact.applicant.countDistinct(),
-                        marketplaceImage.url,
-                        marketplaceBoard.type)) // 처음 저장된 이미지 URL 가져오기
-                .from(marketplaceBoard)
-                .leftJoin(marketplaceContact)
-                .on(marketplaceContact.marketplaceId.eq(marketplaceBoard.id))
-                .leftJoin(marketplaceImage)
-                .on(marketplaceImage.marketplaceBoard.id.eq(marketplaceBoard.id)
-                        .and(marketplaceImage.createdAt.eq(getMinCreated()))) // 가장 먼저 저장된 이미지 행 가져오기
-                .where(marketplaceBoard.status.eq(MarketplaceBoardStatus.OPEN)
-                        .and(marketplaceBoard.type.eq(type)))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .orderBy(marketplaceBoard.createdAt.desc())
-                .groupBy(marketplaceBoard.id,
-                        marketplaceBoard.title,
-                        marketplaceBoard.content,
-                        marketplaceBoard.price,
-                        marketplaceBoard.createdAt,
-                        marketplaceImage.url,
-                        marketplaceBoard.type)
-                .fetch();
-    }
+  @ApplyBlockFilter
+  public List<MarketplaceBoardOverview> findMarketplaceBoardOverviewByPage(
+      Pageable pageable, MarketplaceType type) {
+    return queryFactory
+        .select(
+            Projections.constructor(
+                MarketplaceBoardOverview.class,
+                marketplaceBoard.id,
+                marketplaceBoard.title,
+                marketplaceBoard.content,
+                marketplaceBoard.price,
+                marketplaceBoard.createdAt,
+                marketplaceContact.applicant.countDistinct(),
+                marketplaceImage.url,
+                marketplaceBoard.type)) // 처음 저장된 이미지 URL 가져오기
+        .from(marketplaceBoard)
+        .leftJoin(marketplaceContact)
+        .on(marketplaceContact.marketplaceId.eq(marketplaceBoard.id))
+        .leftJoin(marketplaceImage)
+        .on(
+            marketplaceImage
+                .marketplaceBoard
+                .id
+                .eq(marketplaceBoard.id)
+                .and(marketplaceImage.createdAt.eq(getMinCreated()))) // 가장 먼저 저장된 이미지 행 가져오기
+        .where(
+            marketplaceBoard
+                .status
+                .eq(MarketplaceBoardStatus.OPEN)
+                .and(marketplaceBoard.type.eq(type)))
+        .offset(pageable.getOffset())
+        .limit(pageable.getPageSize())
+        .orderBy(marketplaceBoard.createdAt.desc())
+        .groupBy(
+            marketplaceBoard.id,
+            marketplaceBoard.title,
+            marketplaceBoard.content,
+            marketplaceBoard.price,
+            marketplaceBoard.createdAt,
+            marketplaceImage.url,
+            marketplaceBoard.type)
+        .fetch();
+  }
 
-    public Optional<MarketplaceBoardDetails> findMarketplaceBoardDetails(Long id, MarketplaceViewType viewType) {
-        MarketplaceBoardDetails result = queryFactory.select(Projections.constructor(MarketplaceBoardDetails.class,
-                        marketplaceBoard.id,
-                        marketplaceBoard.author.id,
-                        marketplaceBoard.title,
-                        marketplaceBoard.content,
-                        marketplaceBoard.price,
-                        marketplaceBoard.createdAt,
-                        marketplaceBoard.type,
-                        marketplaceContact.applicant.countDistinct(),
-                        Expressions.stringTemplate("string_agg({0}, ',')", marketplaceImage.url),
-                        Expressions.constant(viewType),
-                        marketplaceBoard.status))
-                .from(marketplaceBoard)
-                .leftJoin(marketplaceContact)
-                .on(marketplaceContact.marketplaceId.eq(marketplaceBoard.id))
-                .leftJoin(marketplaceImage)
-                .on(marketplaceImage.marketplaceBoard.id.eq(marketplaceBoard.id))
-                .where(marketplaceBoard.id.eq(id))
-                .groupBy(marketplaceBoard.id,
-                        marketplaceBoard.title,
-                        marketplaceBoard.content,
-                        marketplaceBoard.price,
-                        marketplaceBoard.createdAt)
-                .fetchOne();
+  public Optional<MarketplaceBoardDetails> findMarketplaceBoardDetails(
+      Long id, MarketplaceViewType viewType) {
+    MarketplaceBoardDetails result =
+        queryFactory
+            .select(
+                Projections.constructor(
+                    MarketplaceBoardDetails.class,
+                    marketplaceBoard.id,
+                    marketplaceBoard.author.id,
+                    marketplaceBoard.title,
+                    marketplaceBoard.content,
+                    marketplaceBoard.price,
+                    marketplaceBoard.createdAt,
+                    marketplaceBoard.type,
+                    marketplaceContact.applicant.countDistinct(),
+                    Expressions.stringTemplate("string_agg({0}, ',')", marketplaceImage.url),
+                    Expressions.constant(viewType),
+                    marketplaceBoard.status))
+            .from(marketplaceBoard)
+            .leftJoin(marketplaceContact)
+            .on(marketplaceContact.marketplaceId.eq(marketplaceBoard.id))
+            .leftJoin(marketplaceImage)
+            .on(marketplaceImage.marketplaceBoard.id.eq(marketplaceBoard.id))
+            .where(marketplaceBoard.id.eq(id))
+            .groupBy(
+                marketplaceBoard.id,
+                marketplaceBoard.title,
+                marketplaceBoard.content,
+                marketplaceBoard.price,
+                marketplaceBoard.createdAt)
+            .fetchOne();
 
-        return Optional.ofNullable(result);
-    }
+    return Optional.ofNullable(result);
+  }
 
-    @Override
-    public List<MarketplaceSummary> findOpenedMarketplaceByAuthorIdAndPage(Long memberId, Pageable pageable) {
-        return queryFactory.select(Projections.constructor(MarketplaceSummary.class,
-                        marketplaceBoard.id,
-                        marketplaceBoard.title,
-                        marketplaceBoard.content,
-                        marketplaceBoard.price,
-                        marketplaceBoard.createdAt,
-                        marketplaceContact.applicant.countDistinct(),
-                        marketplaceImage.url,
-                        marketplaceBoard.type,
-                        marketplaceBoard.status))
-                .from(marketplaceBoard)
-                .leftJoin(marketplaceContact)
-                .on(marketplaceContact.marketplaceId.eq(marketplaceBoard.id))
-                .leftJoin(marketplaceImage)
-                .on(marketplaceImage.marketplaceBoard.id.eq(marketplaceBoard.id)
-                        .and(marketplaceImage.createdAt.eq(getMinCreated())))
-                .where(marketplaceBoard.author.id.eq(memberId))
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .orderBy(marketplaceBoard.createdAt.desc())
-                .groupBy(marketplaceBoard.id,
-                        marketplaceBoard.title,
-                        marketplaceBoard.content,
-                        marketplaceBoard.price,
-                        marketplaceBoard.createdAt,
-                        marketplaceImage.url,
-                        marketplaceBoard.type,
-                        marketplaceBoard.status)
-                .fetch();
-    }
+  @Override
+  public List<MarketplaceSummary> findOpenedMarketplaceByAuthorIdAndPage(
+      Long memberId, Pageable pageable) {
+    return queryFactory
+        .select(
+            Projections.constructor(
+                MarketplaceSummary.class,
+                marketplaceBoard.id,
+                marketplaceBoard.title,
+                marketplaceBoard.content,
+                marketplaceBoard.price,
+                marketplaceBoard.createdAt,
+                marketplaceContact.applicant.countDistinct(),
+                marketplaceImage.url,
+                marketplaceBoard.type,
+                marketplaceBoard.status))
+        .from(marketplaceBoard)
+        .leftJoin(marketplaceContact)
+        .on(marketplaceContact.marketplaceId.eq(marketplaceBoard.id))
+        .leftJoin(marketplaceImage)
+        .on(
+            marketplaceImage
+                .marketplaceBoard
+                .id
+                .eq(marketplaceBoard.id)
+                .and(marketplaceImage.createdAt.eq(getMinCreated())))
+        .where(marketplaceBoard.author.id.eq(memberId))
+        .offset(pageable.getOffset())
+        .limit(pageable.getPageSize())
+        .orderBy(marketplaceBoard.createdAt.desc())
+        .groupBy(
+            marketplaceBoard.id,
+            marketplaceBoard.title,
+            marketplaceBoard.content,
+            marketplaceBoard.price,
+            marketplaceBoard.createdAt,
+            marketplaceImage.url,
+            marketplaceBoard.type,
+            marketplaceBoard.status)
+        .fetch();
+  }
 
-    /**
-     * @return 가장 먼저 저장된 이미지의 생성일을 나타내는 JPQL 쿼리
-     */
-    private JPQLQuery<LocalDateTime> getMinCreated() {
-        return JPAExpressions
-                .select(marketplaceImage.createdAt.min())
-                .from(marketplaceImage)
-                .where(marketplaceImage.marketplaceBoard.eq(marketplaceBoard));
-    }
+  /**
+   * @return 가장 먼저 저장된 이미지의 생성일을 나타내는 JPQL 쿼리
+   */
+  private JPQLQuery<LocalDateTime> getMinCreated() {
+    return JPAExpressions.select(marketplaceImage.createdAt.min())
+        .from(marketplaceImage)
+        .where(marketplaceImage.marketplaceBoard.eq(marketplaceBoard));
+  }
 }

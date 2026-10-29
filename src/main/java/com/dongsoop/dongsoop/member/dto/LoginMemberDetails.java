@@ -18,39 +18,40 @@ import org.springframework.util.StringUtils;
 @AllArgsConstructor
 public class LoginMemberDetails {
 
-    private static final String ROLE_DELIMITER = ",";
+  private static final String ROLE_DELIMITER = ",";
 
-    private Long id;
+  private Long id;
 
-    private String nickname;
+  private String nickname;
 
-    private String email;
+  private String email;
 
-    private DepartmentType departmentType;
+  private DepartmentType departmentType;
 
-    private List<RoleType> role;
+  private List<RoleType> role;
 
-    public LoginMemberDetails(Long id, String nickname, String email, DepartmentType departmentType, String role) {
-        this.id = id;
-        this.nickname = nickname;
-        this.email = email;
-        this.departmentType = departmentType;
-        this.role = parseRoles(role);
+  public LoginMemberDetails(
+      Long id, String nickname, String email, DepartmentType departmentType, String role) {
+    this.id = id;
+    this.nickname = nickname;
+    this.email = email;
+    this.departmentType = departmentType;
+    this.role = parseRoles(role);
+  }
+
+  private List<RoleType> parseRoles(String role) {
+    if (!StringUtils.hasText(role)) {
+      return Collections.emptyList();
     }
 
-    private List<RoleType> parseRoles(String role) {
-        if (!StringUtils.hasText(role)) {
-            return Collections.emptyList();
-        }
-
-        try {
-            return Arrays.stream(role.split(ROLE_DELIMITER))
-                    .map(String::trim)
-                    .map(RoleType::valueOf)
-                    .toList();
-        } catch (IllegalArgumentException exception) {
-            log.warn("Invalid role format from database by role: {}, member id: {}", role, id, exception);
-            throw new MemberRoleNotAvailableException(role);
-        }
+    try {
+      return Arrays.stream(role.split(ROLE_DELIMITER))
+          .map(String::trim)
+          .map(RoleType::valueOf)
+          .toList();
+    } catch (IllegalArgumentException exception) {
+      log.warn("Invalid role format from database by role: {}, member id: {}", role, id, exception);
+      throw new MemberRoleNotAvailableException(role);
     }
+  }
 }

@@ -15,29 +15,28 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DeviceNoticePreferenceId implements Serializable {
 
-    @Serial
-    private static final long serialVersionUID = 1L;
+  @Serial private static final long serialVersionUID = 1L;
 
-    private Long device;
+  private Long device;
 
-    @Enumerated(EnumType.STRING)
-    private DepartmentType department;
+  @Enumerated(EnumType.STRING)
+  private DepartmentType department;
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        DeviceNoticePreferenceId that = (DeviceNoticePreferenceId) o;
-        return Objects.equals(this.device, that.device)
-                && Objects.equals(this.department, that.department);
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(this.device, this.department);
+    if (o == null || getClass() != o.getClass()) {
+      return false;
     }
+    DeviceNoticePreferenceId that = (DeviceNoticePreferenceId) o;
+    return Objects.equals(this.device, that.device)
+        && Objects.equals(this.department, that.department);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(this.device, this.department);
+  }
 }

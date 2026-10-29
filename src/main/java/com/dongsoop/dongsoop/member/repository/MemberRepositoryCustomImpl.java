@@ -3,9 +3,8 @@ package com.dongsoop.dongsoop.member.repository;
 import com.dongsoop.dongsoop.member.dto.DeleteMember;
 import com.dongsoop.dongsoop.member.dto.LoginMemberDetails;
 import com.dongsoop.dongsoop.member.entity.Member;
-import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
-import jakarta.persistence.LockModeType;
 import com.dongsoop.dongsoop.member.entity.QMember;
+import com.dongsoop.dongsoop.member.exception.MemberNotFoundException;
 import com.dongsoop.dongsoop.memberdevice.entity.QMemberDevice;
 import com.dongsoop.dongsoop.role.entity.QMemberRole;
 import com.dongsoop.dongsoop.role.entity.RoleType;
@@ -13,6 +12,7 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -25,83 +25,90 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
 
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+  private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
-    private static final String ROLE_DELIMITER = ",";
+  private static final String ROLE_DELIMITER = ",";
 
-    private static final QMember member = QMember.member;
-    private static final QMemberDevice memberDevice = QMemberDevice.memberDevice;
-    private static final QMemberRole memberRole = QMemberRole.memberRole;
+  private static final QMember member = QMember.member;
+  private static final QMemberDevice memberDevice = QMemberDevice.memberDevice;
+  private static final QMemberRole memberRole = QMemberRole.memberRole;
 
-    private final JPAQueryFactory queryFactory;
+  private final JPAQueryFactory queryFactory;
 
-    @Value("${member.nickname.alias.prefix:익명_}")
-    private String nicknameAliasPrefix;
+  @Value("${member.nickname.alias.prefix:익명_}")
+  private String nicknameAliasPrefix;
 
-    @Override
-    public Optional<LoginMemberDetails> findLoginMemberDetailById(Long id) {
-        LoginMemberDetails loginMemberDetails = queryFactory.select(Projections.constructor(LoginMemberDetails.class,
-                        member.id.as("id"),
-                        member.nickname.as("nickname"),
-                        member.email.as("email"),
-                        member.department.id.as("departmentType"),
-                        Expressions.stringTemplate("string_agg({0}, '" + ROLE_DELIMITER + "')", memberRole.role.roleType)))
-                .from(member)
-                .leftJoin(memberRole)
-                .on(memberRole.member.eq(member))
-                .where(eqId(id))
-                .groupBy(member)
-                .fetchOne();
+  @Override
+  public Optional<LoginMemberDetails> findLoginMemberDetailById(Long id) {
+    LoginMemberDetails loginMemberDetails =
+        queryFactory
+            .select(
+                Projections.constructor(
+                    LoginMemberDetails.class,
+                    member.id.as("id"),
+                    member.nickname.as("nickname"),
+                    member.email.as("email"),
+                    member.department.id.as("departmentType"),
+                    Expressions.stringTemplate(
+                        "string_agg({0}, '" + ROLE_DELIMITER + "')", memberRole.role.roleType)))
+            .from(member)
+            .leftJoin(memberRole)
+            .on(memberRole.member.eq(member))
+            .where(eqId(id))
+            .groupBy(member)
+            .fetchOne();
 
-        return Optional.ofNullable(loginMemberDetails);
+    return Optional.ofNullable(loginMemberDetails);
+  }
+
+  @Override
+  public long softDelete(DeleteMember deleteMember) {
+    return queryFactory
+        .update(member)
+        .set(member.nickname, this.nicknameAliasPrefix + deleteMember.memberId())
+        .set(member.password, deleteMember.passwordAlias())
+        .setNull(member.studentId)
+        .set(member.isDeleted, true)
+        .set(member.updatedAt, LocalDateTime.now(KST))
+        .where(member.isDeleted.eq(false).and(member.id.eq(deleteMember.memberId())))
+        .execute();
+  }
+
+  private BooleanExpression eqId(Long id) {
+    if (id == null) {
+      return null;
     }
 
-    @Override
-    public long softDelete(DeleteMember deleteMember) {
-        return queryFactory.update(member)
-                .set(member.nickname, this.nicknameAliasPrefix + deleteMember.memberId())
-                .set(member.password, deleteMember.passwordAlias())
-                .setNull(member.studentId)
-                .set(member.isDeleted, true)
-                .set(member.updatedAt, LocalDateTime.now(KST))
-                .where(member.isDeleted.eq(false)
-                        .and(member.id.eq(deleteMember.memberId())))
-                .execute();
+    return QMember.member.id.eq(id);
+  }
+
+  @Override
+  public List<Member> findByRoleTypeWithDevice(RoleType roleType) {
+    return queryFactory
+        .selectFrom(member)
+        .innerJoin(memberDevice)
+        .on(memberDevice.member.eq(member))
+        .innerJoin(memberRole)
+        .on(memberRole.member.eq(member))
+        .where(memberRole.role.roleType.eq(roleType).and(member.isDeleted.isFalse()))
+        .distinct()
+        .fetch();
+  }
+
+  // 회원에 대해 비관적 잠금(PESSIMISTIC_WRITE) 을 획득하고 반환
+  @Override
+  public Member findAndLockById(Long memberId) {
+    Member lockedMember =
+        queryFactory
+            .selectFrom(member)
+            .where(member.id.eq(memberId))
+            .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+            .fetchOne();
+
+    if (lockedMember == null) {
+      throw new MemberNotFoundException();
     }
 
-    private BooleanExpression eqId(Long id) {
-        if (id == null) {
-            return null;
-        }
-
-        return QMember.member.id.eq(id);
-    }
-
-    @Override
-    public List<Member> findByRoleTypeWithDevice(RoleType roleType) {
-        return queryFactory.selectFrom(member)
-                .innerJoin(memberDevice)
-                .on(memberDevice.member.eq(member))
-                .innerJoin(memberRole)
-                .on(memberRole.member.eq(member))
-                .where(memberRole.role.roleType.eq(roleType)
-                        .and(member.isDeleted.isFalse()))
-                .distinct()
-                .fetch();
-    }
-    // 회원에 대해 비관적 잠금(PESSIMISTIC_WRITE) 을 획득하고 반환
-    @Override
-    public Member findAndLockById(Long memberId) {
-        Member lockedMember = queryFactory
-                .selectFrom(member)
-                .where(member.id.eq(memberId))
-                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
-                .fetchOne();
-
-        if (lockedMember == null) {
-            throw new MemberNotFoundException();
-        }
-
-        return lockedMember;
-    }
+    return lockedMember;
+  }
 }

@@ -9,14 +9,20 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class MarketplaceContactRepositoryCustomImpl implements MarketplaceContactRepositoryCustom {
 
-    private static final QMarketplaceContact marketplaceContact = QMarketplaceContact.marketplaceContact;
+  private static final QMarketplaceContact marketplaceContact =
+      QMarketplaceContact.marketplaceContact;
 
-    private final JPAQueryFactory queryFactory;
+  private final JPAQueryFactory queryFactory;
 
-    public boolean existsByBoardIdAndMemberId(Long boardId, Long memberId) {
-        return queryFactory.selectFrom(marketplaceContact)
-                .where(marketplaceContact.marketplaceId.eq(boardId)
-                        .and(marketplaceContact.applicant.id.eq(memberId)))
-                .fetchFirst() != null;
-    }
+  public boolean existsByBoardIdAndMemberId(Long boardId, Long memberId) {
+    return queryFactory
+            .selectFrom(marketplaceContact)
+            .where(
+                marketplaceContact
+                    .marketplaceId
+                    .eq(boardId)
+                    .and(marketplaceContact.applicant.id.eq(memberId)))
+            .fetchFirst()
+        != null;
+  }
 }

@@ -23,67 +23,66 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 @ExtendWith(MockitoExtension.class)
 class ChatAuthorizationInterceptorTest {
 
-    @Mock
-    private ChatValidator chatValidator;
+  @Mock private ChatValidator chatValidator;
 
-    @Mock
-    private MessageChannel channel;
+  @Mock private MessageChannel channel;
 
-    @InjectMocks
-    private ChatAuthorizationInterceptor interceptor;
+  @InjectMocks private ChatAuthorizationInterceptor interceptor;
 
-    @Test
-    void authorizesChatMessageSend() {
-        Message<byte[]> message = stompMessage(StompCommand.SEND, "/app/message/room-1", true);
+  @Test
+  void authorizesChatMessageSend() {
+    Message<byte[]> message = stompMessage(StompCommand.SEND, "/app/message/room-1", true);
 
-        Message<?> result = interceptor.preSend(message, channel);
+    Message<?> result = interceptor.preSend(message, channel);
 
-        assertThat(result).isSameAs(message);
-        verify(chatValidator).validateUserForRoom("room-1", 1L);
+    assertThat(result).isSameAs(message);
+    verify(chatValidator).validateUserForRoom("room-1", 1L);
+  }
+
+  @Test
+  void authorizesChatRoomEnterSend() {
+    Message<byte[]> message = stompMessage(StompCommand.SEND, "/app/enter/room-1", true);
+
+    interceptor.preSend(message, channel);
+
+    verify(chatValidator).validateUserForRoom("room-1", 1L);
+  }
+
+  @Test
+  void authorizesChatRoomSubscription() {
+    Message<byte[]> message = stompMessage(StompCommand.SUBSCRIBE, "/topic/chat/room/room-1", true);
+
+    interceptor.preSend(message, channel);
+
+    verify(chatValidator).validateUserForRoom("room-1", 1L);
+  }
+
+  @Test
+  void rejectsProtectedDestinationWithoutAuthenticatedUser() {
+    Message<byte[]> message =
+        stompMessage(StompCommand.SUBSCRIBE, "/topic/chat/room/room-1", false);
+
+    assertThatThrownBy(() -> interceptor.preSend(message, channel))
+        .isInstanceOf(UnauthorizedChatAccessException.class);
+  }
+
+  @Test
+  void ignoresBlindDateDestination() {
+    Message<byte[]> message = stompMessage(StompCommand.SEND, "/app/blinddate/message", true);
+
+    Message<?> result = interceptor.preSend(message, channel);
+
+    assertThat(result).isSameAs(message);
+    verifyNoInteractions(chatValidator);
+  }
+
+  private Message<byte[]> stompMessage(
+      StompCommand command, String destination, boolean authenticated) {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(command);
+    accessor.setDestination(destination);
+    if (authenticated) {
+      accessor.setUser(new UsernamePasswordAuthenticationToken(1L, null, List.of()));
     }
-
-    @Test
-    void authorizesChatRoomEnterSend() {
-        Message<byte[]> message = stompMessage(StompCommand.SEND, "/app/enter/room-1", true);
-
-        interceptor.preSend(message, channel);
-
-        verify(chatValidator).validateUserForRoom("room-1", 1L);
-    }
-
-    @Test
-    void authorizesChatRoomSubscription() {
-        Message<byte[]> message = stompMessage(StompCommand.SUBSCRIBE, "/topic/chat/room/room-1", true);
-
-        interceptor.preSend(message, channel);
-
-        verify(chatValidator).validateUserForRoom("room-1", 1L);
-    }
-
-    @Test
-    void rejectsProtectedDestinationWithoutAuthenticatedUser() {
-        Message<byte[]> message = stompMessage(StompCommand.SUBSCRIBE, "/topic/chat/room/room-1", false);
-
-        assertThatThrownBy(() -> interceptor.preSend(message, channel))
-                .isInstanceOf(UnauthorizedChatAccessException.class);
-    }
-
-    @Test
-    void ignoresBlindDateDestination() {
-        Message<byte[]> message = stompMessage(StompCommand.SEND, "/app/blinddate/message", true);
-
-        Message<?> result = interceptor.preSend(message, channel);
-
-        assertThat(result).isSameAs(message);
-        verifyNoInteractions(chatValidator);
-    }
-
-    private Message<byte[]> stompMessage(StompCommand command, String destination, boolean authenticated) {
-        StompHeaderAccessor accessor = StompHeaderAccessor.create(command);
-        accessor.setDestination(destination);
-        if (authenticated) {
-            accessor.setUser(new UsernamePasswordAuthenticationToken(1L, null, List.of()));
-        }
-        return MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
-    }
+    return MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+  }
 }

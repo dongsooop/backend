@@ -10,13 +10,13 @@ import org.springframework.data.domain.Pageable;
 
 public interface NotificationRepositoryCustom {
 
-    List<NotificationList> getMemberNotifications(Long memberId, Pageable pageable);
+  List<NotificationList> getMemberNotifications(Long memberId, Pageable pageable);
 
-    int findUnreadCountByMemberId(Long memberId);
+  int findUnreadCountByMemberId(Long memberId);
 
-    List<NotificationUnread> findUnreadCountByMemberIds(Collection<Long> memberIds);
+  List<NotificationUnread> findUnreadCountByMemberIds(Collection<Long> memberIds);
 
-    Optional<MemberNotification> findByMemberIdAndNotificationId(Long memberId, Long notificationId);
+  Optional<MemberNotification> findByMemberIdAndNotificationId(Long memberId, Long notificationId);
 
-    void updateAllAsRead(Long memberId);
+  void updateAllAsRead(Long memberId);
 }

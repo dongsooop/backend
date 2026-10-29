@@ -31,221 +31,225 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class BoardSearchServiceImpl implements BoardSearchService {
 
-    private final BoardSearchRepository boardSearchRepository;
-    private final RestaurantSearchRepository restaurantSearchRepository;
-    private final PopularKeywordService popularKeywordService;
-    private final MemberService memberService;
+  private final BoardSearchRepository boardSearchRepository;
+  private final RestaurantSearchRepository restaurantSearchRepository;
+  private final PopularKeywordService popularKeywordService;
+  private final MemberService memberService;
 
-    public Page<BoardDocument> searchByBoardType(String keyword, List<BoardType> boardTypes,
-                                                 MarketplaceType marketplaceType, String departmentName,
-                                                 Pageable pageable) {
-        String processedKeyword = preprocessKeyword(keyword);
-        if (processedKeyword.isEmpty()) {
-            return Page.empty(pageable);
-        }
-
-        updateKeywordRedis(processedKeyword);
-
-        List<String> boardTypeStrings = (boardTypes != null)
-                ? boardTypes.stream().map(bt -> bt.getCode().toUpperCase()).toList()
-                : null;
-
-        String marketplaceTypeStr = (marketplaceType != null) ? marketplaceType.name() : null;
-
-        return boardSearchRepository.searchDynamic(
-                processedKeyword,
-                boardTypeStrings,
-                marketplaceTypeStr,
-                departmentName,
-                null,
-                pageable
-        );
+  public Page<BoardDocument> searchByBoardType(
+      String keyword,
+      List<BoardType> boardTypes,
+      MarketplaceType marketplaceType,
+      String departmentName,
+      Pageable pageable) {
+    String processedKeyword = preprocessKeyword(keyword);
+    if (processedKeyword.isEmpty()) {
+      return Page.empty(pageable);
     }
 
-    public SearchResponse<BoardSearchResult> searchNoticesByDepartment(String keyword, String authorName,
-                                                                       Pageable pageable) {
-        String processedKeyword = preprocessKeyword(keyword);
-        if (processedKeyword.isEmpty()) {
-            return createEmptySearchResponse(pageable);
-        }
+    updateKeywordRedis(processedKeyword);
 
-        updateKeywordRedis(processedKeyword);
+    List<String> boardTypeStrings =
+        (boardTypes != null)
+            ? boardTypes.stream().map(bt -> bt.getCode().toUpperCase()).toList()
+            : null;
 
-        try {
-            Page<BoardDocument> results = boardSearchRepository.searchDynamic(
-                    processedKeyword,
-                    Collections.singletonList("NOTICE"),
-                    null,
-                    null,
-                    authorName,
-                    pageable
-            );
-            return SearchDtoMapper.toSearchResponse(results);
-        } catch (Exception e) {
-            log.error("Error in searchNoticesByDepartment keyword='{}'", keyword, e);
-            return createEmptySearchResponse(pageable);
-        }
+    String marketplaceTypeStr = (marketplaceType != null) ? marketplaceType.name() : null;
+
+    return boardSearchRepository.searchDynamic(
+        processedKeyword, boardTypeStrings, marketplaceTypeStr, departmentName, null, pageable);
+  }
+
+  public SearchResponse<BoardSearchResult> searchNoticesByDepartment(
+      String keyword, String authorName, Pageable pageable) {
+    String processedKeyword = preprocessKeyword(keyword);
+    if (processedKeyword.isEmpty()) {
+      return createEmptySearchResponse(pageable);
     }
 
-    public SearchResponse<RestaurantSearchResult> searchRestaurants(String keyword, Pageable pageable) {
-        String processedKeyword = preprocessKeyword(keyword);
-        if (processedKeyword.isEmpty()) {
-            return createEmptyRestaurantResponse(pageable);
-        }
+    updateKeywordRedis(processedKeyword);
 
-        updateKeywordRedis(processedKeyword);
+    try {
+      Page<BoardDocument> results =
+          boardSearchRepository.searchDynamic(
+              processedKeyword,
+              Collections.singletonList("NOTICE"),
+              null,
+              null,
+              authorName,
+              pageable);
+      return SearchDtoMapper.toSearchResponse(results);
+    } catch (Exception e) {
+      log.error("Error in searchNoticesByDepartment keyword='{}'", keyword, e);
+      return createEmptySearchResponse(pageable);
+    }
+  }
 
-        try {
-            Long currentMemberId = getAuthenticatedMemberId();
-            Page<RestaurantDocument> page = restaurantSearchRepository.searchByKeywordDynamic(processedKeyword,
-                    pageable);
-            return toRestaurantResponse(page, currentMemberId);
-        } catch (Exception e) {
-            log.error("Error in searchRestaurants keyword='{}'", keyword, e);
-            return createEmptyRestaurantResponse(pageable);
-        }
+  public SearchResponse<RestaurantSearchResult> searchRestaurants(
+      String keyword, Pageable pageable) {
+    String processedKeyword = preprocessKeyword(keyword);
+    if (processedKeyword.isEmpty()) {
+      return createEmptyRestaurantResponse(pageable);
     }
 
-    public List<String> getAutocompleteSuggestions(String keyword, String boardType) {
-        if (!StringUtils.hasText(keyword)) {
-            return Collections.emptyList();
-        }
+    updateKeywordRedis(processedKeyword);
 
-        String lowerKeyword = keyword.toLowerCase(Locale.ROOT);
+    try {
+      Long currentMemberId = getAuthenticatedMemberId();
+      Page<RestaurantDocument> page =
+          restaurantSearchRepository.searchByKeywordDynamic(processedKeyword, pageable);
+      return toRestaurantResponse(page, currentMemberId);
+    } catch (Exception e) {
+      log.error("Error in searchRestaurants keyword='{}'", keyword, e);
+      return createEmptyRestaurantResponse(pageable);
+    }
+  }
 
-        if ("RESTAURANT".equalsIgnoreCase(boardType)) {
-            return getRestaurantAutocompleteSuggestions(keyword, lowerKeyword);
-        }
-
-        if ("NOTICE".equalsIgnoreCase(boardType)) {
-            return getNoticeAutocompleteSuggestions(keyword, lowerKeyword);
-        }
-
-        if (StringUtils.hasText(boardType)) {
-            return getBoardAutocompleteSuggestions(keyword, boardType, lowerKeyword);
-        }
-
-        return getAllAutocompleteSuggestions(keyword, lowerKeyword);
+  public List<String> getAutocompleteSuggestions(String keyword, String boardType) {
+    if (!StringUtils.hasText(keyword)) {
+      return Collections.emptyList();
     }
 
-    private List<String> getNoticeAutocompleteSuggestions(String keyword, String lowerKeyword) {
-        String authorName = getMemberDepartmentName();
-        if (authorName == null) {
-            return Collections.emptyList();
-        }
+    String lowerKeyword = keyword.toLowerCase(Locale.ROOT);
 
-        List<BoardDocument> results = boardSearchRepository.findNoticeAutocompleteSuggestionsDynamic(
-                keyword,
-                authorName,
-                PageRequest.of(0, 10)
-        );
-        return sortSuggestions(results.stream().map(BoardDocument::getTitle).toList(), lowerKeyword);
+    if ("RESTAURANT".equalsIgnoreCase(boardType)) {
+      return getRestaurantAutocompleteSuggestions(keyword, lowerKeyword);
     }
 
-    private List<String> getRestaurantAutocompleteSuggestions(String keyword, String lowerKeyword) {
-        List<RestaurantDocument> results = restaurantSearchRepository.findAutocompleteSuggestionsDynamic(keyword,
-                PageRequest.of(0, 10));
-        return sortSuggestions(results.stream().map(RestaurantDocument::getName).toList(), lowerKeyword);
+    if ("NOTICE".equalsIgnoreCase(boardType)) {
+      return getNoticeAutocompleteSuggestions(keyword, lowerKeyword);
     }
 
-    private List<String> getBoardAutocompleteSuggestions(String keyword, String boardType, String lowerKeyword) {
-        List<BoardDocument> results = boardSearchRepository.findAutocompleteSuggestionsDynamic(keyword, boardType,
-                PageRequest.of(0, 10));
-        return sortSuggestions(results.stream().map(BoardDocument::getTitle).toList(), lowerKeyword);
+    if (StringUtils.hasText(boardType)) {
+      return getBoardAutocompleteSuggestions(keyword, boardType, lowerKeyword);
     }
 
-    private List<String> getAllAutocompleteSuggestions(String keyword, String lowerKeyword) {
-        List<String> suggestions = new ArrayList<>();
+    return getAllAutocompleteSuggestions(keyword, lowerKeyword);
+  }
 
-        List<BoardDocument> boards = boardSearchRepository.findAutocompleteSuggestionsDynamic(keyword, null,
-                PageRequest.of(0, 5));
-        suggestions.addAll(boards.stream().map(BoardDocument::getTitle).toList());
-
-        List<RestaurantDocument> restaurants = restaurantSearchRepository.findAutocompleteSuggestionsDynamic(keyword,
-                PageRequest.of(0, 5));
-        suggestions.addAll(restaurants.stream().map(RestaurantDocument::getName).toList());
-
-        return sortSuggestions(suggestions, lowerKeyword);
+  private List<String> getNoticeAutocompleteSuggestions(String keyword, String lowerKeyword) {
+    String authorName = getMemberDepartmentName();
+    if (authorName == null) {
+      return Collections.emptyList();
     }
 
-    private String getMemberDepartmentName() {
-        try {
-            if (!memberService.isAuthenticated()) {
-                return null;
-            }
-            Member member = memberService.getMemberReferenceByContext();
-            return member.getDepartment().getName();
-        } catch (Exception e) {
-            log.warn("Failed to get member department", e);
-            return null;
-        }
-    }
+    List<BoardDocument> results =
+        boardSearchRepository.findNoticeAutocompleteSuggestionsDynamic(
+            keyword, authorName, PageRequest.of(0, 10));
+    return sortSuggestions(results.stream().map(BoardDocument::getTitle).toList(), lowerKeyword);
+  }
 
-    private Long getAuthenticatedMemberId() {
-        try {
-            if (memberService.isAuthenticated()) {
-                return memberService.getMemberIdByAuthentication();
-            }
-        } catch (Exception ignored) {
-            // 회원 정보를 조회할 수 없으면 회원별 부가 정보 없이 검색 결과를 제공한다.
-        }
+  private List<String> getRestaurantAutocompleteSuggestions(String keyword, String lowerKeyword) {
+    List<RestaurantDocument> results =
+        restaurantSearchRepository.findAutocompleteSuggestionsDynamic(
+            keyword, PageRequest.of(0, 10));
+    return sortSuggestions(
+        results.stream().map(RestaurantDocument::getName).toList(), lowerKeyword);
+  }
+
+  private List<String> getBoardAutocompleteSuggestions(
+      String keyword, String boardType, String lowerKeyword) {
+    List<BoardDocument> results =
+        boardSearchRepository.findAutocompleteSuggestionsDynamic(
+            keyword, boardType, PageRequest.of(0, 10));
+    return sortSuggestions(results.stream().map(BoardDocument::getTitle).toList(), lowerKeyword);
+  }
+
+  private List<String> getAllAutocompleteSuggestions(String keyword, String lowerKeyword) {
+    List<String> suggestions = new ArrayList<>();
+
+    List<BoardDocument> boards =
+        boardSearchRepository.findAutocompleteSuggestionsDynamic(
+            keyword, null, PageRequest.of(0, 5));
+    suggestions.addAll(boards.stream().map(BoardDocument::getTitle).toList());
+
+    List<RestaurantDocument> restaurants =
+        restaurantSearchRepository.findAutocompleteSuggestionsDynamic(
+            keyword, PageRequest.of(0, 5));
+    suggestions.addAll(restaurants.stream().map(RestaurantDocument::getName).toList());
+
+    return sortSuggestions(suggestions, lowerKeyword);
+  }
+
+  private String getMemberDepartmentName() {
+    try {
+      if (!memberService.isAuthenticated()) {
         return null;
+      }
+      Member member = memberService.getMemberReferenceByContext();
+      return member.getDepartment().getName();
+    } catch (Exception e) {
+      log.warn("Failed to get member department", e);
+      return null;
     }
+  }
 
-    private SearchResponse<RestaurantSearchResult> toRestaurantResponse(Page<RestaurantDocument> page, Long memberId) {
-        List<RestaurantSearchResult> content = page.getContent().stream()
-                .map(doc -> RestaurantSearchResult.from(doc, memberId))
-                .toList();
-
-        return new SearchResponse<>(
-                content,
-                (int) page.getTotalElements(),
-                page.getTotalPages(),
-                page.getNumber(),
-                page.getSize()
-        );
+  private Long getAuthenticatedMemberId() {
+    try {
+      if (memberService.isAuthenticated()) {
+        return memberService.getMemberIdByAuthentication();
+      }
+    } catch (Exception ignored) {
+      // 회원 정보를 조회할 수 없으면 회원별 부가 정보 없이 검색 결과를 제공한다.
     }
+    return null;
+  }
 
-    private List<String> sortSuggestions(List<String> suggestions, String lowerKeyword) {
-        return suggestions.stream()
-                .distinct()
-                .sorted((s1, s2) -> {
-                    boolean s1Starts = s1.toLowerCase(Locale.ROOT).startsWith(lowerKeyword);
-                    boolean s2Starts = s2.toLowerCase(Locale.ROOT).startsWith(lowerKeyword);
-                    if (s1Starts && !s2Starts) {
-                        return -1;
-                    }
-                    if (!s1Starts && s2Starts) {
-                        return 1;
-                    }
-                    return s1.compareTo(s2);
-                })
-                .toList();
-    }
+  private SearchResponse<RestaurantSearchResult> toRestaurantResponse(
+      Page<RestaurantDocument> page, Long memberId) {
+    List<RestaurantSearchResult> content =
+        page.getContent().stream().map(doc -> RestaurantSearchResult.from(doc, memberId)).toList();
 
-    private String preprocessKeyword(String keyword) {
-        if (keyword == null) {
-            return "";
-        }
-        return keyword.trim().replaceAll("\\s+", " ");
-    }
+    return new SearchResponse<>(
+        content,
+        (int) page.getTotalElements(),
+        page.getTotalPages(),
+        page.getNumber(),
+        page.getSize());
+  }
 
-    private void updateKeywordRedis(String keyword) {
-        if (!StringUtils.hasText(keyword)) {
-            return;
-        }
-        try {
-            popularKeywordService.updateKeywordScore(keyword.toLowerCase(Locale.ROOT));
-        } catch (Exception e) {
-            log.warn("Failed to update popular keyword: {}", keyword, e);
-        }
-    }
+  private List<String> sortSuggestions(List<String> suggestions, String lowerKeyword) {
+    return suggestions.stream()
+        .distinct()
+        .sorted(
+            (s1, s2) -> {
+              boolean s1Starts = s1.toLowerCase(Locale.ROOT).startsWith(lowerKeyword);
+              boolean s2Starts = s2.toLowerCase(Locale.ROOT).startsWith(lowerKeyword);
+              if (s1Starts && !s2Starts) {
+                return -1;
+              }
+              if (!s1Starts && s2Starts) {
+                return 1;
+              }
+              return s1.compareTo(s2);
+            })
+        .toList();
+  }
 
-    private SearchResponse<BoardSearchResult> createEmptySearchResponse(Pageable pageable) {
-        return SearchDtoMapper.toSearchResponse(Page.empty(pageable));
+  private String preprocessKeyword(String keyword) {
+    if (keyword == null) {
+      return "";
     }
+    return keyword.trim().replaceAll("\\s+", " ");
+  }
 
-    private SearchResponse<RestaurantSearchResult> createEmptyRestaurantResponse(Pageable pageable) {
-        return new SearchResponse<>(Collections.emptyList(), 0, 0, pageable.getPageNumber(), pageable.getPageSize());
+  private void updateKeywordRedis(String keyword) {
+    if (!StringUtils.hasText(keyword)) {
+      return;
     }
+    try {
+      popularKeywordService.updateKeywordScore(keyword.toLowerCase(Locale.ROOT));
+    } catch (Exception e) {
+      log.warn("Failed to update popular keyword: {}", keyword, e);
+    }
+  }
+
+  private SearchResponse<BoardSearchResult> createEmptySearchResponse(Pageable pageable) {
+    return SearchDtoMapper.toSearchResponse(Page.empty(pageable));
+  }
+
+  private SearchResponse<RestaurantSearchResult> createEmptyRestaurantResponse(Pageable pageable) {
+    return new SearchResponse<>(
+        Collections.emptyList(), 0, 0, pageable.getPageNumber(), pageable.getPageSize());
+  }
 }

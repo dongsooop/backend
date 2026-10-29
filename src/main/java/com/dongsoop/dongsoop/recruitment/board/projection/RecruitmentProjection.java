@@ -7,8 +7,8 @@ import com.querydsl.core.types.ConstructorExpression;
 
 public interface RecruitmentProjection {
 
-    ConstructorExpression<RecruitmentOverview> getRecruitmentOverviewExpression();
+  ConstructorExpression<RecruitmentOverview> getRecruitmentOverviewExpression();
 
-    ConstructorExpression<RecruitmentDetails> getRecruitmentDetailsExpression(RecruitmentViewType viewType,
-                                                                              boolean isAlreadyApplied);
+  ConstructorExpression<RecruitmentDetails> getRecruitmentDetailsExpression(
+      RecruitmentViewType viewType, boolean isAlreadyApplied);
 }

@@ -9,20 +9,21 @@ import org.springframework.stereotype.Component;
 @Component
 public class RegisterMailValidator extends MailVerifier {
 
-    private final String verifyCodeKeyPrefix;
+  private final String verifyCodeKeyPrefix;
 
-    public RegisterMailValidator(RedisTemplate<String, Object> redisTemplate,
-                                 MailVerifyNumberGenerator mailVerifyNumberGenerator,
-                                 @Value("${mail.redis.key.opportunity}") String opportunityKey,
-                                 @Value("${mail.redis.key.code}") String codeKey,
-                                 @Value("${mail.redis.key.success}") String successKey,
-                                 @Value("${mail.verify.register.redis.prefix}") String verifyCodeKeyPrefix) {
-        super(redisTemplate, mailVerifyNumberGenerator, opportunityKey, codeKey, successKey);
-        this.verifyCodeKeyPrefix = verifyCodeKeyPrefix;
-    }
+  public RegisterMailValidator(
+      RedisTemplate<String, Object> redisTemplate,
+      MailVerifyNumberGenerator mailVerifyNumberGenerator,
+      @Value("${mail.redis.key.opportunity}") String opportunityKey,
+      @Value("${mail.redis.key.code}") String codeKey,
+      @Value("${mail.redis.key.success}") String successKey,
+      @Value("${mail.verify.register.redis.prefix}") String verifyCodeKeyPrefix) {
+    super(redisTemplate, mailVerifyNumberGenerator, opportunityKey, codeKey, successKey);
+    this.verifyCodeKeyPrefix = verifyCodeKeyPrefix;
+  }
 
-    @Override
-    protected String getVerifyCodeKeyPrefix() {
-        return this.verifyCodeKeyPrefix;
-    }
+  @Override
+  protected String getVerifyCodeKeyPrefix() {
+    return this.verifyCodeKeyPrefix;
+  }
 }

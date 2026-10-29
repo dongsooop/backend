@@ -7,14 +7,6 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 public record NotificationSettingUpdate(
-
-        @NotBlank
-        String deviceToken,
-
-        @NotEmpty
-        List<NotificationType> notificationTypes,
-
-        @NotNull
-        Boolean targetState
-) {
-}
+    @NotBlank String deviceToken,
+    @NotEmpty List<NotificationType> notificationTypes,
+    @NotNull Boolean targetState) {}

@@ -26,23 +26,23 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 public class Feedback extends BaseEntity {
 
-    @Id
-    @Getter
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "feedback_sequence_generator")
-    private Long id;
+  @Id
+  @Getter
+  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "feedback_sequence_generator")
+  private Long id;
 
-    @JoinColumn
-    @ManyToOne(fetch = FetchType.LAZY)
-    private Member member;
+  @JoinColumn
+  @ManyToOne(fetch = FetchType.LAZY)
+  private Member member;
 
-    @Column(nullable = false, length = 150)
-    private String improvementSuggestions;
+  @Column(nullable = false, length = 150)
+  private String improvementSuggestions;
 
-    @Column(nullable = false, length = 150)
-    private String featureRequests;
+  @Column(nullable = false, length = 150)
+  private String featureRequests;
 
-    @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    @Builder.Default
-    private FeedbackStatus status = FeedbackStatus.PENDING;
+  @Column(nullable = false)
+  @Enumerated(EnumType.STRING)
+  @Builder.Default
+  private FeedbackStatus status = FeedbackStatus.PENDING;
 }

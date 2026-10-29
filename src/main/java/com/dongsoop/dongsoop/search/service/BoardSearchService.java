@@ -12,14 +12,17 @@ import org.springframework.data.domain.Pageable;
 
 public interface BoardSearchService {
 
-    Page<BoardDocument> searchByBoardType(String keyword, List<BoardType> boardTypes,
-                                          MarketplaceType marketplaceType, String departmentName,
-                                          Pageable pageable);
+  Page<BoardDocument> searchByBoardType(
+      String keyword,
+      List<BoardType> boardTypes,
+      MarketplaceType marketplaceType,
+      String departmentName,
+      Pageable pageable);
 
-    SearchResponse<BoardSearchResult> searchNoticesByDepartment(String keyword, String authorName,
-                                                                Pageable pageable);
+  SearchResponse<BoardSearchResult> searchNoticesByDepartment(
+      String keyword, String authorName, Pageable pageable);
 
-    SearchResponse<RestaurantSearchResult> searchRestaurants(String keyword, Pageable pageable);
+  SearchResponse<RestaurantSearchResult> searchRestaurants(String keyword, Pageable pageable);
 
-    List<String> getAutocompleteSuggestions(String keyword, String boardType);
+  List<String> getAutocompleteSuggestions(String keyword, String boardType);
 }

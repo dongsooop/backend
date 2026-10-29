@@ -16,25 +16,30 @@ import org.hibernate.annotations.SQLRestriction;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLRestriction("is_deleted = false")
 @SQLDelete(sql = "UPDATE restaurant_report SET is_deleted = true WHERE id = ?")
-@SequenceGenerator(name = "restaurant_report_sequence_generator", sequenceName = "restaurant_report_sequence", allocationSize = 1)
+@SequenceGenerator(
+    name = "restaurant_report_sequence_generator",
+    sequenceName = "restaurant_report_sequence",
+    allocationSize = 1)
 public class RestaurantReport extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "restaurant_report_sequence_generator")
-    private Long id;
+  @Id
+  @GeneratedValue(
+      strategy = GenerationType.SEQUENCE,
+      generator = "restaurant_report_sequence_generator")
+  private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "restaurant_id", nullable = false)
-    private Restaurant restaurant;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "restaurant_id", nullable = false)
+  private Restaurant restaurant;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reporter_id", nullable = false)
-    private Member reporter;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "reporter_id", nullable = false)
+  private Member reporter;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private RestaurantReportReason reason;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private RestaurantReportReason reason;
 
-    @Column(length = 500)
-    private String description;
+  @Column(length = 500)
+  private String description;
 }

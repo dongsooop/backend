@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+# The formatter reads working files; require them to match the index first.
+if ! git diff --quiet -- 'src/**/*.java' build.gradle settings.gradle gradle.properties gradlew gradle/wrapper; then
+    echo 'Java/Gradle 파일에 stage되지 않은 변경이 있습니다. 포맷 후 필요한 변경을 stage하고 다시 커밋하세요.' >&2
+    exit 1
+fi
+exec bash scripts/check-format.sh

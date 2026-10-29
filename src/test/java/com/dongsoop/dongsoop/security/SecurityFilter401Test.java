@@ -30,63 +30,60 @@ import org.springframework.test.web.servlet.MockMvc;
 @DisplayName("보안 필터 체인 401 응답 통합 테스트")
 class SecurityFilter401Test {
 
-    @Autowired
-    private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private TokenGenerator tokenGenerator;
+  @Autowired private TokenGenerator tokenGenerator;
 
-    @MockitoBean
-    private DeviceBlacklistService deviceBlacklistService;
+  @MockitoBean private DeviceBlacklistService deviceBlacklistService;
 
-    @MockitoBean
-    private FirebaseAppCheck firebaseAppCheck;
+  @MockitoBean private FirebaseAppCheck firebaseAppCheck;
 
-    @Test
-    @DisplayName("토큰 없이 보호된 경로 요청 시 401을 반환한다")
-    void when_no_token_on_protected_path_then_401() throws Exception {
-        mockMvc.perform(get("/device/list"))
-                .andExpect(status().isUnauthorized());
-    }
+  @Test
+  @DisplayName("토큰 없이 보호된 경로 요청 시 401을 반환한다")
+  void when_no_token_on_protected_path_then_401() throws Exception {
+    mockMvc.perform(get("/device/list")).andExpect(status().isUnauthorized());
+  }
 
-    @Test
-    @DisplayName("형식이 잘못된 토큰으로 보호된 경로 요청 시 401을 반환한다")
-    void when_malformed_token_on_protected_path_then_401() throws Exception {
-        mockMvc.perform(get("/device/list")
-                        .header("Authorization", "Bearer invalid.malformed.token"))
-                .andExpect(status().isUnauthorized());
-    }
+  @Test
+  @DisplayName("형식이 잘못된 토큰으로 보호된 경로 요청 시 401을 반환한다")
+  void when_malformed_token_on_protected_path_then_401() throws Exception {
+    mockMvc
+        .perform(get("/device/list").header("Authorization", "Bearer invalid.malformed.token"))
+        .andExpect(status().isUnauthorized());
+  }
 
-    @Test
-    @DisplayName("강제 로그아웃된 디바이스의 토큰으로 보호된 경로 요청 시 401을 반환한다")
-    void when_blacklisted_token_on_protected_path_then_401() throws Exception {
-        String token = generateAccessToken(1L, 42L);
-        doThrow(new BlacklistedTokenException())
-                .when(deviceBlacklistService).validateNotBlacklisted(any(), any());
+  @Test
+  @DisplayName("강제 로그아웃된 디바이스의 토큰으로 보호된 경로 요청 시 401을 반환한다")
+  void when_blacklisted_token_on_protected_path_then_401() throws Exception {
+    String token = generateAccessToken(1L, 42L);
+    doThrow(new BlacklistedTokenException())
+        .when(deviceBlacklistService)
+        .validateNotBlacklisted(any(), any());
 
-        mockMvc.perform(get("/device/list")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isUnauthorized());
-        verify(deviceBlacklistService).validateNotBlacklisted(any(), any());
-    }
+    mockMvc
+        .perform(get("/device/list").header("Authorization", "Bearer " + token))
+        .andExpect(status().isUnauthorized());
+    verify(deviceBlacklistService).validateNotBlacklisted(any(), any());
+  }
 
-    @Test
-    @DisplayName("강제 로그아웃된 디바이스의 토큰으로 /logout 요청 시 401을 반환한다")
-    void when_blacklisted_token_on_logout_then_401() throws Exception {
-        String token = generateAccessToken(1L, 42L);
-        doThrow(new BlacklistedTokenException())
-                .when(deviceBlacklistService).validateNotBlacklisted(any(), any());
+  @Test
+  @DisplayName("강제 로그아웃된 디바이스의 토큰으로 /logout 요청 시 401을 반환한다")
+  void when_blacklisted_token_on_logout_then_401() throws Exception {
+    String token = generateAccessToken(1L, 42L);
+    doThrow(new BlacklistedTokenException())
+        .when(deviceBlacklistService)
+        .validateNotBlacklisted(any(), any());
 
-        mockMvc.perform(post("/logout")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isUnauthorized());
-        verify(deviceBlacklistService).validateNotBlacklisted(any(), any());
-    }
+    mockMvc
+        .perform(post("/logout").header("Authorization", "Bearer " + token))
+        .andExpect(status().isUnauthorized());
+    verify(deviceBlacklistService).validateNotBlacklisted(any(), any());
+  }
 
-    private String generateAccessToken(Long memberId, Long deviceId) {
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                memberId, null,
-                List.of(new SimpleGrantedAuthority(RoleType.USER_ROLE)));
-        return tokenGenerator.generateAccessToken(auth, deviceId);
-    }
+  private String generateAccessToken(Long memberId, Long deviceId) {
+    UsernamePasswordAuthenticationToken auth =
+        new UsernamePasswordAuthenticationToken(
+            memberId, null, List.of(new SimpleGrantedAuthority(RoleType.USER_ROLE)));
+    return tokenGenerator.generateAccessToken(auth, deviceId);
+  }
 }

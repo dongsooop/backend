@@ -22,49 +22,50 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class BlindDateController {
 
-    private final BlindDateService blindDateService;
+  private final BlindDateService blindDateService;
 
-    /**
-     * 과팅 운영 중인지 확인
-     *
-     * @return 과팅 운영 중 여부
-     */
-    @Secured(RoleType.USER_ROLE)
-    @GetMapping
-    public ResponseEntity<Boolean> isAvailable() {
-        boolean available = blindDateService.isAvailable();
-        return ResponseEntity.ok(available);
+  /**
+   * 과팅 운영 중인지 확인
+   *
+   * @return 과팅 운영 중 여부
+   */
+  @Secured(RoleType.USER_ROLE)
+  @GetMapping
+  public ResponseEntity<Boolean> isAvailable() {
+    boolean available = blindDateService.isAvailable();
+    return ResponseEntity.ok(available);
+  }
+
+  /**
+   * 과팅 시작
+   *
+   * @param request 과팅 시작을 위한 정보(세션별 사용자 수, 세션 만료 시간)
+   */
+  @Secured(RoleType.ADMIN_ROLE)
+  @PostMapping
+  public ResponseEntity<Void> startBlindDate(@Valid @RequestBody StartBlindDateRequest request) {
+    // 이미 운영 중이면 무시
+    if (blindDateService.isAvailable()) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).build();
     }
 
-    /**
-     * 과팅 시작
-     *
-     * @param request 과팅 시작을 위한 정보(세션별 사용자 수, 세션 만료 시간)
-     */
-    @Secured(RoleType.ADMIN_ROLE)
-    @PostMapping
-    public ResponseEntity<Void> startBlindDate(@Valid @RequestBody StartBlindDateRequest request) {
-        // 이미 운영 중이면 무시
-        if (blindDateService.isAvailable()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .build();
-        }
+    log.info(
+        "Starting blind date: expiredDate={}, maxSessionMemberCount={}",
+        request.getExpiredDate(),
+        request.getMaxSessionMemberCount());
 
-        log.info("Starting blind date: expiredDate={}, maxSessionMemberCount={}",
-                request.getExpiredDate(), request.getMaxSessionMemberCount());
+    blindDateService.startBlindDate(request);
 
-        blindDateService.startBlindDate(request);
+    return ResponseEntity.status(HttpStatus.CREATED).build();
+  }
 
-        return ResponseEntity.status(HttpStatus.CREATED).build();
-    }
-
-    /**
-     * 참가자 입장 기록 즉시 초기화
-     */
-    @Secured(RoleType.ADMIN_ROLE)
-    @RequestMapping(path = "/participants", method = {RequestMethod.POST, RequestMethod.DELETE})
-    public ResponseEntity<Void> resetParticipants() {
-        blindDateService.resetParticipants();
-        return ResponseEntity.noContent().build();
-    }
+  /** 참가자 입장 기록 즉시 초기화 */
+  @Secured(RoleType.ADMIN_ROLE)
+  @RequestMapping(
+      path = "/participants",
+      method = {RequestMethod.POST, RequestMethod.DELETE})
+  public ResponseEntity<Void> resetParticipants() {
+    blindDateService.resetParticipants();
+    return ResponseEntity.noContent().build();
+  }
 }

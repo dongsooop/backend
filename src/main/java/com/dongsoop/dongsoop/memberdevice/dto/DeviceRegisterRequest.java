@@ -5,13 +5,4 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record DeviceRegisterRequest(
-
-        @NotBlank
-        String deviceToken,
-
-        String fid,
-
-        @NotNull
-        MemberDeviceType type
-) {
-}
+    @NotBlank String deviceToken, String fid, @NotNull MemberDeviceType type) {}

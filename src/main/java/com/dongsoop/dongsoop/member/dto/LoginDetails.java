@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class LoginDetails {
 
-    private LoginMemberDetails loginMemberDetail;
+  private LoginMemberDetails loginMemberDetail;
 
-    private IssuedToken issuedToken;
+  private IssuedToken issuedToken;
 }

@@ -48,111 +48,125 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 class CalendarNotificationSettingTest extends AbstractIntegrationTest {
 
-    @Autowired
-    MemberRepository memberRepository;
+  @Autowired MemberRepository memberRepository;
 
-    @Autowired
-    NotificationSettingRepository notificationSettingRepository;
+  @Autowired NotificationSettingRepository notificationSettingRepository;
 
-    @Autowired
-    MemberDeviceRepository memberDeviceRepository;
+  @Autowired MemberDeviceRepository memberDeviceRepository;
 
-    @Autowired
-    DepartmentRepository departmentRepository;
+  @Autowired DepartmentRepository departmentRepository;
 
-    @MockitoSpyBean
-    MemberDeviceService memberDeviceService;
+  @MockitoSpyBean MemberDeviceService memberDeviceService;
 
-    @Autowired
-    CalendarScheduler calendarScheduler;
+  @Autowired CalendarScheduler calendarScheduler;
 
-    @Autowired
-    MemberScheduleRepository memberScheduleRepository;
+  @Autowired MemberScheduleRepository memberScheduleRepository;
 
-    @Autowired
-    OfficialScheduleRepository officialScheduleRepository;
+  @Autowired OfficialScheduleRepository officialScheduleRepository;
 
-    @MockitoBean
-    FCMService fcmService;   // 외부 연동 차단
-    @MockitoBean
-    private BoardSearchRepository boardSearchRepository;
-    @MockitoBean
-    private RestaurantSearchRepository restaurantSearchRepository;
+  @MockitoBean FCMService fcmService; // 외부 연동 차단
+  @MockitoBean private BoardSearchRepository boardSearchRepository;
+  @MockitoBean private RestaurantSearchRepository restaurantSearchRepository;
 
-    private Member member1;
-    private Member member2;
-    private Member member3;
+  private Member member1;
+  private Member member2;
+  private Member member3;
 
-    @BeforeEach
-    void setUp() {
-        // 학과 정보 저장
-        Department department1 = departmentRepository.save(new Department(DepartmentType.DEPT_2001, "학과명1", null));
-        Department department2 = departmentRepository.save(new Department(DepartmentType.DEPT_3001, "학과명2", null));
+  @BeforeEach
+  void setUp() {
+    // 학과 정보 저장
+    Department department1 =
+        departmentRepository.save(new Department(DepartmentType.DEPT_2001, "학과명1", null));
+    Department department2 =
+        departmentRepository.save(new Department(DepartmentType.DEPT_3001, "학과명2", null));
 
-        // 회원 정보 저장
-        member1 = memberRepository.save(
-                new Member(null, "test1@dongyang.ac.kr", "이름1", "password", null, department1));
-        member2 = memberRepository.save(
-                new Member(null, "test2@dongyang.ac.kr", "이름2", "password", null, department1));
-        member3 = memberRepository.save(
-                new Member(null, "test3@dongyang.ac.kr", "이름3", "password", null, department2));
+    // 회원 정보 저장
+    member1 =
+        memberRepository.save(
+            new Member(null, "test1@dongyang.ac.kr", "이름1", "password", null, department1));
+    member2 =
+        memberRepository.save(
+            new Member(null, "test2@dongyang.ac.kr", "이름2", "password", null, department1));
+    member3 =
+        memberRepository.save(
+            new Member(null, "test3@dongyang.ac.kr", "이름3", "password", null, department2));
 
-        // 디바이스 정보 저장
-        MemberDevice memberDevice1 = memberDeviceRepository.save(
-                MemberDevice.builder().member(member1).deviceToken("token1").memberDeviceType(MemberDeviceType.IOS)
-                        .build());
+    // 디바이스 정보 저장
+    MemberDevice memberDevice1 =
         memberDeviceRepository.save(
-                MemberDevice.builder().member(member2).deviceToken("token2").memberDeviceType(MemberDeviceType.WEB)
-                        .build());
-        memberDeviceRepository.save(
-                MemberDevice.builder().member(member3).deviceToken("token3").memberDeviceType(MemberDeviceType.ANDROID)
-                        .build());
+            MemberDevice.builder()
+                .member(member1)
+                .deviceToken("token1")
+                .memberDeviceType(MemberDeviceType.IOS)
+                .build());
+    memberDeviceRepository.save(
+        MemberDevice.builder()
+            .member(member2)
+            .deviceToken("token2")
+            .memberDeviceType(MemberDeviceType.WEB)
+            .build());
+    memberDeviceRepository.save(
+        MemberDevice.builder()
+            .member(member3)
+            .deviceToken("token3")
+            .memberDeviceType(MemberDeviceType.ANDROID)
+            .build());
 
-        // 회원 일정 추가
-        MemberSchedule memberSchedule1 = new MemberSchedule(null, "title", "content", LocalDateTime.now(),
-                LocalDateTime.now(), null, member1);
-        MemberSchedule memberSchedule2 = new MemberSchedule(null, "title", "content", LocalDateTime.now(),
-                LocalDateTime.now(), null, member2);
-        MemberSchedule memberSchedule3 = new MemberSchedule(null, "title", "content", LocalDateTime.now(),
-                LocalDateTime.now(), null, member3);
+    // 회원 일정 추가
+    MemberSchedule memberSchedule1 =
+        new MemberSchedule(
+            null, "title", "content", LocalDateTime.now(), LocalDateTime.now(), null, member1);
+    MemberSchedule memberSchedule2 =
+        new MemberSchedule(
+            null, "title", "content", LocalDateTime.now(), LocalDateTime.now(), null, member2);
+    MemberSchedule memberSchedule3 =
+        new MemberSchedule(
+            null, "title", "content", LocalDateTime.now(), LocalDateTime.now(), null, member3);
 
-        memberScheduleRepository.saveAll(List.of(memberSchedule1, memberSchedule2, memberSchedule3));
+    memberScheduleRepository.saveAll(List.of(memberSchedule1, memberSchedule2, memberSchedule3));
 
-        // 공식 일정 추가
-        OfficialSchedule officialSchedule = new OfficialSchedule(null, "title", LocalDate.now(), LocalDate.now());
-        officialScheduleRepository.save(officialSchedule);
+    // 공식 일정 추가
+    OfficialSchedule officialSchedule =
+        new OfficialSchedule(null, "title", LocalDate.now(), LocalDate.now());
+    officialScheduleRepository.save(officialSchedule);
 
-        NotificationSetting notificationSetting = new NotificationSetting(memberDevice1, NotificationType.CALENDAR,
-                false);
-        notificationSettingRepository.save(notificationSetting); // member1은 공지 알림 수신 거부
-    }
+    NotificationSetting notificationSetting =
+        new NotificationSetting(memberDevice1, NotificationType.CALENDAR, false);
+    notificationSettingRepository.save(notificationSetting); // member1은 공지 알림 수신 거부
+  }
 
-    @Test
-    @DisplayName("")
-    void sendCalendarNotification_WhenMemberDisabledCalendarNotification_ThenNotSendNotification() {
-        // given
-        AtomicReference<Map<Long, List<String>>> captured = new AtomicReference<>();
+  @Test
+  @DisplayName("")
+  void sendCalendarNotification_WhenMemberDisabledCalendarNotification_ThenNotSendNotification() {
+    // given
+    AtomicReference<Map<Long, List<String>>> captured = new AtomicReference<>();
 
-        Mockito.doAnswer(invocation -> {
-            Map<Long, List<String>> result = (Map<Long, List<String>>) invocation.callRealMethod();
-            captured.set(result);
-            return result;
-        }).when(memberDeviceService).getDeviceByMember(any());
+    Mockito.doAnswer(
+            invocation -> {
+              Map<Long, List<String>> result =
+                  (Map<Long, List<String>>) invocation.callRealMethod();
+              captured.set(result);
+              return result;
+            })
+        .when(memberDeviceService)
+        .getDeviceByMember(any());
 
-        // when
-        calendarScheduler.send();
+    // when
+    calendarScheduler.send();
 
-        // then
-        Map<Long, List<String>> capturedMap = captured.get();
+    // then
+    Map<Long, List<String>> capturedMap = captured.get();
 
-        assertNotNull(capturedMap);
-        assertFalse(capturedMap.isEmpty());
-        assertEquals(1, capturedMap.size(),
-                "WEB 디바이스(member2) 및 알림 거부(member1) 제외 후 member3만 포함한 1개 요소여야 합니다: ["
-                        + capturedMap.keySet().stream()
-                        .map(String::valueOf)
-                        .collect(java.util.stream.Collectors.joining(",")) + "]");
-        assertTrue(capturedMap.containsKey(member3.getId()),
-                "member3이 포함되어야 합니다.");
-    }
+    assertNotNull(capturedMap);
+    assertFalse(capturedMap.isEmpty());
+    assertEquals(
+        1,
+        capturedMap.size(),
+        "WEB 디바이스(member2) 및 알림 거부(member1) 제외 후 member3만 포함한 1개 요소여야 합니다: ["
+            + capturedMap.keySet().stream()
+                .map(String::valueOf)
+                .collect(java.util.stream.Collectors.joining(","))
+            + "]");
+    assertTrue(capturedMap.containsKey(member3.getId()), "member3이 포함되어야 합니다.");
+  }
 }

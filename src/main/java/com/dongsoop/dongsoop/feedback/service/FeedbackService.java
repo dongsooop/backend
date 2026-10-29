@@ -8,13 +8,13 @@ import org.springframework.data.domain.Pageable;
 
 public interface FeedbackService {
 
-    Long submitFeedback(FeedbackCreate request);
+  Long submitFeedback(FeedbackCreate request);
 
-    FeedbackDetail getFeedbackDetail(Long id);
+  FeedbackDetail getFeedbackDetail(Long id);
 
-    FeedbackOverview getFeedbackOverview();
+  FeedbackOverview getFeedbackOverview();
 
-    List<String> getImprovementSuggestions(Pageable pageable);
+  List<String> getImprovementSuggestions(Pageable pageable);
 
-    List<String> getFeatureRequests(Pageable pageable);
+  List<String> getFeatureRequests(Pageable pageable);
 }

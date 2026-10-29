@@ -24,42 +24,41 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 class MarketplaceImageRepositoryTest {
 
-    @Autowired
-    private MarketplaceImageRepository marketplaceImageRepository;
+  @Autowired private MarketplaceImageRepository marketplaceImageRepository;
 
-    @Autowired
-    private MarketplaceBoardRepository marketplaceBoardRepository;
+  @Autowired private MarketplaceBoardRepository marketplaceBoardRepository;
 
-    @Autowired
-    private MemberRepository memberRepository;
+  @Autowired private MemberRepository memberRepository;
 
-    @MockitoBean
-    private BoardSearchRepository boardSearchRepository;
+  @MockitoBean private BoardSearchRepository boardSearchRepository;
 
-    @MockitoBean
-    private RestaurantSearchRepository restaurantSearchRepository;
+  @MockitoBean private RestaurantSearchRepository restaurantSearchRepository;
 
-    @Test
-    @DisplayName("이미지를 저장하면 게시글 ID로 개수가 조회되고, 삭제하면 조회되지 않는다")
-    void saves_counts_and_soft_deletes_by_board_id() {
-        Member author = memberRepository.save(Member.builder()
+  @Test
+  @DisplayName("이미지를 저장하면 게시글 ID로 개수가 조회되고, 삭제하면 조회되지 않는다")
+  void saves_counts_and_soft_deletes_by_board_id() {
+    Member author =
+        memberRepository.save(
+            Member.builder()
                 .email("market-image@dongyang.ac.kr")
                 .nickname("장터작성")
                 .password("encoded")
                 .build());
-        MarketplaceBoard board = marketplaceBoardRepository.save(MarketplaceBoard.builder()
+    MarketplaceBoard board =
+        marketplaceBoardRepository.save(
+            MarketplaceBoard.builder()
                 .title("제목")
                 .content("내용")
                 .author(author)
                 .price(1000L)
                 .type(MarketplaceType.values()[0])
                 .build());
-        marketplaceImageRepository.save(new MarketplaceImage(board, "https://example.test/image.png"));
+    marketplaceImageRepository.save(new MarketplaceImage(board, "https://example.test/image.png"));
 
-        assertThat(marketplaceImageRepository.countByMarketplaceBoardId(board.getId())).isEqualTo(1);
+    assertThat(marketplaceImageRepository.countByMarketplaceBoardId(board.getId())).isEqualTo(1);
 
-        marketplaceImageRepository.deleteByMarketplaceBoardId(board.getId());
+    marketplaceImageRepository.deleteByMarketplaceBoardId(board.getId());
 
-        assertThat(marketplaceImageRepository.countByMarketplaceBoardId(board.getId())).isZero();
-    }
+    assertThat(marketplaceImageRepository.countByMarketplaceBoardId(board.getId())).isZero();
+  }
 }

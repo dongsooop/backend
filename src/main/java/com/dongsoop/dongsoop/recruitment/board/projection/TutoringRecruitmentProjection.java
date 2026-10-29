@@ -13,39 +13,41 @@ import org.springframework.stereotype.Component;
 @Component
 public class TutoringRecruitmentProjection implements RecruitmentProjection {
 
-    private static final QTutoringBoard board = QTutoringBoard.tutoringBoard;
-    private static final QTutoringApply apply = QTutoringApply.tutoringApply;
+  private static final QTutoringBoard board = QTutoringBoard.tutoringBoard;
+  private static final QTutoringApply apply = QTutoringApply.tutoringApply;
 
-    @Override
-    public ConstructorExpression<RecruitmentOverview> getRecruitmentOverviewExpression() {
-        return Projections.constructor(RecruitmentOverview.class,
-                board.id,
-                apply.member.countDistinct().intValue(),
-                board.startAt,
-                board.endAt,
-                board.title,
-                board.content,
-                board.tags,
-                board.department.id.stringValue());
-    }
+  @Override
+  public ConstructorExpression<RecruitmentOverview> getRecruitmentOverviewExpression() {
+    return Projections.constructor(
+        RecruitmentOverview.class,
+        board.id,
+        apply.member.countDistinct().intValue(),
+        board.startAt,
+        board.endAt,
+        board.title,
+        board.content,
+        board.tags,
+        board.department.id.stringValue());
+  }
 
-    @Override
-    public ConstructorExpression<RecruitmentDetails> getRecruitmentDetailsExpression(
-            RecruitmentViewType viewType, boolean isAlreadyApplied) {
-        return Projections.constructor(RecruitmentDetails.class,
-                board.id,
-                board.author.id,
-                board.title,
-                board.content,
-                board.tags,
-                board.startAt,
-                board.endAt,
-                board.department.id.stringValue(),
-                board.author.nickname,
-                board.createdAt.as("createdAt"),
-                board.updatedAt.as("updatedAt"),
-                apply.member.countDistinct().intValue(),
-                Expressions.constant(viewType),
-                Expressions.constant(isAlreadyApplied));
-    }
+  @Override
+  public ConstructorExpression<RecruitmentDetails> getRecruitmentDetailsExpression(
+      RecruitmentViewType viewType, boolean isAlreadyApplied) {
+    return Projections.constructor(
+        RecruitmentDetails.class,
+        board.id,
+        board.author.id,
+        board.title,
+        board.content,
+        board.tags,
+        board.startAt,
+        board.endAt,
+        board.department.id.stringValue(),
+        board.author.nickname,
+        board.createdAt.as("createdAt"),
+        board.updatedAt.as("updatedAt"),
+        apply.member.countDistinct().intValue(),
+        Expressions.constant(viewType),
+        Expressions.constant(isAlreadyApplied));
+  }
 }

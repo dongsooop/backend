@@ -24,108 +24,116 @@ import org.hibernate.annotations.OnDeleteAction;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SequenceGenerator(name = "eclass_assignment_sequence_generator")
-@Table(name = "eclass_assignment",
-        uniqueConstraints = @UniqueConstraint(name = "uk_eclass_assignment_link_assign",
-                columnNames = {"eclass_link_id", "assign_id"}))
+@Table(
+    name = "eclass_assignment",
+    uniqueConstraints =
+        @UniqueConstraint(
+            name = "uk_eclass_assignment_link_assign",
+            columnNames = {"eclass_link_id", "assign_id"}))
 public class EclassAssignment extends BaseEntity {
 
-    // Moodle의 과목명·과제명 컬럼 상한과 맞춘다. 이보다 긴 값이 오면 저장이 실패해 그 회원의 수집이 통째로 멈춘다
-    private static final int TEXT_LENGTH = 255;
+  // Moodle의 과목명·과제명 컬럼 상한과 맞춘다. 이보다 긴 값이 오면 저장이 실패해 그 회원의 수집이 통째로 멈춘다
+  private static final int TEXT_LENGTH = 255;
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "eclass_assignment_sequence_generator")
-    private Long id;
+  @Id
+  @GeneratedValue(
+      strategy = GenerationType.SEQUENCE,
+      generator = "eclass_assignment_sequence_generator")
+  private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "eclass_link_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private EclassLink link;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "eclass_link_id", nullable = false)
+  @OnDelete(action = OnDeleteAction.CASCADE)
+  private EclassLink link;
 
-    @Column(name = "assign_id", nullable = false)
-    private Long assignId;
+  @Column(name = "assign_id", nullable = false)
+  private Long assignId;
 
-    @Column(name = "course_module_id", nullable = false)
-    private Long courseModuleId;
+  @Column(name = "course_module_id", nullable = false)
+  private Long courseModuleId;
 
-    @Column(name = "course_name", length = TEXT_LENGTH, nullable = false)
-    private String courseName;
+  @Column(name = "course_name", length = TEXT_LENGTH, nullable = false)
+  private String courseName;
 
-    @Column(name = "title", length = TEXT_LENGTH, nullable = false)
-    private String title;
+  @Column(name = "title", length = TEXT_LENGTH, nullable = false)
+  private String title;
 
-    @Column(name = "due_at", nullable = false)
-    private LocalDateTime dueAt;
+  @Column(name = "due_at", nullable = false)
+  private LocalDateTime dueAt;
 
-    @Column(name = "cutoff_at")
-    private LocalDateTime cutoffAt;
+  @Column(name = "cutoff_at")
+  private LocalDateTime cutoffAt;
 
-    @Column(name = "submitted", nullable = false)
-    private boolean submitted = false;
+  @Column(name = "submitted", nullable = false)
+  private boolean submitted = false;
 
-    /** 마지막으로 이클래스에 제출 여부를 물은 시각. 리마인드 창 밖 과제는 이 값으로 하루 한 번만 다시 묻는다 */
-    @Column(name = "submission_checked_at")
-    private LocalDateTime submissionCheckedAt;
+  /** 마지막으로 이클래스에 제출 여부를 물은 시각. 리마인드 창 밖 과제는 이 값으로 하루 한 번만 다시 묻는다 */
+  @Column(name = "submission_checked_at")
+  private LocalDateTime submissionCheckedAt;
 
-    @Column(name = "removed_at")
-    private LocalDateTime removedAt;
+  @Column(name = "removed_at")
+  private LocalDateTime removedAt;
 
-    @Column(name = "last_reminded_days")
-    private Integer lastRemindedDays;
+  @Column(name = "last_reminded_days")
+  private Integer lastRemindedDays;
 
-    public EclassAssignment(EclassLink link, Long assignId, Long courseModuleId, String courseName, String title,
-                            LocalDateTime dueAt, LocalDateTime cutoffAt) {
-        this.link = link;
-        this.assignId = assignId;
-        this.courseModuleId = courseModuleId;
-        this.courseName = shorten(courseName);
-        this.title = shorten(title);
-        this.dueAt = dueAt;
-        this.cutoffAt = cutoffAt;
+  public EclassAssignment(
+      EclassLink link,
+      Long assignId,
+      Long courseModuleId,
+      String courseName,
+      String title,
+      LocalDateTime dueAt,
+      LocalDateTime cutoffAt) {
+    this.link = link;
+    this.assignId = assignId;
+    this.courseModuleId = courseModuleId;
+    this.courseName = shorten(courseName);
+    this.title = shorten(title);
+    this.dueAt = dueAt;
+    this.cutoffAt = cutoffAt;
+  }
+
+  /** 마감이 바뀌면 리마인드 단계를 처음부터 다시 센다 — 연장된 마감은 새 일정으로 알려야 한다. 삭제 표시된 과제가 다시 응답에 나타나면 복구한다. */
+  public void update(String courseName, String title, LocalDateTime dueAt, LocalDateTime cutoffAt) {
+    if (!Objects.equals(this.dueAt, dueAt)) {
+      this.lastRemindedDays = null;
     }
 
-    /**
-     * 마감이 바뀌면 리마인드 단계를 처음부터 다시 센다 — 연장된 마감은 새 일정으로 알려야 한다.
-     * 삭제 표시된 과제가 다시 응답에 나타나면 복구한다.
-     */
-    public void update(String courseName, String title, LocalDateTime dueAt, LocalDateTime cutoffAt) {
-        if (!Objects.equals(this.dueAt, dueAt)) {
-            this.lastRemindedDays = null;
-        }
+    this.courseName = shorten(courseName);
+    this.title = shorten(title);
+    this.dueAt = dueAt;
+    this.cutoffAt = cutoffAt;
+    this.removedAt = null;
+  }
 
-        this.courseName = shorten(courseName);
-        this.title = shorten(title);
-        this.dueAt = dueAt;
-        this.cutoffAt = cutoffAt;
-        this.removedAt = null;
+  private String shorten(String value) {
+    if (value == null || value.length() <= TEXT_LENGTH) {
+      return value;
     }
 
-    private String shorten(String value) {
-        if (value == null || value.length() <= TEXT_LENGTH) {
-            return value;
-        }
+    return value.substring(0, TEXT_LENGTH);
+  }
 
-        return value.substring(0, TEXT_LENGTH);
-    }
+  /** 제출 상태 API 결과를 양방향으로 반영한다 — 교수가 재제출을 열어 주면 다시 미제출이 된다 */
+  public void updateSubmission(boolean submitted, LocalDateTime checkedAt) {
+    this.submitted = submitted;
+    this.submissionCheckedAt = checkedAt;
+  }
 
-    /** 제출 상태 API 결과를 양방향으로 반영한다 — 교수가 재제출을 열어 주면 다시 미제출이 된다 */
-    public void updateSubmission(boolean submitted, LocalDateTime checkedAt) {
-        this.submitted = submitted;
-        this.submissionCheckedAt = checkedAt;
-    }
+  public void markRemoved(LocalDateTime now) {
+    this.removedAt = now;
+  }
 
-    public void markRemoved(LocalDateTime now) {
-        this.removedAt = now;
-    }
+  public void markReminded(int daysBefore) {
+    this.lastRemindedDays = daysBefore;
+  }
 
-    public void markReminded(int daysBefore) {
-        this.lastRemindedDays = daysBefore;
-    }
+  public boolean isRemoved() {
+    return this.removedAt != null;
+  }
 
-    public boolean isRemoved() {
-        return this.removedAt != null;
-    }
-
-    public boolean needsReminder(int daysBefore) {
-        return this.lastRemindedDays == null || daysBefore < this.lastRemindedDays;
-    }
+  public boolean needsReminder(int daysBefore) {
+    return this.lastRemindedDays == null || daysBefore < this.lastRemindedDays;
+  }
 }

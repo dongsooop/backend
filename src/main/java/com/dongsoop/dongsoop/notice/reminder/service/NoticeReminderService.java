@@ -25,86 +25,94 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class NoticeReminderService {
 
-    private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
+  private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
 
-    private final NoticeReminderRepository noticeReminderRepository;
-    private final NoticeDetailsRepository noticeDetailsRepository;
-    private final MemberDeviceRepository memberDeviceRepository;
-    private final NoticeReminderScheduler noticeReminderScheduler;
+  private final NoticeReminderRepository noticeReminderRepository;
+  private final NoticeDetailsRepository noticeDetailsRepository;
+  private final MemberDeviceRepository memberDeviceRepository;
+  private final NoticeReminderScheduler noticeReminderScheduler;
 
-    @Transactional
-    public NoticeReminderResponse upsert(Long noticeId, String fid, String deviceToken, LocalDateTime remindAt) {
-        validateRemindAt(remindAt);
+  @Transactional
+  public NoticeReminderResponse upsert(
+      Long noticeId, String fid, String deviceToken, LocalDateTime remindAt) {
+    validateRemindAt(remindAt);
 
-        MemberDevice device = resolveDevice(fid, deviceToken);
-        memberDeviceRepository.lockById(device.getId());
+    MemberDevice device = resolveDevice(fid, deviceToken);
+    memberDeviceRepository.lockById(device.getId());
 
-        NoticeDetails noticeDetails = noticeDetailsRepository.findById(noticeId)
-                .orElseThrow(() -> new NoticeDetailsNotFoundException(noticeId));
+    NoticeDetails noticeDetails =
+        noticeDetailsRepository
+            .findById(noticeId)
+            .orElseThrow(() -> new NoticeDetailsNotFoundException(noticeId));
 
-        NoticeReminder reminder = noticeReminderRepository
-                .findByDeviceIdAndNoticeDetailsIdForUpdate(device.getId(), noticeId)
-                .map(existing -> {
-                    existing.reschedule(remindAt);
-                    return existing;
+    NoticeReminder reminder =
+        noticeReminderRepository
+            .findByDeviceIdAndNoticeDetailsIdForUpdate(device.getId(), noticeId)
+            .map(
+                existing -> {
+                  existing.reschedule(remindAt);
+                  return existing;
                 })
-                .orElseGet(() -> new NoticeReminder(device, noticeDetails, remindAt));
+            .orElseGet(() -> new NoticeReminder(device, noticeDetails, remindAt));
 
-        NoticeReminder saved = noticeReminderRepository.save(reminder);
-        scheduleAfterCommit(saved.getId());
+    NoticeReminder saved = noticeReminderRepository.save(reminder);
+    scheduleAfterCommit(saved.getId());
 
-        return new NoticeReminderResponse(noticeId, remindAt);
+    return new NoticeReminderResponse(noticeId, remindAt);
+  }
+
+  @Transactional(readOnly = true)
+  public NoticeReminderResponse get(Long noticeId, String fid, String deviceToken) {
+    MemberDevice device = resolveDevice(fid, deviceToken);
+
+    NoticeReminder reminder =
+        noticeReminderRepository
+            .findByDeviceIdAndNoticeDetailsId(device.getId(), noticeId)
+            .orElseThrow(NoticeReminderNotFoundException::new);
+
+    return new NoticeReminderResponse(noticeId, reminder.getRemindAt());
+  }
+
+  @Transactional
+  public void delete(Long noticeId, String fid, String deviceToken) {
+    MemberDevice device = resolveDevice(fid, deviceToken);
+
+    NoticeReminder reminder =
+        noticeReminderRepository
+            .findByDeviceIdAndNoticeDetailsId(device.getId(), noticeId)
+            .orElseThrow(NoticeReminderNotFoundException::new);
+
+    noticeReminderRepository.delete(reminder);
+  }
+
+  private MemberDevice resolveDevice(String fid, String deviceToken) {
+    if (!StringUtils.hasText(fid) || !StringUtils.hasText(deviceToken)) {
+      throw new UnregisteredDeviceException();
     }
 
-    @Transactional(readOnly = true)
-    public NoticeReminderResponse get(Long noticeId, String fid, String deviceToken) {
-        MemberDevice device = resolveDevice(fid, deviceToken);
+    MemberDevice device =
+        memberDeviceRepository.findByFid(fid).orElseThrow(UnregisteredDeviceException::new);
 
-        NoticeReminder reminder = noticeReminderRepository
-                .findByDeviceIdAndNoticeDetailsId(device.getId(), noticeId)
-                .orElseThrow(NoticeReminderNotFoundException::new);
-
-        return new NoticeReminderResponse(noticeId, reminder.getRemindAt());
+    if (!deviceToken.equals(device.getDeviceToken())) {
+      throw new UnregisteredDeviceException();
     }
 
-    @Transactional
-    public void delete(Long noticeId, String fid, String deviceToken) {
-        MemberDevice device = resolveDevice(fid, deviceToken);
+    return device;
+  }
 
-        NoticeReminder reminder = noticeReminderRepository
-                .findByDeviceIdAndNoticeDetailsId(device.getId(), noticeId)
-                .orElseThrow(NoticeReminderNotFoundException::new);
-
-        noticeReminderRepository.delete(reminder);
+  private void validateRemindAt(LocalDateTime remindAt) {
+    if (!remindAt.isAfter(LocalDateTime.now(SEOUL_ZONE))) {
+      throw new InvalidNoticeReminderTimeException();
     }
+  }
 
-    private MemberDevice resolveDevice(String fid, String deviceToken) {
-        if (!StringUtils.hasText(fid) || !StringUtils.hasText(deviceToken)) {
-            throw new UnregisteredDeviceException();
-        }
-
-        MemberDevice device = memberDeviceRepository.findByFid(fid)
-                .orElseThrow(UnregisteredDeviceException::new);
-
-        if (!deviceToken.equals(device.getDeviceToken())) {
-            throw new UnregisteredDeviceException();
-        }
-
-        return device;
-    }
-
-    private void validateRemindAt(LocalDateTime remindAt) {
-        if (!remindAt.isAfter(LocalDateTime.now(SEOUL_ZONE))) {
-            throw new InvalidNoticeReminderTimeException();
-        }
-    }
-
-    private void scheduleAfterCommit(Long reminderId) {
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                noticeReminderScheduler.scheduleIfUpcoming(reminderId);
-            }
+  private void scheduleAfterCommit(Long reminderId) {
+    TransactionSynchronizationManager.registerSynchronization(
+        new TransactionSynchronization() {
+          @Override
+          public void afterCommit() {
+            noticeReminderScheduler.scheduleIfUpcoming(reminderId);
+          }
         });
-    }
+  }
 }

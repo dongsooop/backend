@@ -12,18 +12,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class NoticeDetails {
 
-    @Id
-    @Getter
-    private Long id;
+  @Id @Getter private Long id;
 
-    @Getter
-    private String writer;
+  @Getter private String writer;
 
-    @Getter
-    private String title;
+  @Getter private String title;
 
-    @Getter
-    private String link;
+  @Getter private String link;
 
-    private LocalDate createdAt;
+  private LocalDate createdAt;
 }

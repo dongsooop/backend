@@ -21,21 +21,23 @@ import org.hibernate.annotations.SQLRestriction;
 @SQLRestriction("is_deleted = false")
 @SQLDelete(sql = "UPDATE project_board SET is_deleted = true WHERE id = ?")
 @Filter(
-        name = "blockFilter",
-        condition = "NOT EXISTS ( " +
-                "SELECT 1 FROM member_block mb " +
-                "WHERE mb.blocker_id = :blockerId " +
-                "AND mb.blocked_member_id = author " +
-                ")"
-)
+    name = "blockFilter",
+    condition =
+        "NOT EXISTS ( "
+            + "SELECT 1 FROM member_block mb "
+            + "WHERE mb.blocker_id = :blockerId "
+            + "AND mb.blocked_member_id = author "
+            + ")")
 public class ProjectBoard extends RecruitmentBoard {
 
-    @Id
-    @Getter
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "project_board_sequence_generator")
-    private Long id;
+  @Id
+  @Getter
+  @GeneratedValue(
+      strategy = GenerationType.SEQUENCE,
+      generator = "project_board_sequence_generator")
+  private Long id;
 
-    public boolean equalsId(ProjectBoard that) {
-        return Objects.equals(this.id, that.id);
-    }
+  public boolean equalsId(ProjectBoard that) {
+    return Objects.equals(this.id, that.id);
+  }
 }

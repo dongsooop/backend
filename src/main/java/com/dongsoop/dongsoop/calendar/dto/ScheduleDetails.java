@@ -13,17 +13,17 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class ScheduleDetails {
 
-    private Long id;
+  private Long id;
 
-    private String title;
+  private String title;
 
-    private String location;
+  private String location;
 
-    private LocalDateTime startAt;
+  private LocalDateTime startAt;
 
-    private LocalDateTime endAt;
+  private LocalDateTime endAt;
 
-    private ScheduleType type;
+  private ScheduleType type;
 
-    private String color;
+  private String color;
 }

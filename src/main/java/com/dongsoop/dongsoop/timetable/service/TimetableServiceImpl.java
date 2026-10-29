@@ -25,121 +25,134 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class TimetableServiceImpl implements TimetableService {
 
-    private final TimetableRepository timetableRepository;
+  private final TimetableRepository timetableRepository;
 
-    private final MemberService memberService;
+  private final MemberService memberService;
 
-    private final TimetableMapper timetableMapper;
+  private final TimetableMapper timetableMapper;
 
-    @Override
-    public void createTimetable(CreateTimetableRequest request) {
-        Timetable timetable = timetableMapper.toEntity(request);
+  @Override
+  public void createTimetable(CreateTimetableRequest request) {
+    Timetable timetable = timetableMapper.toEntity(request);
 
-        validateOverlapTimetable(request);
+    validateOverlapTimetable(request);
 
-        timetableRepository.save(timetable);
+    timetableRepository.save(timetable);
+  }
+
+  @Override
+  @Transactional
+  public List<CreateTimetableRequest> createTimetable(List<CreateTimetableRequest> request) {
+    List<CreateTimetableRequest> failedRequests = new ArrayList<>();
+    List<CreateTimetableRequest> successRequests = new ArrayList<>();
+
+    for (CreateTimetableRequest r : request) {
+      try {
+        validateOverlapTimetable(r);
+        successRequests.add(r);
+      } catch (TimetableOverlapException e) {
+        failedRequests.add(r);
+      }
     }
 
-    @Override
-    @Transactional
-    public List<CreateTimetableRequest> createTimetable(List<CreateTimetableRequest> request) {
-        List<CreateTimetableRequest> failedRequests = new ArrayList<>();
-        List<CreateTimetableRequest> successRequests = new ArrayList<>();
+    List<Timetable> timetableList =
+        successRequests.stream().map(timetableMapper::toEntity).toList();
 
-        for (CreateTimetableRequest r : request) {
-            try {
-                validateOverlapTimetable(r);
-                successRequests.add(r);
-            } catch (TimetableOverlapException e) {
-                failedRequests.add(r);
-            }
-        }
+    timetableRepository.saveAll(timetableList);
 
-        List<Timetable> timetableList = successRequests.stream()
-                .map(timetableMapper::toEntity)
-                .toList();
+    return failedRequests;
+  }
 
-        timetableRepository.saveAll(timetableList);
+  @Override
+  public List<TimetableView> getTimetableView(Year year, SemesterType semester) {
+    Member referenceMember = memberService.getMemberReferenceByContext();
+    return timetableRepository.findAllByMemberAndYearAndSemester(referenceMember, year, semester);
+  }
 
-        return failedRequests;
-    }
+  private void validateOverlapTimetable(CreateTimetableRequest request) {
+    Long memberId = memberService.getMemberIdByAuthentication();
 
-    @Override
-    public List<TimetableView> getTimetableView(Year year, SemesterType semester) {
-        Member referenceMember = memberService.getMemberReferenceByContext();
-        return timetableRepository.findAllByMemberAndYearAndSemester(referenceMember,
-                year, semester);
-    }
+    Optional<OverlapTimetable> optionalOverlapTimetable =
+        timetableRepository.findOverlapWithinRange(
+            memberId,
+            request.year(),
+            request.semester(),
+            request.week(),
+            request.startAt(),
+            request.endAt());
 
-    private void validateOverlapTimetable(CreateTimetableRequest request) {
-        Long memberId = memberService.getMemberIdByAuthentication();
-
-        Optional<OverlapTimetable> optionalOverlapTimetable = timetableRepository.findOverlapWithinRange(
-                memberId,
-                request.year(),
-                request.semester(),
-                request.week(),
-                request.startAt(),
-                request.endAt());
-
-        optionalOverlapTimetable.ifPresent(overlapTimetable -> {
-            throw new TimetableOverlapException(request.startAt(), request.endAt(), overlapTimetable.startAt(),
-                    overlapTimetable.endAt());
+    optionalOverlapTimetable.ifPresent(
+        overlapTimetable -> {
+          throw new TimetableOverlapException(
+              request.startAt(),
+              request.endAt(),
+              overlapTimetable.startAt(),
+              overlapTimetable.endAt());
         });
+  }
+
+  @Override
+  public void deleteTimetable(Long timetableId) {
+    validateOwner(timetableId);
+    timetableRepository.deleteById(timetableId);
+  }
+
+  @Override
+  @Transactional
+  public void updateTimetable(UpdateTimetableRequest request) {
+    validateOwner(request.id());
+
+    // 업데이트 시간과 겹치는 시간이 있는지
+    YearSemester yearSemester =
+        timetableRepository
+            .findYearSemesterById(request.id())
+            .orElseThrow(() -> new TimetableNotFoundException(request.id()));
+    validateOverlapTimetable(request, yearSemester.getYear(), yearSemester.getSemester());
+
+    Timetable timetable =
+        timetableRepository
+            .findById(request.id())
+            .orElseThrow(() -> new TimetableNotFoundException(request.id()));
+
+    timetable.update(request);
+  }
+
+  private void validateOwner(Long timetableId) {
+    Long memberId = memberService.getMemberIdByAuthentication();
+    boolean isRequesterIsOwner = timetableRepository.existsByIdAndMemberId(timetableId, memberId);
+    if (!isRequesterIsOwner) { // 요청자가 소유자가 아닌 경우
+      throw new TimetableNotOwnedException(timetableId, memberId);
     }
+  }
 
-    @Override
-    public void deleteTimetable(Long timetableId) {
-        validateOwner(timetableId);
-        timetableRepository.deleteById(timetableId);
-    }
+  public void validateOverlapTimetable(
+      UpdateTimetableRequest request, Year year, SemesterType semester) {
 
-    @Override
-    @Transactional
-    public void updateTimetable(UpdateTimetableRequest request) {
-        validateOwner(request.id());
+    Long memberId = memberService.getMemberIdByAuthentication();
 
-        // 업데이트 시간과 겹치는 시간이 있는지
-        YearSemester yearSemester = timetableRepository.findYearSemesterById(request.id())
-                .orElseThrow(() -> new TimetableNotFoundException(request.id()));
-        validateOverlapTimetable(request, yearSemester.getYear(), yearSemester.getSemester());
+    Optional<OverlapTimetable> optionalOverlapTimetable =
+        timetableRepository.findOverlapWithinRangeExcludingSelf(
+            request.id(),
+            memberId,
+            year,
+            semester,
+            request.week(),
+            request.startAt(),
+            request.endAt());
 
-        Timetable timetable = timetableRepository.findById(request.id())
-                .orElseThrow(() -> new TimetableNotFoundException(request.id()));
-
-        timetable.update(request);
-    }
-
-    private void validateOwner(Long timetableId) {
-        Long memberId = memberService.getMemberIdByAuthentication();
-        boolean isRequesterIsOwner = timetableRepository.existsByIdAndMemberId(timetableId, memberId);
-        if (!isRequesterIsOwner) { // 요청자가 소유자가 아닌 경우
-            throw new TimetableNotOwnedException(timetableId, memberId);
-        }
-    }
-
-    public void validateOverlapTimetable(UpdateTimetableRequest request, Year year, SemesterType semester) {
-
-        Long memberId = memberService.getMemberIdByAuthentication();
-
-        Optional<OverlapTimetable> optionalOverlapTimetable = timetableRepository.findOverlapWithinRangeExcludingSelf(
-                request.id(),
-                memberId,
-                year,
-                semester,
-                request.week(),
-                request.startAt(),
-                request.endAt());
-
-        optionalOverlapTimetable.ifPresent(overlapTimetable -> {
-            throw new TimetableOverlapException(request.startAt(), request.endAt(), overlapTimetable.startAt(),
-                    overlapTimetable.endAt());
+    optionalOverlapTimetable.ifPresent(
+        overlapTimetable -> {
+          throw new TimetableOverlapException(
+              request.startAt(),
+              request.endAt(),
+              overlapTimetable.startAt(),
+              overlapTimetable.endAt());
         });
-    }
+  }
 
-    public void deleteTimetable(Year year, SemesterType semester) {
-        Long memberId = memberService.getMemberIdByAuthentication();
+  public void deleteTimetable(Year year, SemesterType semester) {
+    Long memberId = memberService.getMemberIdByAuthentication();
 
-        timetableRepository.deleteByMemberIdAndYearAndSemester(memberId, year, semester);
-    }
+    timetableRepository.deleteByMemberIdAndYearAndSemester(memberId, year, semester);
+  }
 }

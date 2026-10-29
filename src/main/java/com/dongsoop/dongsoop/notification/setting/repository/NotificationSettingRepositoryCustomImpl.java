@@ -10,20 +10,24 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
-public class NotificationSettingRepositoryCustomImpl implements NotificationSettingRepositoryCustom {
+public class NotificationSettingRepositoryCustomImpl
+    implements NotificationSettingRepositoryCustom {
 
-    private static final QNotificationSetting notificationSetting = QNotificationSetting.notificationSetting;
+  private static final QNotificationSetting notificationSetting =
+      QNotificationSetting.notificationSetting;
 
-    private final JPAQueryFactory queryFactory;
+  private final JPAQueryFactory queryFactory;
 
-    @Override
-    public List<NotificationActiveStatus> findByDeviceToken(String deviceToken) {
-        return queryFactory.select(Projections.constructor(
-                        NotificationActiveStatus.class,
-                        notificationSetting.id.notificationType,
-                        notificationSetting.enabled))
-                .from(notificationSetting)
-                .where(notificationSetting.device.deviceToken.eq(deviceToken))
-                .fetch();
-    }
+  @Override
+  public List<NotificationActiveStatus> findByDeviceToken(String deviceToken) {
+    return queryFactory
+        .select(
+            Projections.constructor(
+                NotificationActiveStatus.class,
+                notificationSetting.id.notificationType,
+                notificationSetting.enabled))
+        .from(notificationSetting)
+        .where(notificationSetting.device.deviceToken.eq(deviceToken))
+        .fetch();
+  }
 }

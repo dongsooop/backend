@@ -22,33 +22,36 @@ import org.springframework.web.util.UriComponentsBuilder;
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    private static final String SOCIAL_TOKEN_PARAM = "socialToken";
+  private static final String SOCIAL_TOKEN_PARAM = "socialToken";
 
-    private final TokenGenerator tokenGenerator;
+  private final TokenGenerator tokenGenerator;
 
-    @Value("${oauth.authorize-uri}")
-    private String targetUrl;
+  @Value("${oauth.authorize-uri}")
+  private String targetUrl;
 
-    @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-                                        Authentication authentication) throws IOException {
+  @Override
+  public void onAuthenticationSuccess(
+      HttpServletRequest request, HttpServletResponse response, Authentication authentication)
+      throws IOException {
 
-        CustomOAuth2User oAuth2User = (CustomOAuth2User) authentication.getPrincipal();
-        List<GrantedAuthority> authorityList = oAuth2User.getRoleTypeList().stream().map(RoleType::getAuthority)
-                .toList();
-        Authentication auth = new UsernamePasswordAuthenticationToken(oAuth2User.getMemberId(), null, authorityList);
+    CustomOAuth2User oAuth2User = (CustomOAuth2User) authentication.getPrincipal();
+    List<GrantedAuthority> authorityList =
+        oAuth2User.getRoleTypeList().stream().map(RoleType::getAuthority).toList();
+    Authentication auth =
+        new UsernamePasswordAuthenticationToken(oAuth2User.getMemberId(), null, authorityList);
 
-        String redirectUrl = determineTargetUrl(auth);
-        getRedirectStrategy().sendRedirect(request, response, redirectUrl);
-        log.info("OAuth2 login success. memberId: {}", oAuth2User.getMemberId());
-    }
+    String redirectUrl = determineTargetUrl(auth);
+    getRedirectStrategy().sendRedirect(request, response, redirectUrl);
+    log.info("OAuth2 login success. memberId: {}", oAuth2User.getMemberId());
+  }
 
-    protected String determineTargetUrl(Authentication authentication) {
+  protected String determineTargetUrl(Authentication authentication) {
 
-        String socialToken = tokenGenerator.generateSocialToken(authentication);
+    String socialToken = tokenGenerator.generateSocialToken(authentication);
 
-        return UriComponentsBuilder.fromUriString(targetUrl)
-                .queryParam(SOCIAL_TOKEN_PARAM, socialToken)
-                .build().toUriString();
-    }
+    return UriComponentsBuilder.fromUriString(targetUrl)
+        .queryParam(SOCIAL_TOKEN_PARAM, socialToken)
+        .build()
+        .toUriString();
+  }
 }

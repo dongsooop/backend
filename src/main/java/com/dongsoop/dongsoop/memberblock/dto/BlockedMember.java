@@ -7,6 +7,6 @@ import lombok.Getter;
 @AllArgsConstructor
 public class BlockedMember {
 
-    Long blockedMemberId;
-    String memberName;
+  Long blockedMemberId;
+  String memberName;
 }

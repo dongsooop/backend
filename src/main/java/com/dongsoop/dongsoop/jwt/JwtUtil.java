@@ -30,108 +30,105 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class JwtUtil {
 
-    private final JwtKeyManager jwtKeyManager;
+  private final JwtKeyManager jwtKeyManager;
 
-    @Value("${jwt.claims.role.name}")
-    private String roleClaimName;
+  @Value("${jwt.claims.role.name}")
+  private String roleClaimName;
 
-    @Value("${jwt.claims.type.name}")
-    private String typeClaimName;
+  @Value("${jwt.claims.type.name}")
+  private String typeClaimName;
 
-    public Claims getClaims(String token) {
-        SecretKey key = jwtKeyManager.getSecretKey();
+  public Claims getClaims(String token) {
+    SecretKey key = jwtKeyManager.getSecretKey();
 
-        try {
-            return Jwts.parser()
-                    .verifyWith(key)
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
-        } catch (ExpiredJwtException e) {
-            throw new TokenExpiredException(e);
-        } catch (MalformedJwtException | IllegalArgumentException e) {
-            throw new TokenMalformedException(e);
-        } catch (SignatureException e) {
-            throw new TokenSignatureException(e);
-        } catch (UnsupportedJwtException e) {
-            throw new TokenUnsupportedException(e);
-        }
+    try {
+      return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
+    } catch (ExpiredJwtException e) {
+      throw new TokenExpiredException(e);
+    } catch (MalformedJwtException | IllegalArgumentException e) {
+      throw new TokenMalformedException(e);
+    } catch (SignatureException e) {
+      throw new TokenSignatureException(e);
+    } catch (UnsupportedJwtException e) {
+      throw new TokenUnsupportedException(e);
+    }
+  }
+
+  public Claims getClaims(String jwt, PublicKey publicKey, String issuer, String audience) {
+    try {
+      return Jwts.parser()
+          .verifyWith(publicKey)
+          .requireIssuer(issuer)
+          .requireAudience(audience)
+          .build()
+          .parseSignedClaims(jwt)
+          .getPayload();
+    } catch (ExpiredJwtException e) {
+      throw new TokenExpiredException(e);
+    } catch (MalformedJwtException | IllegalArgumentException e) {
+      throw new TokenMalformedException(e);
+    } catch (SignatureException e) {
+      throw new TokenSignatureException(e);
+    } catch (UnsupportedJwtException e) {
+      throw new TokenUnsupportedException(e);
+    }
+  }
+
+  public static final String DEVICE_ID_CLAIM = "did";
+
+  // JJWT의 issuedAt/expiration API가 Date를 요구하므로 이 경계에서만 변환한다.
+  @SuppressWarnings("java:S2143")
+  protected String issue(
+      Instant tokenExpiredTime, String id, List<String> roleList, JWTType type, Long deviceId) {
+    SecretKey key = jwtKeyManager.getSecretKey();
+
+    JwtBuilder builder =
+        Jwts.builder()
+            .subject(id)
+            .claim(roleClaimName, roleList)
+            .claim(typeClaimName, type.name())
+            .issuedAt(Date.from(Instant.now()))
+            .expiration(Date.from(tokenExpiredTime))
+            .signWith(key);
+
+    if (deviceId != null) {
+      builder.claim(DEVICE_ID_CLAIM, deviceId);
     }
 
-    public Claims getClaims(String jwt, PublicKey publicKey, String issuer,
-                            String audience) {
-        try {
-            return Jwts.parser()
-                    .verifyWith(publicKey)
-                    .requireIssuer(issuer)
-                    .requireAudience(audience)
-                    .build()
-                    .parseSignedClaims(jwt)
-                    .getPayload();
-        } catch (ExpiredJwtException e) {
-            throw new TokenExpiredException(e);
-        } catch (MalformedJwtException | IllegalArgumentException e) {
-            throw new TokenMalformedException(e);
-        } catch (SignatureException e) {
-            throw new TokenSignatureException(e);
-        } catch (UnsupportedJwtException e) {
-            throw new TokenUnsupportedException(e);
-        }
+    return builder.compact();
+  }
+
+  // JJWT의 발급 시각 반환 타입은 Date이며, 애플리케이션에는 Instant를 전달한다.
+  @SuppressWarnings("java:S2143")
+  public static Instant getIssuedAt(Claims claims) {
+    Date issuedAt = claims.getIssuedAt();
+    if (issuedAt == null) {
+      return null;
     }
+    return issuedAt.toInstant();
+  }
 
-    public static final String DEVICE_ID_CLAIM = "did";
+  public AuthenticationInformationByToken getTokenInformation(String token) {
+    Claims claims = getClaims(token);
 
-    // JJWT의 issuedAt/expiration API가 Date를 요구하므로 이 경계에서만 변환한다.
-    @SuppressWarnings("java:S2143")
-    protected String issue(Instant tokenExpiredTime, String id, List<String> roleList, JWTType type, Long deviceId) {
-        SecretKey key = jwtKeyManager.getSecretKey();
+    Long id = Long.parseLong(claims.getSubject());
+    List<?> roleCollection = claims.get(roleClaimName, List.class);
 
-        JwtBuilder builder = Jwts.builder()
-                .subject(id)
-                .claim(roleClaimName, roleList)
-                .claim(typeClaimName, type.name())
-                .issuedAt(Date.from(Instant.now()))
-                .expiration(Date.from(tokenExpiredTime))
-                .signWith(key);
+    List<? extends GrantedAuthority> roles =
+        roleCollection.stream()
+            .filter(String.class::isInstance)
+            .map(String::valueOf)
+            .map(SimpleGrantedAuthority::new)
+            .toList();
 
-        if (deviceId != null) {
-            builder.claim(DEVICE_ID_CLAIM, deviceId);
-        }
+    return new AuthenticationInformationByToken(id, roles);
+  }
 
-        return builder.compact();
-    }
+  public Authentication getAuthenticationByToken(String token) {
+    AuthenticationInformationByToken authenticationInformation = getTokenInformation(token);
+    Long id = authenticationInformation.getId();
+    Collection<? extends GrantedAuthority> role = authenticationInformation.getRole();
 
-    // JJWT의 발급 시각 반환 타입은 Date이며, 애플리케이션에는 Instant를 전달한다.
-    @SuppressWarnings("java:S2143")
-    public static Instant getIssuedAt(Claims claims) {
-        Date issuedAt = claims.getIssuedAt();
-        if (issuedAt == null) {
-            return null;
-        }
-        return issuedAt.toInstant();
-    }
-
-    public AuthenticationInformationByToken getTokenInformation(String token) {
-        Claims claims = getClaims(token);
-
-        Long id = Long.parseLong(claims.getSubject());
-        List<?> roleCollection = claims.get(roleClaimName,
-                List.class);
-
-        List<? extends GrantedAuthority> roles = roleCollection.stream()
-                .filter(String.class::isInstance)
-                .map(String::valueOf)
-                .map(SimpleGrantedAuthority::new)
-                .toList();
-
-        return new AuthenticationInformationByToken(id, roles);
-    }
-
-    public Authentication getAuthenticationByToken(String token) {
-        AuthenticationInformationByToken authenticationInformation = getTokenInformation(token);
-        Long id = authenticationInformation.getId();
-        Collection<? extends GrantedAuthority> role = authenticationInformation.getRole();
-
-        return new UsernamePasswordAuthenticationToken(id, null, role);
-    }
+    return new UsernamePasswordAuthenticationToken(id, null, role);
+  }
 }

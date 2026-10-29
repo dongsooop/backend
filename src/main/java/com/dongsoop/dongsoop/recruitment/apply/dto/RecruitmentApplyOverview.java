@@ -4,11 +4,11 @@ import com.dongsoop.dongsoop.recruitment.apply.entity.RecruitmentApplyStatus;
 
 public interface RecruitmentApplyOverview {
 
-    Long getMemberId();
+  Long getMemberId();
 
-    String getMemberName();
+  String getMemberName();
 
-    RecruitmentApplyStatus getStatus();
+  RecruitmentApplyStatus getStatus();
 
-    String getDepartmentName();
+  String getDepartmentName();
 }

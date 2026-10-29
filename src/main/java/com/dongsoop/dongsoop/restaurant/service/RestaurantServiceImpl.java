@@ -12,111 +12,114 @@ import com.dongsoop.dongsoop.restaurant.exception.RestaurantNotFoundException;
 import com.dongsoop.dongsoop.restaurant.repository.RestaurantLikeRepository;
 import com.dongsoop.dongsoop.restaurant.repository.RestaurantReportRepository;
 import com.dongsoop.dongsoop.restaurant.repository.RestaurantRepository;
+import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class RestaurantServiceImpl implements RestaurantService {
 
-    private final RestaurantRepository restaurantRepository;
-    private final RestaurantLikeRepository restaurantLikeRepository;
-    private final MemberRepository memberRepository;
-    private final RestaurantMapper restaurantMapper;
-    private final RestaurantReportRepository restaurantReportRepository;
-    private final MemberService memberService;
+  private final RestaurantRepository restaurantRepository;
+  private final RestaurantLikeRepository restaurantLikeRepository;
+  private final MemberRepository memberRepository;
+  private final RestaurantMapper restaurantMapper;
+  private final RestaurantReportRepository restaurantReportRepository;
+  private final MemberService memberService;
 
-    @Transactional
-    @Override
-    public Restaurant registerRestaurant(RestaurantRegisterRequest request) {
-        Optional.of(request.externalMapId())
-                .filter(restaurantRepository::existsActiveByExternalMapId)
-                .ifPresent(id -> {
-                    throw new RestaurantAlreadyExistsException(id);
-                });
+  @Transactional
+  @Override
+  public Restaurant registerRestaurant(RestaurantRegisterRequest request) {
+    Optional.of(request.externalMapId())
+        .filter(restaurantRepository::existsActiveByExternalMapId)
+        .ifPresent(
+            id -> {
+              throw new RestaurantAlreadyExistsException(id);
+            });
 
-        Restaurant restaurant = restaurantMapper.toEntity(request);
-        return restaurantRepository.save(restaurant);
+    Restaurant restaurant = restaurantMapper.toEntity(request);
+    return restaurantRepository.save(restaurant);
+  }
+
+  @Transactional(readOnly = true)
+  @Override
+  public List<RestaurantOverview> getNearbyRestaurants(
+      RestaurantCategory category, Pageable pageable) {
+    Long memberId = null;
+    try {
+      memberId = memberService.getMemberIdByAuthentication();
+    } catch (NotAuthenticationException e) {
+      log.debug("User is not authenticated, treating as guest user");
+    }
+    return restaurantRepository.findNearbyRestaurants(memberId, category, pageable);
+  }
+
+  @Transactional
+  @Override
+  public void toggleLike(Long restaurantId, Long memberId, boolean isAdding) {
+    Restaurant restaurant = findRestaurantById(restaurantId);
+    Member member = memberRepository.getReferenceById(memberId);
+
+    RestaurantLike.RestaurantLikeKey key =
+        RestaurantLike.RestaurantLikeKey.builder()
+            .restaurant(restaurantId)
+            .member(memberId)
+            .build();
+
+    boolean isCurrentlyLiked = restaurantLikeRepository.existsById(key);
+
+    if (isAdding && !isCurrentlyLiked) {
+      addLike(restaurant, member);
+      return;
     }
 
-    @Transactional(readOnly = true)
-    @Override
-    public List<RestaurantOverview> getNearbyRestaurants(RestaurantCategory category, Pageable pageable) {
-        Long memberId = null;
-        try {
-            memberId = memberService.getMemberIdByAuthentication();
-        } catch (NotAuthenticationException e) {
-            log.debug("User is not authenticated, treating as guest user");
-        }
-        return restaurantRepository.findNearbyRestaurants(memberId, category, pageable);
+    if (!isAdding && isCurrentlyLiked) {
+      removeLike(key);
     }
+  }
 
-    @Transactional
-    @Override
-    public void toggleLike(Long restaurantId, Long memberId, boolean isAdding) {
-        Restaurant restaurant = findRestaurantById(restaurantId);
-        Member member = memberRepository.getReferenceById(memberId);
+  private void addLike(Restaurant restaurant, Member member) {
+    RestaurantLike restaurantLike =
+        RestaurantLike.builder().restaurant(restaurant).member(member).build();
+    restaurantLikeRepository.save(restaurantLike);
+  }
 
-        RestaurantLike.RestaurantLikeKey key = RestaurantLike.RestaurantLikeKey.builder()
-                .restaurant(restaurantId)
-                .member(memberId)
-                .build();
+  private void removeLike(RestaurantLike.RestaurantLikeKey key) {
+    restaurantLikeRepository.deleteById(key);
+  }
 
-        boolean isCurrentlyLiked = restaurantLikeRepository.existsById(key);
+  private Restaurant findRestaurantById(Long restaurantId) {
+    return restaurantRepository
+        .findById(restaurantId)
+        .orElseThrow(RestaurantNotFoundException::new);
+  }
 
-        if (isAdding && !isCurrentlyLiked) {
-            addLike(restaurant, member);
-            return;
-        }
+  @Transactional
+  @Override
+  public void createRestaurantReport(
+      Long restaurantId, Long reporterId, RestaurantReportReason reason, String description) {
+    Restaurant restaurant = findRestaurantById(restaurantId);
+    Member reporter = memberRepository.getReferenceById(reporterId);
 
-        if (!isAdding && isCurrentlyLiked) {
-            removeLike(key);
-        }
-    }
+    RestaurantReport report =
+        RestaurantReport.builder()
+            .restaurant(restaurant)
+            .reporter(reporter)
+            .reason(reason)
+            .description(description)
+            .build();
 
-    private void addLike(Restaurant restaurant, Member member) {
-        RestaurantLike restaurantLike = RestaurantLike.builder()
-                .restaurant(restaurant)
-                .member(member)
-                .build();
-        restaurantLikeRepository.save(restaurantLike);
-    }
+    restaurantReportRepository.save(report);
+  }
 
-    private void removeLike(RestaurantLike.RestaurantLikeKey key) {
-        restaurantLikeRepository.deleteById(key);
-    }
-
-    private Restaurant findRestaurantById(Long restaurantId) {
-        return restaurantRepository.findById(restaurantId)
-                .orElseThrow(RestaurantNotFoundException::new);
-    }
-
-    @Transactional
-    @Override
-    public void createRestaurantReport(Long restaurantId, Long reporterId, RestaurantReportReason reason, String description) {
-        Restaurant restaurant = findRestaurantById(restaurantId);
-        Member reporter = memberRepository.getReferenceById(reporterId);
-
-        RestaurantReport report = RestaurantReport.builder()
-                .restaurant(restaurant)
-                .reporter(reporter)
-                .reason(reason)
-                .description(description)
-                .build();
-
-        restaurantReportRepository.save(report);
-    }
-
-    @Transactional(readOnly = true)
-    @Override
-    public boolean checkDuplicateByExternalId(String externalMapId) {
-        return restaurantRepository.existsActiveByExternalMapId(externalMapId);
-    }
+  @Transactional(readOnly = true)
+  @Override
+  public boolean checkDuplicateByExternalId(String externalMapId) {
+    return restaurantRepository.existsActiveByExternalMapId(externalMapId);
+  }
 }

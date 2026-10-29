@@ -21,20 +21,27 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class NotificationRepositoryCustomImpl implements NotificationRepositoryCustom {
 
-    private final JPAQueryFactory queryFactory;
-    private final Querydsl querydsl;
+  private final JPAQueryFactory queryFactory;
+  private final Querydsl querydsl;
 
-    public NotificationRepositoryCustomImpl(EntityManager entityManager,
-            JPAQueryFactory queryFactory) {
-        this.queryFactory = queryFactory;
-        this.querydsl = new Querydsl(entityManager,
-                new PathBuilder<>(notificationDetails.getType(), notificationDetails.getMetadata()));
-    }
+  public NotificationRepositoryCustomImpl(
+      EntityManager entityManager, JPAQueryFactory queryFactory) {
+    this.queryFactory = queryFactory;
+    this.querydsl =
+        new Querydsl(
+            entityManager,
+            new PathBuilder<>(notificationDetails.getType(), notificationDetails.getMetadata()));
+  }
 
-
-    @Override
-    public List<NotificationList> getMemberNotifications(Long memberId, Pageable pageable) {
-        return querydsl.applyPagination(pageable, queryFactory.select(Projections.constructor(NotificationList.class,
+  @Override
+  public List<NotificationList> getMemberNotifications(Long memberId, Pageable pageable) {
+    return querydsl
+        .applyPagination(
+            pageable,
+            queryFactory
+                .select(
+                    Projections.constructor(
+                        NotificationList.class,
                         notificationDetails.id,
                         notificationDetails.title,
                         notificationDetails.body,
@@ -44,62 +51,88 @@ public class NotificationRepositoryCustomImpl implements NotificationRepositoryC
                         notificationDetails.createdAt))
                 .from(memberNotification)
                 .innerJoin(memberNotification.details, notificationDetails)
-                .where(memberNotification.member.id.eq(memberId)
+                .where(
+                    memberNotification
+                        .member
+                        .id
+                        .eq(memberId)
                         .and(notificationDetails.isDeleted.eq(false))))
-                .fetch();
+        .fetch();
+  }
+
+  @Override
+  public int findUnreadCountByMemberId(Long memberId) {
+    Long count =
+        queryFactory
+            .select(memberNotification.count())
+            .from(memberNotification)
+            .where(
+                memberNotification
+                    .member
+                    .id
+                    .eq(memberId)
+                    .and(memberNotification.isRead.eq(false))
+                    .and(memberNotification.details.isDeleted.eq(false)))
+            .fetchOne();
+
+    if (count == null) {
+      return 0;
     }
 
-    @Override
-    public int findUnreadCountByMemberId(Long memberId) {
-        Long count = queryFactory.select(memberNotification.count())
-                .from(memberNotification)
-                .where(memberNotification.member.id.eq(memberId)
-                        .and(memberNotification.isRead.eq(false))
-                        .and(memberNotification.details.isDeleted.eq(false)))
-                .fetchOne();
-
-        if (count == null) {
-            return 0;
-        }
-
-        if (count > Integer.MAX_VALUE) {
-            return Integer.MAX_VALUE;
-        }
-
-        return Math.toIntExact(count);
+    if (count > Integer.MAX_VALUE) {
+      return Integer.MAX_VALUE;
     }
 
-    @Override
-    public List<NotificationUnread> findUnreadCountByMemberIds(Collection<Long> memberIds) {
-        return queryFactory.select(Projections.constructor(NotificationUnread.class,
-                        member.id, memberNotification.count()))
-                .from(member)
-                .leftJoin(memberNotification)
-                .on(member.eq(memberNotification.member)
-                        .and(memberNotification.isRead.eq(false))
-                        .and(memberNotification.details.isDeleted.eq(false)))
-                .where(member.id.in(memberIds))
-                .groupBy(member.id)
-                .fetch();
-    }
+    return Math.toIntExact(count);
+  }
 
-    @Override
-    public Optional<MemberNotification> findByMemberIdAndNotificationId(Long memberId, Long notificationId) {
-        MemberNotification result = queryFactory.selectFrom(memberNotification)
-                .where(memberNotification.member.id.eq(memberId)
-                        .and(memberNotification.details.id.eq(notificationId)))
-                .fetchOne();
+  @Override
+  public List<NotificationUnread> findUnreadCountByMemberIds(Collection<Long> memberIds) {
+    return queryFactory
+        .select(
+            Projections.constructor(
+                NotificationUnread.class, member.id, memberNotification.count()))
+        .from(member)
+        .leftJoin(memberNotification)
+        .on(
+            member
+                .eq(memberNotification.member)
+                .and(memberNotification.isRead.eq(false))
+                .and(memberNotification.details.isDeleted.eq(false)))
+        .where(member.id.in(memberIds))
+        .groupBy(member.id)
+        .fetch();
+  }
 
-        return Optional.ofNullable(result);
-    }
+  @Override
+  public Optional<MemberNotification> findByMemberIdAndNotificationId(
+      Long memberId, Long notificationId) {
+    MemberNotification result =
+        queryFactory
+            .selectFrom(memberNotification)
+            .where(
+                memberNotification
+                    .member
+                    .id
+                    .eq(memberId)
+                    .and(memberNotification.details.id.eq(notificationId)))
+            .fetchOne();
 
-    @Override
-    public void updateAllAsRead(Long memberId) {
-        queryFactory.update(memberNotification)
-                .set(memberNotification.isRead, true)
-                .where(memberNotification.member.id.eq(memberId)
-                        .and(memberNotification.isRead.eq(false))
-                        .and(memberNotification.details.isDeleted.eq(false)))
-                .execute();
-    }
+    return Optional.ofNullable(result);
+  }
+
+  @Override
+  public void updateAllAsRead(Long memberId) {
+    queryFactory
+        .update(memberNotification)
+        .set(memberNotification.isRead, true)
+        .where(
+            memberNotification
+                .member
+                .id
+                .eq(memberId)
+                .and(memberNotification.isRead.eq(false))
+                .and(memberNotification.details.isDeleted.eq(false)))
+        .execute();
+  }
 }

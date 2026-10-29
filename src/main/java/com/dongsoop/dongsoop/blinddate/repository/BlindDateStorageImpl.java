@@ -8,56 +8,57 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class BlindDateStorageImpl implements BlindDateStorage {
 
-    private volatile boolean available = false;      // 운영 중 여부
-    private volatile Integer maxSessionMemberCount;  // 세션당 최대 인원수
-    private volatile String currentPointer;          // 현재 대기 세션 ID
+  private volatile boolean available = false; // 운영 중 여부
+  private volatile Integer maxSessionMemberCount; // 세션당 최대 인원수
+  private volatile String currentPointer; // 현재 대기 세션 ID
 
-    public synchronized void start(Integer maxSessionMemberCount, LocalDateTime expiredDate) {
-        this.currentPointer = null;                         // 포인터 초기화
-        this.maxSessionMemberCount = maxSessionMemberCount; // 세션 전원 초기화
-        this.available = true;                              // 가장 나중에 available 초기화
-        log.info("[BlindDate] started: maxCount={}, expiredDate={}", maxSessionMemberCount, expiredDate);
-    }
+  public synchronized void start(Integer maxSessionMemberCount, LocalDateTime expiredDate) {
+    this.currentPointer = null; // 포인터 초기화
+    this.maxSessionMemberCount = maxSessionMemberCount; // 세션 전원 초기화
+    this.available = true; // 가장 나중에 available 초기화
+    log.info(
+        "[BlindDate] started: maxCount={}, expiredDate={}", maxSessionMemberCount, expiredDate);
+  }
 
-    @Override
-    public synchronized void stop() {
-        this.available = false;
-    }
+  @Override
+  public synchronized void stop() {
+    this.available = false;
+  }
 
-    public synchronized void close() {
-        this.available = false;             // 가장 먼저 available 종료
-        this.currentPointer = null;         // 포인터 초기화
-        this.maxSessionMemberCount = null;  // 세션 정원 초기화
-        log.info("[BlindDate] closed");
-    }
+  public synchronized void close() {
+    this.available = false; // 가장 먼저 available 종료
+    this.currentPointer = null; // 포인터 초기화
+    this.maxSessionMemberCount = null; // 세션 정원 초기화
+    log.info("[BlindDate] closed");
+  }
 
-    @Override
-    public synchronized String getPointer() {
-        return currentPointer;
-    }
+  @Override
+  public synchronized String getPointer() {
+    return currentPointer;
+  }
 
-    @Override
-    public synchronized void setPointer(String sessionId) {
-        this.currentPointer = sessionId;
-    }
+  @Override
+  public synchronized void setPointer(String sessionId) {
+    this.currentPointer = sessionId;
+  }
 
-    /**
-     * 과팅 운영 여부 조회
-     *
-     * @return 과팅 운영 여부
-     */
-    @Override
-    public boolean isAvailable() {
-        return this.available;
-    }
+  /**
+   * 과팅 운영 여부 조회
+   *
+   * @return 과팅 운영 여부
+   */
+  @Override
+  public boolean isAvailable() {
+    return this.available;
+  }
 
-    /**
-     * 세션별 정원 수 조회
-     *
-     * @return 세션별 정원 수
-     */
-    @Override
-    public Integer getMaxSessionMemberCount() {
-        return this.maxSessionMemberCount;
-    }
+  /**
+   * 세션별 정원 수 조회
+   *
+   * @return 세션별 정원 수
+   */
+  @Override
+  public Integer getMaxSessionMemberCount() {
+    return this.maxSessionMemberCount;
+  }
 }

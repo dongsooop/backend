@@ -9,21 +9,21 @@ import org.springframework.mock.web.MockMultipartFile;
 
 class S3ServiceImplTest {
 
-    private final S3ServiceImpl s3Service = new S3ServiceImpl(null);
+  private final S3ServiceImpl s3Service = new S3ServiceImpl(null);
 
-    @Test
-    @DisplayName("확장자가 없는 파일은 업로드를 거부한다")
-    void rejectsFileWithoutExtension() {
-        MockMultipartFile file = new MockMultipartFile("file", "profile", "image/png", new byte[]{1});
+  @Test
+  @DisplayName("확장자가 없는 파일은 업로드를 거부한다")
+  void rejectsFileWithoutExtension() {
+    MockMultipartFile file = new MockMultipartFile("file", "profile", "image/png", new byte[] {1});
 
-        assertThrows(InvalidFileNameException.class, () -> s3Service.upload(file, "member", 1L));
-    }
+    assertThrows(InvalidFileNameException.class, () -> s3Service.upload(file, "member", 1L));
+  }
 
-    @Test
-    @DisplayName("이름이 비어 있는 파일은 업로드를 거부한다")
-    void rejectsFileWithoutName() {
-        MockMultipartFile file = new MockMultipartFile("file", null, "image/png", new byte[]{1});
+  @Test
+  @DisplayName("이름이 비어 있는 파일은 업로드를 거부한다")
+  void rejectsFileWithoutName() {
+    MockMultipartFile file = new MockMultipartFile("file", null, "image/png", new byte[] {1});
 
-        assertThrows(InvalidFileNameException.class, () -> s3Service.upload(file, "member", 1L));
-    }
+    assertThrows(InvalidFileNameException.class, () -> s3Service.upload(file, "member", 1L));
+  }
 }

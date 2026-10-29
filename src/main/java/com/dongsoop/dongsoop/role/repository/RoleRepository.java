@@ -7,6 +7,6 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface RoleRepository extends JpaRepository<Role, RoleType> {
 
-    @Query("SELECT r FROM Role r WHERE r.roleType = :roleType")
-    Role findByRoleType(RoleType roleType);
+  @Query("SELECT r FROM Role r WHERE r.roleType = :roleType")
+  Role findByRoleType(RoleType roleType);
 }

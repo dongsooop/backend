@@ -21,34 +21,32 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 @ExtendWith(MockitoExtension.class)
 class ChatSocketControllerTest {
 
-    @InjectMocks
-    private ChatSocketController chatSocketController;
+  @InjectMocks private ChatSocketController chatSocketController;
 
-    @Mock
-    private ChatService chatService;
-    @Mock
-    private SimpMessagingTemplate messagingTemplate;
+  @Mock private ChatService chatService;
+  @Mock private SimpMessagingTemplate messagingTemplate;
 
-    private final Principal principal = () -> "2";
+  private final Principal principal = () -> "2";
 
-    @Test
-    @DisplayName("상대에게 차단당한 사용자는 메시지를 보낼 수 없다")
-    void sendMessage_WhenBlockedByOther_DropsMessage() {
-        when(chatService.getBlockStatus("room1", 2L)).thenReturn(BlockStatus.BLOCKED_BY_OTHER);
+  @Test
+  @DisplayName("상대에게 차단당한 사용자는 메시지를 보낼 수 없다")
+  void sendMessage_WhenBlockedByOther_DropsMessage() {
+    when(chatService.getBlockStatus("room1", 2L)).thenReturn(BlockStatus.BLOCKED_BY_OTHER);
 
-        chatSocketController.sendMessage(ChatMessage.builder().content("안녕").build(), "room1", principal);
+    chatSocketController.sendMessage(
+        ChatMessage.builder().content("안녕").build(), "room1", principal);
 
-        verify(chatService, never()).processWebSocketMessage(any(), any(), any());
-    }
+    verify(chatService, never()).processWebSocketMessage(any(), any(), any());
+  }
 
-    @Test
-    @DisplayName("차단 관계가 없으면 메시지를 처리한다")
-    void sendMessage_WhenNoBlock_ProcessesMessage() {
-        ChatMessage message = ChatMessage.builder().content("안녕").build();
-        when(chatService.getBlockStatus("room1", 2L)).thenReturn(BlockStatus.NONE);
+  @Test
+  @DisplayName("차단 관계가 없으면 메시지를 처리한다")
+  void sendMessage_WhenNoBlock_ProcessesMessage() {
+    ChatMessage message = ChatMessage.builder().content("안녕").build();
+    when(chatService.getBlockStatus("room1", 2L)).thenReturn(BlockStatus.NONE);
 
-        chatSocketController.sendMessage(message, "room1", principal);
+    chatSocketController.sendMessage(message, "room1", principal);
 
-        verify(chatService).processWebSocketMessage(message, 2L, "room1");
-    }
+    verify(chatService).processWebSocketMessage(message, 2L, "room1");
+  }
 }

@@ -15,31 +15,30 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class MemberSocialAccountId implements Serializable {
 
-    @Serial
-    private static final long serialVersionUID = 1L;
+  @Serial private static final long serialVersionUID = 1L;
 
-    @Column(name = "provider_id")
-    private String providerId;
+  @Column(name = "provider_id")
+  private String providerId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "provider_type")
-    private OAuthProviderType providerType;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "provider_type")
+  private OAuthProviderType providerType;
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        MemberSocialAccountId that = (MemberSocialAccountId) o;
-        return Objects.equals(this.providerId, that.providerId)
-                && Objects.equals(this.providerType, that.providerType);
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(this.providerId, this.providerType);
+    if (o == null || getClass() != o.getClass()) {
+      return false;
     }
+    MemberSocialAccountId that = (MemberSocialAccountId) o;
+    return Objects.equals(this.providerId, that.providerId)
+        && Objects.equals(this.providerType, that.providerType);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(this.providerId, this.providerType);
+  }
 }

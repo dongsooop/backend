@@ -17,56 +17,62 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class NoticePreferenceServiceImpl implements NoticePreferenceService {
 
-    private final NoticePreferenceDeviceResolver deviceResolver;
-    private final DeviceNoticePreferenceRepository preferenceRepository;
-    private final DepartmentService departmentService;
+  private final NoticePreferenceDeviceResolver deviceResolver;
+  private final DeviceNoticePreferenceRepository preferenceRepository;
+  private final DepartmentService departmentService;
 
-    /**
-     * 선택한 학과 목록으로 전체 교체한다 (PUT 시맨틱).
-     *
-     * <p>기존 구독 중 새 목록에 없는 학과는 삭제하고, 새 목록에만 있는 학과는 추가한다.
-     * 이미 구독 중인 학과는 건드리지 않는다.
-     */
-    @Override
-    @Transactional
-    public void updateDepartments(String fid, String deviceToken, Set<DepartmentType> departmentTypes) {
-        MemberDevice device = deviceResolver.resolve(fid, deviceToken);
+  /**
+   * 선택한 학과 목록으로 전체 교체한다 (PUT 시맨틱).
+   *
+   * <p>기존 구독 중 새 목록에 없는 학과는 삭제하고, 새 목록에만 있는 학과는 추가한다. 이미 구독 중인 학과는 건드리지 않는다.
+   */
+  @Override
+  @Transactional
+  public void updateDepartments(
+      String fid, String deviceToken, Set<DepartmentType> departmentTypes) {
+    MemberDevice device = deviceResolver.resolve(fid, deviceToken);
 
-        // 이 디바이스가 현재 구독 중인 학과 목록을 불러온다
-        List<DeviceNoticePreference> existing = getDepartments(device);
-        Set<DepartmentType> existingTypes = existing.stream()
-                .map(preference -> preference.getDepartment().getId())
-                .collect(Collectors.toSet());
+    // 이 디바이스가 현재 구독 중인 학과 목록을 불러온다
+    List<DeviceNoticePreference> existing = getDepartments(device);
+    Set<DepartmentType> existingTypes =
+        existing.stream()
+            .map(preference -> preference.getDepartment().getId())
+            .collect(Collectors.toSet());
 
-        // 기존 구독 중 새 요청에 없는 학과 = 제거 대상
-        List<DeviceNoticePreference> toRemove = existing.stream()
-                .filter(preference -> !departmentTypes.contains(preference.getDepartment().getId()))
-                .toList();
-        if (!toRemove.isEmpty()) {
-            preferenceRepository.deleteAll(toRemove);
-        }
-
-        // 새 요청 중 기존에 없던 학과 = 추가 대상 (이미 구독 중인 학과는 건드리지 않는다)
-        List<DeviceNoticePreference> toAdd = departmentTypes.stream()
-                .filter(departmentType -> !existingTypes.contains(departmentType))
-                .map(departmentType -> new DeviceNoticePreference(device, departmentService.getReferenceById(departmentType)))
-                .toList();
-        if (!toAdd.isEmpty()) {
-            preferenceRepository.saveAll(toAdd);
-        }
+    // 기존 구독 중 새 요청에 없는 학과 = 제거 대상
+    List<DeviceNoticePreference> toRemove =
+        existing.stream()
+            .filter(preference -> !departmentTypes.contains(preference.getDepartment().getId()))
+            .toList();
+    if (!toRemove.isEmpty()) {
+      preferenceRepository.deleteAll(toRemove);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<DepartmentType> getDepartmentTypes(String fid, String deviceToken) {
-        MemberDevice device = deviceResolver.resolve(fid, deviceToken);
-
-        return getDepartments(device).stream()
-                .map(preference -> preference.getDepartment().getId())
-                .toList();
+    // 새 요청 중 기존에 없던 학과 = 추가 대상 (이미 구독 중인 학과는 건드리지 않는다)
+    List<DeviceNoticePreference> toAdd =
+        departmentTypes.stream()
+            .filter(departmentType -> !existingTypes.contains(departmentType))
+            .map(
+                departmentType ->
+                    new DeviceNoticePreference(
+                        device, departmentService.getReferenceById(departmentType)))
+            .toList();
+    if (!toAdd.isEmpty()) {
+      preferenceRepository.saveAll(toAdd);
     }
+  }
 
-    private List<DeviceNoticePreference> getDepartments(MemberDevice device) {
-        return preferenceRepository.findAllByDeviceId(device.getId());
-    }
+  @Override
+  @Transactional(readOnly = true)
+  public List<DepartmentType> getDepartmentTypes(String fid, String deviceToken) {
+    MemberDevice device = deviceResolver.resolve(fid, deviceToken);
+
+    return getDepartments(device).stream()
+        .map(preference -> preference.getDepartment().getId())
+        .toList();
+  }
+
+  private List<DeviceNoticePreference> getDepartments(MemberDevice device) {
+    return preferenceRepository.findAllByDeviceId(device.getId());
+  }
 }

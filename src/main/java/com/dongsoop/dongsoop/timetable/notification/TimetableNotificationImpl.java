@@ -11,17 +11,17 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class TimetableNotificationImpl implements TimetableNotification {
 
-    private static final Long NON_SAVE_NOTIFICATION_ID = -1L;
+  private static final Long NON_SAVE_NOTIFICATION_ID = -1L;
 
-    private final NotificationSendService notificationSendService;
+  private final NotificationSendService notificationSendService;
 
-    @Override
-    public void send(String title, String body, List<String> devices) {
-        // 알림 저장용 DTO
-        NotificationSend notificationSend = new NotificationSend(NON_SAVE_NOTIFICATION_ID, title, body,
-                NotificationType.TIMETABLE, "");
+  @Override
+  public void send(String title, String body, List<String> devices) {
+    // 알림 저장용 DTO
+    NotificationSend notificationSend =
+        new NotificationSend(NON_SAVE_NOTIFICATION_ID, title, body, NotificationType.TIMETABLE, "");
 
-        // 알림 내용 전송
-        notificationSendService.send(devices, notificationSend);
-    }
+    // 알림 내용 전송
+    notificationSendService.send(devices, notificationSend);
+  }
 }

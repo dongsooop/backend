@@ -7,15 +7,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
 public record UpdatePasswordRequest(
-
-        @SchoolEmail
-        @NotBlank(message = "이메일은 필수 입력값입니다.")
-        String email,
-
-        @NotNull
+    @SchoolEmail @NotBlank(message = "이메일은 필수 입력값입니다.") String email,
+    @NotNull
         @NotBlank(message = "비밀번호는 필수 입력값입니다.")
-        @Pattern(regexp = MemberPassword.REGEX,
-                message = "비밀번호는 8자 이상, 영문, 숫자, 특수문자를 포함해야 합니다.")
-        String password
-) {
-}
+        @Pattern(regexp = MemberPassword.REGEX, message = "비밀번호는 8자 이상, 영문, 숫자, 특수문자를 포함해야 합니다.")
+        String password) {}

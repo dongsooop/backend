@@ -22,28 +22,28 @@ import org.hibernate.annotations.SQLRestriction;
 @AllArgsConstructor
 public class MemberNotification extends BaseEntity {
 
-    @Id
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "notification_details_id", nullable = false, updatable = false)
-    private NotificationDetails details;
+  @Id
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "notification_details_id", nullable = false, updatable = false)
+  private NotificationDetails details;
 
-    @Id
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false, updatable = false)
-    private Member member;
+  @Id
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "member_id", nullable = false, updatable = false)
+  private Member member;
 
-    private boolean isRead = false;
+  private boolean isRead = false;
 
-    public MemberNotification(NotificationDetails details, Member member) {
-        this.details = details;
-        this.member = member;
-    }
+  public MemberNotification(NotificationDetails details, Member member) {
+    this.details = details;
+    this.member = member;
+  }
 
-    public void delete() {
-        super.isDeleted = true;
-    }
+  public void delete() {
+    super.isDeleted = true;
+  }
 
-    public void read() {
-        this.isRead = true;
-    }
+  public void read() {
+    this.isRead = true;
+  }
 }

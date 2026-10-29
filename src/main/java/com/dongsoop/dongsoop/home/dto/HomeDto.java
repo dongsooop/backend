@@ -7,11 +7,8 @@ import com.dongsoop.dongsoop.timetable.dto.HomeTimetable;
 import java.util.List;
 
 public record HomeDto(
-
-        List<HomeTimetable> timetable,
-        List<HomeSchedule> schedules,
-        List<HomeNotice> notices,
-        List<HomeRecruitment> popular_recruitments,
-        HomeEclassSummary eclass_assignment
-) {
-}
+    List<HomeTimetable> timetable,
+    List<HomeSchedule> schedules,
+    List<HomeNotice> notices,
+    List<HomeRecruitment> popular_recruitments,
+    HomeEclassSummary eclass_assignment) {}

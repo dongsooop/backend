@@ -22,49 +22,45 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class NoticeCollectionServiceTest {
 
-    private static final Department DEPARTMENT =
-            new Department(DepartmentType.DEPT_1001, null, "/notice");
+  private static final Department DEPARTMENT =
+      new Department(DepartmentType.DEPT_1001, null, "/notice");
 
-    @Mock
-    private NoticeCrawl noticeCrawl;
+  @Mock private NoticeCrawl noticeCrawl;
 
-    @InjectMocks
-    private NoticeCollectionService noticeCollectionService;
+  @InjectMocks private NoticeCollectionService noticeCollectionService;
 
-    @Test
-    void collectOnlyNoticesNewerThanRecentlyStoredNotice() {
-        NoticeDetails oldNotice = noticeDetails(100L);
-        NoticeDetails firstNewNotice = noticeDetails(101L);
-        NoticeDetails secondNewNotice = noticeDetails(102L);
-        when(noticeCrawl.crawlNoticePage(DEPARTMENT, 1))
-                .thenReturn(List.of(secondNewNotice, firstNewNotice, oldNotice));
+  @Test
+  void collectOnlyNoticesNewerThanRecentlyStoredNotice() {
+    NoticeDetails oldNotice = noticeDetails(100L);
+    NoticeDetails firstNewNotice = noticeDetails(101L);
+    NoticeDetails secondNewNotice = noticeDetails(102L);
+    when(noticeCrawl.crawlNoticePage(DEPARTMENT, 1))
+        .thenReturn(List.of(secondNewNotice, firstNewNotice, oldNotice));
 
-        CrawledNotice result = noticeCollectionService.collectNewNotices(DEPARTMENT, 100L);
+    CrawledNotice result = noticeCollectionService.collectNewNotices(DEPARTMENT, 100L);
 
-        assertThat(result.getNoticeDetailSet())
-                .extracting(NoticeDetails::getId)
-                .containsExactlyInAnyOrder(101L, 102L);
-        assertThat(result.getNoticeList())
-                .extracting(Notice::getDepartment)
-                .containsOnly(DEPARTMENT);
-        assertThat(result.getNoticeList())
-                .extracting(notice -> notice.getNoticeDetails().getId())
-                .containsExactlyInAnyOrder(101L, 102L);
-        verify(noticeCrawl).crawlNoticePage(DEPARTMENT, 1);
-    }
+    assertThat(result.getNoticeDetailSet())
+        .extracting(NoticeDetails::getId)
+        .containsExactlyInAnyOrder(101L, 102L);
+    assertThat(result.getNoticeList()).extracting(Notice::getDepartment).containsOnly(DEPARTMENT);
+    assertThat(result.getNoticeList())
+        .extracting(notice -> notice.getNoticeDetails().getId())
+        .containsExactlyInAnyOrder(101L, 102L);
+    verify(noticeCrawl).crawlNoticePage(DEPARTMENT, 1);
+  }
 
-    @Test
-    void returnEmptyResultWhenPageHasNoNewNotice() {
-        when(noticeCrawl.crawlNoticePage(DEPARTMENT, 1))
-                .thenReturn(List.of(noticeDetails(99L), noticeDetails(100L)));
+  @Test
+  void returnEmptyResultWhenPageHasNoNewNotice() {
+    when(noticeCrawl.crawlNoticePage(DEPARTMENT, 1))
+        .thenReturn(List.of(noticeDetails(99L), noticeDetails(100L)));
 
-        CrawledNotice result = noticeCollectionService.collectNewNotices(DEPARTMENT, 100L);
+    CrawledNotice result = noticeCollectionService.collectNewNotices(DEPARTMENT, 100L);
 
-        assertThat(result.getNoticeDetailSet()).isEmpty();
-        assertThat(result.getNoticeList()).isEmpty();
-    }
+    assertThat(result.getNoticeDetailSet()).isEmpty();
+    assertThat(result.getNoticeList()).isEmpty();
+  }
 
-    private NoticeDetails noticeDetails(long id) {
-        return new NoticeDetails(id, "writer", "title", "/notice/" + id, LocalDate.of(2026, 9, 18));
-    }
+  private NoticeDetails noticeDetails(long id) {
+    return new NoticeDetails(id, "writer", "title", "/notice/" + id, LocalDate.of(2026, 9, 18));
+  }
 }

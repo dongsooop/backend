@@ -4,7 +4,7 @@ import com.dongsoop.dongsoop.department.entity.Department;
 
 public interface NoticeRecentIdByDepartment {
 
-    Department getDepartment();
+  Department getDepartment();
 
-    Long getRecentId();
+  Long getRecentId();
 }

@@ -26,77 +26,82 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtFilter jwtFilter;
+  private final JwtFilter jwtFilter;
 
-    private final LogoutHandler logoutHandler;
+  private final LogoutHandler logoutHandler;
 
-    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+  private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
-    private final CustomAccessDeniedHandler customAccessDeniedHandler;
+  private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
-    private final CustomOAuth2UserService customOAuth2UserService;
-    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
-    private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
+  private final CustomOAuth2UserService customOAuth2UserService;
+  private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+  private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
 
-    @Value("${authentication.path.all}")
-    private String[] allowedPaths;
+  @Value("${authentication.path.all}")
+  private String[] allowedPaths;
 
-    @Value("${authentication.path.user}")
-    private String[] userAllowedPaths;
+  @Value("${authentication.path.user}")
+  private String[] userAllowedPaths;
 
-    @Value("${authentication.path.admin}")
-    private String[] adminAllowedPaths;
+  @Value("${authentication.path.admin}")
+  private String[] adminAllowedPaths;
 
-    @Value("${authentication.origins}")
-    private String[] allowedOrigins;
+  @Value("${authentication.origins}")
+  private String[] allowedOrigins;
 
-    @Value("${authentication.methods}")
-    private String[] allowedMethod;
+  @Value("${authentication.methods}")
+  private String[] allowedMethod;
 
-    @Bean
-    protected SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
-                .cors(Customizer.withDefaults())
-                .authorizeHttpRequests(authorizationManagerRequestMatcherRegistry ->
-                        authorizationManagerRequestMatcherRegistry
-                                .requestMatchers(userAllowedPaths).hasRole(RoleType.USER.name())
-                                .requestMatchers(adminAllowedPaths).hasRole(RoleType.ADMIN.name())
-                                .requestMatchers(allowedPaths).permitAll()
-                                .anyRequest().authenticated()
-                )
-                .logout(logout -> logout
-                        .logoutUrl("/logout")
-                        .addLogoutHandler(logoutHandler))
-                .httpBasic(AbstractHttpConfigurer::disable) // 기본 인증 기능 제거
-                // 인증은 Authorization 헤더의 JWT 로만 한다. 쿠키로 인증하는 경로가 없어
-                // 브라우저가 자동 전송하는 자격증명이 존재하지 않으므로 CSRF 공격이 성립하지 않는다.
-                // 웹은 Next.js BFF 가 쿠키를 보관하고 이 서버에는 헤더로 전달하므로, 쿠키 구간의
-                // 방어는 웹 저장소 책임이다. 이 서버에 쿠키 인증을 도입하면 이 결정을 재검토할 것
-                .csrf(AbstractHttpConfigurer::disable)
-                .formLogin(AbstractHttpConfigurer::disable) // JWT를 사용하기 때문에 form login 비활성화
-                .addFilterBefore(jwtFilter, LogoutFilter.class)
-                .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
-                        .successHandler(oAuth2LoginSuccessHandler)
-                        .failureHandler(oAuth2LoginFailureHandler))
-                .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(customAuthenticationEntryPoint) // 401 에러 응답 처리
-                        .accessDeniedHandler(customAccessDeniedHandler)) // 403 에러 응답 처리
-                .build();
-    }
+  @Bean
+  protected SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    return http.cors(Customizer.withDefaults())
+        .authorizeHttpRequests(
+            authorizationManagerRequestMatcherRegistry ->
+                authorizationManagerRequestMatcherRegistry
+                    .requestMatchers(userAllowedPaths)
+                    .hasRole(RoleType.USER.name())
+                    .requestMatchers(adminAllowedPaths)
+                    .hasRole(RoleType.ADMIN.name())
+                    .requestMatchers(allowedPaths)
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated())
+        .logout(logout -> logout.logoutUrl("/logout").addLogoutHandler(logoutHandler))
+        .httpBasic(AbstractHttpConfigurer::disable) // 기본 인증 기능 제거
+        // 인증은 Authorization 헤더의 JWT 로만 한다. 쿠키로 인증하는 경로가 없어
+        // 브라우저가 자동 전송하는 자격증명이 존재하지 않으므로 CSRF 공격이 성립하지 않는다.
+        // 웹은 Next.js BFF 가 쿠키를 보관하고 이 서버에는 헤더로 전달하므로, 쿠키 구간의
+        // 방어는 웹 저장소 책임이다. 이 서버에 쿠키 인증을 도입하면 이 결정을 재검토할 것
+        .csrf(AbstractHttpConfigurer::disable)
+        .formLogin(AbstractHttpConfigurer::disable) // JWT를 사용하기 때문에 form login 비활성화
+        .addFilterBefore(jwtFilter, LogoutFilter.class)
+        .oauth2Login(
+            oauth2 ->
+                oauth2
+                    .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                    .successHandler(oAuth2LoginSuccessHandler)
+                    .failureHandler(oAuth2LoginFailureHandler))
+        .exceptionHandling(
+            exception ->
+                exception
+                    .authenticationEntryPoint(customAuthenticationEntryPoint) // 401 에러 응답 처리
+                    .accessDeniedHandler(customAccessDeniedHandler)) // 403 에러 응답 처리
+        .build();
+  }
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
+  @Bean
+  public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowCredentials(true); // cors 요청을 허용할 때 인증정보를 함께 보낼지 여부
-        config.setAllowedOrigins(List.of(allowedOrigins));
-        config.setAllowedMethods(List.of(allowedMethod));
-        config.setAllowedHeaders(List.of("*"));
-        config.setExposedHeaders(List.of("*"));
+    config.setAllowCredentials(true); // cors 요청을 허용할 때 인증정보를 함께 보낼지 여부
+    config.setAllowedOrigins(List.of(allowedOrigins));
+    config.setAllowedMethods(List.of(allowedMethod));
+    config.setAllowedHeaders(List.of("*"));
+    config.setExposedHeaders(List.of("*"));
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
-    }
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", config);
+    return source;
+  }
 }

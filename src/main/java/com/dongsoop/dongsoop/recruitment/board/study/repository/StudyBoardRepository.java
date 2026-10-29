@@ -5,5 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface StudyBoardRepository extends JpaRepository<StudyBoard, Long> {
 
-    boolean existsByIdAndAuthorId(Long id, Long authorId);
+  boolean existsByIdAndAuthorId(Long id, Long authorId);
 }

@@ -5,25 +5,25 @@ import java.time.LocalDateTime;
 
 public interface RecruitmentSummary {
 
-    Long getId();
+  Long getId();
 
-    Long getVolunteer();
+  Long getVolunteer();
 
-    LocalDateTime getStartAt();
+  LocalDateTime getStartAt();
 
-    LocalDateTime getEndAt();
+  LocalDateTime getEndAt();
 
-    String getTitle();
+  String getTitle();
 
-    String getContent();
+  String getContent();
 
-    String getTags();
+  String getTags();
 
-    String getDepartmentTypeList();
+  String getDepartmentTypeList();
 
-    RecruitmentType getBoardType();
+  RecruitmentType getBoardType();
 
-    LocalDateTime getCreatedAt();
+  LocalDateTime getCreatedAt();
 
-    RecruitmentStatusType getStatus();
+  RecruitmentStatusType getStatus();
 }

@@ -6,8 +6,8 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum MealType {
-    KOREAN("한식"),
-    SPECIAL("단품");
+  KOREAN("한식"),
+  SPECIAL("단품");
 
-    private final String description;
+  private final String description;
 }

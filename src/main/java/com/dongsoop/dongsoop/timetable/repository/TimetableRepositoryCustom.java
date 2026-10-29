@@ -12,19 +12,30 @@ import java.util.Optional;
 
 public interface TimetableRepositoryCustom {
 
-    Optional<OverlapTimetable> findOverlapWithinRange(Long memberId, Year year, SemesterType semester, DayOfWeek week,
-                                                      LocalTime startAt, LocalTime endAt);
+  Optional<OverlapTimetable> findOverlapWithinRange(
+      Long memberId,
+      Year year,
+      SemesterType semester,
+      DayOfWeek week,
+      LocalTime startAt,
+      LocalTime endAt);
 
-    boolean existsByIdAndMemberId(Long id, Long memberId);
+  boolean existsByIdAndMemberId(Long id, Long memberId);
 
-    Optional<OverlapTimetable> findOverlapWithinRangeExcludingSelf(Long timetableId, Long memberId, Year year,
-                                                                   SemesterType semester,
-                                                                   DayOfWeek week,
-                                                                   LocalTime startAt, LocalTime endAt);
+  Optional<OverlapTimetable> findOverlapWithinRangeExcludingSelf(
+      Long timetableId,
+      Long memberId,
+      Year year,
+      SemesterType semester,
+      DayOfWeek week,
+      LocalTime startAt,
+      LocalTime endAt);
 
-    void deleteByMemberIdAndYearAndSemester(Long memberId, Year year, SemesterType semester);
+  void deleteByMemberIdAndYearAndSemester(Long memberId, Year year, SemesterType semester);
 
-    List<TodayTimetable> getTimetableNotificationDtoList(Year year, SemesterType semester, DayOfWeek week);
+  List<TodayTimetable> getTimetableNotificationDtoList(
+      Year year, SemesterType semester, DayOfWeek week);
 
-    List<HomeTimetable> searchHomeTimetable(Long memberId, Year year, SemesterType semester, DayOfWeek week);
+  List<HomeTimetable> searchHomeTimetable(
+      Long memberId, Year year, SemesterType semester, DayOfWeek week);
 }

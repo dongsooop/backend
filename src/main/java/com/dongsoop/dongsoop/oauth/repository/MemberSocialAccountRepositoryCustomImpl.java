@@ -1,8 +1,9 @@
 package com.dongsoop.dongsoop.oauth.repository;
 
-import static com.dongsoop.dongsoop.role.entity.QMemberRole.memberRole;
 import static com.dongsoop.dongsoop.member.entity.QMember.member;
 import static com.dongsoop.dongsoop.oauth.entity.QMemberSocialAccount.memberSocialAccount;
+import static com.dongsoop.dongsoop.role.entity.QMemberRole.memberRole;
+
 import com.dongsoop.dongsoop.member.entity.Member;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountDto;
 import com.dongsoop.dongsoop.oauth.dto.MemberSocialAccountOverview;
@@ -22,79 +23,98 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
-public class MemberSocialAccountRepositoryCustomImpl implements MemberSocialAccountRepositoryCustom {
+public class MemberSocialAccountRepositoryCustomImpl
+    implements MemberSocialAccountRepositoryCustom {
 
-    private final JPAQueryFactory queryFactory;
+  private final JPAQueryFactory queryFactory;
 
+  @Override
+  public Optional<MemberSocialAccountDto> findMemberSocialAccountDTO(
+      String providerId, OAuthProviderType providerType) {
+    List<Tuple> rows =
+        queryFactory
+            .select(
+                member,
+                memberSocialAccount.id.providerId,
+                memberSocialAccount.id.providerType,
+                memberRole.role)
+            .from(memberSocialAccount)
+            .leftJoin(memberSocialAccount.member, member)
+            .leftJoin(memberRole)
+            .on(memberRole.member.eq(member))
+            .where(
+                memberSocialAccount
+                    .id
+                    .providerId
+                    .eq(providerId)
+                    .and(memberSocialAccount.id.providerType.eq(providerType)))
+            .fetch();
 
-    @Override
-    public Optional<MemberSocialAccountDto> findMemberSocialAccountDTO(String providerId,
-                                                                       OAuthProviderType providerType) {
-        List<Tuple> rows = queryFactory
-                .select(member,
-                        memberSocialAccount.id.providerId,
-                        memberSocialAccount.id.providerType,
-                        memberRole.role)
-                .from(memberSocialAccount)
-                .leftJoin(memberSocialAccount.member, member)
-                .leftJoin(memberRole).on(memberRole.member.eq(member))
-                .where(memberSocialAccount.id.providerId.eq(providerId)
-                        .and(memberSocialAccount.id.providerType.eq(providerType)))
-                .fetch();
-
-        if (rows.isEmpty()) {
-            return Optional.empty();
-        }
-
-        Tuple firstRow = rows.get(0);
-        List<RoleType> roles = rows.stream()
-                .map(t -> t.get(memberRole.role))
-                .filter(Objects::nonNull)
-                .map(Role::getRoleType)
-                .distinct()
-                .collect(Collectors.toList());
-
-        MemberSocialAccountDto dto = new MemberSocialAccountDto(
-                firstRow.get(member),
-                firstRow.get(memberSocialAccount.id.providerId),
-                providerType,
-                roles
-        );
-        return Optional.of(dto);
+    if (rows.isEmpty()) {
+      return Optional.empty();
     }
 
-    @Override
-    public Optional<MemberSocialAccount> findByMemberIdAndProviderType(Long memberId,
-                                                                       OAuthProviderType providerType) {
-        MemberSocialAccount result = queryFactory
-                .selectFrom(memberSocialAccount)
-                .where(memberSocialAccount.member.id.eq(memberId)
-                        .and(memberSocialAccount.id.providerType.eq(providerType)))
-                .fetchFirst();
+    Tuple firstRow = rows.get(0);
+    List<RoleType> roles =
+        rows.stream()
+            .map(t -> t.get(memberRole.role))
+            .filter(Objects::nonNull)
+            .map(Role::getRoleType)
+            .distinct()
+            .collect(Collectors.toList());
 
-        return Optional.ofNullable(result);
-    }
+    MemberSocialAccountDto dto =
+        new MemberSocialAccountDto(
+            firstRow.get(member),
+            firstRow.get(memberSocialAccount.id.providerId),
+            providerType,
+            roles);
+    return Optional.of(dto);
+  }
 
-    @Override
-    public List<MemberSocialAccountOverview> findAllMemberSocialAccountOverview(Long memberId) {
-        return queryFactory.select(Projections.constructor(MemberSocialAccountOverview.class,
-                        memberSocialAccount.id.providerType,
-                        memberSocialAccount.createdAt
-                ))
-                .from(memberSocialAccount)
-                .where(memberSocialAccount.member.id.eq(memberId))
-                .fetch();
-    }
+  @Override
+  public Optional<MemberSocialAccount> findByMemberIdAndProviderType(
+      Long memberId, OAuthProviderType providerType) {
+    MemberSocialAccount result =
+        queryFactory
+            .selectFrom(memberSocialAccount)
+            .where(
+                memberSocialAccount
+                    .member
+                    .id
+                    .eq(memberId)
+                    .and(memberSocialAccount.id.providerType.eq(providerType)))
+            .fetchFirst();
 
-    @Override
-    public Optional<MemberSocialAccount> findByMemberAndProviderType(Member member, OAuthProviderType providerType) {
-        MemberSocialAccount result = queryFactory
-                .selectFrom(memberSocialAccount)
-                .where(memberSocialAccount.member.eq(member)
-                        .and(memberSocialAccount.id.providerType.eq(providerType)))
-                .fetchFirst();
+    return Optional.ofNullable(result);
+  }
 
-        return Optional.ofNullable(result);
-    }
+  @Override
+  public List<MemberSocialAccountOverview> findAllMemberSocialAccountOverview(Long memberId) {
+    return queryFactory
+        .select(
+            Projections.constructor(
+                MemberSocialAccountOverview.class,
+                memberSocialAccount.id.providerType,
+                memberSocialAccount.createdAt))
+        .from(memberSocialAccount)
+        .where(memberSocialAccount.member.id.eq(memberId))
+        .fetch();
+  }
 
+  @Override
+  public Optional<MemberSocialAccount> findByMemberAndProviderType(
+      Member member, OAuthProviderType providerType) {
+    MemberSocialAccount result =
+        queryFactory
+            .selectFrom(memberSocialAccount)
+            .where(
+                memberSocialAccount
+                    .member
+                    .eq(member)
+                    .and(memberSocialAccount.id.providerType.eq(providerType)))
+            .fetchFirst();
+
+    return Optional.ofNullable(result);
+  }
 }

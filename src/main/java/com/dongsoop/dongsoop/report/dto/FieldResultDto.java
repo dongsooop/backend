@@ -5,10 +5,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class FieldResultDto {
-    @JsonProperty("has_profanity")
-    private boolean hasProfanity;
+  @JsonProperty("has_profanity")
+  private boolean hasProfanity;
 
-    public boolean hasProfanity() {
-        return hasProfanity;
-    }
+  public boolean hasProfanity() {
+    return hasProfanity;
+  }
 }

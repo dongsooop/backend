@@ -8,25 +8,25 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 @Configuration
 public class AsyncConfig {
 
-    @Bean(name = "autoSanctionExecutor")
-    public TaskExecutor autoSanctionExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(2);
-        executor.setMaxPoolSize(4);
-        executor.setQueueCapacity(10);
-        executor.setThreadNamePrefix("AutoSanction-");
-        executor.initialize();
-        return executor;
-    }
+  @Bean(name = "autoSanctionExecutor")
+  public TaskExecutor autoSanctionExecutor() {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    executor.setCorePoolSize(2);
+    executor.setMaxPoolSize(4);
+    executor.setQueueCapacity(10);
+    executor.setThreadNamePrefix("AutoSanction-");
+    executor.initialize();
+    return executor;
+  }
 
-    @Bean(name = "memberDeviceLastAccessExecutor")
-    public TaskExecutor memberDeviceLastAccessExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(2);
-        executor.setMaxPoolSize(8);
-        executor.setQueueCapacity(1000);
-        executor.setThreadNamePrefix("MemberDeviceLastAccess-");
-        executor.initialize();
-        return executor;
-    }
+  @Bean(name = "memberDeviceLastAccessExecutor")
+  public TaskExecutor memberDeviceLastAccessExecutor() {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    executor.setCorePoolSize(2);
+    executor.setMaxPoolSize(8);
+    executor.setQueueCapacity(1000);
+    executor.setThreadNamePrefix("MemberDeviceLastAccess-");
+    executor.initialize();
+    return executor;
+  }
 }

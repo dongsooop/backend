@@ -3,14 +3,14 @@ package com.dongsoop.dongsoop.notice.dto;
 import java.time.LocalDate;
 
 public interface NoticeListResponse {
-    
-    Long getId();
 
-    String getWriter();
+  Long getId();
 
-    String getTitle();
+  String getWriter();
 
-    String getLink();
+  String getTitle();
 
-    LocalDate getCreatedAt();
+  String getLink();
+
+  LocalDate getCreatedAt();
 }

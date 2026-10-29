@@ -18,41 +18,38 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(
-        name = "member_social_account",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_member_social_id",
-                        columnNames = {"provider_type", "member_id"}
-                )
-        }
-)
+    name = "member_social_account",
+    uniqueConstraints = {
+      @UniqueConstraint(
+          name = "uk_member_social_id",
+          columnNames = {"provider_type", "member_id"})
+    })
 @NoArgsConstructor
 @AllArgsConstructor
 public class MemberSocialAccount {
 
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+  private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
-    @EmbeddedId
-    private MemberSocialAccountId id;
+  @EmbeddedId private MemberSocialAccountId id;
 
-    @Getter
-    @JoinColumn(name = "member_id", nullable = false)
-    @ManyToOne(fetch = FetchType.LAZY)
-    private Member member;
+  @Getter
+  @JoinColumn(name = "member_id", nullable = false)
+  @ManyToOne(fetch = FetchType.LAZY)
+  private Member member;
 
-    @Getter
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now(KST);
+  @Getter
+  @Column(name = "created_at", nullable = false)
+  private LocalDateTime createdAt = LocalDateTime.now(KST);
 
-    public MemberSocialAccount(MemberSocialAccountId id, Member member) {
-        this.id = id;
-        this.member = member;
+  public MemberSocialAccount(MemberSocialAccountId id, Member member) {
+    this.id = id;
+    this.member = member;
+  }
+
+  @PrePersist
+  private void prePersist() {
+    if (this.createdAt == null) {
+      this.createdAt = LocalDateTime.now(KST);
     }
-
-    @PrePersist
-    private void prePersist() {
-        if (this.createdAt == null) {
-            this.createdAt = LocalDateTime.now(KST);
-        }
-    }
+  }
 }

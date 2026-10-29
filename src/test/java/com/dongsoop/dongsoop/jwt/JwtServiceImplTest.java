@@ -30,49 +30,45 @@ import org.springframework.security.core.Authentication;
 @ExtendWith(MockitoExtension.class)
 class JwtServiceImplTest {
 
-    @Mock
-    private JwtValidator jwtValidator;
-    @Mock
-    private TokenGenerator tokenGenerator;
-    @Mock
-    private JwtUtil jwtUtil;
-    @Mock
-    private DeviceBlacklistService deviceBlacklistService;
-    @Mock
-    private ReportValidator reportValidator;
-    @Mock
-    private Authentication authentication;
-    @InjectMocks
-    private JwtServiceImpl jwtService;
+  @Mock private JwtValidator jwtValidator;
+  @Mock private TokenGenerator tokenGenerator;
+  @Mock private JwtUtil jwtUtil;
+  @Mock private DeviceBlacklistService deviceBlacklistService;
+  @Mock private ReportValidator reportValidator;
+  @Mock private Authentication authentication;
+  @InjectMocks private JwtServiceImpl jwtService;
 
-    @Test
-    void suspendedMemberWithoutDeviceIdCannotReissue() {
-        Claims claims = Jwts.claims().subject("7").build();
-        when(jwtUtil.getClaims("refresh")).thenReturn(claims);
-        doThrow(new MemberSanctionedException(Sanction.builder().sanctionType(SanctionType.TEMPORARY_BAN).build()))
-                .when(reportValidator).checkMemberAccessById(7L);
+  @Test
+  void suspendedMemberWithoutDeviceIdCannotReissue() {
+    Claims claims = Jwts.claims().subject("7").build();
+    when(jwtUtil.getClaims("refresh")).thenReturn(claims);
+    doThrow(
+            new MemberSanctionedException(
+                Sanction.builder().sanctionType(SanctionType.TEMPORARY_BAN).build()))
+        .when(reportValidator)
+        .checkMemberAccessById(7L);
 
-        assertThatThrownBy(() -> jwtService.issuedTokenByRefreshToken("refresh"))
-                .isInstanceOf(SanctionedMemberReissueException.class)
-                .hasMessage("회원님은 현재 제재 중입니다. 자세한 내용은 고객센터에 문의해주세요.")
-                .extracting(e -> ((CustomException) e).getHttpStatus())
-                .isEqualTo(HttpStatus.UNAUTHORIZED);
-        verify(tokenGenerator, never()).generateAccessToken(any(), any());
-        verify(tokenGenerator, never()).generateRefreshToken(any(), any());
-    }
+    assertThatThrownBy(() -> jwtService.issuedTokenByRefreshToken("refresh"))
+        .isInstanceOf(SanctionedMemberReissueException.class)
+        .hasMessage("회원님은 현재 제재 중입니다. 자세한 내용은 고객센터에 문의해주세요.")
+        .extracting(e -> ((CustomException) e).getHttpStatus())
+        .isEqualTo(HttpStatus.UNAUTHORIZED);
+    verify(tokenGenerator, never()).generateAccessToken(any(), any());
+    verify(tokenGenerator, never()).generateRefreshToken(any(), any());
+  }
 
-    @Test
-    void memberWithoutActiveBanReissuesTokens() {
-        Claims claims = Jwts.claims().subject("7").build();
-        when(jwtUtil.getClaims("refresh")).thenReturn(claims);
-        when(jwtUtil.getAuthenticationByToken("refresh")).thenReturn(authentication);
-        when(tokenGenerator.generateAccessToken(authentication, null)).thenReturn("access");
-        when(tokenGenerator.generateRefreshToken(authentication, null)).thenReturn("new-refresh");
+  @Test
+  void memberWithoutActiveBanReissuesTokens() {
+    Claims claims = Jwts.claims().subject("7").build();
+    when(jwtUtil.getClaims("refresh")).thenReturn(claims);
+    when(jwtUtil.getAuthenticationByToken("refresh")).thenReturn(authentication);
+    when(tokenGenerator.generateAccessToken(authentication, null)).thenReturn("access");
+    when(tokenGenerator.generateRefreshToken(authentication, null)).thenReturn("new-refresh");
 
-        IssuedToken issued = jwtService.issuedTokenByRefreshToken("refresh");
+    IssuedToken issued = jwtService.issuedTokenByRefreshToken("refresh");
 
-        assertThat(issued.getAccessToken()).isEqualTo("access");
-        assertThat(issued.getRefreshToken()).isEqualTo("new-refresh");
-        verify(reportValidator).checkMemberAccessById(7L);
-    }
+    assertThat(issued.getAccessToken()).isEqualTo("access");
+    assertThat(issued.getRefreshToken()).isEqualTo("new-refresh");
+    verify(reportValidator).checkMemberAccessById(7L);
+  }
 }

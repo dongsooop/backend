@@ -16,54 +16,55 @@ import software.amazon.awssdk.services.s3.S3Client;
 @Profile("prod")
 public class S3Config {
 
-    @Value("${cloud.aws.credentials.access-key}")
-    private String accessKey;
+  @Value("${cloud.aws.credentials.access-key}")
+  private String accessKey;
 
-    @Value("${cloud.aws.credentials.secret-key}")
-    private String secretKey;
+  @Value("${cloud.aws.credentials.secret-key}")
+  private String secretKey;
 
-    @Value("${cloud.aws.region.static}")
-    private String region;
+  @Value("${cloud.aws.region.static}")
+  private String region;
 
-    @Value("${cloud.aws.s3.endpoint}")
-    private String endpoint;
+  @Value("${cloud.aws.s3.endpoint}")
+  private String endpoint;
 
-    @Bean
-    @Primary
-    public AwsCredentialsProvider customAwsCredentialsProvider() {
-        return () -> new AwsCredentials() {
-            @Override
-            public String accessKeyId() {
-                return accessKey;
-            }
+  @Bean
+  @Primary
+  public AwsCredentialsProvider customAwsCredentialsProvider() {
+    return () ->
+        new AwsCredentials() {
+          @Override
+          public String accessKeyId() {
+            return accessKey;
+          }
 
-            @Override
-            public String secretAccessKey() {
-                return secretKey;
-            }
+          @Override
+          public String secretAccessKey() {
+            return secretKey;
+          }
         };
+  }
+
+  @Bean
+  @Primary
+  public S3Client s3Client() {
+    URI endpointUri;
+    try {
+      endpointUri = URI.create(endpoint);
+    } catch (IllegalArgumentException | NullPointerException e) {
+      throw new IllegalArgumentException("OCI Endpoint 설정이 올바르지 않습니다: " + endpoint, e);
     }
 
-    @Bean
-    @Primary
-    public S3Client s3Client() {
-        URI endpointUri;
-        try {
-            endpointUri = URI.create(endpoint);
-        } catch (IllegalArgumentException | NullPointerException e) {
-            throw new IllegalArgumentException("OCI Endpoint 설정이 올바르지 않습니다: " + endpoint, e);
-        }
+    return S3Client.builder()
+        .credentialsProvider(customAwsCredentialsProvider())
+        .region(Region.of(region))
+        .endpointOverride(endpointUri)
+        .forcePathStyle(true)
+        .build();
+  }
 
-        return S3Client.builder()
-                .credentialsProvider(customAwsCredentialsProvider())
-                .region(Region.of(region))
-                .endpointOverride(endpointUri)
-                .forcePathStyle(true)
-                .build();
-    }
-
-    @Bean
-    public AwsRegionProvider customAwsRegionProvider() {
-        return () -> Region.of(region);
-    }
+  @Bean
+  public AwsRegionProvider customAwsRegionProvider() {
+    return () -> Region.of(region);
+  }
 }

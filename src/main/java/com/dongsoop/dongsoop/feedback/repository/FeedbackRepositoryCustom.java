@@ -8,11 +8,11 @@ import org.springframework.data.domain.Pageable;
 
 public interface FeedbackRepositoryCustom {
 
-    Optional<FeedbackDetail> searchFeedbackById(Long id);
+  Optional<FeedbackDetail> searchFeedbackById(Long id);
 
-    FeedbackOverview searchFeedbackOverview();
+  FeedbackOverview searchFeedbackOverview();
 
-    List<String> searchAllImprovementSuggestions(Pageable pageable);
+  List<String> searchAllImprovementSuggestions(Pageable pageable);
 
-    List<String> searchAllFeatureRequests(Pageable pageable);
+  List<String> searchAllFeatureRequests(Pageable pageable);
 }

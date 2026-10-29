@@ -20,32 +20,29 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class MemberBlockController {
 
-    private final MemberBlockService memberBlockService;
+  private final MemberBlockService memberBlockService;
 
-    @PostMapping
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> blocked(@RequestBody MemberBlockRequest request) {
-        memberBlockService.blockMember(request);
+  @PostMapping
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<Void> blocked(@RequestBody MemberBlockRequest request) {
+    memberBlockService.blockMember(request);
 
-        return ResponseEntity.noContent()
-                .build();
-    }
+    return ResponseEntity.noContent().build();
+  }
 
-    @DeleteMapping
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> unblock(@RequestBody MemberBlockRequest request) {
-        memberBlockService.unblockMember(request);
+  @DeleteMapping
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<Void> unblock(@RequestBody MemberBlockRequest request) {
+    memberBlockService.unblockMember(request);
 
-        return ResponseEntity.noContent()
-                .build();
-    }
+    return ResponseEntity.noContent().build();
+  }
 
-    @GetMapping
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<List<BlockedMember>> getAllBlockedMember() {
-        List<BlockedMember> blockedMemberList = memberBlockService.getBlockedMember();
+  @GetMapping
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<List<BlockedMember>> getAllBlockedMember() {
+    List<BlockedMember> blockedMemberList = memberBlockService.getBlockedMember();
 
-        return ResponseEntity.ok()
-                .body(blockedMemberList);
-    }
+    return ResponseEntity.ok().body(blockedMemberList);
+  }
 }

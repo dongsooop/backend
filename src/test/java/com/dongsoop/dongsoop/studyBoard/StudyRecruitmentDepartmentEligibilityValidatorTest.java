@@ -35,122 +35,102 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class StudyRecruitmentDepartmentEligibilityValidatorTest {
 
-    private static final Long BOARD_ID = 1L;
-    private static final Long REQUESTER_ID = 1L;
-    private static final Long OWNER_ID = 2L;
-    private static final String TEST_TITLE = "This is a test title";
-    private static final String TEST_CONTENT = "This is a test title";
+  private static final Long BOARD_ID = 1L;
+  private static final Long REQUESTER_ID = 1L;
+  private static final Long OWNER_ID = 2L;
+  private static final String TEST_TITLE = "This is a test title";
+  private static final String TEST_CONTENT = "This is a test title";
 
-    @InjectMocks
-    private StudyApplyServiceImpl studyApplyService;
+  @InjectMocks private StudyApplyServiceImpl studyApplyService;
 
-    @Mock
-    private StudyBoardRepository studyBoardRepository;
+  @Mock private StudyBoardRepository studyBoardRepository;
 
-    @Mock
-    private StudyApplyRepository studyApplyRepository;
+  @Mock private StudyApplyRepository studyApplyRepository;
 
-    @Mock
-    private StudyBoardDepartmentRepository studyBoardDepartmentRepository;
+  @Mock private StudyBoardDepartmentRepository studyBoardDepartmentRepository;
 
-    @Mock
-    private StudyApplyRepositoryCustom studyApplyRepositoryCustom;
+  @Mock private StudyApplyRepositoryCustom studyApplyRepositoryCustom;
 
-    @Mock
-    private ChatParticipantService chatParticipantService;
+  @Mock private ChatParticipantService chatParticipantService;
 
-    @Mock
-    private StudyApplyNotification studyApplyNotification;
+  @Mock private StudyApplyNotification studyApplyNotification;
 
-    @Mock
-    private MemberService memberService;
+  @Mock private MemberService memberService;
 
-    @Test
-    @DisplayName("게시판 학과와 회원 학과 불일치 시 StudyBoardDepartmentMismatchException 발생")
-    void should_Throw_Exception_If_MemberDepartment_Mismatch_Board() {
-        // given
-        Department boardDepartment = new Department(DepartmentType.DEPT_2001, null, null); // 게시판 요구 학과
-        Department memberDepartment = new Department(DepartmentType.DEPT_3001, null, null); // 사용자 학과
+  @Test
+  @DisplayName("게시판 학과와 회원 학과 불일치 시 StudyBoardDepartmentMismatchException 발생")
+  void should_Throw_Exception_If_MemberDepartment_Mismatch_Board() {
+    // given
+    Department boardDepartment = new Department(DepartmentType.DEPT_2001, null, null); // 게시판 요구 학과
+    Department memberDepartment = new Department(DepartmentType.DEPT_3001, null, null); // 사용자 학과
 
-        // Security Context 조회 시 학과가 DEPT_3001인 회원이 조회됨
-        Member member = Member.builder()
-                .id(REQUESTER_ID)
-                .department(memberDepartment)
-                .build();
-        when(memberService.getMemberReferenceByContext())
-                .thenReturn(member);
+    // Security Context 조회 시 학과가 DEPT_3001인 회원이 조회됨
+    Member member = Member.builder().id(REQUESTER_ID).department(memberDepartment).build();
+    when(memberService.getMemberReferenceByContext()).thenReturn(member);
 
-        when(studyApplyRepositoryCustom.existsByBoardIdAndMemberId(BOARD_ID, REQUESTER_ID)) // null은 회원 ID를 의미
-                .thenReturn(false);
+    when(studyApplyRepositoryCustom.existsByBoardIdAndMemberId(
+            BOARD_ID, REQUESTER_ID)) // null은 회원 ID를 의미
+        .thenReturn(false);
 
-        // 게시판 조회 시 Id가 1인 게시판 조회
-        StudyBoard studyBoard = StudyBoard.builder()
-                .id(BOARD_ID)
-                .build();
-        when(studyBoardRepository.findById(BOARD_ID))
-                .thenReturn(Optional.of(studyBoard));
+    // 게시판 조회 시 Id가 1인 게시판 조회
+    StudyBoard studyBoard = StudyBoard.builder().id(BOARD_ID).build();
+    when(studyBoardRepository.findById(BOARD_ID)).thenReturn(Optional.of(studyBoard));
 
-        // Id가 1인 게시판의 학과 조회 시 DEPT_2001인 학과가 등록되어 있음
-        StudyBoardDepartment studyBoardDepartment = getStudyBoardDepartment(boardDepartment, studyBoard);
-        when(studyBoardDepartmentRepository.findByStudyBoardId(BOARD_ID))
-                .thenReturn(List.of(studyBoardDepartment));
+    // Id가 1인 게시판의 학과 조회 시 DEPT_2001인 학과가 등록되어 있음
+    StudyBoardDepartment studyBoardDepartment =
+        getStudyBoardDepartment(boardDepartment, studyBoard);
+    when(studyBoardDepartmentRepository.findByStudyBoardId(BOARD_ID))
+        .thenReturn(List.of(studyBoardDepartment));
 
-        ApplyStudyBoardRequest request = new ApplyStudyBoardRequest(BOARD_ID, TEST_TITLE, TEST_CONTENT);
+    ApplyStudyBoardRequest request = new ApplyStudyBoardRequest(BOARD_ID, TEST_TITLE, TEST_CONTENT);
 
-        // when, then
-        assertThrows(StudyBoardDepartmentMismatchException.class, () -> {
-            studyApplyService.apply(request);
+    // when, then
+    assertThrows(
+        StudyBoardDepartmentMismatchException.class,
+        () -> {
+          studyApplyService.apply(request);
         });
-    }
+  }
 
-    @Test
-    @DisplayName("게시판 학과와 회원 학과 일치 시 저장 및 예외없이 응답된다")
-    void should_Response_Created_If_Member_Department_match_Board() {
-        // given
-        Department department = new Department(DepartmentType.DEPT_2001, null, null);
+  @Test
+  @DisplayName("게시판 학과와 회원 학과 일치 시 저장 및 예외없이 응답된다")
+  void should_Response_Created_If_Member_Department_match_Board() {
+    // given
+    Department department = new Department(DepartmentType.DEPT_2001, null, null);
 
-        // Security Context 조회 시 학과가 DEPT_3001인 회원이 조회됨
-        Member member = Member.builder()
-                .department(department)
-                .build();
-        Member author = getAuthor();
-        when(memberService.getMemberReferenceByContext())
-                .thenReturn(member);
+    // Security Context 조회 시 학과가 DEPT_3001인 회원이 조회됨
+    Member member = Member.builder().department(department).build();
+    Member author = getAuthor();
+    when(memberService.getMemberReferenceByContext()).thenReturn(member);
 
-        // 게시판 조회 시 Id가 1인 게시판 조회
-        StudyBoard studyBoard = StudyBoard.builder()
-                .id(BOARD_ID)
-                .author(author)
-                .build();
-        when(studyBoardRepository.findById(BOARD_ID))
-                .thenReturn(Optional.of(studyBoard));
+    // 게시판 조회 시 Id가 1인 게시판 조회
+    StudyBoard studyBoard = StudyBoard.builder().id(BOARD_ID).author(author).build();
+    when(studyBoardRepository.findById(BOARD_ID)).thenReturn(Optional.of(studyBoard));
 
-        // Id가 1인 게시판의 학과 조회 시 DEPT_2001인 학과가 등록되어 있음
-        StudyBoardDepartment studyBoardDepartment = getStudyBoardDepartment(department, studyBoard);
-        when(studyBoardDepartmentRepository.findByStudyBoardId(BOARD_ID))
-                .thenReturn(List.of(studyBoardDepartment));
+    // Id가 1인 게시판의 학과 조회 시 DEPT_2001인 학과가 등록되어 있음
+    StudyBoardDepartment studyBoardDepartment = getStudyBoardDepartment(department, studyBoard);
+    when(studyBoardDepartmentRepository.findByStudyBoardId(BOARD_ID))
+        .thenReturn(List.of(studyBoardDepartment));
 
-        ApplyStudyBoardRequest request = new ApplyStudyBoardRequest(BOARD_ID, TEST_TITLE, TEST_CONTENT);
+    ApplyStudyBoardRequest request = new ApplyStudyBoardRequest(BOARD_ID, TEST_TITLE, TEST_CONTENT);
 
-        // when, then
-        assertDoesNotThrow(() -> studyApplyService.apply(request));
-        verify(studyApplyRepository, times(1))
-                .save(any(StudyApply.class));
-    }
+    // when, then
+    assertDoesNotThrow(() -> studyApplyService.apply(request));
+    verify(studyApplyRepository, times(1)).save(any(StudyApply.class));
+  }
 
-    /**
-     * 입력받은 학과의 "모집 게시판 요구 학과" 객체를 만드는 메서드
-     *
-     * @param department 게시판에 등록된 학과
-     * @return StudyBoardDepartment 객체
-     */
-    private StudyBoardDepartment getStudyBoardDepartment(Department department, StudyBoard studyBoard) {
-        return new StudyBoardDepartment(studyBoard, department);
-    }
+  /**
+   * 입력받은 학과의 "모집 게시판 요구 학과" 객체를 만드는 메서드
+   *
+   * @param department 게시판에 등록된 학과
+   * @return StudyBoardDepartment 객체
+   */
+  private StudyBoardDepartment getStudyBoardDepartment(
+      Department department, StudyBoard studyBoard) {
+    return new StudyBoardDepartment(studyBoard, department);
+  }
 
-    private Member getAuthor() {
-        return Member.builder()
-                .id(OWNER_ID)
-                .build();
-    }
+  private Member getAuthor() {
+    return Member.builder().id(OWNER_ID).build();
+  }
 }

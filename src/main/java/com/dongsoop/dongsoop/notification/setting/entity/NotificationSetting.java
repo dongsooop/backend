@@ -16,30 +16,29 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class NotificationSetting {
 
-    @EmbeddedId
-    @Getter
-    private NotificationSettingId id;
+  @EmbeddedId @Getter private NotificationSettingId id;
 
-    @MapsId("deviceId")
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_device_id", nullable = false, updatable = false)
-    private MemberDevice device;
+  @MapsId("deviceId")
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "member_device_id", nullable = false, updatable = false)
+  private MemberDevice device;
 
-    @Getter
-    @Column(nullable = false)
-    private Boolean enabled;
+  @Getter
+  @Column(nullable = false)
+  private Boolean enabled;
 
-    public NotificationSetting(MemberDevice device, NotificationType notificationType, boolean enabled) {
-        this.id = new NotificationSettingId(device.getId(), notificationType);
-        this.device = device;
-        this.enabled = enabled;
-    }
+  public NotificationSetting(
+      MemberDevice device, NotificationType notificationType, boolean enabled) {
+    this.id = new NotificationSettingId(device.getId(), notificationType);
+    this.device = device;
+    this.enabled = enabled;
+  }
 
-    public boolean isSameState(boolean enabled) {
-        return this.enabled == enabled;
-    }
+  public boolean isSameState(boolean enabled) {
+    return this.enabled == enabled;
+  }
 
-    public void updateEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
+  public void updateEnabled(boolean enabled) {
+    this.enabled = enabled;
+  }
 }

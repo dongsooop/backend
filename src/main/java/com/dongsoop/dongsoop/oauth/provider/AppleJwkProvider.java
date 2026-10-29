@@ -5,7 +5,7 @@ import java.util.Map;
 
 public interface AppleJwkProvider {
 
-    Map<String, AppleJwk> getAppleJwkMap();
+  Map<String, AppleJwk> getAppleJwkMap();
 
-    boolean evictAppleJwkCache();
+  boolean evictAppleJwkCache();
 }

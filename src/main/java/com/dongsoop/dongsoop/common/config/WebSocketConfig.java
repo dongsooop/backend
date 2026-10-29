@@ -4,9 +4,7 @@ import com.dongsoop.dongsoop.blinddate.handler.BlindDateStompAuthorizationInterc
 import com.dongsoop.dongsoop.common.handler.websocket.ChatAuthorizationInterceptor;
 import com.dongsoop.dongsoop.common.handler.websocket.CustomStompErrorHandler;
 import com.dongsoop.dongsoop.common.handler.websocket.StompHandler;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
@@ -22,48 +20,47 @@ import org.springframework.web.socket.messaging.StompSubProtocolErrorHandler;
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
-    private final StompHandler stompHandler;
-    private final BlindDateStompAuthorizationInterceptor blindDateStompAuthorizationInterceptor;
-    private final ChatAuthorizationInterceptor chatAuthorizationInterceptor;
-    private final CustomStompErrorHandler customStompErrorHandler;
+  private final StompHandler stompHandler;
+  private final BlindDateStompAuthorizationInterceptor blindDateStompAuthorizationInterceptor;
+  private final ChatAuthorizationInterceptor chatAuthorizationInterceptor;
+  private final CustomStompErrorHandler customStompErrorHandler;
 
-    @Override
-    public void configureMessageBroker(MessageBrokerRegistry registry) {
-        registry.enableSimpleBroker("/topic", "/queue");
-        registry.setApplicationDestinationPrefixes("/app");
-    }
+  @Override
+  public void configureMessageBroker(MessageBrokerRegistry registry) {
+    registry.enableSimpleBroker("/topic", "/queue");
+    registry.setApplicationDestinationPrefixes("/app");
+  }
 
-    @Override
-    public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws/chat", "/ws/blinddate")
-                .setAllowedOriginPatterns("*")
-                .withSockJS()
-                .setDisconnectDelay(30 * 1000L)
-                .setHeartbeatTime(15 * 1000L)
-                .setWebSocketEnabled(true)
-                .setStreamBytesLimit(512 * 1024)
-                .setHttpMessageCacheSize(1000);
-    }
+  @Override
+  public void registerStompEndpoints(StompEndpointRegistry registry) {
+    registry
+        .addEndpoint("/ws/chat", "/ws/blinddate")
+        .setAllowedOriginPatterns("*")
+        .withSockJS()
+        .setDisconnectDelay(30 * 1000L)
+        .setHeartbeatTime(15 * 1000L)
+        .setWebSocketEnabled(true)
+        .setStreamBytesLimit(512 * 1024)
+        .setHttpMessageCacheSize(1000);
+  }
 
-    @Override
-    public void configureWebSocketTransport(WebSocketTransportRegistration registry) {
-        registry.setMessageSizeLimit(64 * 1024)
-                .setSendBufferSizeLimit(512 * 1024)
-                .setSendTimeLimit(15 * 1000);
-    }
+  @Override
+  public void configureWebSocketTransport(WebSocketTransportRegistration registry) {
+    registry
+        .setMessageSizeLimit(64 * 1024)
+        .setSendBufferSizeLimit(512 * 1024)
+        .setSendTimeLimit(15 * 1000);
+  }
 
-    @Override
-    public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(
-                stompHandler, chatAuthorizationInterceptor, blindDateStompAuthorizationInterceptor);
-        registration.taskExecutor()
-                .corePoolSize(16)
-                .maxPoolSize(50)
-                .queueCapacity(300);
-    }
+  @Override
+  public void configureClientInboundChannel(ChannelRegistration registration) {
+    registration.interceptors(
+        stompHandler, chatAuthorizationInterceptor, blindDateStompAuthorizationInterceptor);
+    registration.taskExecutor().corePoolSize(16).maxPoolSize(50).queueCapacity(300);
+  }
 
-    @Bean
-    public StompSubProtocolErrorHandler errorHandler() {
-        return customStompErrorHandler;
-    }
+  @Bean
+  public StompSubProtocolErrorHandler errorHandler() {
+    return customStompErrorHandler;
+  }
 }

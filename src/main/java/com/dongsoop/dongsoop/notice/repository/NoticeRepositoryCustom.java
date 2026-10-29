@@ -9,11 +9,11 @@ import java.util.List;
 
 public interface NoticeRepositoryCustom {
 
-    List<Notice> findRecentNoticesIncludingDeleted(Department department, int limit);
+  List<Notice> findRecentNoticesIncludingDeleted(Department department, int limit);
 
-    List<HomeNotice> searchHomeNotices(DepartmentType departmentType);
+  List<HomeNotice> searchHomeNotices(DepartmentType departmentType);
 
-    List<HomeNotice> searchHomeNotices();
+  List<HomeNotice> searchHomeNotices();
 
-    List<HomeNotice> searchHomeNotices(Collection<DepartmentType> departmentTypes);
+  List<HomeNotice> searchHomeNotices(Collection<DepartmentType> departmentTypes);
 }

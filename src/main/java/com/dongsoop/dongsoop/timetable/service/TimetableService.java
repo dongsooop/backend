@@ -9,15 +9,15 @@ import java.util.List;
 
 public interface TimetableService {
 
-    void createTimetable(CreateTimetableRequest request);
+  void createTimetable(CreateTimetableRequest request);
 
-    List<CreateTimetableRequest> createTimetable(List<CreateTimetableRequest> request);
+  List<CreateTimetableRequest> createTimetable(List<CreateTimetableRequest> request);
 
-    List<TimetableView> getTimetableView(Year year, SemesterType semester);
+  List<TimetableView> getTimetableView(Year year, SemesterType semester);
 
-    void deleteTimetable(Long timetableId);
+  void deleteTimetable(Long timetableId);
 
-    void updateTimetable(UpdateTimetableRequest request);
+  void updateTimetable(UpdateTimetableRequest request);
 
-    void deleteTimetable(Year year, SemesterType semester);
+  void deleteTimetable(Year year, SemesterType semester);
 }

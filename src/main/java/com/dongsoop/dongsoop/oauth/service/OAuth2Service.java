@@ -9,13 +9,12 @@ import org.springframework.security.core.Authentication;
 
 public interface OAuth2Service {
 
-    LoginResponse acceptLogin(Authentication authentication, Long memberId, String deviceToken);
+  LoginResponse acceptLogin(Authentication authentication, Long memberId, String deviceToken);
 
-    void unlinkMemberWithProviderType(Long memberId,
-                                      OAuthProviderType providerType,
-                                      UnlinkSocialAccountRequest request);
+  void unlinkMemberWithProviderType(
+      Long memberId, OAuthProviderType providerType, UnlinkSocialAccountRequest request);
 
-    void unlinkMember(Long memberId);
+  void unlinkMember(Long memberId);
 
-    List<MemberSocialAccountOverview> getSocialAccountState(Long memberId);
+  List<MemberSocialAccountOverview> getSocialAccountState(Long memberId);
 }

@@ -11,21 +11,21 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class TimetableMapper {
 
-    private final MemberService memberService;
+  private final MemberService memberService;
 
-    public Timetable toEntity(CreateTimetableRequest request) {
-        Member referenceMember = memberService.getMemberReferenceByContext();
+  public Timetable toEntity(CreateTimetableRequest request) {
+    Member referenceMember = memberService.getMemberReferenceByContext();
 
-        return Timetable.builder()
-                .name(request.name())
-                .professor(request.professor())
-                .location(request.location())
-                .week(request.week())
-                .startAt(request.startAt())
-                .endAt(request.endAt())
-                .year(request.year())
-                .semester(request.semester())
-                .member(referenceMember)
-                .build();
-    }
+    return Timetable.builder()
+        .name(request.name())
+        .professor(request.professor())
+        .location(request.location())
+        .week(request.week())
+        .startAt(request.startAt())
+        .endAt(request.endAt())
+        .year(request.year())
+        .semester(request.semester())
+        .member(referenceMember)
+        .build();
+  }
 }

@@ -20,21 +20,23 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @RequiredArgsConstructor
 public class ReCaptchaAspect {
 
-    private static final String RECAPTCHA_HEADER = "X-Recaptcha-Token";
+  private static final String RECAPTCHA_HEADER = "X-Recaptcha-Token";
 
-    private final ReCaptchaService reCaptchaService;
+  private final ReCaptchaService reCaptchaService;
 
-    @Around("@annotation(reCaptchaRequired)")
-    public Object around(ProceedingJoinPoint pjp, ReCaptchaRequired reCaptchaRequired) throws Throwable {
-        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
-        String token = request.getHeader(RECAPTCHA_HEADER);
+  @Around("@annotation(reCaptchaRequired)")
+  public Object around(ProceedingJoinPoint pjp, ReCaptchaRequired reCaptchaRequired)
+      throws Throwable {
+    HttpServletRequest request =
+        ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
+    String token = request.getHeader(RECAPTCHA_HEADER);
 
-        if (!StringUtils.hasText(token)) {
-            throw new ReCaptchaTokenNotFoundException();
-        }
-
-        reCaptchaService.verify(token, reCaptchaRequired.action());
-
-        return pjp.proceed();
+    if (!StringUtils.hasText(token)) {
+      throw new ReCaptchaTokenNotFoundException();
     }
+
+    reCaptchaService.verify(token, reCaptchaRequired.action());
+
+    return pjp.proceed();
+  }
 }

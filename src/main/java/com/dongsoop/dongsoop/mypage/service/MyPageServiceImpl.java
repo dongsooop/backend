@@ -2,10 +2,10 @@ package com.dongsoop.dongsoop.mypage.service;
 
 import com.dongsoop.dongsoop.marketplace.repository.MarketplaceBoardRepositoryCustom;
 import com.dongsoop.dongsoop.member.service.MemberService;
-import com.dongsoop.dongsoop.recruitment.query.dto.RecruitmentSummary;
 import com.dongsoop.dongsoop.mypage.dto.MyRecruitmentOverviewResponse;
 import com.dongsoop.dongsoop.mypage.dto.OpenedMarketplace;
 import com.dongsoop.dongsoop.recruitment.query.RecruitmentQuery;
+import com.dongsoop.dongsoop.recruitment.query.dto.RecruitmentSummary;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -16,35 +16,35 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class MyPageServiceImpl implements MyPageService {
 
-    private final MemberService memberService;
+  private final MemberService memberService;
 
-    private final MarketplaceBoardRepositoryCustom marketplaceBoardRepository;
+  private final MarketplaceBoardRepositoryCustom marketplaceBoardRepository;
 
-    private final RecruitmentQuery recruitmentRepository;
+  private final RecruitmentQuery recruitmentRepository;
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<RecruitmentSummary> getApplyRecruitmentsByMemberId(Pageable pageable) {
-        Long memberId = memberService.getMemberIdByAuthentication();
-        return recruitmentRepository.findApplyRecruitmentsByMemberId(memberId, pageable);
-    }
+  @Override
+  @Transactional(readOnly = true)
+  public List<RecruitmentSummary> getApplyRecruitmentsByMemberId(Pageable pageable) {
+    Long memberId = memberService.getMemberIdByAuthentication();
+    return recruitmentRepository.findApplyRecruitmentsByMemberId(memberId, pageable);
+  }
 
-    @Override
-    public List<MyRecruitmentOverviewResponse> getOpenedRecruitmentsByMemberId(Pageable pageable) {
-        Long memberId = memberService.getMemberIdByAuthentication();
-        List<RecruitmentSummary> openedRecruitment = recruitmentRepository.findOpenedRecruitmentsByMemberId(memberId,
-                pageable);
+  @Override
+  public List<MyRecruitmentOverviewResponse> getOpenedRecruitmentsByMemberId(Pageable pageable) {
+    Long memberId = memberService.getMemberIdByAuthentication();
+    List<RecruitmentSummary> openedRecruitment =
+        recruitmentRepository.findOpenedRecruitmentsByMemberId(memberId, pageable);
 
-        return openedRecruitment.stream()
-                .map(MyRecruitmentOverviewResponse::new)
-                .toList();
-    }
+    return openedRecruitment.stream().map(MyRecruitmentOverviewResponse::new).toList();
+  }
 
-    @Override
-    public List<OpenedMarketplace> getOpenedMarketplacesByMemberId(Pageable pageable) {
-        Long memberId = memberService.getMemberIdByAuthentication();
-        return marketplaceBoardRepository.findOpenedMarketplaceByAuthorIdAndPage(memberId, pageable).stream()
-                .map(OpenedMarketplace::new)
-                .toList();
-    }
+  @Override
+  public List<OpenedMarketplace> getOpenedMarketplacesByMemberId(Pageable pageable) {
+    Long memberId = memberService.getMemberIdByAuthentication();
+    return marketplaceBoardRepository
+        .findOpenedMarketplaceByAuthorIdAndPage(memberId, pageable)
+        .stream()
+        .map(OpenedMarketplace::new)
+        .toList();
+  }
 }

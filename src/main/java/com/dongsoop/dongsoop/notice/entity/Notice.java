@@ -6,10 +6,10 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
@@ -23,77 +23,77 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Notice {
 
-    @Id
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "department_id")
-    private Department department;
+  @Id
+  @ManyToOne(fetch = FetchType.EAGER)
+  @JoinColumn(name = "department_id")
+  private Department department;
 
-    @Id
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "notice_details_id")
-    private NoticeDetails noticeDetails;
+  @Id
+  @ManyToOne(fetch = FetchType.EAGER)
+  @JoinColumn(name = "notice_details_id")
+  private NoticeDetails noticeDetails;
 
-    private LocalDateTime deletedAt;
+  private LocalDateTime deletedAt;
 
-    public Notice(Department department, NoticeDetails noticeDetails) {
-        this.department = department;
-        this.noticeDetails = noticeDetails;
+  public Notice(Department department, NoticeDetails noticeDetails) {
+    this.department = department;
+    this.noticeDetails = noticeDetails;
+  }
+
+  public Department getDepartment() {
+    return department;
+  }
+
+  public NoticeDetails getNoticeDetails() {
+    return noticeDetails;
+  }
+
+  public boolean markDeleted(LocalDateTime deletedAt) {
+    if (this.deletedAt != null) {
+      return false;
     }
 
-    public Department getDepartment() {
-        return department;
+    this.deletedAt = deletedAt;
+    return true;
+  }
+
+  public boolean restore() {
+    if (deletedAt == null) {
+      return false;
     }
 
-    public NoticeDetails getNoticeDetails() {
-        return noticeDetails;
-    }
+    deletedAt = null;
+    return true;
+  }
 
-    public boolean markDeleted(LocalDateTime deletedAt) {
-        if (this.deletedAt != null) {
-            return false;
-        }
+  @AllArgsConstructor
+  @NoArgsConstructor
+  public static class NoticeKey implements Serializable {
 
-        this.deletedAt = deletedAt;
+    @Serial private static final long serialVersionUID = 1L;
+
+    @Enumerated(EnumType.STRING)
+    private DepartmentType department;
+
+    private Long noticeDetails;
+
+    // JPA 엔티티 비교 및 캐싱 시 사용된다
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
         return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      NoticeKey that = (NoticeKey) o;
+      return Objects.equals(department, that.department)
+          && Objects.equals(noticeDetails, that.noticeDetails);
     }
 
-    public boolean restore() {
-        if (deletedAt == null) {
-            return false;
-        }
-
-        deletedAt = null;
-        return true;
+    @Override
+    public int hashCode() {
+      return Objects.hash(department, noticeDetails);
     }
-
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class NoticeKey implements Serializable {
-
-        @Serial
-        private static final long serialVersionUID = 1L;
-
-        @Enumerated(EnumType.STRING)
-        private DepartmentType department;
-
-        private Long noticeDetails;
-
-        // JPA 엔티티 비교 및 캐싱 시 사용된다
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            NoticeKey that = (NoticeKey) o;
-            return Objects.equals(department, that.department) && Objects.equals(noticeDetails, that.noticeDetails);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(department, noticeDetails);
-        }
-    }
+  }
 }

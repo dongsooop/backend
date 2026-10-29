@@ -33,115 +33,95 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class StudyBoardCreateTest {
 
-    private static final String VALID_TITLE = "This is a test title";
-    private static final String VALID_CONTENT = "This is a test content";
-    private static final String VALID_TAGS = "tag1, tag2";
-    private static final DepartmentType VALID_DEPARTMENT_TYPE_A = DepartmentType.DEPT_2001;
-    private static final DepartmentType VALID_DEPARTMENT_TYPE_B = DepartmentType.DEPT_3001;
-    private static final LocalDateTime VALID_START_AT = LocalDateTime.of(2099, 1, 1, 0, 0);
-    private static final LocalDateTime VALID_END_AT = LocalDateTime.of(2099, 12, 31, 23, 59);
+  private static final String VALID_TITLE = "This is a test title";
+  private static final String VALID_CONTENT = "This is a test content";
+  private static final String VALID_TAGS = "tag1, tag2";
+  private static final DepartmentType VALID_DEPARTMENT_TYPE_A = DepartmentType.DEPT_2001;
+  private static final DepartmentType VALID_DEPARTMENT_TYPE_B = DepartmentType.DEPT_3001;
+  private static final LocalDateTime VALID_START_AT = LocalDateTime.of(2099, 1, 1, 0, 0);
+  private static final LocalDateTime VALID_END_AT = LocalDateTime.of(2099, 12, 31, 23, 59);
 
-    @InjectMocks
-    private StudyBoardServiceImpl studyBoardService;
+  @InjectMocks private StudyBoardServiceImpl studyBoardService;
 
-    @Mock
-    private ChatCommonUtils chatCommonUtils;
+  @Mock private ChatCommonUtils chatCommonUtils;
 
-    @Mock
-    private MemberService memberService;
+  @Mock private MemberService memberService;
 
-    @Mock
-    private StudyBoardRepository studyBoardRepository;
+  @Mock private StudyBoardRepository studyBoardRepository;
 
-    @Mock
-    private DepartmentRepository departmentRepository;
+  @Mock private DepartmentRepository departmentRepository;
 
-    @Mock
-    private StudyBoardDepartmentRepository studyBoardDepartmentRepository;
+  @Mock private StudyBoardDepartmentRepository studyBoardDepartmentRepository;
 
-    @Mock
-    private ChatRoomService chatRoomService;
+  @Mock private ChatRoomService chatRoomService;
 
-    private CreateStudyBoardRequest request;
+  private CreateStudyBoardRequest request;
 
-    @BeforeEach
-    void setUp() {
-        List<DepartmentType> departmentList = new ArrayList<>();
-        departmentList.add(VALID_DEPARTMENT_TYPE_A);
-        departmentList.add(VALID_DEPARTMENT_TYPE_B);
+  @BeforeEach
+  void setUp() {
+    List<DepartmentType> departmentList = new ArrayList<>();
+    departmentList.add(VALID_DEPARTMENT_TYPE_A);
+    departmentList.add(VALID_DEPARTMENT_TYPE_B);
 
-        request = new CreateStudyBoardRequest(
-                VALID_TITLE,
-                VALID_CONTENT,
-                VALID_TAGS,
-                VALID_START_AT,
-                VALID_END_AT,
-                departmentList
-        );
-    }
+    request =
+        new CreateStudyBoardRequest(
+            VALID_TITLE, VALID_CONTENT, VALID_TAGS, VALID_START_AT, VALID_END_AT, departmentList);
+  }
 
-    @Test
-    void create_WithValidInput_ShouldPersistCorrectly() {
-        // given
-        when(memberService.getMemberReferenceByContext())
-                .thenReturn(
-                        Member.builder()
-                                .id(1L)
-                                .build());
+  @Test
+  void create_WithValidInput_ShouldPersistCorrectly() {
+    // given
+    when(memberService.getMemberReferenceByContext()).thenReturn(Member.builder().id(1L).build());
 
-        when(chatRoomService.createGroupChatRoom(any(), any(), any()))
-                .thenReturn(
-                        ChatRoom.builder()
-                                .roomId("")
-                                .build());
+    when(chatRoomService.createGroupChatRoom(any(), any(), any()))
+        .thenReturn(ChatRoom.builder().roomId("").build());
 
-        when(studyBoardRepository.save(any()))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+    when(studyBoardRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(departmentRepository.getReferenceById(VALID_DEPARTMENT_TYPE_A))
-                .thenReturn(new Department(VALID_DEPARTMENT_TYPE_A, null, null));
+    when(departmentRepository.getReferenceById(VALID_DEPARTMENT_TYPE_A))
+        .thenReturn(new Department(VALID_DEPARTMENT_TYPE_A, null, null));
 
-        when(departmentRepository.getReferenceById(VALID_DEPARTMENT_TYPE_B))
-                .thenReturn(new Department(VALID_DEPARTMENT_TYPE_B, null, null));
+    when(departmentRepository.getReferenceById(VALID_DEPARTMENT_TYPE_B))
+        .thenReturn(new Department(VALID_DEPARTMENT_TYPE_B, null, null));
 
-        // when
-        studyBoardService.create(this.request);
+    // when
+    studyBoardService.create(this.request);
 
-        // then
-        ArgumentCaptor<StudyBoard> captorStudyBoard = ArgumentCaptor.forClass(StudyBoard.class);
-        ArgumentCaptor<List<StudyBoardDepartment>> captorDepartment = ArgumentCaptor.forClass(List.class);
+    // then
+    ArgumentCaptor<StudyBoard> captorStudyBoard = ArgumentCaptor.forClass(StudyBoard.class);
+    ArgumentCaptor<List<StudyBoardDepartment>> captorDepartment =
+        ArgumentCaptor.forClass(List.class);
 
-        verify(studyBoardRepository).save(captorStudyBoard.capture());
-        verify(studyBoardDepartmentRepository).saveAll(captorDepartment.capture());
+    verify(studyBoardRepository).save(captorStudyBoard.capture());
+    verify(studyBoardDepartmentRepository).saveAll(captorDepartment.capture());
 
-        StudyBoard board = captorStudyBoard.getValue();
-        List<StudyBoardDepartment> studyBoardDepartmentList = captorDepartment.getValue();
+    StudyBoard board = captorStudyBoard.getValue();
+    List<StudyBoardDepartment> studyBoardDepartmentList = captorDepartment.getValue();
 
-        StudyBoard compareBoard = StudyBoard.builder()
-                .title(VALID_TITLE)
-                .content(VALID_CONTENT)
-                .tags(VALID_TAGS)
-                .startAt(VALID_START_AT)
-                .endAt(VALID_END_AT)
-                .author(Member.builder().id(1L).build())
-                .build();
+    StudyBoard compareBoard =
+        StudyBoard.builder()
+            .title(VALID_TITLE)
+            .content(VALID_CONTENT)
+            .tags(VALID_TAGS)
+            .startAt(VALID_START_AT)
+            .endAt(VALID_END_AT)
+            .author(Member.builder().id(1L).build())
+            .build();
 
-        List<StudyBoardDepartment> compareDepartmentList = List.of(
-                new StudyBoardDepartment(board,
-                        new Department(VALID_DEPARTMENT_TYPE_A, null, null)),
-                new StudyBoardDepartment(board,
-                        new Department(VALID_DEPARTMENT_TYPE_B, null, null))
-        );
+    List<StudyBoardDepartment> compareDepartmentList =
+        List.of(
+            new StudyBoardDepartment(board, new Department(VALID_DEPARTMENT_TYPE_A, null, null)),
+            new StudyBoardDepartment(board, new Department(VALID_DEPARTMENT_TYPE_B, null, null)));
 
-        assertThat(board)
-                .usingRecursiveComparison()
-                .ignoringExpectedNullFields()
-                .ignoringFields("id", "createdAt", "updatedAt")
-                .isEqualTo(compareBoard);
+    assertThat(board)
+        .usingRecursiveComparison()
+        .ignoringExpectedNullFields()
+        .ignoringFields("id", "createdAt", "updatedAt")
+        .isEqualTo(compareBoard);
 
-        assertThat(studyBoardDepartmentList)
-                .usingRecursiveComparison()
-                .ignoringExpectedNullFields()
-                .isEqualTo(compareDepartmentList);
-    }
+    assertThat(studyBoardDepartmentList)
+        .usingRecursiveComparison()
+        .ignoringExpectedNullFields()
+        .isEqualTo(compareDepartmentList);
+  }
 }

@@ -1,7 +1,8 @@
 package com.dongsoop.dongsoop.restaurant.repository;
 
-import static com.dongsoop.dongsoop.restaurant.entity.QRestaurantLike.restaurantLike;
 import static com.dongsoop.dongsoop.restaurant.entity.QRestaurant.restaurant;
+import static com.dongsoop.dongsoop.restaurant.entity.QRestaurantLike.restaurantLike;
+
 import com.dongsoop.dongsoop.restaurant.dto.QRestaurantInfo;
 import com.dongsoop.dongsoop.restaurant.dto.QRestaurantOverview;
 import com.dongsoop.dongsoop.restaurant.dto.QRestaurantStats;
@@ -14,86 +15,85 @@ import com.querydsl.core.types.dsl.EnumPath;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
 public class RestaurantRepositoryCustomImpl implements RestaurantRepositoryCustom {
 
-    private final JPAQueryFactory queryFactory;
+  private final JPAQueryFactory queryFactory;
 
-    private final EnumPath<RestaurantTag> tagAlias = Expressions.enumPath(RestaurantTag.class, "T");
+  private final EnumPath<RestaurantTag> tagAlias = Expressions.enumPath(RestaurantTag.class, "T");
 
-    @Override
-    public List<RestaurantOverview> findNearbyRestaurants(Long memberId, RestaurantCategory category, Pageable pageable) {
-        return queryFactory
-                .select(new QRestaurantOverview(
-                        new QRestaurantInfo(
-                                restaurant.id,
-                                restaurant.name,
-                                restaurant.category,
-                                restaurant.distance,
-                                restaurant.placeUrl,
-                                restaurant.externalMapId),
-                        new QRestaurantStats(getLikeCountSubQuery(), isLikedByMember(memberId)),
-                        Expressions.stringTemplate("STRING_AGG({0}, ',')", tagAlias)
-                ))
-                .from(restaurant)
-                .leftJoin(restaurant.tags, tagAlias)
-                .where(restaurant.isDeleted.isFalse()
-                        .and(eqCategory(category)))
-                .groupBy(
-                        restaurant.id, restaurant.name, restaurant.category,
-                        restaurant.distance, restaurant.externalMapId, restaurant.placeUrl
-                )
-                .orderBy(Expressions.numberPath(Long.class, "likeCount").desc(),
-                        restaurant.distance.asc())
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .fetch();
+  @Override
+  public List<RestaurantOverview> findNearbyRestaurants(
+      Long memberId, RestaurantCategory category, Pageable pageable) {
+    return queryFactory
+        .select(
+            new QRestaurantOverview(
+                new QRestaurantInfo(
+                    restaurant.id,
+                    restaurant.name,
+                    restaurant.category,
+                    restaurant.distance,
+                    restaurant.placeUrl,
+                    restaurant.externalMapId),
+                new QRestaurantStats(getLikeCountSubQuery(), isLikedByMember(memberId)),
+                Expressions.stringTemplate("STRING_AGG({0}, ',')", tagAlias)))
+        .from(restaurant)
+        .leftJoin(restaurant.tags, tagAlias)
+        .where(restaurant.isDeleted.isFalse().and(eqCategory(category)))
+        .groupBy(
+            restaurant.id,
+            restaurant.name,
+            restaurant.category,
+            restaurant.distance,
+            restaurant.externalMapId,
+            restaurant.placeUrl)
+        .orderBy(Expressions.numberPath(Long.class, "likeCount").desc(), restaurant.distance.asc())
+        .offset(pageable.getOffset())
+        .limit(pageable.getPageSize())
+        .fetch();
+  }
+
+  private BooleanExpression eqCategory(RestaurantCategory category) {
+    if (category == null) {
+      return null;
+    }
+    return restaurant.category.eq(category);
+  }
+
+  @Override
+  public boolean existsActiveByExternalMapId(String externalMapId) {
+    Integer fetchOne =
+        queryFactory
+            .selectOne()
+            .from(restaurant)
+            .where(restaurant.externalMapId.eq(externalMapId).and(restaurant.isDeleted.isFalse()))
+            .fetchFirst();
+    return fetchOne != null;
+  }
+
+  private BooleanExpression isLikedByMember(Long memberId) {
+    if (memberId == null) {
+      return Expressions.asBoolean(false);
     }
 
-    private BooleanExpression eqCategory(RestaurantCategory category) {
-        if (category == null) {
-            return null;
-        }
-        return restaurant.category.eq(category);
-    }
+    return JPAExpressions.selectOne()
+        .from(restaurantLike)
+        .where(
+            restaurantLike.restaurant.id.eq(restaurant.id), restaurantLike.member.id.eq(memberId))
+        .exists();
+  }
 
-    @Override
-    public boolean existsActiveByExternalMapId(String externalMapId) {
-        Integer fetchOne = queryFactory
-                .selectOne()
-                .from(restaurant)
-                .where(restaurant.externalMapId.eq(externalMapId)
-                        .and(restaurant.isDeleted.isFalse()))
-                .fetchFirst();
-        return fetchOne != null;
-    }
-
-    private BooleanExpression isLikedByMember(Long memberId) {
-        if (memberId == null) {
-            return Expressions.asBoolean(false);
-        }
-
-        return JPAExpressions
-                .selectOne()
-                .from(restaurantLike)
-                .where(restaurantLike.restaurant.id.eq(restaurant.id),
-                        restaurantLike.member.id.eq(memberId))
-                .exists();
-    }
-
-    private com.querydsl.core.types.Expression<Long> getLikeCountSubQuery() {
-        return ExpressionUtils.as(
-                JPAExpressions.select(restaurantLike.count())
-                        .from(restaurantLike)
-                        .where(restaurantLike.restaurant.id.eq(restaurant.id)),
-                "likeCount"
-        );
-    }
+  private com.querydsl.core.types.Expression<Long> getLikeCountSubQuery() {
+    return ExpressionUtils.as(
+        JPAExpressions.select(restaurantLike.count())
+            .from(restaurantLike)
+            .where(restaurantLike.restaurant.id.eq(restaurant.id)),
+        "likeCount");
+  }
 }

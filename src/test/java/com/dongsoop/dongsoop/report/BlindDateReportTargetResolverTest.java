@@ -30,177 +30,183 @@ import org.junit.jupiter.api.Test;
 
 class BlindDateReportTargetResolverTest {
 
-    private static final Long REPORTER_ID = 1L;
-    private static final Long SENDER_ID = 2L;
-    private static final LocalDateTime SENT_AT = LocalDateTime.of(2026, 9, 28, 21, 0);
+  private static final Long REPORTER_ID = 1L;
+  private static final Long SENDER_ID = 2L;
+  private static final LocalDateTime SENT_AT = LocalDateTime.of(2026, 9, 28, 21, 0);
 
-    private final MemberRepository memberRepository = mock(MemberRepository.class);
-    private final BlindDateSessionStorageImpl sessions = new BlindDateSessionStorageImpl(event -> {});
-    private final BlindDateParticipantStorageImpl participants = new BlindDateParticipantStorageImpl();
-    private final BlindDateReportTargetResolver resolver =
-            new BlindDateReportTargetResolver(memberRepository, participants, sessions);
+  private final MemberRepository memberRepository = mock(MemberRepository.class);
+  private final BlindDateSessionStorageImpl sessions = new BlindDateSessionStorageImpl(event -> {});
+  private final BlindDateParticipantStorageImpl participants =
+      new BlindDateParticipantStorageImpl();
+  private final BlindDateReportTargetResolver resolver =
+      new BlindDateReportTargetResolver(memberRepository, participants, sessions);
 
-    private final Member sender = Member.builder().id(SENDER_ID).build();
-    private String sessionId;
+  private final Member sender = Member.builder().id(SENDER_ID).build();
+  private String sessionId;
 
-    @BeforeEach
-    void setUp() {
-        sessionId = sessions.create().getSessionId();
-        sessions.start(sessionId);
-        participants.addParticipant(sessionId, REPORTER_ID, "socket1");
-        participants.addParticipant(sessionId, SENDER_ID, "socket2");
-        when(memberRepository.findById(SENDER_ID)).thenReturn(Optional.of(sender));
-    }
+  @BeforeEach
+  void setUp() {
+    sessionId = sessions.create().getSessionId();
+    sessions.start(sessionId);
+    participants.addParticipant(sessionId, REPORTER_ID, "socket1");
+    participants.addParticipant(sessionId, SENDER_ID, "socket2");
+    when(memberRepository.findById(SENDER_ID)).thenReturn(Optional.of(sender));
+  }
 
-    private void recordMessage(String messageId, Long senderId, String content) {
-        sessions.recordMessage(sessionId, new BlindDateMessage(messageId, senderId, content, SENT_AT));
-    }
+  private void recordMessage(String messageId, Long senderId, String content) {
+    sessions.recordMessage(sessionId, new BlindDateMessage(messageId, senderId, content, SENT_AT));
+  }
 
-    private CreateBlindDateReportRequest request(String messageId) {
-        return new CreateBlindDateReportRequest(sessionId, messageId, ReportReason.INAPPROPRIATE_CONTENT, null);
-    }
+  private CreateBlindDateReportRequest request(String messageId) {
+    return new CreateBlindDateReportRequest(
+        sessionId, messageId, ReportReason.INAPPROPRIATE_CONTENT, null);
+  }
 
-    @Test
-    @DisplayName("진행 중 세션의 뒤쪽 맥락은 신고 메시지 다음 10개, 세션이 없으면 비어 있다")
-    void findLiveContextAfter_ReturnsFollowingOrEmpty() {
-        recordMessage("target", SENDER_ID, "무례한 말");
-        IntStream.range(0, 12).forEach(i -> recordMessage("a" + i, REPORTER_ID, "뒤" + i));
+  @Test
+  @DisplayName("진행 중 세션의 뒤쪽 맥락은 신고 메시지 다음 10개, 세션이 없으면 비어 있다")
+  void findLiveContextAfter_ReturnsFollowingOrEmpty() {
+    recordMessage("target", SENDER_ID, "무례한 말");
+    IntStream.range(0, 12).forEach(i -> recordMessage("a" + i, REPORTER_ID, "뒤" + i));
 
-        assertThat(resolver.findLiveContextAfter(sessionId, "target")).hasValueSatisfying(after ->
-                assertThat(after.messages()).extracting(ChatMessageSnapshot::content)
-                        .containsExactly("뒤0", "뒤1", "뒤2", "뒤3", "뒤4", "뒤5", "뒤6", "뒤7", "뒤8", "뒤9"));
+    assertThat(resolver.findLiveContextAfter(sessionId, "target"))
+        .hasValueSatisfying(
+            after ->
+                assertThat(after.messages())
+                    .extracting(ChatMessageSnapshot::content)
+                    .containsExactly("뒤0", "뒤1", "뒤2", "뒤3", "뒤4", "뒤5", "뒤6", "뒤7", "뒤8", "뒤9"));
 
-        sessions.terminate(sessionId);
-        assertThat(resolver.findLiveContextAfter(sessionId, "target")).isEmpty();
-    }
+    sessions.terminate(sessionId);
+    assertThat(resolver.findLiveContextAfter(sessionId, "target")).isEmpty();
+  }
 
-    @Test
-    @DisplayName("신고한 메시지의 발신자를 대상으로, 세션 ID·원문·직전 맥락을 복사한다")
-    void resolve_CopiesSnapshot() {
-        recordMessage("m1", REPORTER_ID, "안녕");
-        recordMessage("m2", SENDER_ID, "무례한 말");
-        recordMessage("m3", REPORTER_ID, "뒤의 말");
+  @Test
+  @DisplayName("신고한 메시지의 발신자를 대상으로, 세션 ID·원문·직전 맥락을 복사한다")
+  void resolve_CopiesSnapshot() {
+    recordMessage("m1", REPORTER_ID, "안녕");
+    recordMessage("m2", SENDER_ID, "무례한 말");
+    recordMessage("m3", REPORTER_ID, "뒤의 말");
 
-        MessageReportDraft draft = resolver.resolve(REPORTER_ID, request("m2"));
+    MessageReportDraft draft = resolver.resolve(REPORTER_ID, request("m2"));
 
-        assertThat(draft.reportType()).isEqualTo(ReportType.BLINDDATE_MESSAGE);
-        assertThat(draft.chatRoomId()).isEqualTo(sessionId);
-        assertThat(draft.chatRoomType()).isEqualTo(ReportChatRoomType.BLINDDATE);
-        assertThat(draft.targetUrl()).isEqualTo("/blinddate/session/" + sessionId);
-        assertThat(draft.targetMember()).isEqualTo(sender);
-        assertThat(draft.messageId()).isEqualTo("m2");
-        assertThat(draft.messageContent()).isEqualTo("무례한 말");
-        assertThat(draft.messageSentAt()).isEqualTo(SENT_AT);
-        assertThat(draft.messageContext().messages()).extracting(ChatMessageSnapshot::content)
-                .containsExactly("안녕");
-    }
+    assertThat(draft.reportType()).isEqualTo(ReportType.BLINDDATE_MESSAGE);
+    assertThat(draft.chatRoomId()).isEqualTo(sessionId);
+    assertThat(draft.chatRoomType()).isEqualTo(ReportChatRoomType.BLINDDATE);
+    assertThat(draft.targetUrl()).isEqualTo("/blinddate/session/" + sessionId);
+    assertThat(draft.targetMember()).isEqualTo(sender);
+    assertThat(draft.messageId()).isEqualTo("m2");
+    assertThat(draft.messageContent()).isEqualTo("무례한 말");
+    assertThat(draft.messageSentAt()).isEqualTo(SENT_AT);
+    assertThat(draft.messageContext().messages())
+        .extracting(ChatMessageSnapshot::content)
+        .containsExactly("안녕");
+  }
 
-    @Test
-    @DisplayName("맥락은 신고 메시지 직전 10개만 오래된 순으로 담는다")
-    void resolve_KeepsLastTenBefore() {
-        IntStream.range(0, 15).forEach(i -> recordMessage("c" + i, REPORTER_ID, "말" + i));
-        recordMessage("target", SENDER_ID, "무례한 말");
+  @Test
+  @DisplayName("맥락은 신고 메시지 직전 10개만 오래된 순으로 담는다")
+  void resolve_KeepsLastTenBefore() {
+    IntStream.range(0, 15).forEach(i -> recordMessage("c" + i, REPORTER_ID, "말" + i));
+    recordMessage("target", SENDER_ID, "무례한 말");
 
-        assertThat(resolver.resolve(REPORTER_ID, request("target")).messageContext().messages())
-                .extracting(ChatMessageSnapshot::content)
-                .containsExactly("말5", "말6", "말7", "말8", "말9", "말10", "말11", "말12", "말13", "말14");
-    }
+    assertThat(resolver.resolve(REPORTER_ID, request("target")).messageContext().messages())
+        .extracting(ChatMessageSnapshot::content)
+        .containsExactly("말5", "말6", "말7", "말8", "말9", "말10", "말11", "말12", "말13", "말14");
+  }
 
-    @Test
-    @DisplayName("1,000자를 넘는 원문과 맥락은 잘라서 복사한다")
-    void resolve_TruncatesLongContent() {
-        recordMessage("m1", REPORTER_ID, "나".repeat(3000));
-        recordMessage("m2", SENDER_ID, "가".repeat(3000));
+  @Test
+  @DisplayName("1,000자를 넘는 원문과 맥락은 잘라서 복사한다")
+  void resolve_TruncatesLongContent() {
+    recordMessage("m1", REPORTER_ID, "나".repeat(3000));
+    recordMessage("m2", SENDER_ID, "가".repeat(3000));
 
-        MessageReportDraft draft = resolver.resolve(REPORTER_ID, request("m2"));
+    MessageReportDraft draft = resolver.resolve(REPORTER_ID, request("m2"));
 
-        assertThat(draft.messageContent()).hasSize(1000);
-        assertThat(draft.messageContext().messages().get(0).content()).hasSize(1000);
-    }
+    assertThat(draft.messageContent()).hasSize(1000);
+    assertThat(draft.messageContext().messages().get(0).content()).hasSize(1000);
+  }
 
-    @Test
-    @DisplayName("과팅 참가 기록이 없는 회원은 403")
-    void resolve_NotParticipant_Throws() {
-        recordMessage("m2", SENDER_ID, "무례한 말");
-        CreateBlindDateReportRequest request = request("m2");
+  @Test
+  @DisplayName("과팅 참가 기록이 없는 회원은 403")
+  void resolve_NotParticipant_Throws() {
+    recordMessage("m2", SENDER_ID, "무례한 말");
+    CreateBlindDateReportRequest request = request("m2");
 
-        assertThatThrownBy(() -> resolver.resolve(99L, request))
-                .isInstanceOf(NotBlindDateParticipantException.class);
-    }
+    assertThatThrownBy(() -> resolver.resolve(99L, request))
+        .isInstanceOf(NotBlindDateParticipantException.class);
+  }
 
-    @Test
-    @DisplayName("다른 세션 참가자가 이 세션 메시지를 신고하면 403")
-    void resolve_ParticipantOfOtherSession_Throws() {
-        String otherSessionId = sessions.create().getSessionId();
-        participants.addParticipant(otherSessionId, 3L, "socket3");
-        recordMessage("m2", SENDER_ID, "무례한 말");
-        CreateBlindDateReportRequest request = request("m2");
+  @Test
+  @DisplayName("다른 세션 참가자가 이 세션 메시지를 신고하면 403")
+  void resolve_ParticipantOfOtherSession_Throws() {
+    String otherSessionId = sessions.create().getSessionId();
+    participants.addParticipant(otherSessionId, 3L, "socket3");
+    recordMessage("m2", SENDER_ID, "무례한 말");
+    CreateBlindDateReportRequest request = request("m2");
 
-        assertThatThrownBy(() -> resolver.resolve(3L, request))
-                .isInstanceOf(NotBlindDateParticipantException.class);
-    }
+    assertThatThrownBy(() -> resolver.resolve(3L, request))
+        .isInstanceOf(NotBlindDateParticipantException.class);
+  }
 
-    @Test
-    @DisplayName("대기 중 퇴장으로 참가 기록이 지워진 회원은 403")
-    void resolve_RemovedParticipant_Throws() {
-        recordMessage("m2", SENDER_ID, "무례한 말");
-        participants.removeParticipant(REPORTER_ID);
-        CreateBlindDateReportRequest request = request("m2");
+  @Test
+  @DisplayName("대기 중 퇴장으로 참가 기록이 지워진 회원은 403")
+  void resolve_RemovedParticipant_Throws() {
+    recordMessage("m2", SENDER_ID, "무례한 말");
+    participants.removeParticipant(REPORTER_ID);
+    CreateBlindDateReportRequest request = request("m2");
 
-        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
-                .isInstanceOf(NotBlindDateParticipantException.class);
-    }
+    assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
+        .isInstanceOf(NotBlindDateParticipantException.class);
+  }
 
-    @Test
-    @DisplayName("진행 중 연결이 끊겨도 참가 기록이 남아 있으면 신고할 수 있다")
-    void resolve_DisconnectedDuringProcessing_Allowed() {
-        recordMessage("m2", SENDER_ID, "무례한 말");
-        participants.removeSocket("socket1");
+  @Test
+  @DisplayName("진행 중 연결이 끊겨도 참가 기록이 남아 있으면 신고할 수 있다")
+  void resolve_DisconnectedDuringProcessing_Allowed() {
+    recordMessage("m2", SENDER_ID, "무례한 말");
+    participants.removeSocket("socket1");
 
-        assertThat(resolver.resolve(REPORTER_ID, request("m2")).messageId()).isEqualTo("m2");
-    }
+    assertThat(resolver.resolve(REPORTER_ID, request("m2")).messageId()).isEqualTo("m2");
+  }
 
-    @Test
-    @DisplayName("세션 종료 후에는 참가 기록이 남아도 410으로 거절한다")
-    void resolve_TerminatedSession_Throws() {
-        recordMessage("m2", SENDER_ID, "무례한 말");
-        sessions.terminate(sessionId);
-        CreateBlindDateReportRequest request = request("m2");
+  @Test
+  @DisplayName("세션 종료 후에는 참가 기록이 남아도 410으로 거절한다")
+  void resolve_TerminatedSession_Throws() {
+    recordMessage("m2", SENDER_ID, "무례한 말");
+    sessions.terminate(sessionId);
+    CreateBlindDateReportRequest request = request("m2");
 
-        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
-                .isInstanceOf(BlindDateSessionEndedException.class)
-                .hasMessage("종료된 과팅의 메시지는 신고할 수 없습니다.");
-    }
+    assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
+        .isInstanceOf(BlindDateSessionEndedException.class)
+        .hasMessage("종료된 과팅의 메시지는 신고할 수 없습니다.");
+  }
 
-    @Test
-    @DisplayName("관리자 초기화로 세션과 참가 기록이 모두 지워져도 403이 아니라 410으로 거절한다")
-    void resolve_ClearedByAdmin_ThrowsGone() {
-        recordMessage("m2", SENDER_ID, "무례한 말");
-        sessions.clear();
-        participants.clear();
-        CreateBlindDateReportRequest request = request("m2");
+  @Test
+  @DisplayName("관리자 초기화로 세션과 참가 기록이 모두 지워져도 403이 아니라 410으로 거절한다")
+  void resolve_ClearedByAdmin_ThrowsGone() {
+    recordMessage("m2", SENDER_ID, "무례한 말");
+    sessions.clear();
+    participants.clear();
+    CreateBlindDateReportRequest request = request("m2");
 
-        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
-                .isInstanceOf(BlindDateSessionEndedException.class);
-    }
+    assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
+        .isInstanceOf(BlindDateSessionEndedException.class);
+  }
 
-    @Test
-    @DisplayName("없는 메시지는 enum·ID를 노출하지 않는 문구로 404")
-    void resolve_UnknownMessage_Throws() {
-        CreateBlindDateReportRequest request = request("missing");
+  @Test
+  @DisplayName("없는 메시지는 enum·ID를 노출하지 않는 문구로 404")
+  void resolve_UnknownMessage_Throws() {
+    CreateBlindDateReportRequest request = request("missing");
 
-        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
-                .isInstanceOf(BlindDateMessageNotFoundException.class)
-                .hasMessage("신고할 메시지를 찾을 수 없습니다.");
-    }
+    assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
+        .isInstanceOf(BlindDateMessageNotFoundException.class)
+        .hasMessage("신고할 메시지를 찾을 수 없습니다.");
+  }
 
-    @Test
-    @DisplayName("자기 메시지는 신고할 수 없다")
-    void resolve_SelfReport_Throws() {
-        recordMessage("m1", REPORTER_ID, "내 말");
-        CreateBlindDateReportRequest request = request("m1");
+  @Test
+  @DisplayName("자기 메시지는 신고할 수 없다")
+  void resolve_SelfReport_Throws() {
+    recordMessage("m1", REPORTER_ID, "내 말");
+    CreateBlindDateReportRequest request = request("m1");
 
-        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
-                .isInstanceOf(SelfReportException.class);
-    }
+    assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
+        .isInstanceOf(SelfReportException.class);
+  }
 }

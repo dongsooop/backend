@@ -17,27 +17,9 @@ import java.util.List;
 @MinDuration // 최소 하루
 @EndAtAfterStartAt
 public record CreateProjectBoardRequest(
-
-        @NotBlank
-        String title,
-
-        @NotBlank
-        String content,
-
-        @BoardTag
-        String tags,
-
-        @NotNull
-        @MaxDate(month = 3)
-        @TodayOrFuture
-        LocalDateTime startAt,
-
-        @NotNull
-        @TodayOrFuture
-        LocalDateTime endAt,
-
-        @NotNull
-        @Size(min = 1)
-        List<DepartmentType> departmentTypeList
-) {
-}
+    @NotBlank String title,
+    @NotBlank String content,
+    @BoardTag String tags,
+    @NotNull @MaxDate(month = 3) @TodayOrFuture LocalDateTime startAt,
+    @NotNull @TodayOrFuture LocalDateTime endAt,
+    @NotNull @Size(min = 1) List<DepartmentType> departmentTypeList) {}

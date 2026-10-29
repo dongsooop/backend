@@ -7,13 +7,13 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 
 public interface SocialProvider {
 
-    String serviceName();
+  String serviceName();
 
-    String extractProviderId(OAuth2User oAuth2User, String registrationId);
+  String extractProviderId(OAuth2User oAuth2User, String registrationId);
 
-    Authentication login(String accessToken);
+  Authentication login(String accessToken);
 
-    LocalDateTime linkSocialAccount(Long memberId, SocialAccountLinkRequest request);
+  LocalDateTime linkSocialAccount(Long memberId, SocialAccountLinkRequest request);
 
-    void revoke(String refreshToken);
+  void revoke(String refreshToken);
 }

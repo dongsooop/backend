@@ -11,13 +11,12 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class RecruitmentRepositoryUtilsImpl implements RecruitmentRepositoryUtils {
 
-    private final Clock clock;
+  private final Clock clock;
 
-    public BooleanExpression isRecruiting(DateTimePath<LocalDateTime> startAt,
-                                          DateTimePath<LocalDateTime> endAt) {
-        LocalDateTime now = LocalDateTime.now(clock);
+  public BooleanExpression isRecruiting(
+      DateTimePath<LocalDateTime> startAt, DateTimePath<LocalDateTime> endAt) {
+    LocalDateTime now = LocalDateTime.now(clock);
 
-        return endAt.gt(now)
-                .and(startAt.lt(now));
-    }
+    return endAt.gt(now).and(startAt.lt(now));
+  }
 }

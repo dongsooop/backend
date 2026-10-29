@@ -7,87 +7,67 @@ import java.util.Set;
 
 public interface BlindDateParticipantStorage {
 
-    /**
-     * 참여자 추가 또는 소켓 추가
-     *
-     * @param sessionId 참여하려는 세션 id
-     * @param memberId  참여 주체 회원 id
-     * @param socketId  참여 주체 소켓 id
-     */
-    ParticipantInfo addParticipant(String sessionId, Long memberId, String socketId);
+  /**
+   * 참여자 추가 또는 소켓 추가
+   *
+   * @param sessionId 참여하려는 세션 id
+   * @param memberId 참여 주체 회원 id
+   * @param socketId 참여 주체 소켓 id
+   */
+  ParticipantInfo addParticipant(String sessionId, Long memberId, String socketId);
 
-    /**
-     * 소켓 제거 (연결 해제)
-     *
-     * @return 제거 후 연결된 소켓이 하나도 없으면 true
-     */
-    boolean removeSocket(String socketId);
+  /**
+   * 소켓 제거 (연결 해제)
+   *
+   * @return 제거 후 연결된 소켓이 하나도 없으면 true
+   */
+  boolean removeSocket(String socketId);
 
-    /**
-     * 회원 ID로 참여 정보 조회
-     */
-    ParticipantInfo getByMemberId(Long memberId);
+  /** 회원 ID로 참여 정보 조회 */
+  ParticipantInfo getByMemberId(Long memberId);
 
-    /**
-     * 소켓 ID로 참여 정보 조회
-     */
-    ParticipantInfo getBySocketId(String socketId);
+  /** 소켓 ID로 참여 정보 조회 */
+  ParticipantInfo getBySocketId(String socketId);
 
-    /**
-     * 세션의 참여자 수 조회
-     */
-    List<ParticipantInfo> findAllBySessionId(String sessionId);
+  /** 세션의 참여자 수 조회 */
+  List<ParticipantInfo> findAllBySessionId(String sessionId);
 
-    /**
-     * 세션의 참여자 ID와 이름 Map
-     */
-    Map<Long, String> getParticipantsIdAndName(String sessionId);
+  /** 세션의 참여자 ID와 이름 Map */
+  Map<Long, String> getParticipantsIdAndName(String sessionId);
 
-    /** 선택 대상 참가자 목록을 고정한다. 반복 호출로 기존 응답을 초기화하지 않는다. */
-    void openChoices(String sessionId);
+  /** 선택 대상 참가자 목록을 고정한다. 반복 호출로 기존 응답을 초기화하지 않는다. */
+  void openChoices(String sessionId);
 
-    /** 접수된 최종 선택의 스냅샷을 반환한다. null은 미선택이다. */
-    Map<Long, Long> getChoices(String sessionId);
+  /** 접수된 최종 선택의 스냅샷을 반환한다. null은 미선택이다. */
+  Map<Long, Long> getChoices(String sessionId);
 
-    /**
-     * 최초 유효 응답을 기록한다. 새 응답을 접수한 경우에만 true를 반환한다.
-     */
-    boolean recordChoice(String sessionId, Long choicerId, Long targetId);
+  /** 최초 유효 응답을 기록한다. 새 응답을 접수한 경우에만 true를 반환한다. */
+  boolean recordChoice(String sessionId, Long choicerId, Long targetId);
 
-    /** 상호 선택 쌍의 처리 권한을 한 번만 획득한다. 없거나 이미 처리한 쌍이면 null이다. */
-    Long claimMutualChoice(String sessionId, Long memberId);
+  /** 상호 선택 쌍의 처리 권한을 한 번만 획득한다. 없거나 이미 처리한 쌍이면 null이다. */
+  Long claimMutualChoice(String sessionId, Long memberId);
 
-    /**
-     * 매칭 확인
-     */
-    boolean isMatched(String sessionId, Long memberId);
+  /** 매칭 확인 */
+  boolean isMatched(String sessionId, Long memberId);
 
-    /**
-     * 전체 데이터 초기화
-     */
-    void clear();
+  /** 전체 데이터 초기화 */
+  void clear();
 
-    /**
-     * 참여자 제거 (회원 ID로)
-     */
-    void removeParticipant(Long memberId);
+  /** 참여자 제거 (회원 ID로) */
+  void removeParticipant(Long memberId);
 
-    /**
-     * 세션 참가자를 내보내고 전체 초기화 전까지 재입장을 막는다. 선택 대상과 접수된 응답에서도 뺀다.
-     *
-     * @return 내보낸 참가 정보. 그 세션의 참가자가 아니면 null
-     */
-    ParticipantInfo kick(String sessionId, Long memberId);
+  /**
+   * 세션 참가자를 내보내고 전체 초기화 전까지 재입장을 막는다. 선택 대상과 접수된 응답에서도 뺀다.
+   *
+   * @return 내보낸 참가 정보. 그 세션의 참가자가 아니면 null
+   */
+  ParticipantInfo kick(String sessionId, Long memberId);
 
-    boolean isKicked(Long memberId);
+  boolean isKicked(Long memberId);
 
-    /**
-     * 익명 이름 조회
-     */
-    String getAnonymousName(Long memberId);
+  /** 익명 이름 조회 */
+  String getAnonymousName(Long memberId);
 
-    /**
-     * 매칭되지 않은 멤버 조회
-     */
-    Set<Long> getNotMatched(String sessionId);
+  /** 매칭되지 않은 멤버 조회 */
+  Set<Long> getNotMatched(String sessionId);
 }

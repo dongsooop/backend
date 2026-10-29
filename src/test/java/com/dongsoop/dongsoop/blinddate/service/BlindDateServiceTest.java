@@ -27,114 +27,127 @@ import org.junit.jupiter.api.Test;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 class BlindDateServiceTest {
-    private final BlindDateParticipantStorageImpl participants = new BlindDateParticipantStorageImpl();
-    private final BlindDateSessionStorageImpl sessions = new BlindDateSessionStorageImpl(event -> {});
-    private final BlindDateStorageImpl operation = new BlindDateStorageImpl();
-    private final BlindDateEventQueue queue = new BlindDateEventQueue();
-    private final ManualBlindDateTaskScheduler time = new ManualBlindDateTaskScheduler();
-    private final BlindDateNotification notification = mock(BlindDateNotification.class);
-    private final SimpMessagingTemplate messaging = mock(SimpMessagingTemplate.class);
-    private final List<Event> events = new ArrayList<>();
-    private final BlindDateServiceImpl service = new BlindDateServiceImpl(
-            participants, operation, notification, sessions, messaging, time, queue, new BlindDateMessageProvider());
+  private final BlindDateParticipantStorageImpl participants =
+      new BlindDateParticipantStorageImpl();
+  private final BlindDateSessionStorageImpl sessions = new BlindDateSessionStorageImpl(event -> {});
+  private final BlindDateStorageImpl operation = new BlindDateStorageImpl();
+  private final BlindDateEventQueue queue = new BlindDateEventQueue();
+  private final ManualBlindDateTaskScheduler time = new ManualBlindDateTaskScheduler();
+  private final BlindDateNotification notification = mock(BlindDateNotification.class);
+  private final SimpMessagingTemplate messaging = mock(SimpMessagingTemplate.class);
+  private final List<Event> events = new ArrayList<>();
+  private final BlindDateServiceImpl service =
+      new BlindDateServiceImpl(
+          participants,
+          operation,
+          notification,
+          sessions,
+          messaging,
+          time,
+          queue,
+          new BlindDateMessageProvider());
 
-    @BeforeEach
-    void setUp() {
-        doAnswer(call -> {
-            events.add(new Event(call.getArgument(0), call.getArgument(1)));
-            return null;
-        }).when(messaging).convertAndSend(anyString(), any(Object.class));
-    }
+  @BeforeEach
+  void setUp() {
+    doAnswer(
+            call -> {
+              events.add(new Event(call.getArgument(0), call.getArgument(1)));
+              return null;
+            })
+        .when(messaging)
+        .convertAndSend(anyString(), any(Object.class));
+  }
 
-    @AfterEach
-    void tearDown() {
-        queue.shutdown();
-    }
+  @AfterEach
+  void tearDown() {
+    queue.shutdown();
+  }
 
-    @Test
-    void startChangesAvailabilityAndCapacity() {
-        assertThat(service.isAvailable()).isFalse();
-        service.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 5));
-        assertThat(service.isAvailable()).isTrue();
-        assertThat(operation.getMaxSessionMemberCount()).isEqualTo(5);
-    }
+  @Test
+  void startChangesAvailabilityAndCapacity() {
+    assertThat(service.isAvailable()).isFalse();
+    service.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 5));
+    assertThat(service.isAvailable()).isTrue();
+    assertThat(operation.getMaxSessionMemberCount()).isEqualTo(5);
+  }
 
-    @Test
-    void notificationFailureDoesNotPreventStart() {
-        doThrow(new IllegalStateException("delivery failed")).when(notification).send();
-        service.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 5));
-        assertThat(service.isAvailable()).isTrue();
-        assertThat(operation.getMaxSessionMemberCount()).isEqualTo(5);
-    }
+  @Test
+  void notificationFailureDoesNotPreventStart() {
+    doThrow(new IllegalStateException("delivery failed")).when(notification).send();
+    service.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 5));
+    assertThat(service.isAvailable()).isTrue();
+    assertThat(operation.getMaxSessionMemberCount()).isEqualTo(5);
+  }
 
-    @Test
-    void timerFailureLeavesOperationClosed() {
-        time.rejectAbsoluteSchedules();
-        StartBlindDateRequest request = new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 5);
+  @Test
+  void timerFailureLeavesOperationClosed() {
+    time.rejectAbsoluteSchedules();
+    StartBlindDateRequest request = new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 5);
 
-        assertThatThrownBy(() -> service.startBlindDate(request))
-                .isInstanceOf(RuntimeException.class);
-        assertThat(service.isAvailable()).isFalse();
-        assertThat(operation.getPointer()).isNull();
-    }
+    assertThatThrownBy(() -> service.startBlindDate(request)).isInstanceOf(RuntimeException.class);
+    assertThat(service.isAvailable()).isFalse();
+    assertThat(operation.getPointer()).isNull();
+  }
 
-    @Test
-    void resetDropsAllParticipationAndChoicesButKeepsOperationAndExpiry() {
-        service.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusMinutes(1), 5));
-        String id = sessions.create().getSessionId();
-        operation.setPointer(id);
-        participants.addParticipant(id, 1L, "one");
-        participants.openChoices(id);
-        participants.recordChoice(id, 1L, null);
-        service.resetParticipants();
-        queue.awaitIdle();
-        assertThat(service.isAvailable()).isTrue();
-        assertThat(operation.getMaxSessionMemberCount()).isEqualTo(5);
-        assertThat(operation.getPointer()).isNull();
-        assertThat(sessions.getState(id)).isNull();
-        assertThat(participants.getByMemberId(1L)).isNull();
-        assertThat(participants.getBySocketId("one")).isNull();
-        assertThat(participants.getChoices(id)).isEmpty();
+  @Test
+  void resetDropsAllParticipationAndChoicesButKeepsOperationAndExpiry() {
+    service.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusMinutes(1), 5));
+    String id = sessions.create().getSessionId();
+    operation.setPointer(id);
+    participants.addParticipant(id, 1L, "one");
+    participants.openChoices(id);
+    participants.recordChoice(id, 1L, null);
+    service.resetParticipants();
+    queue.awaitIdle();
+    assertThat(service.isAvailable()).isTrue();
+    assertThat(operation.getMaxSessionMemberCount()).isEqualTo(5);
+    assertThat(operation.getPointer()).isNull();
+    assertThat(sessions.getState(id)).isNull();
+    assertThat(participants.getByMemberId(1L)).isNull();
+    assertThat(participants.getBySocketId("one")).isNull();
+    assertThat(participants.getChoices(id)).isEmpty();
 
-        time.advanceBy(120_000);
-        assertThat(service.isAvailable()).isFalse();
-    }
+    time.advanceBy(120_000);
+    assertThat(service.isAvailable()).isFalse();
+  }
 
-    @Test
-    void expirationClosesNewEntryBeforeDelayedRecordCleanup() {
-        service.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusMinutes(1), 5));
-        String id = sessions.create().getSessionId();
-        participants.addParticipant(id, 1L, "one");
-        time.advanceBy(120_000);
-        assertThat(service.isAvailable()).isFalse();
-        assertThat(participants.getByMemberId(1L)).isNotNull();
-        time.advanceBy(30 * 60_000);
-        queue.awaitIdle();
-        assertThat(sessions.getState(id)).isNull();
-        assertThat(participants.getByMemberId(1L)).isNull();
-    }
+  @Test
+  void expirationClosesNewEntryBeforeDelayedRecordCleanup() {
+    service.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusMinutes(1), 5));
+    String id = sessions.create().getSessionId();
+    participants.addParticipant(id, 1L, "one");
+    time.advanceBy(120_000);
+    assertThat(service.isAvailable()).isFalse();
+    assertThat(participants.getByMemberId(1L)).isNotNull();
+    time.advanceBy(30 * 60_000);
+    queue.awaitIdle();
+    assertThat(sessions.getState(id)).isNull();
+    assertThat(participants.getByMemberId(1L)).isNull();
+  }
 
-    @Test
-    void joinedCountPublishesSessionAndPayload() {
-        service.broadcastJoinedCount("session", 5);
-        assertThat(events).containsExactly(new Event(BlindDateTopic.joined("session"), Map.of("volunteer", 5)));
-    }
+  @Test
+  void joinedCountPublishesSessionAndPayload() {
+    service.broadcastJoinedCount("session", 5);
+    assertThat(events)
+        .containsExactly(new Event(BlindDateTopic.joined("session"), Map.of("volunteer", 5)));
+  }
 
-    @Test
-    void kickContinuesWhenKickedMemberNotificationFails() {
-        String id = sessions.create().getSessionId();
-        participants.addParticipant(id, 1L, "one");
-        participants.addParticipant(id, 2L, "two");
-        doThrow(new IllegalStateException("delivery failed")).when(messaging)
-                .convertAndSendToUser(anyString(), anyString(), any(Object.class));
+  @Test
+  void kickContinuesWhenKickedMemberNotificationFails() {
+    String id = sessions.create().getSessionId();
+    participants.addParticipant(id, 1L, "one");
+    participants.addParticipant(id, 2L, "two");
+    doThrow(new IllegalStateException("delivery failed"))
+        .when(messaging)
+        .convertAndSendToUser(anyString(), anyString(), any(Object.class));
 
-        service.kickParticipant(id, 2L);
-        queue.awaitIdle();
+    service.kickParticipant(id, 2L);
+    queue.awaitIdle();
 
-        assertThat(participants.getByMemberId(2L)).isNull();
-        assertThat(events).extracting(Event::destination).contains(BlindDateTopic.system(id));
-        assertThat(events).contains(new Event(BlindDateTopic.joined(id), Map.of("volunteer", 1)));
-    }
+    assertThat(participants.getByMemberId(2L)).isNull();
+    assertThat(events).extracting(Event::destination).contains(BlindDateTopic.system(id));
+    assertThat(events).contains(new Event(BlindDateTopic.joined(id), Map.of("volunteer", 1)));
+  }
 
-    private record Event(String destination, Object payload) {}
+  private record Event(String destination, Object payload) {}
 }

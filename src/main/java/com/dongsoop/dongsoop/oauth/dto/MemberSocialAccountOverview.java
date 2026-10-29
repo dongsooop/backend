@@ -4,8 +4,4 @@ import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
 import java.time.LocalDateTime;
 
 public record MemberSocialAccountOverview(
-
-        OAuthProviderType providerType,
-        LocalDateTime createdAt
-) {
-}
+    OAuthProviderType providerType, LocalDateTime createdAt) {}

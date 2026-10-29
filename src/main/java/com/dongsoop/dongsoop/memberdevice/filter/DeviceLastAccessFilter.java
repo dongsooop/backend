@@ -18,22 +18,25 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Slf4j
 public class DeviceLastAccessFilter extends OncePerRequestFilter {
 
-    private final MemberDeviceService memberDeviceService;
-    private final DeviceUtil deviceUtil;
+  private final MemberDeviceService memberDeviceService;
+  private final DeviceUtil deviceUtil;
 
-    @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request,
-                                    @NonNull HttpServletResponse response,
-                                    @NonNull FilterChain filterChain) throws ServletException, IOException {
-        Long deviceId = deviceUtil.getDeviceIdFromContext();
-        if (deviceId != null) {
-            try {
-                memberDeviceService.updateLastAccessAsync(deviceId);
-            } catch (Exception e) {
-                log.debug("Failed to update device last access for deviceId={}: {}", deviceId, e.getMessage());
-            }
-        }
-
-        filterChain.doFilter(request, response);
+  @Override
+  protected void doFilterInternal(
+      @NonNull HttpServletRequest request,
+      @NonNull HttpServletResponse response,
+      @NonNull FilterChain filterChain)
+      throws ServletException, IOException {
+    Long deviceId = deviceUtil.getDeviceIdFromContext();
+    if (deviceId != null) {
+      try {
+        memberDeviceService.updateLastAccessAsync(deviceId);
+      } catch (Exception e) {
+        log.debug(
+            "Failed to update device last access for deviceId={}: {}", deviceId, e.getMessage());
+      }
     }
+
+    filterChain.doFilter(request, response);
+  }
 }

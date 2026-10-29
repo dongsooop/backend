@@ -14,41 +14,43 @@ import org.springframework.stereotype.Component;
 @Component
 public class StudyRecruitmentProjection implements RecruitmentProjection {
 
-    private static final QStudyBoard board = QStudyBoard.studyBoard;
-    private static final QStudyApply apply = QStudyApply.studyApply;
-    private static final QStudyBoardDepartment boardDepartment = QStudyBoardDepartment.studyBoardDepartment;
+  private static final QStudyBoard board = QStudyBoard.studyBoard;
+  private static final QStudyApply apply = QStudyApply.studyApply;
+  private static final QStudyBoardDepartment boardDepartment =
+      QStudyBoardDepartment.studyBoardDepartment;
 
-    @Override
-    public ConstructorExpression<RecruitmentOverview> getRecruitmentOverviewExpression() {
-        return Projections.constructor(RecruitmentOverview.class,
-                board.id,
-                apply.member.countDistinct().intValue(),
-                board.startAt,
-                board.endAt,
-                board.title,
-                board.content,
-                board.tags,
-                Expressions.stringTemplate("string_agg({0}, ',')",
-                        boardDepartment.department.id));
-    }
+  @Override
+  public ConstructorExpression<RecruitmentOverview> getRecruitmentOverviewExpression() {
+    return Projections.constructor(
+        RecruitmentOverview.class,
+        board.id,
+        apply.member.countDistinct().intValue(),
+        board.startAt,
+        board.endAt,
+        board.title,
+        board.content,
+        board.tags,
+        Expressions.stringTemplate("string_agg({0}, ',')", boardDepartment.department.id));
+  }
 
-    @Override
-    public ConstructorExpression<RecruitmentDetails> getRecruitmentDetailsExpression(RecruitmentViewType viewType,
-                                                                                     boolean isAlreadyApplied) {
-        return Projections.constructor(RecruitmentDetails.class,
-                board.id,
-                board.author.id,
-                board.title,
-                board.content,
-                board.tags,
-                board.startAt,
-                board.endAt,
-                Expressions.stringTemplate("string_agg({0}, ',')", boardDepartment.department.id),
-                board.author.nickname,
-                board.createdAt,
-                board.updatedAt,
-                apply.member.countDistinct().intValue(),
-                Expressions.constant(viewType),
-                Expressions.constant(isAlreadyApplied));
-    }
+  @Override
+  public ConstructorExpression<RecruitmentDetails> getRecruitmentDetailsExpression(
+      RecruitmentViewType viewType, boolean isAlreadyApplied) {
+    return Projections.constructor(
+        RecruitmentDetails.class,
+        board.id,
+        board.author.id,
+        board.title,
+        board.content,
+        board.tags,
+        board.startAt,
+        board.endAt,
+        Expressions.stringTemplate("string_agg({0}, ',')", boardDepartment.department.id),
+        board.author.nickname,
+        board.createdAt,
+        board.updatedAt,
+        apply.member.countDistinct().intValue(),
+        Expressions.constant(viewType),
+        Expressions.constant(isAlreadyApplied));
+  }
 }

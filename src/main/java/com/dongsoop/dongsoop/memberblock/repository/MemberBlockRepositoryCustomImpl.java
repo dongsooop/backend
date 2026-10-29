@@ -13,21 +13,18 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class MemberBlockRepositoryCustomImpl implements MemberBlockRepositoryCustom {
 
-    private static final QMemberBlock memberBlock = QMemberBlock.memberBlock;
-    private static final QMember member = QMember.member;
+  private static final QMemberBlock memberBlock = QMemberBlock.memberBlock;
+  private static final QMember member = QMember.member;
 
-    private final JPAQueryFactory queryFactory;
+  private final JPAQueryFactory queryFactory;
 
-    @Override
-    public List<BlockedMember> findByBlockerId(Long blockerId) {
-        return queryFactory
-                .select(Projections.constructor(BlockedMember.class,
-                        member.id,
-                        member.nickname
-                ))
-                .from(memberBlock)
-                .leftJoin(memberBlock.blockedMember, member)
-                .where(memberBlock.blocker.id.eq(blockerId))
-                .fetch();
-    }
+  @Override
+  public List<BlockedMember> findByBlockerId(Long blockerId) {
+    return queryFactory
+        .select(Projections.constructor(BlockedMember.class, member.id, member.nickname))
+        .from(memberBlock)
+        .leftJoin(memberBlock.blockedMember, member)
+        .where(memberBlock.blocker.id.eq(blockerId))
+        .fetch();
+  }
 }

@@ -42,152 +42,153 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class OAuth2Controller {
 
-    private final MemberService memberService;
-    private final MemberDeviceService memberDeviceService;
-    private final OAuth2Service oAuth2Service;
-    private final KakaoSocialProvider kakaoSocialProvider;
-    private final GoogleSocialProvider googleSocialProvider;
-    private final AppleSocialProvider appleSocialProvider;
-    private final FCMService fcmService;
+  private final MemberService memberService;
+  private final MemberDeviceService memberDeviceService;
+  private final OAuth2Service oAuth2Service;
+  private final KakaoSocialProvider kakaoSocialProvider;
+  private final GoogleSocialProvider googleSocialProvider;
+  private final AppleSocialProvider appleSocialProvider;
+  private final FCMService fcmService;
 
-    @Value("${oauth.apple.redirect-uri}")
-    private String appleRedirectUri;
+  @Value("${oauth.apple.redirect-uri}")
+  private String appleRedirectUri;
 
-    @Value("${oauth.apple.package}")
-    private String packageId;
+  @Value("${oauth.apple.package}")
+  private String packageId;
 
-    @Value("${oauth.apple.scheme}")
-    private String appleScheme;
+  @Value("${oauth.apple.scheme}")
+  private String appleScheme;
 
-    @Value("${notification.topic.anonymous}")
-    private String anonymousTopic;
+  @Value("${notification.topic.anonymous}")
+  private String anonymousTopic;
 
-    // 애플 로그인 리다이렉트 방식 콜백
-    @PostMapping("/apple/callback")
-    public ResponseEntity<Void> appleCallback(
-            @RequestParam("code") String code,
-            @RequestParam("id_token") String idToken) {
-        String redirectUri = String.format(appleRedirectUri,
-                code,
-                idToken,
-                packageId,
-                appleScheme);
+  // 애플 로그인 리다이렉트 방식 콜백
+  @PostMapping("/apple/callback")
+  public ResponseEntity<Void> appleCallback(
+      @RequestParam("code") String code, @RequestParam("id_token") String idToken) {
+    String redirectUri = String.format(appleRedirectUri, code, idToken, packageId, appleScheme);
 
-        return ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create(redirectUri))
-                .build();
+    return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(redirectUri)).build();
+  }
+
+  @PostMapping("/kakao")
+  public ResponseEntity<LoginResponse> kakaoLogin(@RequestBody @Valid SocialLoginRequest request) {
+    Authentication authentication = this.kakaoSocialProvider.login(request.token());
+    Long memberId = this.getMemberIdByAuthentication(authentication);
+
+    String effectiveToken =
+        bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
+
+    LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, effectiveToken);
+    return ResponseEntity.ok(response);
+  }
+
+  @PostMapping("/google")
+  public ResponseEntity<LoginResponse> googleLogin(@RequestBody @Valid SocialLoginRequest request) {
+    Authentication authentication = this.googleSocialProvider.login(request.token());
+    Long memberId = this.getMemberIdByAuthentication(authentication);
+
+    String effectiveToken =
+        bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
+
+    LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, effectiveToken);
+    return ResponseEntity.ok(response);
+  }
+
+  @PostMapping("/apple")
+  public ResponseEntity<LoginResponse> appleLogin(@RequestBody @Valid SocialLoginRequest request) {
+    Authentication authentication = this.appleSocialProvider.login(request.token());
+    Long memberId = this.getMemberIdByAuthentication(authentication);
+
+    String effectiveToken =
+        bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
+
+    LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, effectiveToken);
+    return ResponseEntity.ok(response);
+  }
+
+  private Long getMemberIdByAuthentication(Authentication authentication) {
+    Object principal = authentication.getPrincipal();
+    if (!(principal instanceof Long memberId)) {
+      throw new NotAuthenticationException();
     }
 
-    @PostMapping("/kakao")
-    public ResponseEntity<LoginResponse> kakaoLogin(@RequestBody @Valid SocialLoginRequest request) {
-        Authentication authentication = this.kakaoSocialProvider.login(request.token());
-        Long memberId = this.getMemberIdByAuthentication(authentication);
+    return memberId;
+  }
 
-        String effectiveToken = bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
+  @PostMapping("/link/google")
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<LocalDateTime> linkGoogleAccount(
+      @RequestBody @Valid SocialAccountLinkRequest request) {
+    Long memberId = this.memberService.getMemberIdByAuthentication();
 
-        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, effectiveToken);
-        return ResponseEntity.ok(response);
+    LocalDateTime createdAt = googleSocialProvider.linkSocialAccount(memberId, request);
+
+    return ResponseEntity.ok(createdAt);
+  }
+
+  @PostMapping("/link/kakao")
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<LocalDateTime> linkKakaoAccount(
+      @RequestBody @Valid SocialAccountLinkRequest request) {
+    Long memberId = this.memberService.getMemberIdByAuthentication();
+
+    LocalDateTime createdAt = kakaoSocialProvider.linkSocialAccount(memberId, request);
+
+    return ResponseEntity.ok(createdAt);
+  }
+
+  @PostMapping("/link/apple")
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<LocalDateTime> linkAppleAccount(
+      @RequestBody @Valid SocialAccountLinkRequest request) {
+    Long memberId = this.memberService.getMemberIdByAuthentication();
+
+    LocalDateTime createdAt = appleSocialProvider.linkSocialAccount(memberId, request);
+
+    return ResponseEntity.ok(createdAt);
+  }
+
+  @DeleteMapping("/{providerType}")
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<Void> unlinkSocialAccount(
+      @PathVariable @NotBlank String providerType,
+      @RequestBody @Valid UnlinkSocialAccountRequest request) {
+
+    try {
+      OAuthProviderType oAuthProviderType = OAuthProviderType.valueOf(providerType.toUpperCase());
+
+      Long memberId = this.memberService.getMemberIdByAuthentication();
+      oAuth2Service.unlinkMemberWithProviderType(memberId, oAuthProviderType, request);
+
+      return ResponseEntity.noContent().build();
+    } catch (IllegalArgumentException e) {
+      throw new InvalidProviderTypeException(providerType);
+    }
+  }
+
+  @GetMapping("/state")
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<List<MemberSocialAccountOverview>> getSocialAccountState() {
+    List<MemberSocialAccountOverview> socialAccountState =
+        this.oAuth2Service.getSocialAccountState(memberService.getMemberIdByAuthentication());
+
+    return ResponseEntity.ok(socialAccountState);
+  }
+
+  private String bindOrCreateDevice(
+      Long memberId, String deviceToken, MemberDeviceType deviceType) {
+    if (deviceType == MemberDeviceType.WEB
+        || !org.springframework.util.StringUtils.hasText(deviceToken)) {
+      return memberDeviceService.createAndBindWebDevice(memberId, deviceToken);
     }
 
-    @PostMapping("/google")
-    public ResponseEntity<LoginResponse> googleLogin(@RequestBody @Valid SocialLoginRequest request) {
-        Authentication authentication = this.googleSocialProvider.login(request.token());
-        Long memberId = this.getMemberIdByAuthentication(authentication);
+    memberDeviceService.bindDeviceWithMemberId(memberId, deviceToken);
+    unsubscribeAnonymous(deviceToken);
+    return deviceToken;
+  }
 
-        String effectiveToken = bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
-
-        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, effectiveToken);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/apple")
-    public ResponseEntity<LoginResponse> appleLogin(@RequestBody @Valid SocialLoginRequest request) {
-        Authentication authentication = this.appleSocialProvider.login(request.token());
-        Long memberId = this.getMemberIdByAuthentication(authentication);
-
-        String effectiveToken = bindOrCreateDevice(memberId, request.deviceToken(), request.deviceType());
-
-        LoginResponse response = oAuth2Service.acceptLogin(authentication, memberId, effectiveToken);
-        return ResponseEntity.ok(response);
-    }
-
-    private Long getMemberIdByAuthentication(Authentication authentication) {
-        Object principal = authentication.getPrincipal();
-        if (!(principal instanceof Long memberId)) {
-            throw new NotAuthenticationException();
-        }
-
-        return memberId;
-    }
-
-    @PostMapping("/link/google")
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<LocalDateTime> linkGoogleAccount(@RequestBody @Valid SocialAccountLinkRequest request) {
-        Long memberId = this.memberService.getMemberIdByAuthentication();
-
-        LocalDateTime createdAt = googleSocialProvider.linkSocialAccount(memberId, request);
-
-        return ResponseEntity.ok(createdAt);
-    }
-
-    @PostMapping("/link/kakao")
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<LocalDateTime> linkKakaoAccount(@RequestBody @Valid SocialAccountLinkRequest request) {
-        Long memberId = this.memberService.getMemberIdByAuthentication();
-
-        LocalDateTime createdAt = kakaoSocialProvider.linkSocialAccount(memberId, request);
-
-        return ResponseEntity.ok(createdAt);
-    }
-
-    @PostMapping("/link/apple")
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<LocalDateTime> linkAppleAccount(@RequestBody @Valid SocialAccountLinkRequest request) {
-        Long memberId = this.memberService.getMemberIdByAuthentication();
-
-        LocalDateTime createdAt = appleSocialProvider.linkSocialAccount(memberId, request);
-
-        return ResponseEntity.ok(createdAt);
-    }
-
-    @DeleteMapping("/{providerType}")
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> unlinkSocialAccount(@PathVariable @NotBlank String providerType,
-                                                    @RequestBody @Valid UnlinkSocialAccountRequest request) {
-
-        try {
-            OAuthProviderType oAuthProviderType = OAuthProviderType.valueOf(providerType.toUpperCase());
-
-            Long memberId = this.memberService.getMemberIdByAuthentication();
-            oAuth2Service.unlinkMemberWithProviderType(memberId, oAuthProviderType, request);
-
-            return ResponseEntity.noContent()
-                    .build();
-        } catch (IllegalArgumentException e) {
-            throw new InvalidProviderTypeException(providerType);
-        }
-    }
-
-    @GetMapping("/state")
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<List<MemberSocialAccountOverview>> getSocialAccountState() {
-        List<MemberSocialAccountOverview> socialAccountState = this.oAuth2Service.getSocialAccountState(
-                memberService.getMemberIdByAuthentication());
-
-        return ResponseEntity.ok(socialAccountState);
-    }
-
-    private String bindOrCreateDevice(Long memberId, String deviceToken, MemberDeviceType deviceType) {
-        if (deviceType == MemberDeviceType.WEB || !org.springframework.util.StringUtils.hasText(deviceToken)) {
-            return memberDeviceService.createAndBindWebDevice(memberId, deviceToken);
-        }
-
-        memberDeviceService.bindDeviceWithMemberId(memberId, deviceToken);
-        unsubscribeAnonymous(deviceToken);
-        return deviceToken;
-    }
-
-    private void unsubscribeAnonymous(String deviceToken) {
-        fcmService.unsubscribeTopic(List.of(deviceToken), anonymousTopic);
-    }
+  private void unsubscribeAnonymous(String deviceToken) {
+    fcmService.unsubscribeTopic(List.of(deviceToken), anonymousTopic);
+  }
 }

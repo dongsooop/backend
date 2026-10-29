@@ -10,13 +10,14 @@ import java.util.Optional;
 
 public interface MemberSocialAccountRepositoryCustom {
 
-    Optional<MemberSocialAccountDto> findMemberSocialAccountDTO(String providerId, OAuthProviderType providerType);
+  Optional<MemberSocialAccountDto> findMemberSocialAccountDTO(
+      String providerId, OAuthProviderType providerType);
 
-    Optional<MemberSocialAccount> findByMemberIdAndProviderType(Long memberId,
-                                                                OAuthProviderType providerType);
+  Optional<MemberSocialAccount> findByMemberIdAndProviderType(
+      Long memberId, OAuthProviderType providerType);
 
-    List<MemberSocialAccountOverview> findAllMemberSocialAccountOverview(Long memberId);
+  List<MemberSocialAccountOverview> findAllMemberSocialAccountOverview(Long memberId);
 
-    Optional<MemberSocialAccount> findByMemberAndProviderType(Member member, OAuthProviderType providerType);
-
+  Optional<MemberSocialAccount> findByMemberAndProviderType(
+      Member member, OAuthProviderType providerType);
 }

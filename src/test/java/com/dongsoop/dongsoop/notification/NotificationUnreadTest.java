@@ -8,21 +8,23 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 class NotificationUnreadTest {
 
-    @ParameterizedTest
-    @CsvSource(value = {
-            "null, 0",
-            "-1, 0",
-            "-9223372036854775808, 0",
-            "0, 0",
-            "42, 42",
-            "2147483647, 2147483647",
-            "2147483648, 2147483647",
-            "9223372036854775807, 2147483647"
-    }, nullValues = "null")
-    void normalizesCountAndPreservesMember(Long count, int expected) {
-        NotificationUnread unread = new NotificationUnread(7L, count);
+  @ParameterizedTest
+  @CsvSource(
+      value = {
+        "null, 0",
+        "-1, 0",
+        "-9223372036854775808, 0",
+        "0, 0",
+        "42, 42",
+        "2147483647, 2147483647",
+        "2147483648, 2147483647",
+        "9223372036854775807, 2147483647"
+      },
+      nullValues = "null")
+  void normalizesCountAndPreservesMember(Long count, int expected) {
+    NotificationUnread unread = new NotificationUnread(7L, count);
 
-        assertThat(unread.getUnreadCount()).isEqualTo(expected);
-        assertThat(unread.getMemberId()).isEqualTo(7L);
-    }
+    assertThat(unread.getUnreadCount()).isEqualTo(expected);
+    assertThat(unread.getMemberId()).isEqualTo(7L);
+  }
 }

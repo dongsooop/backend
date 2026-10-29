@@ -8,17 +8,17 @@ import java.time.ZoneId;
 
 public class TodayOrFutureValidator implements ConstraintValidator<TodayOrFuture, LocalDateTime> {
 
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+  private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
-    @Override
-    public boolean isValid(LocalDateTime value, ConstraintValidatorContext context) {
-        if (value == null) {
-            return false;
-        }
-
-        LocalDate today = LocalDate.now(KST);
-        LocalDate valueDate = value.toLocalDate();
-
-        return today.equals(valueDate) || today.isBefore(valueDate);
+  @Override
+  public boolean isValid(LocalDateTime value, ConstraintValidatorContext context) {
+    if (value == null) {
+      return false;
     }
+
+    LocalDate today = LocalDate.now(KST);
+    LocalDate valueDate = value.toLocalDate();
+
+    return today.equals(valueDate) || today.isBefore(valueDate);
+  }
 }

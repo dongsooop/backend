@@ -35,139 +35,151 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ProjectApplyServiceImpl implements ProjectApplyService {
 
-    private final MemberService memberService;
-    private final ProjectApplyRepository projectApplyRepository;
-    private final ProjectBoardRepository projectBoardRepository;
-    private final ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
-    private final ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
-    private final ChatParticipantService chatParticipantService;
-    private final ProjectApplyNotification projectApplyNotification;
+  private final MemberService memberService;
+  private final ProjectApplyRepository projectApplyRepository;
+  private final ProjectBoardRepository projectBoardRepository;
+  private final ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
+  private final ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
+  private final ChatParticipantService chatParticipantService;
+  private final ProjectApplyNotification projectApplyNotification;
 
-    public void apply(ApplyProjectBoardRequest request) {
-        Member member = memberService.getMemberReferenceByContext();
-        validateAlreadyApplied(member.getId(), request.boardId());
+  public void apply(ApplyProjectBoardRequest request) {
+    Member member = memberService.getMemberReferenceByContext();
+    validateAlreadyApplied(member.getId(), request.boardId());
 
-        ProjectBoard projectBoard = projectBoardRepository.findById(request.boardId())
-                .orElseThrow(() -> new ProjectBoardNotFound(request.boardId()));
+    ProjectBoard projectBoard =
+        projectBoardRepository
+            .findById(request.boardId())
+            .orElseThrow(() -> new ProjectBoardNotFound(request.boardId()));
 
-        if (projectBoard.isAuthor(member)) {
-            throw new ProjectOwnerCannotApplyException(request.boardId());
-        }
-
-        List<ProjectBoardDepartment> boardDepartmentList = projectBoardDepartmentRepository.findByProjectBoardId(
-                request.boardId());
-        if (boardDepartmentList.isEmpty()) {
-            throw new ProjectBoardDepartmentNotAssignedException(request.boardId());
-        }
-
-        validateDepartment(boardDepartmentList, member);
-
-        ProjectApply boardApply = ProjectApply.builder()
-                .projectBoard(projectBoard)
-                .member(member)
-                .introduction(request.introduction())
-                .motivation(request.motivation())
-                .build();
-
-        projectApplyRepository.save(boardApply);
-
-        Long authorId = projectBoard.getAuthor().getId();
-        projectApplyNotification.sendApplyNotification(projectBoard.getId(), projectBoard.getTitle(), authorId);
+    if (projectBoard.isAuthor(member)) {
+      throw new ProjectOwnerCannotApplyException(request.boardId());
     }
 
-    private void validateAlreadyApplied(Long memberId, Long boardId) {
-        boolean isAlreadyApplied = projectApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
-        if (isAlreadyApplied) {
-            throw new ProjectRecruitmentAlreadyAppliedException(memberId, boardId);
-        }
+    List<ProjectBoardDepartment> boardDepartmentList =
+        projectBoardDepartmentRepository.findByProjectBoardId(request.boardId());
+    if (boardDepartmentList.isEmpty()) {
+      throw new ProjectBoardDepartmentNotAssignedException(request.boardId());
     }
 
-    private void validateDepartment(List<ProjectBoardDepartment> boardDepartmentList, Member member) {
-        DepartmentType requesterDepartmentType = member.getDepartment().getId();
+    validateDepartment(boardDepartmentList, member);
 
-        for (ProjectBoardDepartment boardDepartment : boardDepartmentList) {
-            if (boardDepartment.isSameDepartmentType(requesterDepartmentType)) {
-                return;
-            }
-        }
+    ProjectApply boardApply =
+        ProjectApply.builder()
+            .projectBoard(projectBoard)
+            .member(member)
+            .introduction(request.introduction())
+            .motivation(request.motivation())
+            .build();
 
-        List<DepartmentType> boardDepartmentTypeList = boardDepartmentList.stream()
-                .map(ProjectBoardDepartment::getDepartment)
-                .map(Department::getId)
-                .toList();
+    projectApplyRepository.save(boardApply);
 
-        throw new ProjectBoardDepartmentMismatchException(boardDepartmentTypeList, requesterDepartmentType);
+    Long authorId = projectBoard.getAuthor().getId();
+    projectApplyNotification.sendApplyNotification(
+        projectBoard.getId(), projectBoard.getTitle(), authorId);
+  }
+
+  private void validateAlreadyApplied(Long memberId, Long boardId) {
+    boolean isAlreadyApplied =
+        projectApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
+    if (isAlreadyApplied) {
+      throw new ProjectRecruitmentAlreadyAppliedException(memberId, boardId);
+    }
+  }
+
+  private void validateDepartment(List<ProjectBoardDepartment> boardDepartmentList, Member member) {
+    DepartmentType requesterDepartmentType = member.getDepartment().getId();
+
+    for (ProjectBoardDepartment boardDepartment : boardDepartmentList) {
+      if (boardDepartment.isSameDepartmentType(requesterDepartmentType)) {
+        return;
+      }
     }
 
-    @Override
-    @Transactional
-    public void updateStatus(Long boardId, UpdateApplyStatusRequest request) {
-        Long boardOwnerId = memberService.getMemberIdByAuthentication();
-        if (!projectBoardRepository.existsByIdAndAuthorId(boardId, boardOwnerId)) {
-            throw new ProjectBoardNotFound(boardId, boardOwnerId);
-        }
+    List<DepartmentType> boardDepartmentTypeList =
+        boardDepartmentList.stream()
+            .map(ProjectBoardDepartment::getDepartment)
+            .map(Department::getId)
+            .toList();
 
-        if (request.compareStatus(RecruitmentApplyStatus.APPLY)) {
-            return;
-        }
+    throw new ProjectBoardDepartmentMismatchException(
+        boardDepartmentTypeList, requesterDepartmentType);
+  }
 
-        ProjectApply projectApply = projectApplyRepositoryCustom.findByBoardIdAndApplierId(boardId, request.applierId())
-                .orElseThrow(() -> new ProjectApplyNotFoundException(request.applierId(), boardId));
-
-        projectApply.updateStatus(request.status());
-
-        String boardTitle = projectApply.getProjectBoard()
-                .getTitle();
-
-        if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
-            inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
-        }
-
-        projectApplyNotification.sendOutcomeNotification(boardId, boardTitle, request.applierId());
+  @Override
+  @Transactional
+  public void updateStatus(Long boardId, UpdateApplyStatusRequest request) {
+    Long boardOwnerId = memberService.getMemberIdByAuthentication();
+    if (!projectBoardRepository.existsByIdAndAuthorId(boardId, boardOwnerId)) {
+      throw new ProjectBoardNotFound(boardId, boardOwnerId);
     }
 
-    private void inviteToGroupChat(Long boardId, Long applierId, Long authorId) {
-        ProjectBoard projectBoard = projectBoardRepository.findById(boardId)
-                .orElseThrow(() -> new ProjectBoardNotFound(boardId));
-
-        if (!projectBoard.hasChatRoom()) {
-            log.warn("프로젝트 게시판 {}에 채팅방이 연결되지 않음", boardId);
-            return;
-        }
-
-        chatParticipantService.inviteUserToGroupChat(projectBoard.getRoomId(), authorId, applierId);
+    if (request.compareStatus(RecruitmentApplyStatus.APPLY)) {
+      return;
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId) {
-        Long requesterId = memberService.getMemberIdByAuthentication();
+    ProjectApply projectApply =
+        projectApplyRepositoryCustom
+            .findByBoardIdAndApplierId(boardId, request.applierId())
+            .orElseThrow(() -> new ProjectApplyNotFoundException(request.applierId(), boardId));
 
-        if (!projectBoardRepository.existsByIdAndAuthorId(boardId, requesterId)) {
-            throw new ProjectBoardNotFound(boardId, requesterId);
-        }
+    projectApply.updateStatus(request.status());
 
-        return projectApplyRepository.findApplyOverviewByBoardId(boardId, requesterId);
+    String boardTitle = projectApply.getProjectBoard().getTitle();
+
+    if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
+      inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
     }
 
-    @Override
-    public ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId) {
-        Long authorId = memberService.getMemberIdByAuthentication();
+    projectApplyNotification.sendOutcomeNotification(boardId, boardTitle, request.applierId());
+  }
 
-        // 게시물 주인이 아닌 경우 예외
-        if (!projectBoardRepository.existsByIdAndAuthorId(boardId, authorId)) {
-            throw new ProjectBoardNotFound(boardId);
-        }
+  private void inviteToGroupChat(Long boardId, Long applierId, Long authorId) {
+    ProjectBoard projectBoard =
+        projectBoardRepository
+            .findById(boardId)
+            .orElseThrow(() -> new ProjectBoardNotFound(boardId));
 
-        return projectApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
-                .orElseThrow(() -> new ProjectApplyNotFoundException(boardId, applierId));
+    if (!projectBoard.hasChatRoom()) {
+      log.warn("프로젝트 게시판 {}에 채팅방이 연결되지 않음", boardId);
+      return;
     }
 
-    @Override
-    public ApplyDetails getRecruitmentApplyDetails(Long boardId) {
-        Long requester = memberService.getMemberIdByAuthentication();
+    chatParticipantService.inviteUserToGroupChat(projectBoard.getRoomId(), authorId, applierId);
+  }
 
-        return projectApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, requester)
-                .orElseThrow(() -> new ProjectApplyNotFoundException(boardId, requester));
+  @Override
+  @Transactional(readOnly = true)
+  public List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId) {
+    Long requesterId = memberService.getMemberIdByAuthentication();
+
+    if (!projectBoardRepository.existsByIdAndAuthorId(boardId, requesterId)) {
+      throw new ProjectBoardNotFound(boardId, requesterId);
     }
+
+    return projectApplyRepository.findApplyOverviewByBoardId(boardId, requesterId);
+  }
+
+  @Override
+  public ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId) {
+    Long authorId = memberService.getMemberIdByAuthentication();
+
+    // 게시물 주인이 아닌 경우 예외
+    if (!projectBoardRepository.existsByIdAndAuthorId(boardId, authorId)) {
+      throw new ProjectBoardNotFound(boardId);
+    }
+
+    return projectApplyRepositoryCustom
+        .findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
+        .orElseThrow(() -> new ProjectApplyNotFoundException(boardId, applierId));
+  }
+
+  @Override
+  public ApplyDetails getRecruitmentApplyDetails(Long boardId) {
+    Long requester = memberService.getMemberIdByAuthentication();
+
+    return projectApplyRepositoryCustom
+        .findApplyDetailsByBoardIdAndApplierId(boardId, requester)
+        .orElseThrow(() -> new ProjectApplyNotFoundException(boardId, requester));
+  }
 }

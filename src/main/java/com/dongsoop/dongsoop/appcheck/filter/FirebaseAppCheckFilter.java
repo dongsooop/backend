@@ -23,85 +23,91 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 @Slf4j
 public class FirebaseAppCheckFilter extends OncePerRequestFilter {
 
-    private static final String DEVICE_AUTH_HEADER = "X-Firebase-AppCheck";
-    private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
-    
-    private final FirebaseAppCheck firebaseAppCheck;
-    private final HandlerExceptionResolver exceptionResolver;
-    private final String[] ignorePaths;
+  private static final String DEVICE_AUTH_HEADER = "X-Firebase-AppCheck";
+  private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
 
-    public FirebaseAppCheckFilter(FirebaseAppCheck firebaseAppCheck,
-                                  @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver,
-                                  @Value("${appcheck.ignore-path:[]}") String[] ignorePaths) {
-        this.firebaseAppCheck = firebaseAppCheck;
-        this.exceptionResolver = exceptionResolver;
-        this.ignorePaths = ignorePaths;
+  private final FirebaseAppCheck firebaseAppCheck;
+  private final HandlerExceptionResolver exceptionResolver;
+  private final String[] ignorePaths;
+
+  public FirebaseAppCheckFilter(
+      FirebaseAppCheck firebaseAppCheck,
+      @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver,
+      @Value("${appcheck.ignore-path:[]}") String[] ignorePaths) {
+    this.firebaseAppCheck = firebaseAppCheck;
+    this.exceptionResolver = exceptionResolver;
+    this.ignorePaths = ignorePaths;
+  }
+
+  @Override
+  protected void doFilterInternal(
+      @NonNull HttpServletRequest request,
+      @NonNull HttpServletResponse response,
+      @NonNull FilterChain filterChain)
+      throws ServletException, IOException {
+    try {
+      String deviceToken = extractDeviceAuthTokenFromHeader(request);
+
+      validateWithCacheRefresh(deviceToken);
+    } catch (TokenNotFoundException e) {
+      log.warn("Firebase AppCheck token not found: {}", e.getMessage());
+      exceptionResolver.resolveException(request, response, null, e);
+      return;
+    } catch (UnknownFirebaseFetchJWKException e) {
+      log.error(
+          "Firebase AppCheck validation failed even after cache update: {}", e.getMessage(), e);
+      exceptionResolver.resolveException(request, response, null, e);
+      return;
+    } catch (Exception e) {
+      log.error("Unexpected error during Firebase AppCheck validation: {}", e.getMessage(), e);
+      exceptionResolver.resolveException(request, response, null, e);
+      return;
     }
 
-    @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request,
-                                    @NonNull HttpServletResponse response,
-                                    @NonNull FilterChain filterChain) throws ServletException, IOException {
-        try {
-            String deviceToken = extractDeviceAuthTokenFromHeader(request);
+    filterChain.doFilter(request, response);
+  }
 
-            validateWithCacheRefresh(deviceToken);
-        } catch (TokenNotFoundException e) {
-            log.warn("Firebase AppCheck token not found: {}", e.getMessage());
-            exceptionResolver.resolveException(request, response, null, e);
-            return;
-        } catch (UnknownFirebaseFetchJWKException e) {
-            log.error("Firebase AppCheck validation failed even after cache update: {}", e.getMessage(), e);
-            exceptionResolver.resolveException(request, response, null, e);
-            return;
-        } catch (Exception e) {
-            log.error("Unexpected error during Firebase AppCheck validation: {}", e.getMessage(), e);
-            exceptionResolver.resolveException(request, response, null, e);
-            return;
-        }
+  private void validateWithCacheRefresh(String deviceToken)
+      throws UnknownFirebaseFetchJWKException {
+    try {
+      firebaseAppCheck.validate(deviceToken);
+      log.debug("Firebase AppCheck validation successful");
+    } catch (UnknownFirebaseFetchJWKException e) {
+      log.warn(
+          "Firebase AppCheck validation failed, retrying after cache update: {}", e.getMessage());
+      updateCacheSafely();
+      firebaseAppCheck.validate(deviceToken);
+      log.debug("Firebase AppCheck validation successful after cache update");
+    }
+  }
 
-        filterChain.doFilter(request, response);
+  @Override
+  protected boolean shouldNotFilter(HttpServletRequest request) {
+    String path = request.getRequestURI();
+
+    return Arrays.stream(ignorePaths).anyMatch(allowPath -> PATH_MATCHER.match(allowPath, path));
+  }
+
+  private void updateCacheSafely() throws UnknownFirebaseFetchJWKException {
+
+    try {
+      firebaseAppCheck.updateCache();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new UnknownFirebaseFetchJWKException(e);
+    } catch (IOException e) {
+      throw new UnknownFirebaseFetchJWKException(e);
+    }
+  }
+
+  private String extractDeviceAuthTokenFromHeader(HttpServletRequest request)
+      throws TokenNotFoundException {
+    String deviceAuthToken = request.getHeader(DEVICE_AUTH_HEADER);
+
+    if (!StringUtils.hasText(deviceAuthToken)) {
+      throw new TokenNotFoundException();
     }
 
-    private void validateWithCacheRefresh(String deviceToken) throws UnknownFirebaseFetchJWKException {
-        try {
-            firebaseAppCheck.validate(deviceToken);
-            log.debug("Firebase AppCheck validation successful");
-        } catch (UnknownFirebaseFetchJWKException e) {
-            log.warn("Firebase AppCheck validation failed, retrying after cache update: {}", e.getMessage());
-            updateCacheSafely();
-            firebaseAppCheck.validate(deviceToken);
-            log.debug("Firebase AppCheck validation successful after cache update");
-        }
-    }
-
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
-
-        return Arrays.stream(ignorePaths)
-                .anyMatch(allowPath -> PATH_MATCHER.match(allowPath, path));
-    }
-
-    private void updateCacheSafely() throws UnknownFirebaseFetchJWKException {
-
-        try {
-            firebaseAppCheck.updateCache();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new UnknownFirebaseFetchJWKException(e);
-        } catch (IOException e) {
-            throw new UnknownFirebaseFetchJWKException(e);
-        }
-    }
-
-    private String extractDeviceAuthTokenFromHeader(HttpServletRequest request) throws TokenNotFoundException {
-        String deviceAuthToken = request.getHeader(DEVICE_AUTH_HEADER);
-
-        if (!StringUtils.hasText(deviceAuthToken)) {
-            throw new TokenNotFoundException();
-        }
-
-        return deviceAuthToken;
-    }
+    return deviceAuthToken;
+  }
 }

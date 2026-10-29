@@ -33,71 +33,73 @@ import org.hibernate.annotations.SQLRestriction;
 @SQLDelete(sql = "UPDATE member_schedule SET is_deleted = true WHERE id = ?")
 public class MemberSchedule extends BaseEntity {
 
-    @Id
-    @Getter
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "member_schedule_sequence_generator")
-    private Long id;
+  @Id
+  @Getter
+  @GeneratedValue(
+      strategy = GenerationType.SEQUENCE,
+      generator = "member_schedule_sequence_generator")
+  private Long id;
 
-    @Column(name = "title", length = 60, nullable = false)
-    private String title;
+  @Column(name = "title", length = 60, nullable = false)
+  private String title;
 
-    @Column(name = "location", length = 20)
-    private String location;
+  @Column(name = "location", length = 20)
+  private String location;
 
-    @Column(name = "start_at", nullable = false)
-    private LocalDateTime startAt;
+  @Column(name = "start_at", nullable = false)
+  private LocalDateTime startAt;
 
-    @Column(name = "end_at", nullable = false)
-    private LocalDateTime endAt;
+  @Column(name = "end_at", nullable = false)
+  private LocalDateTime endAt;
 
-    @Column(name = "color", length = 6)
-    private String color;
+  @Column(name = "color", length = 6)
+  private String color;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
-    @Getter
-    private Member member;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "member_id", nullable = false)
+  @Getter
+  private Member member;
 
-    public void setMember(Member member) {
-        if (this.member == null) {
-            this.member = member;
-            return;
-        }
-
-        throw new ScheduleAlreadySetByMemberException(member.getId(), this.member.getId());
+  public void setMember(Member member) {
+    if (this.member == null) {
+      this.member = member;
+      return;
     }
 
-    public ScheduleDetails toDetails() {
-        return ScheduleDetails.builder()
-                .id(id)
-                .title(title)
-                .location(location)
-                .startAt(startAt)
-                .endAt(endAt)
-                .type(ScheduleType.MEMBER)
-                .color(color)
-                .build();
+    throw new ScheduleAlreadySetByMemberException(member.getId(), this.member.getId());
+  }
+
+  public ScheduleDetails toDetails() {
+    return ScheduleDetails.builder()
+        .id(id)
+        .title(title)
+        .location(location)
+        .startAt(startAt)
+        .endAt(endAt)
+        .type(ScheduleType.MEMBER)
+        .color(color)
+        .build();
+  }
+
+  public void update(MemberScheduleUpdateRequest request) {
+    if (request.getTitle() != null) {
+      this.title = request.getTitle();
     }
 
-    public void update(MemberScheduleUpdateRequest request) {
-        if (request.getTitle() != null) {
-            this.title = request.getTitle();
-        }
-
-        if (request.getLocation() != null) {
-            this.location = request.getLocation();
-        }
-
-        if (request.getStartAt() != null) {
-            this.startAt = request.getStartAt();
-        }
-
-        if (request.getEndAt() != null) {
-            this.endAt = request.getEndAt();
-        }
-
-        if (request.getColor() != null) {
-            this.color = request.getColor();
-        }
+    if (request.getLocation() != null) {
+      this.location = request.getLocation();
     }
+
+    if (request.getStartAt() != null) {
+      this.startAt = request.getStartAt();
+    }
+
+    if (request.getEndAt() != null) {
+      this.endAt = request.getEndAt();
+    }
+
+    if (request.getColor() != null) {
+      this.color = request.getColor();
+    }
+  }
 }

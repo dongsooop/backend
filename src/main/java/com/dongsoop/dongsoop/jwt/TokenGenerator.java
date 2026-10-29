@@ -8,55 +8,48 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
-
 @Component
 @RequiredArgsConstructor
 public class TokenGenerator {
 
-    private final JwtUtil jwtUtil;
+  private final JwtUtil jwtUtil;
 
-    @Value("${jwt.expired-time.social-token}")
-    private Long socialTokenExpiredTime;
+  @Value("${jwt.expired-time.social-token}")
+  private Long socialTokenExpiredTime;
 
-    @Value("${jwt.expired-time.access-token}")
-    private Long accessTokenExpiredTime;
+  @Value("${jwt.expired-time.access-token}")
+  private Long accessTokenExpiredTime;
 
-    @Value("${jwt.expired-time.refresh-token}")
-    private Long refreshTokenExpiredTime;
+  @Value("${jwt.expired-time.refresh-token}")
+  private Long refreshTokenExpiredTime;
 
-    public String generateAccessToken(Authentication authentication, Long deviceId) {
-        Instant expireAt = Instant.now().plusMillis(this.accessTokenExpiredTime);
+  public String generateAccessToken(Authentication authentication, Long deviceId) {
+    Instant expireAt = Instant.now().plusMillis(this.accessTokenExpiredTime);
 
-        String id = authentication.getName();
-        List<String> roleList = authentication.getAuthorities()
-                .stream()
-                .map(GrantedAuthority::getAuthority)
-                .toList();
+    String id = authentication.getName();
+    List<String> roleList =
+        authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
 
-        return jwtUtil.issue(expireAt, id, roleList, JWTType.ACCESS, deviceId);
-    }
+    return jwtUtil.issue(expireAt, id, roleList, JWTType.ACCESS, deviceId);
+  }
 
-    public String generateRefreshToken(Authentication authentication, Long deviceId) {
-        Instant expireAt = Instant.now().plusMillis(this.refreshTokenExpiredTime);
+  public String generateRefreshToken(Authentication authentication, Long deviceId) {
+    Instant expireAt = Instant.now().plusMillis(this.refreshTokenExpiredTime);
 
-        String id = authentication.getName();
-        List<String> roleList = authentication.getAuthorities()
-                .stream()
-                .map(GrantedAuthority::getAuthority)
-                .toList();
+    String id = authentication.getName();
+    List<String> roleList =
+        authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
 
-        return jwtUtil.issue(expireAt, id, roleList, JWTType.REFRESH, deviceId);
-    }
+    return jwtUtil.issue(expireAt, id, roleList, JWTType.REFRESH, deviceId);
+  }
 
-    public String generateSocialToken(Authentication authentication) {
-        Instant expireAt = Instant.now().plusMillis(this.socialTokenExpiredTime);
+  public String generateSocialToken(Authentication authentication) {
+    Instant expireAt = Instant.now().plusMillis(this.socialTokenExpiredTime);
 
-        String id = authentication.getName();
-        List<String> roleList = authentication.getAuthorities()
-                .stream()
-                .map(GrantedAuthority::getAuthority)
-                .toList();
+    String id = authentication.getName();
+    List<String> roleList =
+        authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
 
-        return jwtUtil.issue(expireAt, id, roleList, JWTType.SOCIAL, null);
-    }
+    return jwtUtil.issue(expireAt, id, roleList, JWTType.SOCIAL, null);
+  }
 }
