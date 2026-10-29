@@ -45,6 +45,14 @@
 
 오류는 연결을 종료하는 STOMP ERROR 대신 개인별
 `/topic/blinddate/session/{sessionId}/member/{memberId}/choice-error`에 전달한다.
+SUBSCRIBE는 CONNECT에서 설정한 인증 Principal의 회원 ID와 목적지 수신자 ID가 일치해야 한다.
+선택 시작 전 사전 구독은 허용하고 선택 접수·참가 권한은 선택 요청 처리에서 검사한다.
+과팅 세션 토픽에 도달 가능한 패턴 구독(`*`, `**`, `?`, `{변수}`)은 개인 수신자 검사를 우회할 수 있어 거부한다.
+과팅과 겹치지 않는 패턴 및 다른 정확한 이벤트 토픽의 정책은 유지한다.
+개인 오류 목적지의 클라이언트 발행은 STOMP 명령 이름 대신 MESSAGE 타입을 기준으로 차단한다.
+따라서 `SEND`와 서버용 `MESSAGE` 명령을 이용한 위조를 모두 막는다.
+서버 내부 brokerChannel 발행은 인바운드 인터셉터를 거치지 않아 정상 전달된다.
+
 응답 필드는 `status`, `code`, `message`이다.
 
 | 조건 | status | code |
