@@ -56,7 +56,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void configureClientInboundChannel(ChannelRegistration registration) {
         registration.interceptors(
                 stompHandler, chatAuthorizationInterceptor, blindDateStompAuthorizationInterceptor);
-        registration.taskExecutor().corePoolSize(16).maxPoolSize(50).queueCapacity(300);
+        registration.taskExecutor()
+                .corePoolSize(16)
+                .maxPoolSize(50)
+                .queueCapacity(300);
     }
 
     @Bean
