@@ -22,83 +22,92 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class NoticeRepositoryCustomImpl implements NoticeRepositoryCustom {
 
-    private static final QNotice notice = QNotice.notice;
-    private static final QNoticeDetails noticeDetails = QNoticeDetails.noticeDetails;
-    private static final QMember member = QMember.member;
-    private static final QDepartment department = QDepartment.department;
+  private static final QNotice notice = QNotice.notice;
+  private static final QNoticeDetails noticeDetails = QNoticeDetails.noticeDetails;
+  private static final QMember member = QMember.member;
+  private static final QDepartment department = QDepartment.department;
 
-    private final JPAQueryFactory queryFactory;
+  private final JPAQueryFactory queryFactory;
 
-    @Override
-    public List<Notice> findRecentNoticesIncludingDeleted(Department department, int limit) {
-        return queryFactory.selectFrom(notice)
-                .where(notice.department.eq(department))
-                .orderBy(notice.noticeDetails.id.desc())
-                .limit(limit)
-                .fetch();
-    }
+  @Override
+  public List<Notice> findRecentNoticesIncludingDeleted(Department department, int limit) {
+    return queryFactory
+        .selectFrom(notice)
+        .where(notice.department.eq(department))
+        .orderBy(notice.noticeDetails.id.desc())
+        .limit(limit)
+        .fetch();
+  }
 
-    @Override
-    public List<HomeNotice> searchHomeNotices(DepartmentType departmentType) {
-        return queryFactory.select(Projections.constructor(
-                        HomeNotice.class,
-                        noticeDetails.id,
-                        noticeDetails.title,
-                        noticeDetails.link,
-                        noticeDetails.createdAt,
-                        department.id))
-                .from(notice)
-                .innerJoin(notice.noticeDetails, noticeDetails)
-                .innerJoin(notice.department, department)
-                .where(notice.department.id.in(List.of(DepartmentType.DEPT_1001, departmentType)),
-                        notice.deletedAt.isNull()) // 사용자 학과 및 대학 공지
-                .orderBy(orderLeastId())
-                .limit(3)
-                .fetch();
-    }
+  @Override
+  public List<HomeNotice> searchHomeNotices(DepartmentType departmentType) {
+    return queryFactory
+        .select(
+            Projections.constructor(
+                HomeNotice.class,
+                noticeDetails.id,
+                noticeDetails.title,
+                noticeDetails.link,
+                noticeDetails.createdAt,
+                department.id))
+        .from(notice)
+        .innerJoin(notice.noticeDetails, noticeDetails)
+        .innerJoin(notice.department, department)
+        .where(
+            notice.department.id.in(List.of(DepartmentType.DEPT_1001, departmentType)),
+            notice.deletedAt.isNull()) // 사용자 학과 및 대학 공지
+        .orderBy(orderLeastId())
+        .limit(3)
+        .fetch();
+  }
 
-    @Override
-    public List<HomeNotice> searchHomeNotices() {
-        return queryFactory.select(Projections.constructor(
-                        HomeNotice.class,
-                        noticeDetails.id,
-                        noticeDetails.title,
-                        noticeDetails.link,
-                        noticeDetails.createdAt,
-                        department.id))
-                .from(notice)
-                .innerJoin(notice.noticeDetails, noticeDetails)
-                .innerJoin(notice.department, department)
-                .where(notice.department.id.eq(DepartmentType.DEPT_1001),
-                        notice.deletedAt.isNull()) // 대학 공지만
-                .orderBy(orderLeastId())
-                .limit(3)
-                .fetch();
-    }
+  @Override
+  public List<HomeNotice> searchHomeNotices() {
+    return queryFactory
+        .select(
+            Projections.constructor(
+                HomeNotice.class,
+                noticeDetails.id,
+                noticeDetails.title,
+                noticeDetails.link,
+                noticeDetails.createdAt,
+                department.id))
+        .from(notice)
+        .innerJoin(notice.noticeDetails, noticeDetails)
+        .innerJoin(notice.department, department)
+        .where(
+            notice.department.id.eq(DepartmentType.DEPT_1001), notice.deletedAt.isNull()) // 대학 공지만
+        .orderBy(orderLeastId())
+        .limit(3)
+        .fetch();
+  }
 
-    @Override
-    public List<HomeNotice> searchHomeNotices(Collection<DepartmentType> departmentTypes) {
-        Set<DepartmentType> targetDepartments = new HashSet<>(departmentTypes);
-        targetDepartments.add(DepartmentType.DEPT_1001);
+  @Override
+  public List<HomeNotice> searchHomeNotices(Collection<DepartmentType> departmentTypes) {
+    Set<DepartmentType> targetDepartments = new HashSet<>(departmentTypes);
+    targetDepartments.add(DepartmentType.DEPT_1001);
 
-        return queryFactory.select(Projections.constructor(
-                        HomeNotice.class,
-                        noticeDetails.id,
-                        noticeDetails.title,
-                        noticeDetails.link,
-                        noticeDetails.createdAt,
-                        department.id))
-                .from(notice)
-                .innerJoin(notice.noticeDetails, noticeDetails)
-                .innerJoin(notice.department, department)
-                .where(notice.department.id.in(targetDepartments),
-                        notice.deletedAt.isNull()) // 구독한 학과들 및 대학 공지
-                .orderBy(orderLeastId())
-                .limit(3)
-                .fetch();
-    }
+    return queryFactory
+        .select(
+            Projections.constructor(
+                HomeNotice.class,
+                noticeDetails.id,
+                noticeDetails.title,
+                noticeDetails.link,
+                noticeDetails.createdAt,
+                department.id))
+        .from(notice)
+        .innerJoin(notice.noticeDetails, noticeDetails)
+        .innerJoin(notice.department, department)
+        .where(
+            notice.department.id.in(targetDepartments),
+            notice.deletedAt.isNull()) // 구독한 학과들 및 대학 공지
+        .orderBy(orderLeastId())
+        .limit(3)
+        .fetch();
+  }
 
-    private OrderSpecifier<Long> orderLeastId() {
-        return noticeDetails.id.desc();
-    }
+  private OrderSpecifier<Long> orderLeastId() {
+    return noticeDetails.id.desc();
+  }
 }

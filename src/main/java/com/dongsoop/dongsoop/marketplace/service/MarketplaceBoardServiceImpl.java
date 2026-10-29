@@ -33,121 +33,129 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class MarketplaceBoardServiceImpl implements MarketplaceBoardService {
 
-    private static final String DIRECTORY_PATH = "marketplace/images";
+  private static final String DIRECTORY_PATH = "marketplace/images";
 
-    private final MarketplaceBoardMapper marketplaceBoardMapper;
+  private final MarketplaceBoardMapper marketplaceBoardMapper;
 
-    private final MarketplaceBoardRepository marketplaceBoardRepository;
+  private final MarketplaceBoardRepository marketplaceBoardRepository;
 
-    private final MarketplaceBoardRepositoryCustom marketplaceBoardRepositoryCustom;
+  private final MarketplaceBoardRepositoryCustom marketplaceBoardRepositoryCustom;
 
-    private final MarketplaceImageRepository marketplaceImageRepository;
+  private final MarketplaceImageRepository marketplaceImageRepository;
 
-    private final MemberService memberService;
+  private final MemberService memberService;
 
-    private final S3Service s3Service;
+  private final S3Service s3Service;
 
-    @Transactional(rollbackFor = IOException.class)
-    public MarketplaceBoard create(CreateMarketplaceBoardRequest request, MultipartFile[] images) throws IOException {
-        MarketplaceBoard board = marketplaceBoardMapper.toEntity(request);
-        MarketplaceBoard savedBoard = marketplaceBoardRepository.save(board);
+  @Transactional(rollbackFor = IOException.class)
+  public MarketplaceBoard create(CreateMarketplaceBoardRequest request, MultipartFile[] images)
+      throws IOException {
+    MarketplaceBoard board = marketplaceBoardMapper.toEntity(request);
+    MarketplaceBoard savedBoard = marketplaceBoardRepository.save(board);
 
-        if (images != null && images.length > 0) {
-            saveImages(images, savedBoard);
-        }
-
-        return savedBoard;
+    if (images != null && images.length > 0) {
+      saveImages(images, savedBoard);
     }
 
-    private void saveImages(MultipartFile[] images, MarketplaceBoard board) {
-        List<MarketplaceImage> imageLinkList = Arrays.stream(images)
-                .map(image -> uploadImage(image, board))
-                .toList();
+    return savedBoard;
+  }
 
-        marketplaceImageRepository.saveAll(imageLinkList);
+  private void saveImages(MultipartFile[] images, MarketplaceBoard board) {
+    List<MarketplaceImage> imageLinkList =
+        Arrays.stream(images).map(image -> uploadImage(image, board)).toList();
+
+    marketplaceImageRepository.saveAll(imageLinkList);
+  }
+
+  private MarketplaceImage uploadImage(MultipartFile image, MarketplaceBoard board) {
+    try {
+      String url = s3Service.upload(image, DIRECTORY_PATH, board.getId());
+      return new MarketplaceImage(board, url);
+    } catch (IOException exception) {
+      throw new S3UnknownException(exception);
+    }
+  }
+
+  public List<MarketplaceBoardOverview> getMarketplaceBoards(
+      Pageable pageable, MarketplaceType type) {
+    return marketplaceBoardRepositoryCustom.findMarketplaceBoardOverviewByPage(pageable, type);
+  }
+
+  public MarketplaceBoardDetails getBoardDetails(Long boardId) {
+    try {
+      Member member = memberService.getMemberReferenceByContext();
+      boolean isOwner = marketplaceBoardRepository.existsByIdAndAuthor(boardId, member);
+      if (isOwner) {
+        return getBoardDetailsWithViewType(boardId, MarketplaceViewType.OWNER);
+      }
+
+      return getBoardDetailsWithViewType(boardId, MarketplaceViewType.MEMBER);
+    } catch (MemberNotFoundException exception) {
+      return getBoardDetailsWithViewType(boardId, MarketplaceViewType.GUEST);
+    }
+  }
+
+  public MarketplaceBoardDetails getBoardDetailsWithViewType(
+      Long boardId, MarketplaceViewType viewType) {
+    return marketplaceBoardRepositoryCustom
+        .findMarketplaceBoardDetails(boardId, viewType)
+        .orElseThrow(() -> new MarketplaceBoardNotFoundException(boardId));
+  }
+
+  @Transactional
+  public void delete(Long boardId) {
+    marketplaceImageRepository.deleteByMarketplaceBoardId(boardId);
+    marketplaceBoardRepository.deleteById(boardId);
+  }
+
+  @Override
+  @Transactional(rollbackFor = IOException.class)
+  public void update(Long boardId, UpdateMarketplaceBoardRequest request, MultipartFile[] images)
+      throws IOException {
+    // 게시글 내용 수정
+    MarketplaceBoard board =
+        marketplaceBoardRepository
+            .findById(boardId)
+            .orElseThrow(() -> new MarketplaceBoardNotFoundException(boardId));
+
+    board.update(request);
+
+    // 이미지 삭제
+    if (request.deleteImageUrls() != null) {
+      List<MarketplaceImageId> deleteImage =
+          request.deleteImageUrls().stream()
+              .map(v -> new MarketplaceImageId(board.getId(), v))
+              .toList();
+      marketplaceImageRepository.deleteAllById(deleteImage);
     }
 
-    private MarketplaceImage uploadImage(MultipartFile image, MarketplaceBoard board) {
-        try {
-            String url = s3Service.upload(image, DIRECTORY_PATH, board.getId());
-            return new MarketplaceImage(board, url);
-        } catch (IOException exception) {
-            throw new S3UnknownException(exception);
-        }
+    // 이미지 추가
+    if (images != null && images.length > 0) {
+      saveImages(images, board);
     }
 
-    public List<MarketplaceBoardOverview> getMarketplaceBoards(Pageable pageable, MarketplaceType type) {
-        return marketplaceBoardRepositoryCustom.findMarketplaceBoardOverviewByPage(pageable, type);
+    // 최종 이미지 수 검증
+    validateAfterUpdateImageAmount(boardId);
+  }
+
+  private void validateAfterUpdateImageAmount(Long boardId) {
+    int imageAmount = marketplaceImageRepository.countByMarketplaceBoardId(boardId);
+    if (imageAmount > 3) {
+      throw new MarketplaceBoardImageAmountNotAvailableException(imageAmount);
     }
+  }
 
-    public MarketplaceBoardDetails getBoardDetails(Long boardId) {
-        try {
-            Member member = memberService.getMemberReferenceByContext();
-            boolean isOwner = marketplaceBoardRepository.existsByIdAndAuthor(boardId, member);
-            if (isOwner) {
-                return getBoardDetailsWithViewType(boardId, MarketplaceViewType.OWNER);
-            }
+  @Override
+  @Transactional
+  @ApplyBlockFilter
+  public void close(Long boardId) {
+    Long memberId = memberService.getMemberIdByAuthentication();
 
-            return getBoardDetailsWithViewType(boardId, MarketplaceViewType.MEMBER);
-        } catch (MemberNotFoundException exception) {
-            return getBoardDetailsWithViewType(boardId, MarketplaceViewType.GUEST);
-        }
-    }
+    MarketplaceBoard board =
+        marketplaceBoardRepository
+            .findByIdAndAuthorId(boardId, memberId)
+            .orElseThrow(() -> new MarketplaceBoardNotFoundException(boardId));
 
-    public MarketplaceBoardDetails getBoardDetailsWithViewType(Long boardId, MarketplaceViewType viewType) {
-        return marketplaceBoardRepositoryCustom.findMarketplaceBoardDetails(boardId, viewType)
-                .orElseThrow(() -> new MarketplaceBoardNotFoundException(boardId));
-    }
-
-    @Transactional
-    public void delete(Long boardId) {
-        marketplaceImageRepository.deleteByMarketplaceBoardId(boardId);
-        marketplaceBoardRepository.deleteById(boardId);
-    }
-
-    @Override
-    @Transactional(rollbackFor = IOException.class)
-    public void update(Long boardId, UpdateMarketplaceBoardRequest request, MultipartFile[] images) throws IOException {
-        // 게시글 내용 수정
-        MarketplaceBoard board = marketplaceBoardRepository.findById(boardId)
-                .orElseThrow(() -> new MarketplaceBoardNotFoundException(boardId));
-
-        board.update(request);
-
-        // 이미지 삭제
-        if (request.deleteImageUrls() != null) {
-            List<MarketplaceImageId> deleteImage = request.deleteImageUrls()
-                    .stream()
-                    .map(v -> new MarketplaceImageId(board.getId(), v))
-                    .toList();
-            marketplaceImageRepository.deleteAllById(deleteImage);
-        }
-
-        // 이미지 추가
-        if (images != null && images.length > 0) {
-            saveImages(images, board);
-        }
-
-        // 최종 이미지 수 검증
-        validateAfterUpdateImageAmount(boardId);
-    }
-
-    private void validateAfterUpdateImageAmount(Long boardId) {
-        int imageAmount = marketplaceImageRepository.countByMarketplaceBoardId(boardId);
-        if (imageAmount > 3) {
-            throw new MarketplaceBoardImageAmountNotAvailableException(imageAmount);
-        }
-    }
-
-    @Override
-    @Transactional
-    @ApplyBlockFilter
-    public void close(Long boardId) {
-        Long memberId = memberService.getMemberIdByAuthentication();
-
-        MarketplaceBoard board = marketplaceBoardRepository.findByIdAndAuthorId(boardId, memberId)
-                .orElseThrow(() -> new MarketplaceBoardNotFoundException(boardId));
-
-        board.close();
-    }
+    board.close();
+  }
 }

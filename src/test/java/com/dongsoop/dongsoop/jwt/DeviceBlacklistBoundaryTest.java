@@ -26,49 +26,49 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class DeviceBlacklistBoundaryTest {
-    @Mock StringRedisTemplate redis;
-    @Mock ValueOperations<String, String> values;
-    @InjectMocks DeviceBlacklistService service;
+  @Mock StringRedisTemplate redis;
+  @Mock ValueOperations<String, String> values;
+  @InjectMocks DeviceBlacklistService service;
 
-    @Test
-    void missingIssuedAtSkipsRedis() {
-        service.validateNotBlacklisted(7L, null);
-        verifyNoInteractions(redis, values);
-    }
+  @Test
+  void missingIssuedAtSkipsRedis() {
+    service.validateNotBlacklisted(7L, null);
+    verifyNoInteractions(redis, values);
+  }
 
-    @Test
-    void absentBlacklistAllowsToken() {
-        when(redis.opsForValue()).thenReturn(values);
-        Instant issuedAt = Instant.ofEpochMilli(1000);
-        assertThatCode(() -> service.validateNotBlacklisted(7L, issuedAt)).doesNotThrowAnyException();
-    }
+  @Test
+  void absentBlacklistAllowsToken() {
+    when(redis.opsForValue()).thenReturn(values);
+    Instant issuedAt = Instant.ofEpochMilli(1000);
+    assertThatCode(() -> service.validateNotBlacklisted(7L, issuedAt)).doesNotThrowAnyException();
+  }
 
-    @ParameterizedTest
-    @ValueSource(longs = {999, 1000})
-    void tokenIssuedAtOrBeforeBlacklistIsRejected(long epochMillis) {
-        when(redis.opsForValue()).thenReturn(values);
-        when(values.get("device:blacklist:7")).thenReturn("1000");
-        Instant issuedAt = Instant.ofEpochMilli(epochMillis);
-        assertThatThrownBy(() -> service.validateNotBlacklisted(7L, issuedAt))
-                .isInstanceOf(BlacklistedTokenException.class);
-    }
+  @ParameterizedTest
+  @ValueSource(longs = {999, 1000})
+  void tokenIssuedAtOrBeforeBlacklistIsRejected(long epochMillis) {
+    when(redis.opsForValue()).thenReturn(values);
+    when(values.get("device:blacklist:7")).thenReturn("1000");
+    Instant issuedAt = Instant.ofEpochMilli(epochMillis);
+    assertThatThrownBy(() -> service.validateNotBlacklisted(7L, issuedAt))
+        .isInstanceOf(BlacklistedTokenException.class);
+  }
 
-    @Test
-    void tokenIssuedAfterBlacklistIsAllowed() {
-        when(redis.opsForValue()).thenReturn(values);
-        when(values.get("device:blacklist:7")).thenReturn("1000");
-        Instant issuedAt = Instant.ofEpochMilli(1001);
-        assertThatCode(() -> service.validateNotBlacklisted(7L, issuedAt)).doesNotThrowAnyException();
-    }
+  @Test
+  void tokenIssuedAfterBlacklistIsAllowed() {
+    when(redis.opsForValue()).thenReturn(values);
+    when(values.get("device:blacklist:7")).thenReturn("1000");
+    Instant issuedAt = Instant.ofEpochMilli(1001);
+    assertThatCode(() -> service.validateNotBlacklisted(7L, issuedAt)).doesNotThrowAnyException();
+  }
 
-    @Test
-    void storesDeviceKeyCurrentTimestampAndRefreshLifetime() {
-        when(redis.opsForValue()).thenReturn(values);
-        ReflectionTestUtils.setField(service, "refreshTokenExpiredTime", 60000L);
-        long before = System.currentTimeMillis();
-        service.blacklist(7L);
-        ArgumentCaptor<String> timestamp = ArgumentCaptor.forClass(String.class);
-        verify(values).set(eq("device:blacklist:7"), timestamp.capture(), eq(Duration.ofMinutes(1)));
-        assertThat(Long.parseLong(timestamp.getValue())).isBetween(before, System.currentTimeMillis());
-    }
+  @Test
+  void storesDeviceKeyCurrentTimestampAndRefreshLifetime() {
+    when(redis.opsForValue()).thenReturn(values);
+    ReflectionTestUtils.setField(service, "refreshTokenExpiredTime", 60000L);
+    long before = System.currentTimeMillis();
+    service.blacklist(7L);
+    ArgumentCaptor<String> timestamp = ArgumentCaptor.forClass(String.class);
+    verify(values).set(eq("device:blacklist:7"), timestamp.capture(), eq(Duration.ofMinutes(1)));
+    assertThat(Long.parseLong(timestamp.getValue())).isBetween(before, System.currentTimeMillis());
+  }
 }

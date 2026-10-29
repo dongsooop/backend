@@ -5,15 +5,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 public record UpdateApplyStatusRequest(
+    @NotNull @Positive Long applierId, @NotNull RecruitmentApplyStatus status) {
 
-        @NotNull
-        @Positive
-        Long applierId,
-
-        @NotNull
-        RecruitmentApplyStatus status
-) {
-    public boolean compareStatus(RecruitmentApplyStatus status) {
-        return this.status == status;
-    }
+  public boolean compareStatus(RecruitmentApplyStatus status) {
+    return this.status == status;
+  }
 }

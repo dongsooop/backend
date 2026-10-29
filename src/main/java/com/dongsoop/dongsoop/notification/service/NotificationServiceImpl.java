@@ -15,49 +15,52 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
 
-    private final NotificationRepository notificationRepository;
-    private final NotificationBadgeService notificationBadgeService;
+  private final NotificationRepository notificationRepository;
+  private final NotificationBadgeService notificationBadgeService;
 
-    @Override
-    public NotificationOverview getNotifications(Pageable pageable, Long memberId) {
-        long unreadCount = notificationBadgeService.resolveByMemberId(memberId);
-        List<NotificationList> notificationLists = notificationRepository.getMemberNotifications(memberId, pageable);
+  @Override
+  public NotificationOverview getNotifications(Pageable pageable, Long memberId) {
+    long unreadCount = notificationBadgeService.resolveByMemberId(memberId);
+    List<NotificationList> notificationLists =
+        notificationRepository.getMemberNotifications(memberId, pageable);
 
-        return new NotificationOverview(notificationLists, unreadCount);
-    }
+    return new NotificationOverview(notificationLists, unreadCount);
+  }
 
-    @Override
-    @Transactional
-    public void deleteMemberNotification(Long notificationId, Long memberId) {
-        MemberNotification memberNotification = notificationRepository.findByMemberIdAndNotificationId(memberId,
-                        notificationId)
-                .orElseThrow(NotificationNotFoundException::new);
+  @Override
+  @Transactional
+  public void deleteMemberNotification(Long notificationId, Long memberId) {
+    MemberNotification memberNotification =
+        notificationRepository
+            .findByMemberIdAndNotificationId(memberId, notificationId)
+            .orElseThrow(NotificationNotFoundException::new);
 
-        memberNotification.delete();
-    }
+    memberNotification.delete();
+  }
 
-    @Override
-    @Transactional
-    public void read(Long notificationId, Long memberId) {
-        MemberNotification memberNotification = notificationRepository.findByMemberIdAndNotificationId(memberId,
-                        notificationId)
-                .orElseThrow(NotificationNotFoundException::new);
+  @Override
+  @Transactional
+  public void read(Long notificationId, Long memberId) {
+    MemberNotification memberNotification =
+        notificationRepository
+            .findByMemberIdAndNotificationId(memberId, notificationId)
+            .orElseThrow(NotificationNotFoundException::new);
 
-        memberNotification.read();
+    memberNotification.read();
 
-        notificationBadgeService.pushBadge(memberId);
-    }
+    notificationBadgeService.pushBadge(memberId);
+  }
 
-    /**
-     * 요청 회원의 모든 알림 읽음 처리 및 뱃지 상태 업데이트
-     *
-     * @param memberId 요청 회원 ID
-     */
-    @Override
-    @Transactional
-    public void readAll(Long memberId) {
-        notificationRepository.updateAllAsRead(memberId);
+  /**
+   * 요청 회원의 모든 알림 읽음 처리 및 뱃지 상태 업데이트
+   *
+   * @param memberId 요청 회원 ID
+   */
+  @Override
+  @Transactional
+  public void readAll(Long memberId) {
+    notificationRepository.updateAllAsRead(memberId);
 
-        notificationBadgeService.pushBadge(memberId);
-    }
+    notificationBadgeService.pushBadge(memberId);
+  }
 }

@@ -7,10 +7,11 @@ import org.springframework.data.elasticsearch.repository.ElasticsearchRepository
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface BoardSearchRepository extends ElasticsearchRepository<BoardDocument, String>,
-        BoardSearchRepositoryCustom {
+public interface BoardSearchRepository
+    extends ElasticsearchRepository<BoardDocument, String>, BoardSearchRepositoryCustom {
 
-    @Query("""
+  @Query(
+      """
             {
                 "bool": {
                     "should": [
@@ -20,5 +21,5 @@ public interface BoardSearchRepository extends ElasticsearchRepository<BoardDocu
                 }
             }
             """)
-    List<BoardDocument> findByTitleContainingOrContentContaining(String title, String content); // 웜업용
+  List<BoardDocument> findByTitleContainingOrContentContaining(String title, String content); // 웜업용
 }

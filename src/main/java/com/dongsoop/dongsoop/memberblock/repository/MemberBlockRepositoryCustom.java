@@ -5,5 +5,5 @@ import java.util.List;
 
 public interface MemberBlockRepositoryCustom {
 
-    List<BlockedMember> findByBlockerId(Long blockerId);
+  List<BlockedMember> findByBlockerId(Long blockerId);
 }

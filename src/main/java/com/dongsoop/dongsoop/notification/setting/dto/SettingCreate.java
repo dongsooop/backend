@@ -6,12 +6,16 @@ import com.dongsoop.dongsoop.notification.setting.entity.NotificationSetting;
 
 public class SettingCreate extends SettingChanges {
 
-    public SettingCreate(NotificationSetting setting, MemberDevice device, NotificationType type, boolean targetState) {
-        super(setting, device, type, targetState);
-    }
+  public SettingCreate(
+      NotificationSetting setting,
+      MemberDevice device,
+      NotificationType type,
+      boolean targetState) {
+    super(setting, device, type, targetState);
+  }
 
-    @Override
-    public String getTypeName() {
-        return "Create";
-    }
+  @Override
+  public String getTypeName() {
+    return "Create";
+  }
 }

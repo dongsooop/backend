@@ -44,172 +44,216 @@ import org.mockito.quality.Strictness;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ChatReportTargetResolverTest {
 
-    private static final String ROOM_ID = "room1";
-    private static final Long REPORTER_ID = 1L;
-    private static final LocalDateTime BASE = LocalDateTime.of(2026, 9, 28, 21, 0);
+  private static final String ROOM_ID = "room1";
+  private static final Long REPORTER_ID = 1L;
+  private static final LocalDateTime BASE = LocalDateTime.of(2026, 9, 28, 21, 0);
 
-    @InjectMocks
-    private ChatReportTargetResolver resolver;
+  @InjectMocks private ChatReportTargetResolver resolver;
 
-    @Mock
-    private MemberRepository memberRepository;
-    @Mock
-    private ChatRoomService chatRoomService;
-    @Mock
-    private ChatMessageService chatMessageService;
-    @Mock
-    private ChatMessageJpaRepository chatMessageJpaRepository;
+  @Mock private MemberRepository memberRepository;
+  @Mock private ChatRoomService chatRoomService;
+  @Mock private ChatMessageService chatMessageService;
+  @Mock private ChatMessageJpaRepository chatMessageJpaRepository;
 
-    private final Member sender = Member.builder().id(2L).build();
+  private final Member sender = Member.builder().id(2L).build();
 
-    @BeforeEach
-    void setUp() {
-        when(chatRoomService.getChatRoomById(ROOM_ID)).thenReturn(ChatRoom.builder()
+  @BeforeEach
+  void setUp() {
+    when(chatRoomService.getChatRoomById(ROOM_ID))
+        .thenReturn(
+            ChatRoom.builder().roomId(ROOM_ID).participants(new HashSet<>(Set.of(1L, 2L))).build());
+    when(memberRepository.findById(2L)).thenReturn(Optional.of(sender));
+  }
+
+  private static ChatMessage message(String id, Long senderId, int minute, MessageType type) {
+    return ChatMessage.builder()
+        .messageId(id)
+        .roomId(ROOM_ID)
+        .senderId(senderId)
+        .content("내용" + id)
+        .timestamp(BASE.plusMinutes(minute))
+        .type(type)
+        .build();
+  }
+
+  private static CreateChatReportRequest request(String messageId) {
+    return new CreateChatReportRequest(ROOM_ID, messageId, ReportReason.HATE_SPEECH, "욕함");
+  }
+
+  @Test
+  @DisplayName("메시지 내용과 직전 사용자 메시지 최대 10개를 복사한다")
+  void resolve_CopiesSnapshotAndContext() {
+    List<ChatMessage> messages = new ArrayList<>();
+    messages.add(message("enter", 2L, 0, MessageType.ENTER));
+    for (int i = 1; i <= 12; i++) {
+      messages.add(message("m" + i, i % 2 == 0 ? 2L : 1L, i, MessageType.CHAT));
+    }
+    messages.add(message("target", 2L, 13, MessageType.CHAT));
+    messages.add(message("after", 1L, 14, MessageType.CHAT));
+    when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(messages);
+
+    MessageReportDraft draft = resolver.resolve(REPORTER_ID, request("target"));
+
+    assertThat(draft.reportType()).isEqualTo(ReportType.CHAT_MESSAGE);
+    assertThat(draft.targetMember()).isEqualTo(sender);
+    assertThat(draft.chatRoomId()).isEqualTo(ROOM_ID);
+    assertThat(draft.chatRoomType()).isEqualTo(ReportChatRoomType.ONE_TO_ONE);
+    assertThat(draft.messageId()).isEqualTo("target");
+    assertThat(draft.messageContent()).isEqualTo("내용target");
+    assertThat(draft.messageSentAt()).isEqualTo(BASE.plusMinutes(13));
+    assertThat(draft.targetUrl()).isEqualTo("/chat/room/" + ROOM_ID);
+    assertThat(draft.messageContext().messages())
+        .extracting(ChatMessageSnapshot::content)
+        .containsExactly(
+            "내용m3", "내용m4", "내용m5", "내용m6", "내용m7", "내용m8", "내용m9", "내용m10", "내용m11", "내용m12");
+  }
+
+  @Test
+  @DisplayName("뒤쪽 맥락은 신고 메시지 다음 사용자 메시지만 오래된 순으로 최대 10개다")
+  void findContextAfter_ReturnsFollowingUserMessages() {
+    List<ChatMessage> messages = new ArrayList<>();
+    messages.add(message("before", 1L, 0, MessageType.CHAT));
+    messages.add(message("target", 2L, 1, MessageType.CHAT));
+    messages.add(message("leave", 1L, 2, MessageType.LEAVE));
+    for (int i = 1; i <= 12; i++) {
+      messages.add(message("a" + i, 1L, 2 + i, MessageType.CHAT));
+    }
+    when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(messages);
+
+    assertThat(resolver.findContextAfter(ROOM_ID, "target"))
+        .hasValueSatisfying(
+            after ->
+                assertThat(after.messages())
+                    .extracting(ChatMessageSnapshot::content)
+                    .containsExactly(
+                        "내용a1", "내용a2", "내용a3", "내용a4", "내용a5", "내용a6", "내용a7", "내용a8", "내용a9",
+                        "내용a10"));
+  }
+
+  @Test
+  @DisplayName("뒤쪽 맥락은 Redis에 없으면 DB 백업에서 찾고, 둘 다 없으면 비어 있다")
+  void findContextAfter_FallsBackToDatabaseOrEmpty() {
+    when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(List.of());
+    when(chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(ROOM_ID))
+        .thenReturn(
+            List.of(
+                ChatMessageEntity.builder()
+                    .messageId("old")
+                    .roomId(ROOM_ID)
+                    .senderId(2L)
+                    .content("옛날 욕")
+                    .timestamp(BASE)
+                    .type(MessageType.CHAT)
+                    .build(),
+                ChatMessageEntity.builder()
+                    .messageId("reply")
+                    .roomId(ROOM_ID)
+                    .senderId(1L)
+                    .content("답장")
+                    .timestamp(BASE.plusMinutes(1))
+                    .type(MessageType.CHAT)
+                    .build()));
+
+    assertThat(resolver.findContextAfter(ROOM_ID, "old"))
+        .hasValueSatisfying(
+            after ->
+                assertThat(after.messages())
+                    .extracting(ChatMessageSnapshot::content)
+                    .containsExactly("답장"));
+    assertThat(resolver.findContextAfter(ROOM_ID, "nope")).isEmpty();
+  }
+
+  @Test
+  @DisplayName("방 종류는 채팅 도메인의 판단(문의방·그룹방·1:1)을 그대로 스냅샷한다")
+  void resolve_SnapshotsRoomTypeFromChatRoom() {
+    when(chatMessageService.getAllMessages(ROOM_ID))
+        .thenReturn(List.of(message("m", 2L, 0, MessageType.CHAT)));
+    when(chatRoomService.getChatRoomById(ROOM_ID))
+        .thenReturn(
+            ChatRoom.builder()
                 .roomId(ROOM_ID)
-                .participants(new HashSet<>(Set.of(1L, 2L)))
+                .participants(Set.of(1L, 2L))
+                .isGroupChat(true)
+                .build(),
+            ChatRoom.builder()
+                .roomId(ROOM_ID)
+                .participants(Set.of(1L, 2L))
+                .title(ChatRoom.CONTACT_ROOM_TITLE_PREFIX + " 문의")
                 .build());
-        when(memberRepository.findById(2L)).thenReturn(Optional.of(sender));
-    }
 
-    private static ChatMessage message(String id, Long senderId, int minute, MessageType type) {
-        return ChatMessage.builder().messageId(id).roomId(ROOM_ID).senderId(senderId)
-                .content("내용" + id).timestamp(BASE.plusMinutes(minute)).type(type).build();
-    }
+    assertThat(resolver.resolve(REPORTER_ID, request("m")).chatRoomType())
+        .isEqualTo(ReportChatRoomType.GROUP);
+    assertThat(resolver.resolve(REPORTER_ID, request("m")).chatRoomType())
+        .isEqualTo(ReportChatRoomType.CONTACT);
+  }
 
-    private static CreateChatReportRequest request(String messageId) {
-        return new CreateChatReportRequest(ROOM_ID, messageId, ReportReason.HATE_SPEECH, "욕함");
-    }
+  @Test
+  @DisplayName("Redis에 없는 메시지는 DB 백업에서 찾는다")
+  void resolve_FallsBackToDatabase() {
+    when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(List.of());
+    when(chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(ROOM_ID))
+        .thenReturn(
+            List.of(
+                ChatMessageEntity.builder()
+                    .messageId("old")
+                    .roomId(ROOM_ID)
+                    .senderId(2L)
+                    .content("옛날 욕")
+                    .timestamp(BASE)
+                    .type(MessageType.CHAT)
+                    .build()));
 
-    @Test
-    @DisplayName("메시지 내용과 직전 사용자 메시지 최대 10개를 복사한다")
-    void resolve_CopiesSnapshotAndContext() {
-        List<ChatMessage> messages = new ArrayList<>();
-        messages.add(message("enter", 2L, 0, MessageType.ENTER));
-        for (int i = 1; i <= 12; i++) {
-            messages.add(message("m" + i, i % 2 == 0 ? 2L : 1L, i, MessageType.CHAT));
-        }
-        messages.add(message("target", 2L, 13, MessageType.CHAT));
-        messages.add(message("after", 1L, 14, MessageType.CHAT));
-        when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(messages);
+    assertThat(resolver.resolve(REPORTER_ID, request("old")).messageContent()).isEqualTo("옛날 욕");
+  }
 
-        MessageReportDraft draft = resolver.resolve(REPORTER_ID, request("target"));
+  @Test
+  @DisplayName("타입이 비어 있는 과거 메시지는 사용자 메시지로 보고 신고를 받는다")
+  void resolve_NullTypeIsUserMessage() {
+    when(chatMessageService.getAllMessages(ROOM_ID))
+        .thenReturn(List.of(message("legacy", 2L, 0, null)));
 
-        assertThat(draft.reportType()).isEqualTo(ReportType.CHAT_MESSAGE);
-        assertThat(draft.targetMember()).isEqualTo(sender);
-        assertThat(draft.chatRoomId()).isEqualTo(ROOM_ID);
-        assertThat(draft.chatRoomType()).isEqualTo(ReportChatRoomType.ONE_TO_ONE);
-        assertThat(draft.messageId()).isEqualTo("target");
-        assertThat(draft.messageContent()).isEqualTo("내용target");
-        assertThat(draft.messageSentAt()).isEqualTo(BASE.plusMinutes(13));
-        assertThat(draft.targetUrl()).isEqualTo("/chat/room/" + ROOM_ID);
-        assertThat(draft.messageContext().messages())
-                .extracting(ChatMessageSnapshot::content)
-                .containsExactly("내용m3", "내용m4", "내용m5", "내용m6", "내용m7",
-                        "내용m8", "내용m9", "내용m10", "내용m11", "내용m12");
-    }
+    assertThat(resolver.resolve(REPORTER_ID, request("legacy")).messageId()).isEqualTo("legacy");
+  }
 
-    @Test
-    @DisplayName("뒤쪽 맥락은 신고 메시지 다음 사용자 메시지만 오래된 순으로 최대 10개다")
-    void findContextAfter_ReturnsFollowingUserMessages() {
-        List<ChatMessage> messages = new ArrayList<>();
-        messages.add(message("before", 1L, 0, MessageType.CHAT));
-        messages.add(message("target", 2L, 1, MessageType.CHAT));
-        messages.add(message("leave", 1L, 2, MessageType.LEAVE));
-        for (int i = 1; i <= 12; i++) {
-            messages.add(message("a" + i, 1L, 2 + i, MessageType.CHAT));
-        }
-        when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(messages);
+  @Test
+  @DisplayName("방 참여자가 아니면 신고할 수 없다")
+  void resolve_NotParticipant_Throws() {
+    CreateChatReportRequest request = request("target");
 
-        assertThat(resolver.findContextAfter(ROOM_ID, "target")).hasValueSatisfying(after ->
-                assertThat(after.messages()).extracting(ChatMessageSnapshot::content)
-                        .containsExactly("내용a1", "내용a2", "내용a3", "내용a4", "내용a5",
-                                "내용a6", "내용a7", "내용a8", "내용a9", "내용a10"));
-    }
+    assertThatThrownBy(() -> resolver.resolve(3L, request))
+        .isInstanceOf(UnauthorizedChatAccessException.class);
+  }
 
-    @Test
-    @DisplayName("뒤쪽 맥락은 Redis에 없으면 DB 백업에서 찾고, 둘 다 없으면 비어 있다")
-    void findContextAfter_FallsBackToDatabaseOrEmpty() {
-        when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(List.of());
-        when(chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(ROOM_ID)).thenReturn(List.of(
-                ChatMessageEntity.builder().messageId("old").roomId(ROOM_ID).senderId(2L)
-                        .content("옛날 욕").timestamp(BASE).type(MessageType.CHAT).build(),
-                ChatMessageEntity.builder().messageId("reply").roomId(ROOM_ID).senderId(1L)
-                        .content("답장").timestamp(BASE.plusMinutes(1)).type(MessageType.CHAT).build()));
+  @Test
+  @DisplayName("방에 없는 메시지는 찾을 수 없다")
+  void resolve_UnknownMessage_Throws() {
+    when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(List.of());
+    when(chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(ROOM_ID)).thenReturn(List.of());
+    CreateChatReportRequest request = request("nope");
 
-        assertThat(resolver.findContextAfter(ROOM_ID, "old")).hasValueSatisfying(after ->
-                assertThat(after.messages()).extracting(ChatMessageSnapshot::content).containsExactly("답장"));
-        assertThat(resolver.findContextAfter(ROOM_ID, "nope")).isEmpty();
-    }
+    assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
+        .isInstanceOf(ReportTargetNotFoundException.class);
+  }
 
-    @Test
-    @DisplayName("방 종류는 채팅 도메인의 판단(문의방·그룹방·1:1)을 그대로 스냅샷한다")
-    void resolve_SnapshotsRoomTypeFromChatRoom() {
-        when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(List.of(message("m", 2L, 0, MessageType.CHAT)));
-        when(chatRoomService.getChatRoomById(ROOM_ID)).thenReturn(
-                ChatRoom.builder().roomId(ROOM_ID).participants(Set.of(1L, 2L)).isGroupChat(true).build(),
-                ChatRoom.builder().roomId(ROOM_ID).participants(Set.of(1L, 2L))
-                        .title(ChatRoom.CONTACT_ROOM_TITLE_PREFIX + " 문의").build());
+  @Test
+  @DisplayName("입장·퇴장 시스템 메시지는 신고할 수 없다")
+  void resolve_SystemMessage_Throws() {
+    when(chatMessageService.getAllMessages(ROOM_ID))
+        .thenReturn(List.of(message("leave", 2L, 0, MessageType.LEAVE)));
+    CreateChatReportRequest request = request("leave");
 
-        assertThat(resolver.resolve(REPORTER_ID, request("m")).chatRoomType()).isEqualTo(ReportChatRoomType.GROUP);
-        assertThat(resolver.resolve(REPORTER_ID, request("m")).chatRoomType()).isEqualTo(ReportChatRoomType.CONTACT);
-    }
+    assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
+        .isInstanceOf(NotReportableMessageException.class);
+  }
 
-    @Test
-    @DisplayName("Redis에 없는 메시지는 DB 백업에서 찾는다")
-    void resolve_FallsBackToDatabase() {
-        when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(List.of());
-        when(chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(ROOM_ID)).thenReturn(List.of(
-                ChatMessageEntity.builder().messageId("old").roomId(ROOM_ID).senderId(2L)
-                        .content("옛날 욕").timestamp(BASE).type(MessageType.CHAT).build()));
+  @Test
+  @DisplayName("자기 메시지는 신고할 수 없다")
+  void resolve_OwnMessage_Throws() {
+    when(chatMessageService.getAllMessages(ROOM_ID))
+        .thenReturn(List.of(message("mine", 1L, 0, MessageType.CHAT)));
+    CreateChatReportRequest request = request("mine");
 
-        assertThat(resolver.resolve(REPORTER_ID, request("old")).messageContent()).isEqualTo("옛날 욕");
-    }
-
-    @Test
-    @DisplayName("타입이 비어 있는 과거 메시지는 사용자 메시지로 보고 신고를 받는다")
-    void resolve_NullTypeIsUserMessage() {
-        when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(List.of(message("legacy", 2L, 0, null)));
-
-        assertThat(resolver.resolve(REPORTER_ID, request("legacy")).messageId()).isEqualTo("legacy");
-    }
-
-    @Test
-    @DisplayName("방 참여자가 아니면 신고할 수 없다")
-    void resolve_NotParticipant_Throws() {
-        CreateChatReportRequest request = request("target");
-
-        assertThatThrownBy(() -> resolver.resolve(3L, request))
-                .isInstanceOf(UnauthorizedChatAccessException.class);
-    }
-
-    @Test
-    @DisplayName("방에 없는 메시지는 찾을 수 없다")
-    void resolve_UnknownMessage_Throws() {
-        when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(List.of());
-        when(chatMessageJpaRepository.findByRoomIdOrderByTimestampAsc(ROOM_ID)).thenReturn(List.of());
-        CreateChatReportRequest request = request("nope");
-
-        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
-                .isInstanceOf(ReportTargetNotFoundException.class);
-    }
-
-    @Test
-    @DisplayName("입장·퇴장 시스템 메시지는 신고할 수 없다")
-    void resolve_SystemMessage_Throws() {
-        when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(List.of(message("leave", 2L, 0, MessageType.LEAVE)));
-        CreateChatReportRequest request = request("leave");
-
-        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
-                .isInstanceOf(NotReportableMessageException.class);
-    }
-
-    @Test
-    @DisplayName("자기 메시지는 신고할 수 없다")
-    void resolve_OwnMessage_Throws() {
-        when(chatMessageService.getAllMessages(ROOM_ID)).thenReturn(List.of(message("mine", 1L, 0, MessageType.CHAT)));
-        CreateChatReportRequest request = request("mine");
-
-        assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
-                .isInstanceOf(SelfReportException.class);
-    }
+    assertThatThrownBy(() -> resolver.resolve(REPORTER_ID, request))
+        .isInstanceOf(SelfReportException.class);
+  }
 }

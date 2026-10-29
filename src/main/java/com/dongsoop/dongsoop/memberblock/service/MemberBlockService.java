@@ -6,9 +6,9 @@ import java.util.List;
 
 public interface MemberBlockService {
 
-    void blockMember(MemberBlockRequest request);
+  void blockMember(MemberBlockRequest request);
 
-    void unblockMember(MemberBlockRequest request);
+  void unblockMember(MemberBlockRequest request);
 
-    List<BlockedMember> getBlockedMember();
+  List<BlockedMember> getBlockedMember();
 }

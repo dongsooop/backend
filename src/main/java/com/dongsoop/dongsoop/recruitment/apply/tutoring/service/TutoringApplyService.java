@@ -8,13 +8,13 @@ import java.util.List;
 
 public interface TutoringApplyService {
 
-    void apply(ApplyTutoringBoardRequest request);
+  void apply(ApplyTutoringBoardRequest request);
 
-    void updateStatus(Long boardId, UpdateApplyStatusRequest request);
+  void updateStatus(Long boardId, UpdateApplyStatusRequest request);
 
-    List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId);
+  List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId);
 
-    ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId);
+  ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId);
 
-    ApplyDetails getRecruitmentApplyDetails(Long boardId);
+  ApplyDetails getRecruitmentApplyDetails(Long boardId);
 }

@@ -26,62 +26,67 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class OAuth2ServiceImpl implements OAuth2Service {
 
-    private final MemberSocialAccountRepository memberSocialAccountRepository;
-    private final OAuth2UserParser oAuth2UserParser;
-    private final MemberRepository memberRepository;
-    private final MemberDeviceRepository memberDeviceRepository;
-    private final TokenGenerator tokenGenerator;
+  private final MemberSocialAccountRepository memberSocialAccountRepository;
+  private final OAuth2UserParser oAuth2UserParser;
+  private final MemberRepository memberRepository;
+  private final MemberDeviceRepository memberDeviceRepository;
+  private final TokenGenerator tokenGenerator;
 
-    @Override
-    public LoginResponse acceptLogin(Authentication authentication, Long memberId, String deviceToken) {
-        Long deviceId = resolveDeviceId(memberId, deviceToken);
-        String accessToken = tokenGenerator.generateAccessToken(authentication, deviceId);
-        String refreshToken = tokenGenerator.generateRefreshToken(authentication, deviceId);
+  @Override
+  public LoginResponse acceptLogin(
+      Authentication authentication, Long memberId, String deviceToken) {
+    Long deviceId = resolveDeviceId(memberId, deviceToken);
+    String accessToken = tokenGenerator.generateAccessToken(authentication, deviceId);
+    String refreshToken = tokenGenerator.generateRefreshToken(authentication, deviceId);
 
-        LoginMemberDetails loginMemberDetails = memberRepository.findLoginMemberDetailById(memberId)
-                .orElseThrow(MemberNotFoundException::new);
+    LoginMemberDetails loginMemberDetails =
+        memberRepository
+            .findLoginMemberDetailById(memberId)
+            .orElseThrow(MemberNotFoundException::new);
 
-        return new LoginResponse(loginMemberDetails, accessToken, refreshToken);
+    return new LoginResponse(loginMemberDetails, accessToken, refreshToken);
+  }
+
+  private Long resolveDeviceId(Long memberId, String deviceToken) {
+    if (!StringUtils.hasText(deviceToken)) {
+      return null;
+    }
+    return memberDeviceRepository
+        .findByMemberIdAndDeviceToken(memberId, deviceToken)
+        .map(MemberDevice::getId)
+        .orElse(null);
+  }
+
+  @Override
+  @Transactional
+  public void unlinkMemberWithProviderType(
+      Long memberId, OAuthProviderType providerType, UnlinkSocialAccountRequest request) {
+    memberSocialAccountRepository
+        .findByMemberIdAndProviderType(memberId, providerType)
+        .ifPresent(memberSocialAccountRepository::delete);
+
+    SocialProvider socialProvider =
+        oAuth2UserParser.extractProvider(providerType.name().toLowerCase());
+    if (socialProvider == null) {
+      throw new InvalidProviderTypeException();
+    }
+    socialProvider.revoke(request.token());
+  }
+
+  @Override
+  @Transactional
+  public void unlinkMember(Long memberId) {
+    List<MemberSocialAccount> socialAccountList =
+        this.memberSocialAccountRepository.findByMemberId(memberId);
+    if (socialAccountList.isEmpty()) {
+      return;
     }
 
-    private Long resolveDeviceId(Long memberId, String deviceToken) {
-        if (!StringUtils.hasText(deviceToken)) {
-            return null;
-        }
-        return memberDeviceRepository.findByMemberIdAndDeviceToken(memberId, deviceToken)
-                .map(MemberDevice::getId)
-                .orElse(null);
-    }
+    this.memberSocialAccountRepository.deleteAll(socialAccountList);
+  }
 
-    @Override
-    @Transactional
-    public void unlinkMemberWithProviderType(Long memberId,
-                                             OAuthProviderType providerType,
-                                             UnlinkSocialAccountRequest request) {
-        memberSocialAccountRepository.findByMemberIdAndProviderType(memberId, providerType)
-                .ifPresent(memberSocialAccountRepository::delete);
-
-        SocialProvider socialProvider = oAuth2UserParser.extractProvider(providerType.name().toLowerCase());
-        if (socialProvider == null) {
-            throw new InvalidProviderTypeException();
-        }
-        socialProvider.revoke(request.token());
-    }
-
-    @Override
-    @Transactional
-    public void unlinkMember(Long memberId) {
-        List<MemberSocialAccount> socialAccountList = this.memberSocialAccountRepository.findByMemberId(memberId);
-        if (socialAccountList.isEmpty()) {
-            return;
-        }
-
-        this.memberSocialAccountRepository.deleteAll(socialAccountList);
-    }
-
-    @Override
-    public List<MemberSocialAccountOverview> getSocialAccountState(Long memberId) {
-        return this.memberSocialAccountRepository.findAllMemberSocialAccountOverview(
-                memberId);
-    }
+  @Override
+  public List<MemberSocialAccountOverview> getSocialAccountState(Long memberId) {
+    return this.memberSocialAccountRepository.findAllMemberSocialAccountOverview(memberId);
+  }
 }

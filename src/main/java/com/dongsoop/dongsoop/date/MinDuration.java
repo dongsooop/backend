@@ -12,15 +12,15 @@ import java.lang.annotation.Target;
 @Constraint(validatedBy = {MinDurationValidator.class})
 public @interface MinDuration {
 
-    long value() default 86400L;
+  long value() default 86400L;
 
-    String start() default "startAt";
+  String start() default "startAt";
 
-    String end() default "endAt";
+  String end() default "endAt";
 
-    String message() default "최소 설정 가능 기간보다 짧을 수 없습니다.";
+  String message() default "최소 설정 가능 기간보다 짧을 수 없습니다.";
 
-    Class<?>[] groups() default {};
+  Class<?>[] groups() default {};
 
-    Class<? extends Payload>[] payload() default {};
+  Class<? extends Payload>[] payload() default {};
 }

@@ -11,14 +11,14 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class MarketplaceContactMapper {
 
-    private final MemberService memberService;
+  private final MemberService memberService;
 
-    public MarketplaceContact toEntity(ContactMarketplaceRequest request) {
-        Member applicant = memberService.getMemberReferenceByContext();
+  public MarketplaceContact toEntity(ContactMarketplaceRequest request) {
+    Member applicant = memberService.getMemberReferenceByContext();
 
-        return MarketplaceContact.builder()
-                .marketplaceId(request.boardId())
-                .applicant(applicant)
-                .build();
-    }
+    return MarketplaceContact.builder()
+        .marketplaceId(request.boardId())
+        .applicant(applicant)
+        .build();
+  }
 }

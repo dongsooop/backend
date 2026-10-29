@@ -8,8 +8,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class NotificationConfig {
 
-    @Bean
-    public ExecutorService notificationExecutor() {
-        return Executors.newFixedThreadPool(5);
-    }
+  @Bean
+  public ExecutorService notificationExecutor() {
+    return Executors.newFixedThreadPool(5);
+  }
 }

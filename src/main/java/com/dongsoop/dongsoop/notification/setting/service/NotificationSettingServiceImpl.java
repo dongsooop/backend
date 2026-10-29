@@ -21,67 +21,74 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class NotificationSettingServiceImpl implements NotificationSettingService {
 
-    private final NotificationSettingRepository notificationSettingRepository;
-    private final NotificationSettingSwitcher settingSwitcher;
+  private final NotificationSettingRepository notificationSettingRepository;
+  private final NotificationSettingSwitcher settingSwitcher;
 
-    @Override
-    public Map<NotificationType, Boolean> getNotificationSettings(NotificationSettingFindRequest request) {
-        List<NotificationActiveStatus> notificationActiveStatuses = notificationSettingRepository.findByDeviceToken(
-                request.deviceToken());
+  @Override
+  public Map<NotificationType, Boolean> getNotificationSettings(
+      NotificationSettingFindRequest request) {
+    List<NotificationActiveStatus> notificationActiveStatuses =
+        notificationSettingRepository.findByDeviceToken(request.deviceToken());
 
-        Map<NotificationType, Boolean> settingMap = notificationActiveStatuses.stream()
-                .collect(HashMap::new,
-                        (map, status) -> map.put(status.notificationType(), status.enabled()),
-                        HashMap::putAll);
+    Map<NotificationType, Boolean> settingMap =
+        notificationActiveStatuses.stream()
+            .collect(
+                HashMap::new,
+                (map, status) -> map.put(status.notificationType(), status.enabled()),
+                HashMap::putAll);
 
-        for (NotificationType type : NotificationType.values()) {
-            settingMap.computeIfAbsent(type, NotificationType::getDefaultActiveState);
-        }
-
-        return settingMap;
+    for (NotificationType type : NotificationType.values()) {
+      settingMap.computeIfAbsent(type, NotificationType::getDefaultActiveState);
     }
 
-    @Override
-    @Transactional
-    public void disableNotification(NotificationSettingRequest request) {
-        NotificationSettingUpdate update = new NotificationSettingUpdate(request.deviceToken(),
-                List.of(request.notificationType()), false);
-        settingSwitcher.updateStatus(update);
-    }
+    return settingMap;
+  }
 
-    @Override
-    @Transactional
-    public void enableNotification(NotificationSettingRequest request) {
-        NotificationSettingUpdate update = new NotificationSettingUpdate(request.deviceToken(),
-                List.of(request.notificationType()), true);
-        settingSwitcher.updateStatus(update);
-    }
+  @Override
+  @Transactional
+  public void disableNotification(NotificationSettingRequest request) {
+    NotificationSettingUpdate update =
+        new NotificationSettingUpdate(
+            request.deviceToken(), List.of(request.notificationType()), false);
+    settingSwitcher.updateStatus(update);
+  }
 
-    @Override
-    @Transactional
-    public void updateRecruitmentApplyNotification(RecruitmentSettingUpdateRequest request) {
-        NotificationSettingUpdate update = new NotificationSettingUpdate(request.deviceToken(),
-                List.of(
-                        NotificationType.RECRUITMENT_PROJECT_APPLY,
-                        NotificationType.RECRUITMENT_TUTORING_APPLY,
-                        NotificationType.RECRUITMENT_STUDY_APPLY
-                ),
-                request.targetState());
+  @Override
+  @Transactional
+  public void enableNotification(NotificationSettingRequest request) {
+    NotificationSettingUpdate update =
+        new NotificationSettingUpdate(
+            request.deviceToken(), List.of(request.notificationType()), true);
+    settingSwitcher.updateStatus(update);
+  }
 
-        settingSwitcher.updateStatus(update);
-    }
+  @Override
+  @Transactional
+  public void updateRecruitmentApplyNotification(RecruitmentSettingUpdateRequest request) {
+    NotificationSettingUpdate update =
+        new NotificationSettingUpdate(
+            request.deviceToken(),
+            List.of(
+                NotificationType.RECRUITMENT_PROJECT_APPLY,
+                NotificationType.RECRUITMENT_TUTORING_APPLY,
+                NotificationType.RECRUITMENT_STUDY_APPLY),
+            request.targetState());
 
-    @Override
-    @Transactional
-    public void updateRecruitmentResultNotification(RecruitmentSettingUpdateRequest request) {
-        NotificationSettingUpdate update = new NotificationSettingUpdate(request.deviceToken(),
-                List.of(
-                        NotificationType.RECRUITMENT_PROJECT_APPLY_RESULT,
-                        NotificationType.RECRUITMENT_TUTORING_APPLY_RESULT,
-                        NotificationType.RECRUITMENT_STUDY_APPLY_RESULT
-                ),
-                request.targetState());
+    settingSwitcher.updateStatus(update);
+  }
 
-        settingSwitcher.updateStatus(update);
-    }
+  @Override
+  @Transactional
+  public void updateRecruitmentResultNotification(RecruitmentSettingUpdateRequest request) {
+    NotificationSettingUpdate update =
+        new NotificationSettingUpdate(
+            request.deviceToken(),
+            List.of(
+                NotificationType.RECRUITMENT_PROJECT_APPLY_RESULT,
+                NotificationType.RECRUITMENT_TUTORING_APPLY_RESULT,
+                NotificationType.RECRUITMENT_STUDY_APPLY_RESULT),
+            request.targetState());
+
+    settingSwitcher.updateStatus(update);
+  }
 }

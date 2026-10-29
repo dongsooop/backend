@@ -8,13 +8,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class NotificationSettingChangeSkip implements NotificationSettingChangeHandler {
 
-    @Override
-    public Class<? extends SettingChanges> getSupportedClass() {
-        return SettingSkip.class;
-    }
+  @Override
+  public Class<? extends SettingChanges> getSupportedClass() {
+    return SettingSkip.class;
+  }
 
-    @Override
-    public void apply(List<SettingChanges> changes) {
-        // Do nothing
-    }
+  @Override
+  public void apply(List<SettingChanges> changes) {
+    // Do nothing
+  }
 }

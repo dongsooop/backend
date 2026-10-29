@@ -10,19 +10,20 @@ import org.springframework.stereotype.Component;
 @Component
 public class ProjectApplyNotification extends RecruitmentApplyNotification {
 
-    public ProjectApplyNotification(NotificationSaveService notificationSaveService,
-                                    NotificationSendService notificationSendService,
-                                    MemberRepository memberRepository) {
-        super(notificationSaveService, notificationSendService, memberRepository);
-    }
+  public ProjectApplyNotification(
+      NotificationSaveService notificationSaveService,
+      NotificationSendService notificationSendService,
+      MemberRepository memberRepository) {
+    super(notificationSaveService, notificationSendService, memberRepository);
+  }
 
-    @Override
-    protected NotificationType getApplyNotificationType() {
-        return NotificationType.RECRUITMENT_PROJECT_APPLY;
-    }
+  @Override
+  protected NotificationType getApplyNotificationType() {
+    return NotificationType.RECRUITMENT_PROJECT_APPLY;
+  }
 
-    @Override
-    protected NotificationType getOutcomeNotificationType() {
-        return NotificationType.RECRUITMENT_PROJECT_APPLY_RESULT;
-    }
+  @Override
+  protected NotificationType getOutcomeNotificationType() {
+    return NotificationType.RECRUITMENT_PROJECT_APPLY_RESULT;
+  }
 }

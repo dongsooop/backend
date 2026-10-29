@@ -9,9 +9,10 @@ import org.springframework.data.domain.Pageable;
 
 public interface NoticeService {
 
-    Page<NoticeListResponse> getNoticeByDepartmentType(DepartmentType departmentType, Pageable pageable);
+  Page<NoticeListResponse> getNoticeByDepartmentType(
+      DepartmentType departmentType, Pageable pageable);
 
-    Page<NoticeListResponse> getSubscribedNotices(String fid, String deviceToken, Pageable pageable);
+  Page<NoticeListResponse> getSubscribedNotices(String fid, String deviceToken, Pageable pageable);
 
-    Map<Department, Long> getNoticeRecentIdMap();
+  Map<Department, Long> getNoticeRecentIdMap();
 }

@@ -11,10 +11,11 @@ import org.springframework.data.domain.Pageable;
 
 public interface MarketplaceBoardRepositoryCustom {
 
-    List<MarketplaceBoardOverview> findMarketplaceBoardOverviewByPage(Pageable pageable, MarketplaceType type);
+  List<MarketplaceBoardOverview> findMarketplaceBoardOverviewByPage(
+      Pageable pageable, MarketplaceType type);
 
-    Optional<MarketplaceBoardDetails> findMarketplaceBoardDetails(Long id, MarketplaceViewType viewType);
+  Optional<MarketplaceBoardDetails> findMarketplaceBoardDetails(
+      Long id, MarketplaceViewType viewType);
 
-    List<MarketplaceSummary> findOpenedMarketplaceByAuthorIdAndPage(Long memberId, Pageable pageable);
-
+  List<MarketplaceSummary> findOpenedMarketplaceByAuthorIdAndPage(Long memberId, Pageable pageable);
 }

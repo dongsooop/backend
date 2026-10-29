@@ -24,79 +24,83 @@ import org.springframework.web.client.RestTemplate;
 @RequiredArgsConstructor
 public class WebAppCheckServiceImpl implements WebAppCheckService {
 
-    private static final String TOKEN_KEY = "token";
+  private static final String TOKEN_KEY = "token";
 
-    private static final String FIREBASE_APP_CHECK_SCOPE = "https://www.googleapis.com/auth/firebase.appcheck";
-    private static final String GENERATE_TOKEN_URL_TEMPLATE =
-            "https://firebaseappcheck.googleapis.com/v1/projects/%s/apps/%s:generateAppCheckToken";
+  private static final String FIREBASE_APP_CHECK_SCOPE =
+      "https://www.googleapis.com/auth/firebase.appcheck";
+  private static final String GENERATE_TOKEN_URL_TEMPLATE =
+      "https://firebaseappcheck.googleapis.com/v1/projects/%s/apps/%s:generateAppCheckToken";
 
-    private final RestTemplate restTemplate;
-    private final ResourceLoader resourceLoader;
+  private final RestTemplate restTemplate;
+  private final ResourceLoader resourceLoader;
 
-    @Value("${firebase.service-account.path}")
-    private String serviceAccountPath;
+  @Value("${firebase.service-account.path}")
+  private String serviceAccountPath;
 
-    @Value("${firebase.project.number}")
-    private String projectNumber;
+  @Value("${firebase.project.number}")
+  private String projectNumber;
 
-    @Value("${firebase.web.app-id}")
-    private String webAppId;
+  @Value("${firebase.web.app-id}")
+  private String webAppId;
 
-    private GoogleCredentials credentials;
+  private GoogleCredentials credentials;
 
-    @PostConstruct
-    private void initCredentials() throws IOException {
-        try (InputStream inputStream = resourceLoader.getResource(serviceAccountPath).getInputStream()) {
-            this.credentials = GoogleCredentials.fromStream(inputStream)
-                    .createScoped(FIREBASE_APP_CHECK_SCOPE);
-        }
+  @PostConstruct
+  private void initCredentials() throws IOException {
+    try (InputStream inputStream =
+        resourceLoader.getResource(serviceAccountPath).getInputStream()) {
+      this.credentials =
+          GoogleCredentials.fromStream(inputStream).createScoped(FIREBASE_APP_CHECK_SCOPE);
+    }
+  }
+
+  @Override
+  public String issue() {
+    try {
+      credentials.refreshIfExpired();
+      String accessToken = credentials.getAccessToken().getTokenValue();
+      return requestAppCheckToken(accessToken);
+    } catch (WebAppCheckTokenIssuanceException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new WebAppCheckTokenIssuanceException(e);
+    }
+  }
+
+  private String requestAppCheckToken(String accessToken) {
+    String url = String.format(GENERATE_TOKEN_URL_TEMPLATE, projectNumber, webAppId);
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(accessToken);
+    headers.setContentType(MediaType.APPLICATION_JSON);
+
+    HttpEntity<Map<String, Object>> request = new HttpEntity<>(Collections.emptyMap(), headers);
+
+    Map<?, ?> response = restTemplate.postForObject(url, request, Map.class);
+
+    if (response == null || !(response.get(TOKEN_KEY) instanceof String token) || token.isBlank()) {
+      log.error(
+          "Firebase App Check token generation failed. tokenKeyPresent: {}, tokenType: {}",
+          response != null && response.containsKey(TOKEN_KEY),
+          getTokenType(response));
+      throw new WebAppCheckTokenIssuanceException(
+          new IllegalStateException("앱 체크 토큰 응답이 올바르지 않습니다."));
     }
 
-    @Override
-    public String issue() {
-        try {
-            credentials.refreshIfExpired();
-            String accessToken = credentials.getAccessToken().getTokenValue();
-            return requestAppCheckToken(accessToken);
-        } catch (WebAppCheckTokenIssuanceException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new WebAppCheckTokenIssuanceException(e);
-        }
+    log.debug("Firebase App Check token issued for web. appId: {}", webAppId);
+    return token;
+  }
+
+  private String getTokenType(Map<?, ?> response) {
+    if (response == null) {
+      return "N/A";
     }
 
-    private String requestAppCheckToken(String accessToken) {
-        String url = String.format(GENERATE_TOKEN_URL_TEMPLATE, projectNumber, webAppId);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(Collections.emptyMap(), headers);
-
-        Map<?, ?> response = restTemplate.postForObject(url, request, Map.class);
-
-        if (response == null || !(response.get(TOKEN_KEY) instanceof String token) || token.isBlank()) {
-            log.error("Firebase App Check token generation failed. tokenKeyPresent: {}, tokenType: {}",
-                    response != null && response.containsKey(TOKEN_KEY),
-                    getTokenType(response));
-            throw new WebAppCheckTokenIssuanceException(new IllegalStateException("앱 체크 토큰 응답이 올바르지 않습니다."));
-        }
-
-        log.debug("Firebase App Check token issued for web. appId: {}", webAppId);
-        return token;
+    Object token = response.get(TOKEN_KEY);
+    if (token == null) {
+      return "null";
     }
 
-    private String getTokenType(Map<?, ?> response) {
-        if (response == null) {
-            return "N/A";
-        }
-
-        Object token = response.get(TOKEN_KEY);
-        if (token == null) {
-            return "null";
-        }
-
-        return token.getClass().getSimpleName();
-    }
+    return token.getClass().getSimpleName();
+  }
 }

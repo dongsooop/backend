@@ -9,14 +9,14 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class RestaurantMapper {
 
-    public Restaurant toEntity(RestaurantRegisterRequest request) {
-        return Restaurant.builder()
-                .externalMapId(request.externalMapId())
-                .name(request.name())
-                .category(request.category())
-                .placeUrl(request.placeUrl())
-                .tags(request.tags())
-                .distance(request.distance())
-                .build();
-    }
+  public Restaurant toEntity(RestaurantRegisterRequest request) {
+    return Restaurant.builder()
+        .externalMapId(request.externalMapId())
+        .name(request.name())
+        .category(request.category())
+        .placeUrl(request.placeUrl())
+        .tags(request.tags())
+        .distance(request.distance())
+        .build();
+  }
 }

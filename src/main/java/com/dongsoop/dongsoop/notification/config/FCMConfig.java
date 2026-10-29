@@ -18,27 +18,26 @@ import org.springframework.core.io.ResourceLoader;
 @RequiredArgsConstructor
 public class FCMConfig {
 
-    @Value("${firebase.service-account.path}")
-    private String serviceAccountPath;
+  @Value("${firebase.service-account.path}")
+  private String serviceAccountPath;
 
-    private final ResourceLoader resourceLoader;
+  private final ResourceLoader resourceLoader;
 
-    @Bean
-    public FirebaseApp firebaseApp() throws IOException {
-        GoogleCredentials googleCredentials;
-        try (InputStream inputStream = resourceLoader.getResource(serviceAccountPath).getInputStream()) {
-            googleCredentials = GoogleCredentials.fromStream(inputStream);
-        }
-
-        FirebaseOptions options = FirebaseOptions.builder()
-                .setCredentials(googleCredentials)
-                .build();
-
-        return FirebaseApp.initializeApp(options);
+  @Bean
+  public FirebaseApp firebaseApp() throws IOException {
+    GoogleCredentials googleCredentials;
+    try (InputStream inputStream =
+        resourceLoader.getResource(serviceAccountPath).getInputStream()) {
+      googleCredentials = GoogleCredentials.fromStream(inputStream);
     }
 
-    @Bean
-    public FirebaseMessaging firebaseMessaging(FirebaseApp firebaseApp) {
-        return FirebaseMessaging.getInstance(firebaseApp);
-    }
+    FirebaseOptions options = FirebaseOptions.builder().setCredentials(googleCredentials).build();
+
+    return FirebaseApp.initializeApp(options);
+  }
+
+  @Bean
+  public FirebaseMessaging firebaseMessaging(FirebaseApp firebaseApp) {
+    return FirebaseMessaging.getInstance(firebaseApp);
+  }
 }

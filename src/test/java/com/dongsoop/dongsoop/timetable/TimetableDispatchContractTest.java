@@ -24,44 +24,53 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class TimetableDispatchContractTest {
-    @Mock TimetableRepository timetables;
-    @Mock TimetableNotification notification;
-    @Mock MemberDeviceService devices;
-    @InjectMocks TimetableScheduler scheduler;
+  @Mock TimetableRepository timetables;
+  @Mock TimetableNotification notification;
+  @Mock MemberDeviceService devices;
+  @InjectMocks TimetableScheduler scheduler;
 
-    @Test
-    void groupsClassesAndFormatsExactPayloadOnlyForMembersWithDevices() {
-        when(timetables.getTimetableNotificationDtoList(any(), any(), any())).thenReturn(List.of(
-                row("알고리즘", 9, 0, 7L), row("데이터베이스", 13, 30, 7L), row("수학", 10, 0, 8L)));
-        when(devices.getDeviceByMember(any())).thenReturn(Map.of(7L, List.of("a", "b")));
-        LocalDate date = LocalDate.now(ZoneId.of("Asia/Seoul"));
-        scheduler.scheduled();
-        verify(timetables).getTimetableNotificationDtoList(Year.of(date.getYear()), SemesterType.fromMonth(date.getMonthValue()), date.getDayOfWeek());
-        ArgumentCaptor<MemberDeviceFindCondition> condition = ArgumentCaptor.forClass(MemberDeviceFindCondition.class);
-        verify(devices).getDeviceByMember(condition.capture());
-        assertThat(condition.getValue().memberIds()).containsOnly(7L, 8L);
-        assertThat(condition.getValue().notificationType()).isEqualTo(NotificationType.TIMETABLE);
-        verify(notification).send("[시간표 알림] 오늘 2개의 수업이 있습니다", "- 09:00 알고리즘\n- 13:30 데이터베이스", List.of("a", "b"));
-        verifyNoMoreInteractions(notification);
-    }
+  @Test
+  void groupsClassesAndFormatsExactPayloadOnlyForMembersWithDevices() {
+    when(timetables.getTimetableNotificationDtoList(any(), any(), any()))
+        .thenReturn(
+            List.of(row("알고리즘", 9, 0, 7L), row("데이터베이스", 13, 30, 7L), row("수학", 10, 0, 8L)));
+    when(devices.getDeviceByMember(any())).thenReturn(Map.of(7L, List.of("a", "b")));
+    LocalDate date = LocalDate.now(ZoneId.of("Asia/Seoul"));
+    scheduler.scheduled();
+    verify(timetables)
+        .getTimetableNotificationDtoList(
+            Year.of(date.getYear()),
+            SemesterType.fromMonth(date.getMonthValue()),
+            date.getDayOfWeek());
+    ArgumentCaptor<MemberDeviceFindCondition> condition =
+        ArgumentCaptor.forClass(MemberDeviceFindCondition.class);
+    verify(devices).getDeviceByMember(condition.capture());
+    assertThat(condition.getValue().memberIds()).containsOnly(7L, 8L);
+    assertThat(condition.getValue().notificationType()).isEqualTo(NotificationType.TIMETABLE);
+    verify(notification)
+        .send("[시간표 알림] 오늘 2개의 수업이 있습니다", "- 09:00 알고리즘\n- 13:30 데이터베이스", List.of("a", "b"));
+    verifyNoMoreInteractions(notification);
+  }
 
-    @Test
-    void noClassesOrNoSubscribedDevicesNeverSends() {
-        scheduler.scheduled();
-        when(timetables.getTimetableNotificationDtoList(any(), any(), any())).thenReturn(List.of(row("수학", 9, 0, 7L)));
-        scheduler.scheduled();
-        verifyNoInteractions(notification);
-    }
+  @Test
+  void noClassesOrNoSubscribedDevicesNeverSends() {
+    scheduler.scheduled();
+    when(timetables.getTimetableNotificationDtoList(any(), any(), any()))
+        .thenReturn(List.of(row("수학", 9, 0, 7L)));
+    scheduler.scheduled();
+    verifyNoInteractions(notification);
+  }
 
-    @Test
-    void failedTimetableLookupCannotDispatchPartialNotification() {
-        when(timetables.getTimetableNotificationDtoList(any(), any(), any()))
-                .thenThrow(new IllegalStateException("database unavailable"));
-        assertThatThrownBy(scheduler::scheduled).isInstanceOf(IllegalStateException.class);
-        verifyNoInteractions(devices, notification);
-    }
+  @Test
+  void failedTimetableLookupCannotDispatchPartialNotification() {
+    when(timetables.getTimetableNotificationDtoList(any(), any(), any()))
+        .thenThrow(new IllegalStateException("database unavailable"));
+    assertThatThrownBy(scheduler::scheduled).isInstanceOf(IllegalStateException.class);
+    verifyNoInteractions(devices, notification);
+  }
 
-    private TodayTimetable row(String name, int hour, int minute, Long memberId) {
-        return new TodayTimetable(name, LocalTime.of(hour, minute), LocalTime.of(hour + 1, minute), memberId);
-    }
+  private TodayTimetable row(String name, int hour, int minute, Long memberId) {
+    return new TodayTimetable(
+        name, LocalTime.of(hour, minute), LocalTime.of(hour + 1, minute), memberId);
+  }
 }

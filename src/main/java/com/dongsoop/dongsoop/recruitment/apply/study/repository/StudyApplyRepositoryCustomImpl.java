@@ -16,45 +16,49 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class StudyApplyRepositoryCustomImpl implements StudyApplyRepositoryCustom {
 
-    private static final QStudyApply studyApply = QStudyApply.studyApply;
-    private static final QStudyBoard studyBoard = QStudyBoard.studyBoard;
-    private static final QMember member = QMember.member;
-    private static final QDepartment department = QDepartment.department;
+  private static final QStudyApply studyApply = QStudyApply.studyApply;
+  private static final QStudyBoard studyBoard = QStudyBoard.studyBoard;
+  private static final QMember member = QMember.member;
+  private static final QDepartment department = QDepartment.department;
 
-    private final StudyRecruitmentApplyProjection studyRecruitmentApplyProjection;
+  private final StudyRecruitmentApplyProjection studyRecruitmentApplyProjection;
 
-    private final JPAQueryFactory queryFactory;
+  private final JPAQueryFactory queryFactory;
 
-    @Override
-    public boolean existsByBoardIdAndMemberId(Long boardId, Long memberId) {
-        return queryFactory.selectOne()
-                .from(studyApply)
-                .where(studyApply.studyBoard.id.eq(boardId)
-                        .and(studyApply.member.id.eq(memberId)))
-                .fetchFirst() != null;
-    }
+  @Override
+  public boolean existsByBoardIdAndMemberId(Long boardId, Long memberId) {
+    return queryFactory
+            .selectOne()
+            .from(studyApply)
+            .where(studyApply.studyBoard.id.eq(boardId).and(studyApply.member.id.eq(memberId)))
+            .fetchFirst()
+        != null;
+  }
 
-    @Override
-    public Optional<ApplyDetails> findApplyDetailsByBoardIdAndApplierId(Long boardId, Long applierId) {
-        ApplyDetails result = queryFactory.select(studyRecruitmentApplyProjection.getApplyDetailsExpression())
-                .from(studyApply)
-                .leftJoin(studyApply.studyBoard, studyBoard)
-                .leftJoin(studyApply.member, member)
-                .leftJoin(member.department, department)
-                .where(studyApply.studyBoard.id.eq(boardId)
-                        .and(studyApply.member.id.eq(applierId)))
-                .fetchOne();
+  @Override
+  public Optional<ApplyDetails> findApplyDetailsByBoardIdAndApplierId(
+      Long boardId, Long applierId) {
+    ApplyDetails result =
+        queryFactory
+            .select(studyRecruitmentApplyProjection.getApplyDetailsExpression())
+            .from(studyApply)
+            .leftJoin(studyApply.studyBoard, studyBoard)
+            .leftJoin(studyApply.member, member)
+            .leftJoin(member.department, department)
+            .where(studyApply.studyBoard.id.eq(boardId).and(studyApply.member.id.eq(applierId)))
+            .fetchOne();
 
-        return Optional.ofNullable(result);
-    }
+    return Optional.ofNullable(result);
+  }
 
-    @Override
-    public Optional<StudyApply> findByBoardIdAndApplierId(Long boardId, Long applierId) {
-        StudyApply result = queryFactory.selectFrom(studyApply)
-                .where(studyApply.studyBoard.id.eq(boardId)
-                        .and(studyApply.member.id.eq(applierId)))
-                .fetchOne();
+  @Override
+  public Optional<StudyApply> findByBoardIdAndApplierId(Long boardId, Long applierId) {
+    StudyApply result =
+        queryFactory
+            .selectFrom(studyApply)
+            .where(studyApply.studyBoard.id.eq(boardId).and(studyApply.member.id.eq(applierId)))
+            .fetchOne();
 
-        return Optional.ofNullable(result);
-    }
+    return Optional.ofNullable(result);
+  }
 }

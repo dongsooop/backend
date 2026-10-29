@@ -18,114 +18,113 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class NoticeParser {
 
-    private static final String TD_SUBJECT_SELECTOR = ".td-subject";
-    private final Pattern departmentNoticeLinkPattern;
-    private final Pattern universityNoticeLinkPattern;
-    private final NoticeLinkParser noticeLinkParser;
+  private static final String TD_SUBJECT_SELECTOR = ".td-subject";
+  private final Pattern departmentNoticeLinkPattern;
+  private final Pattern universityNoticeLinkPattern;
+  private final NoticeLinkParser noticeLinkParser;
 
-    public NoticeParser(NoticeLinkParser noticeLinkParser, @Value("${notice.link.layout-header}") String layoutHeader) {
-        this.noticeLinkParser = noticeLinkParser;
-        this.departmentNoticeLinkPattern = Pattern.compile(
-                "^/combBbs/dmu/\\d+/\\d+/(\\d+)/view.do\\" + layoutHeader + "$");
-        this.universityNoticeLinkPattern = Pattern.compile(
-                "^/bbs/dmu/\\d+/(\\d+)/artclView.do\\" + layoutHeader + "$");
+  public NoticeParser(
+      NoticeLinkParser noticeLinkParser,
+      @Value("${notice.link.layout-header}") String layoutHeader) {
+    this.noticeLinkParser = noticeLinkParser;
+    this.departmentNoticeLinkPattern =
+        Pattern.compile("^/combBbs/dmu/\\d+/\\d+/(\\d+)/view.do\\" + layoutHeader + "$");
+    this.universityNoticeLinkPattern =
+        Pattern.compile("^/bbs/dmu/\\d+/(\\d+)/artclView.do\\" + layoutHeader + "$");
+  }
+
+  public NoticeDetails parse(Element row) {
+    if (!isNoticeRow(row)) {
+      return null;
     }
 
-    public NoticeDetails parse(Element row) {
-        if (!isNoticeRow(row)) {
-            return null;
-        }
+    String title = parseTitle(row);
+    String author = parseWriter(row);
+    LocalDate date = parseDate(row);
+    String link = parseLink(row);
+    Long contentNumber = parseNoticeNumber(link);
 
-        String title = parseTitle(row);
-        String author = parseWriter(row);
-        LocalDate date = parseDate(row);
-        String link = parseLink(row);
-        Long contentNumber = parseNoticeNumber(link);
+    return new NoticeDetails(contentNumber, author, title, link, date);
+  }
 
-        return new NoticeDetails(contentNumber, author, title, link, date);
+  public boolean isNoticeRow(Element row) {
+    Element numberElement = row.getElementsByClass("td-num").first();
+
+    return row.tagName().equals("tr")
+        && numberElement != null
+        && numberElement.text().matches("\\d+");
+  }
+
+  public Long parseNoticeNumber(String link) {
+    Long noticeNumberByDepartmentLink = parseLinkByRegex(link, departmentNoticeLinkPattern);
+    if (noticeNumberByDepartmentLink != null) {
+      return noticeNumberByDepartmentLink;
     }
 
-    public boolean isNoticeRow(Element row) {
-        Element numberElement = row.getElementsByClass("td-num")
-                .first();
-
-        return row.tagName().equals("tr")
-                && numberElement != null
-                && numberElement.text().matches("\\d+");
+    Long noticeNumberByUniversityLink = parseLinkByRegex(link, universityNoticeLinkPattern);
+    if (noticeNumberByUniversityLink != null) {
+      return noticeNumberByUniversityLink;
     }
 
-    public Long parseNoticeNumber(String link) {
-        Long noticeNumberByDepartmentLink = parseLinkByRegex(link, departmentNoticeLinkPattern);
-        if (noticeNumberByDepartmentLink != null) {
-            return noticeNumberByDepartmentLink;
-        }
+    throw new NoticeLinkFormatNotAvailable(link);
+  }
 
-        Long noticeNumberByUniversityLink = parseLinkByRegex(link, universityNoticeLinkPattern);
-        if (noticeNumberByUniversityLink != null) {
-            return noticeNumberByUniversityLink;
-        }
-
-        throw new NoticeLinkFormatNotAvailable(link);
+  private Long parseLinkByRegex(String link, Pattern pattern) {
+    Matcher matcher = pattern.matcher(link);
+    if (!matcher.find()) {
+      return null;
     }
 
-    private Long parseLinkByRegex(String link, Pattern pattern) {
-        Matcher matcher = pattern.matcher(link);
-        if (!matcher.find()) {
-            return null;
-        }
+    try {
+      return Long.parseLong(matcher.group(1));
+    } catch (NumberFormatException e) {
+      log.error("공지 번호 파싱 중 숫자가 아닌 오류: {}", link, e);
+      return null;
+    }
+  }
 
-        try {
-            return Long.parseLong(matcher.group(1));
-        } catch (NumberFormatException e) {
-            log.error("공지 번호 파싱 중 숫자가 아닌 오류: {}", link, e);
-            return null;
-        }
+  public String parseTitle(Element row) {
+    Element subjectElement = row.selectFirst(TD_SUBJECT_SELECTOR);
+
+    if (subjectElement == null) {
+      throw new NoticeSubjectNotAvailableException();
     }
 
-    public String parseTitle(Element row) {
-        Element subjectElement = row.selectFirst(TD_SUBJECT_SELECTOR);
+    Element subjectTextElement = subjectElement.selectFirst("strong");
 
-        if (subjectElement == null) {
-            throw new NoticeSubjectNotAvailableException();
-        }
+    // strong 클래스가 있다면 반환하고 없다면 subject 내용 전체 반환
+    return Objects.requireNonNullElse(subjectTextElement, subjectElement).text();
+  }
 
-        Element subjectTextElement = subjectElement.selectFirst("strong");
-
-        // strong 클래스가 있다면 반환하고 없다면 subject 내용 전체 반환
-        return Objects.requireNonNullElse(subjectTextElement, subjectElement).text();
+  public String parseLink(Element row) {
+    Element titleElement = row.selectFirst(TD_SUBJECT_SELECTOR);
+    if (titleElement == null) {
+      return "";
     }
 
-    public String parseLink(Element row) {
-        Element titleElement = row.selectFirst(TD_SUBJECT_SELECTOR);
-        if (titleElement == null) {
-            return "";
-        }
-
-        Element linkElement = titleElement.getElementsByTag("a")
-                .first();
-        if (linkElement == null) {
-            return "";
-        }
-
-        String link = linkElement.attr("href");
-        return noticeLinkParser.parse(link);
+    Element linkElement = titleElement.getElementsByTag("a").first();
+    if (linkElement == null) {
+      return "";
     }
 
-    public String parseWriter(Element row) {
-        return parseTextByClass(row, "td-write");
-    }
+    String link = linkElement.attr("href");
+    return noticeLinkParser.parse(link);
+  }
 
-    public LocalDate parseDate(Element row) {
-        String date = parseTextByClass(row, "td-date");
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd");
+  public String parseWriter(Element row) {
+    return parseTextByClass(row, "td-write");
+  }
 
-        return LocalDate.parse(date, dateTimeFormatter);
-    }
+  public LocalDate parseDate(Element row) {
+    String date = parseTextByClass(row, "td-date");
+    DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 
-    private String parseTextByClass(Element row, String className) {
-        Elements element = row.getElementsByClass(className);
+    return LocalDate.parse(date, dateTimeFormatter);
+  }
 
-        return element.text();
-    }
+  private String parseTextByClass(Element row, String className) {
+    Elements element = row.getElementsByClass(className);
 
+    return element.text();
+  }
 }

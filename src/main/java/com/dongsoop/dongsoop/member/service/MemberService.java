@@ -8,19 +8,19 @@ import com.dongsoop.dongsoop.member.entity.Member;
 
 public interface MemberService {
 
-    void signup(SignupRequest request);
+  void signup(SignupRequest request);
 
-    LoginDetails login(LoginRequest loginRequest);
+  LoginDetails login(LoginRequest loginRequest);
 
-    Member getMemberReferenceByContext();
+  Member getMemberReferenceByContext();
 
-    String getNicknameById(Long userId);
+  String getNicknameById(Long userId);
 
-    Long getMemberIdByAuthentication();
+  Long getMemberIdByAuthentication();
 
-    void deleteMember();
+  void deleteMember();
 
-    void updatePassword(UpdatePasswordRequest request);
+  void updatePassword(UpdatePasswordRequest request);
 
-    boolean isAuthenticated();
+  boolean isAuthenticated();
 }

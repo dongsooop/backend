@@ -11,15 +11,15 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class BlindDateSessionServiceImpl implements BlindDateSessionService {
 
-    private final BlindDateParticipantStorage participantStorage;
-    private final BlindDateStorage blindDateStorage;
+  private final BlindDateParticipantStorage participantStorage;
+  private final BlindDateStorage blindDateStorage;
 
-    public boolean isSessionFull(String sessionId) {
-        List<ParticipantInfo> participantInfos = participantStorage.findAllBySessionId(sessionId);
-        Integer maxCount = blindDateStorage.getMaxSessionMemberCount();
-        if (maxCount == null) {
-            return false;
-        }
-        return participantInfos.size() >= maxCount;
+  public boolean isSessionFull(String sessionId) {
+    List<ParticipantInfo> participantInfos = participantStorage.findAllBySessionId(sessionId);
+    Integer maxCount = blindDateStorage.getMaxSessionMemberCount();
+    if (maxCount == null) {
+      return false;
     }
+    return participantInfos.size() >= maxCount;
+  }
 }

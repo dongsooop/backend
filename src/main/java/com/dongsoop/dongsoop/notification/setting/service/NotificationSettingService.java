@@ -8,13 +8,13 @@ import java.util.Map;
 
 public interface NotificationSettingService {
 
-    Map<NotificationType, Boolean> getNotificationSettings(NotificationSettingFindRequest request);
+  Map<NotificationType, Boolean> getNotificationSettings(NotificationSettingFindRequest request);
 
-    void disableNotification(NotificationSettingRequest request);
+  void disableNotification(NotificationSettingRequest request);
 
-    void enableNotification(NotificationSettingRequest request);
+  void enableNotification(NotificationSettingRequest request);
 
-    void updateRecruitmentApplyNotification(RecruitmentSettingUpdateRequest request);
+  void updateRecruitmentApplyNotification(RecruitmentSettingUpdateRequest request);
 
-    void updateRecruitmentResultNotification(RecruitmentSettingUpdateRequest request);
+  void updateRecruitmentResultNotification(RecruitmentSettingUpdateRequest request);
 }

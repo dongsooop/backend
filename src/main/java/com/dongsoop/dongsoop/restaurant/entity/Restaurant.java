@@ -2,6 +2,8 @@ package com.dongsoop.dongsoop.restaurant.entity;
 
 import com.dongsoop.dongsoop.common.BaseEntity;
 import jakarta.persistence.*;
+import java.util.List;
+import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -9,45 +11,47 @@ import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
-import java.util.List;
-import java.util.Objects;
-
 @Entity
 @Getter
 @SuperBuilder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLRestriction("is_deleted = false")
-@SQLDelete(sql = "UPDATE restaurant SET is_deleted = true, external_map_id = external_map_id || '_' || id WHERE id = ?")
-@SequenceGenerator(name = "restaurant_sequence_generator", sequenceName = "restaurant_sequence", allocationSize = 1)
+@SQLDelete(
+    sql =
+        "UPDATE restaurant SET is_deleted = true, external_map_id = external_map_id || '_' || id WHERE id = ?")
+@SequenceGenerator(
+    name = "restaurant_sequence_generator",
+    sequenceName = "restaurant_sequence",
+    allocationSize = 1)
 public class Restaurant extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "restaurant_sequence_generator")
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "restaurant_sequence_generator")
+  private Long id;
 
-    @Column(nullable = false)
-    private String name;
+  @Column(nullable = false)
+  private String name;
 
-    @Column(nullable = false)
-    private String placeUrl;
+  @Column(nullable = false)
+  private String placeUrl;
 
-    @Column(name = "distance", nullable = false)
-    private Double distance;
+  @Column(name = "distance", nullable = false)
+  private Double distance;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
-    private RestaurantCategory category;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 50)
+  private RestaurantCategory category;
 
-    @Column(nullable = false, unique = true)
-    private String externalMapId;
+  @Column(nullable = false, unique = true)
+  private String externalMapId;
 
-    @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(name = "restaurant_tags", joinColumns = @JoinColumn(name = "restaurant_id"))
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tag", nullable = false)
-    private List<RestaurantTag> tags;
+  @ElementCollection(fetch = FetchType.LAZY)
+  @CollectionTable(name = "restaurant_tags", joinColumns = @JoinColumn(name = "restaurant_id"))
+  @Enumerated(EnumType.STRING)
+  @Column(name = "tag", nullable = false)
+  private List<RestaurantTag> tags;
 
-    public boolean equalsId(Restaurant that) {
-        return Objects.equals(this.id, that.id);
-    }
+  public boolean equalsId(Restaurant that) {
+    return Objects.equals(this.id, that.id);
+  }
 }

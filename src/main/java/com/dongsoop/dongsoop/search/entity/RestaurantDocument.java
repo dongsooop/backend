@@ -14,36 +14,35 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
 @Document(indexName = "boards")
 public class RestaurantDocument {
 
-    @Id
-    private String id;
+  @Id private String id;
 
-    @Field(name = "board_id", type = FieldType.Long)
-    private Long restaurantId;
+  @Field(name = "board_id", type = FieldType.Long)
+  private Long restaurantId;
 
-    @Field(name = "title", type = FieldType.Text, analyzer = "nori")
-    private String name;
+  @Field(name = "title", type = FieldType.Text, analyzer = "nori")
+  private String name;
 
-    @Field(name = "content", type = FieldType.Keyword)
-    private String category;
+  @Field(name = "content", type = FieldType.Keyword)
+  private String category;
 
-    @Field(type = FieldType.Text, analyzer = "nori")
-    private String tags;
+  @Field(type = FieldType.Text, analyzer = "nori")
+  private String tags;
 
-    @Field(name = "link", type = FieldType.Keyword)
-    private String placeUrl;
+  @Field(name = "link", type = FieldType.Keyword)
+  private String placeUrl;
 
-    @Field(name = "contact_count", type = FieldType.Integer)
-    private Integer likeCount;
+  @Field(name = "contact_count", type = FieldType.Integer)
+  private Integer likeCount;
 
-    @Field(type = FieldType.Double)
-    private Double distance;
+  @Field(type = FieldType.Double)
+  private Double distance;
 
-    @Field(type = FieldType.Keyword)
-    private Boolean isLikedByMe;
+  @Field(type = FieldType.Keyword)
+  private Boolean isLikedByMe;
 
-    @Field(name = "external_map_id", type = FieldType.Keyword)
-    private String externalMapId;
+  @Field(name = "external_map_id", type = FieldType.Keyword)
+  private String externalMapId;
 
-    @Field(name = "liked_member_ids", type = FieldType.Keyword)
-    private String likedMemberIds;
+  @Field(name = "liked_member_ids", type = FieldType.Keyword)
+  private String likedMemberIds;
 }

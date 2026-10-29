@@ -4,5 +4,5 @@ import java.util.List;
 
 public interface TimetableNotification {
 
-    void send(String title, String body, List<String> devices);
+  void send(String title, String body, List<String> devices);
 }

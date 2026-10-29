@@ -7,9 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface ProjectBoardDepartmentRepository extends
-        JpaRepository<ProjectBoardDepartment, ProjectBoardDepartmentId> {
+public interface ProjectBoardDepartmentRepository
+    extends JpaRepository<ProjectBoardDepartment, ProjectBoardDepartmentId> {
 
-    @Query("SELECT sbd FROM ProjectBoardDepartment sbd WHERE sbd.projectBoard.id = :boardId")
-    List<ProjectBoardDepartment> findByProjectBoardId(@Param("boardId") Long boardId);
+  @Query("SELECT sbd FROM ProjectBoardDepartment sbd WHERE sbd.projectBoard.id = :boardId")
+  List<ProjectBoardDepartment> findByProjectBoardId(@Param("boardId") Long boardId);
 }

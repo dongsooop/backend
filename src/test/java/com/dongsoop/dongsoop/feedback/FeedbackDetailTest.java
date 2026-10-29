@@ -20,39 +20,37 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class FeedbackDetailTest {
 
-    @InjectMocks
-    private FeedbackServiceImpl feedbackService;
+  @InjectMocks private FeedbackServiceImpl feedbackService;
 
-    @Mock
-    private FeedbackRepository feedbackRepository;
+  @Mock private FeedbackRepository feedbackRepository;
 
-    @Test
-    void feedback_WhenDoesNotExist_ReturnsNotFound() {
-        // given
-        when(feedbackRepository.searchFeedbackById(any(Long.class)))
-                .thenReturn(Optional.empty());
+  @Test
+  void feedback_WhenDoesNotExist_ReturnsNotFound() {
+    // given
+    when(feedbackRepository.searchFeedbackById(any(Long.class))).thenReturn(Optional.empty());
 
-        // when & then
-        Assertions.assertThrows(FeedbackNotFoundException.class, () -> feedbackService.getFeedbackDetail(1L));
-    }
+    // when & then
+    Assertions.assertThrows(
+        FeedbackNotFoundException.class, () -> feedbackService.getFeedbackDetail(1L));
+  }
 
-    @Test
-    void feedback_WhenExist_ReturnsFeedbackDetail() {
-        // given
-        Long feedbackId = 1L;
+  @Test
+  void feedback_WhenExist_ReturnsFeedbackDetail() {
+    // given
+    Long feedbackId = 1L;
 
-        FeedbackDetail feedbackDetail = new FeedbackDetail(feedbackId,
-                "This is a feedback content.",
-                "This is a feature content.",
-                1L,
-                "name",
-                LocalDateTime.now());
+    FeedbackDetail feedbackDetail =
+        new FeedbackDetail(
+            feedbackId,
+            "This is a feedback content.",
+            "This is a feature content.",
+            1L,
+            "name",
+            LocalDateTime.now());
 
-        when(feedbackRepository.searchFeedbackById(feedbackId))
-                .thenReturn(Optional.of(feedbackDetail));
+    when(feedbackRepository.searchFeedbackById(feedbackId)).thenReturn(Optional.of(feedbackDetail));
 
-        // when & then
-        assertThat(feedbackService.getFeedbackDetail(feedbackId))
-                .isEqualTo(feedbackDetail);
-    }
+    // when & then
+    assertThat(feedbackService.getFeedbackDetail(feedbackId)).isEqualTo(feedbackDetail);
+  }
 }

@@ -10,13 +10,13 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class CacheConfig {
 
-    @Value("${oauth.apple.cache-name}")
-    private String cacheName;
+  @Value("${oauth.apple.cache-name}")
+  private String cacheName;
 
-    @Bean
-    public CacheManager cacheManager() {
-        ConcurrentMapCacheManager cacheManager = new ConcurrentMapCacheManager();
-        cacheManager.setCacheNames(List.of(cacheName));
-        return cacheManager;
-    }
+  @Bean
+  public CacheManager cacheManager() {
+    ConcurrentMapCacheManager cacheManager = new ConcurrentMapCacheManager();
+    cacheManager.setCacheNames(List.of(cacheName));
+    return cacheManager;
+  }
 }

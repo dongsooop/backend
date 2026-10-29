@@ -6,12 +6,16 @@ import com.dongsoop.dongsoop.notification.setting.entity.NotificationSetting;
 
 public class SettingSkip extends SettingChanges {
 
-    public SettingSkip(NotificationSetting setting, MemberDevice device, NotificationType type, boolean targetState) {
-        super(setting, device, type, targetState);
-    }
+  public SettingSkip(
+      NotificationSetting setting,
+      MemberDevice device,
+      NotificationType type,
+      boolean targetState) {
+    super(setting, device, type, targetState);
+  }
 
-    @Override
-    public String getTypeName() {
-        return "Skip";
-    }
+  @Override
+  public String getTypeName() {
+    return "Skip";
+  }
 }

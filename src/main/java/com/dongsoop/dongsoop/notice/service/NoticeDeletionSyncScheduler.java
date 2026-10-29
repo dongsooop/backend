@@ -14,24 +14,27 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class NoticeDeletionSyncScheduler {
 
-    private final DepartmentService departmentService;
-    private final NoticeDeletionSyncService deletionSyncService;
+  private final DepartmentService departmentService;
+  private final NoticeDeletionSyncService deletionSyncService;
 
-    @Scheduled(cron = "0 0 22 * * *", zone = "Asia/Seoul")
-    public void syncDeletedNotices() {
-        List<Department> departments = departmentService.getAllDepartments();
-        for (Department department : departments) {
-            sync(department);
-        }
+  @Scheduled(cron = "0 0 22 * * *", zone = "Asia/Seoul")
+  public void syncDeletedNotices() {
+    List<Department> departments = departmentService.getAllDepartments();
+    for (Department department : departments) {
+      sync(department);
     }
+  }
 
-    private void sync(Department department) {
-        try {
-            SyncResult result = deletionSyncService.sync(department);
-            log.info("Notice deletion sync completed. department={}, deleted={}, restored={}",
-                    department.getId(), result.deletedCount(), result.restoredCount());
-        } catch (Exception exception) {
-            log.error("Notice deletion sync failed. department={}", department.getId(), exception);
-        }
+  private void sync(Department department) {
+    try {
+      SyncResult result = deletionSyncService.sync(department);
+      log.info(
+          "Notice deletion sync completed. department={}, deleted={}, restored={}",
+          department.getId(),
+          result.deletedCount(),
+          result.restoredCount());
+    } catch (Exception exception) {
+      log.error("Notice deletion sync failed. department={}", department.getId(), exception);
     }
+  }
 }

@@ -5,7 +5,7 @@ import java.util.List;
 
 public interface NotificationSettingChangeHandler {
 
-    Class<? extends SettingChanges> getSupportedClass();
+  Class<? extends SettingChanges> getSupportedClass();
 
-    void apply(List<SettingChanges> changes);
+  void apply(List<SettingChanges> changes);
 }

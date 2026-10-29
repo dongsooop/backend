@@ -5,32 +5,30 @@ import com.dongsoop.dongsoop.report.entity.ReportChatRoomType;
 import com.dongsoop.dongsoop.report.entity.ReportReason;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 import com.dongsoop.dongsoop.report.entity.SanctionType;
-
 import java.time.LocalDateTime;
 
 public record ReportResponse(
-        Long id,
-        String reporterNickname,
-        ReportType reportType,
-        Long targetId,
-        String targetUrl,
-        ReportReason reportReason,
-        String description,
-        Boolean isProcessed,
-        String adminNickname,
-        String targetMemberNickname,
-        SanctionType sanctionType,
-        String sanctionReason,
-        LocalDateTime sanctionStartDate,
-        LocalDateTime sanctionEndDate,
-        Boolean isSanctionActive,
-        LocalDateTime createdAt,
-        String chatRoomId,
-        ReportChatRoomType chatRoomType,
-        String messageId,
-        String messageContent,
-        LocalDateTime messageSentAt,
-        ChatMessageSnapshots messageContext,
-        Long resolvedByReportId
-) implements ReportListItem {
-}
+    Long id,
+    String reporterNickname,
+    ReportType reportType,
+    Long targetId,
+    String targetUrl,
+    ReportReason reportReason,
+    String description,
+    Boolean isProcessed,
+    String adminNickname,
+    String targetMemberNickname,
+    SanctionType sanctionType,
+    String sanctionReason,
+    LocalDateTime sanctionStartDate,
+    LocalDateTime sanctionEndDate,
+    Boolean isSanctionActive,
+    LocalDateTime createdAt,
+    String chatRoomId,
+    ReportChatRoomType chatRoomType,
+    String messageId,
+    String messageContent,
+    LocalDateTime messageSentAt,
+    ChatMessageSnapshots messageContext,
+    Long resolvedByReportId)
+    implements ReportListItem {}

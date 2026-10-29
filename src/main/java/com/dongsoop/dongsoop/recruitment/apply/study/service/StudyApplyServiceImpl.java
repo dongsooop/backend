@@ -35,140 +35,149 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class StudyApplyServiceImpl implements StudyApplyService {
 
-    private final MemberService memberService;
-    private final StudyApplyRepository studyApplyRepository;
-    private final StudyBoardRepository studyBoardRepository;
-    private final StudyBoardDepartmentRepository studyBoardDepartmentRepository;
-    private final StudyApplyRepositoryCustom studyApplyRepositoryCustom;
-    private final ChatParticipantService chatParticipantService;
-    private final StudyApplyNotification studyApplyNotification;
+  private final MemberService memberService;
+  private final StudyApplyRepository studyApplyRepository;
+  private final StudyBoardRepository studyBoardRepository;
+  private final StudyBoardDepartmentRepository studyBoardDepartmentRepository;
+  private final StudyApplyRepositoryCustom studyApplyRepositoryCustom;
+  private final ChatParticipantService chatParticipantService;
+  private final StudyApplyNotification studyApplyNotification;
 
-    public void apply(ApplyStudyBoardRequest request) {
-        Member member = memberService.getMemberReferenceByContext();
-        validateAlreadyApplied(member.getId(), request.boardId());
+  public void apply(ApplyStudyBoardRequest request) {
+    Member member = memberService.getMemberReferenceByContext();
+    validateAlreadyApplied(member.getId(), request.boardId());
 
-        StudyBoard studyBoard = studyBoardRepository.findById(request.boardId())
-                .orElseThrow(() -> new StudyBoardNotFound(request.boardId()));
+    StudyBoard studyBoard =
+        studyBoardRepository
+            .findById(request.boardId())
+            .orElseThrow(() -> new StudyBoardNotFound(request.boardId()));
 
-        if (studyBoard.isAuthor(member)) {
-            throw new StudyOwnerCannotApplyException(request.boardId());
-        }
-
-        List<StudyBoardDepartment> studyBoardDepartmentList = studyBoardDepartmentRepository.findByStudyBoardId(
-                request.boardId());
-        if (studyBoardDepartmentList.isEmpty()) {
-            throw new StudyBoardDepartmentNotAssignedException(request.boardId());
-        }
-
-        validateDepartment(studyBoardDepartmentList, member);
-
-        StudyApply studyApplication = StudyApply.builder()
-                .studyBoard(studyBoard)
-                .member(member)
-                .introduction(request.introduction())
-                .motivation(request.motivation())
-                .build();
-
-        studyApplyRepository.save(studyApplication);
-
-        Long authorId = studyBoard.getAuthor().getId();
-        studyApplyNotification.sendApplyNotification(studyBoard.getId(), studyBoard.getTitle(), authorId);
+    if (studyBoard.isAuthor(member)) {
+      throw new StudyOwnerCannotApplyException(request.boardId());
     }
 
-    private void validateAlreadyApplied(Long memberId, Long boardId) {
-        boolean isAlreadyApplied = studyApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
-        if (isAlreadyApplied) {
-            throw new StudyRecruitmentAlreadyAppliedException(memberId, boardId);
-        }
+    List<StudyBoardDepartment> studyBoardDepartmentList =
+        studyBoardDepartmentRepository.findByStudyBoardId(request.boardId());
+    if (studyBoardDepartmentList.isEmpty()) {
+      throw new StudyBoardDepartmentNotAssignedException(request.boardId());
     }
 
-    private void validateDepartment(List<StudyBoardDepartment> boardDepartment, Member member) {
-        DepartmentType requesterDepartmentType = member.getDepartment().getId();
+    validateDepartment(studyBoardDepartmentList, member);
 
-        for (StudyBoardDepartment studyBoardDepartment : boardDepartment) {
-            if (studyBoardDepartment.isSameDepartmentType(requesterDepartmentType)) {
-                return;
-            }
-        }
+    StudyApply studyApplication =
+        StudyApply.builder()
+            .studyBoard(studyBoard)
+            .member(member)
+            .introduction(request.introduction())
+            .motivation(request.motivation())
+            .build();
 
-        List<DepartmentType> boardDepartmentTypeList = boardDepartment.stream()
-                .map(StudyBoardDepartment::getDepartment)
-                .map(Department::getId)
-                .toList();
+    studyApplyRepository.save(studyApplication);
 
-        throw new StudyBoardDepartmentMismatchException(boardDepartmentTypeList, requesterDepartmentType);
+    Long authorId = studyBoard.getAuthor().getId();
+    studyApplyNotification.sendApplyNotification(
+        studyBoard.getId(), studyBoard.getTitle(), authorId);
+  }
+
+  private void validateAlreadyApplied(Long memberId, Long boardId) {
+    boolean isAlreadyApplied =
+        studyApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
+    if (isAlreadyApplied) {
+      throw new StudyRecruitmentAlreadyAppliedException(memberId, boardId);
+    }
+  }
+
+  private void validateDepartment(List<StudyBoardDepartment> boardDepartment, Member member) {
+    DepartmentType requesterDepartmentType = member.getDepartment().getId();
+
+    for (StudyBoardDepartment studyBoardDepartment : boardDepartment) {
+      if (studyBoardDepartment.isSameDepartmentType(requesterDepartmentType)) {
+        return;
+      }
     }
 
-    @Override
-    @Transactional
-    public void updateStatus(Long boardId, UpdateApplyStatusRequest request) {
-        Long boardOwnerId = memberService.getMemberIdByAuthentication();
-        if (!studyBoardRepository.existsByIdAndAuthorId(boardId, boardOwnerId)) {
-            throw new StudyBoardNotFound(boardId, boardOwnerId);
-        }
+    List<DepartmentType> boardDepartmentTypeList =
+        boardDepartment.stream()
+            .map(StudyBoardDepartment::getDepartment)
+            .map(Department::getId)
+            .toList();
 
-        if (request.compareStatus(RecruitmentApplyStatus.APPLY)) {
-            return;
-        }
+    throw new StudyBoardDepartmentMismatchException(
+        boardDepartmentTypeList, requesterDepartmentType);
+  }
 
-        StudyApply studyApply = studyApplyRepositoryCustom.findByBoardIdAndApplierId(boardId, request.applierId())
-                .orElseThrow(() -> new StudyApplyNotFoundException(request.applierId(), boardId));
-
-        studyApply.updateStatus(request.status());
-
-        String boardTitle = studyApply.getStudyBoard()
-                .getTitle();
-
-        if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
-            inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
-        }
-
-        studyApplyNotification.sendOutcomeNotification(boardId, boardTitle, request.applierId());
+  @Override
+  @Transactional
+  public void updateStatus(Long boardId, UpdateApplyStatusRequest request) {
+    Long boardOwnerId = memberService.getMemberIdByAuthentication();
+    if (!studyBoardRepository.existsByIdAndAuthorId(boardId, boardOwnerId)) {
+      throw new StudyBoardNotFound(boardId, boardOwnerId);
     }
 
-    private void inviteToGroupChat(Long boardId, Long applierId, Long authorId) {
-        StudyBoard studyBoard = studyBoardRepository.findById(boardId)
-                .orElseThrow(() -> new StudyBoardNotFound(boardId));
-
-        if (!studyBoard.hasChatRoom()) {
-            log.warn("게시판 {}에 채팅방이 연결되지 않음", boardId);
-            return;
-        }
-
-        chatParticipantService.inviteUserToGroupChat(studyBoard.getRoomId(), authorId, applierId);
+    if (request.compareStatus(RecruitmentApplyStatus.APPLY)) {
+      return;
     }
 
+    StudyApply studyApply =
+        studyApplyRepositoryCustom
+            .findByBoardIdAndApplierId(boardId, request.applierId())
+            .orElseThrow(() -> new StudyApplyNotFoundException(request.applierId(), boardId));
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId) {
-        Long requesterId = memberService.getMemberIdByAuthentication();
+    studyApply.updateStatus(request.status());
 
-        if (!studyBoardRepository.existsByIdAndAuthorId(boardId, requesterId)) {
-            throw new StudyBoardNotFound(boardId, requesterId);
-        }
+    String boardTitle = studyApply.getStudyBoard().getTitle();
 
-        return studyApplyRepository.findApplyOverviewByBoardId(boardId, requesterId);
+    if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
+      inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
     }
 
-    @Override
-    public ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId) {
-        Long requester = memberService.getMemberIdByAuthentication();
+    studyApplyNotification.sendOutcomeNotification(boardId, boardTitle, request.applierId());
+  }
 
-        // 게시물 주인이 아닌 경우 예외
-        if (!studyBoardRepository.existsByIdAndAuthorId(boardId, requester)) {
-            throw new StudyBoardNotFound(boardId);
-        }
+  private void inviteToGroupChat(Long boardId, Long applierId, Long authorId) {
+    StudyBoard studyBoard =
+        studyBoardRepository.findById(boardId).orElseThrow(() -> new StudyBoardNotFound(boardId));
 
-        return studyApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
-                .orElseThrow(() -> new StudyApplyNotFoundException(boardId, applierId));
+    if (!studyBoard.hasChatRoom()) {
+      log.warn("게시판 {}에 채팅방이 연결되지 않음", boardId);
+      return;
     }
 
-    @Override
-    public ApplyDetails getRecruitmentApplyDetails(Long boardId) {
-        Long requester = memberService.getMemberIdByAuthentication();
+    chatParticipantService.inviteUserToGroupChat(studyBoard.getRoomId(), authorId, applierId);
+  }
 
-        return studyApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, requester)
-                .orElseThrow(() -> new StudyApplyNotFoundException(boardId, requester));
+  @Override
+  @Transactional(readOnly = true)
+  public List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId) {
+    Long requesterId = memberService.getMemberIdByAuthentication();
+
+    if (!studyBoardRepository.existsByIdAndAuthorId(boardId, requesterId)) {
+      throw new StudyBoardNotFound(boardId, requesterId);
     }
+
+    return studyApplyRepository.findApplyOverviewByBoardId(boardId, requesterId);
+  }
+
+  @Override
+  public ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId) {
+    Long requester = memberService.getMemberIdByAuthentication();
+
+    // 게시물 주인이 아닌 경우 예외
+    if (!studyBoardRepository.existsByIdAndAuthorId(boardId, requester)) {
+      throw new StudyBoardNotFound(boardId);
+    }
+
+    return studyApplyRepositoryCustom
+        .findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
+        .orElseThrow(() -> new StudyApplyNotFoundException(boardId, applierId));
+  }
+
+  @Override
+  public ApplyDetails getRecruitmentApplyDetails(Long boardId) {
+    Long requester = memberService.getMemberIdByAuthentication();
+
+    return studyApplyRepositoryCustom
+        .findApplyDetailsByBoardIdAndApplierId(boardId, requester)
+        .orElseThrow(() -> new StudyApplyNotFoundException(boardId, requester));
+  }
 }

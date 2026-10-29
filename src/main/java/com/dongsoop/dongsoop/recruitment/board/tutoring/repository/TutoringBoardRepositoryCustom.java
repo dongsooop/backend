@@ -10,12 +10,11 @@ import org.springframework.data.domain.Pageable;
 
 public interface TutoringBoardRepositoryCustom {
 
-    List<RecruitmentOverview> findTutoringBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
-                                                                                Pageable pageable);
+  List<RecruitmentOverview> findTutoringBoardOverviewsByPageAndDepartmentType(
+      DepartmentType departmentType, Pageable pageable);
 
-    List<RecruitmentOverview> findTutoringBoardOverviewsByPage(Pageable pageable);
+  List<RecruitmentOverview> findTutoringBoardOverviewsByPage(Pageable pageable);
 
-    Optional<RecruitmentDetails> findBoardDetailsByIdAndViewType(Long tutoringBoardId,
-                                                                 RecruitmentViewType viewType,
-                                                                 boolean isAlreadyApplied);
+  Optional<RecruitmentDetails> findBoardDetailsByIdAndViewType(
+      Long tutoringBoardId, RecruitmentViewType viewType, boolean isAlreadyApplied);
 }

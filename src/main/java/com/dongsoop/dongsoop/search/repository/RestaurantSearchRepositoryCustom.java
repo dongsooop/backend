@@ -6,7 +6,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface RestaurantSearchRepositoryCustom {
-    Page<RestaurantDocument> searchByKeywordDynamic(String keyword, Pageable pageable); // 맛집 키워드 검색
+  Page<RestaurantDocument> searchByKeywordDynamic(String keyword, Pageable pageable); // 맛집 키워드 검색
 
-    List<RestaurantDocument> findAutocompleteSuggestionsDynamic(String keyword, Pageable pageable); // 맛집 자동완성
+  List<RestaurantDocument> findAutocompleteSuggestionsDynamic(
+      String keyword, Pageable pageable); // 맛집 자동완성
 }

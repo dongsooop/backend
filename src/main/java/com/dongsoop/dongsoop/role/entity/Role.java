@@ -9,10 +9,9 @@ import lombok.Getter;
 @Entity
 public class Role {
 
-    @Id
-    private Long id;
+  @Id private Long id;
 
-    @Getter
-    @Enumerated(EnumType.STRING)
-    private RoleType roleType;
+  @Getter
+  @Enumerated(EnumType.STRING)
+  private RoleType roleType;
 }

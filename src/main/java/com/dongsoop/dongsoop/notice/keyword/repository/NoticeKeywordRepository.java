@@ -9,11 +9,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface NoticeKeywordRepository extends JpaRepository<NoticeKeyword, Long> {
 
-    List<NoticeKeyword> findAllByDeviceId(Long deviceId);
+  List<NoticeKeyword> findAllByDeviceId(Long deviceId);
 
-    List<NoticeKeyword> findAllByDeviceIdIn(Collection<Long> deviceIds);
+  List<NoticeKeyword> findAllByDeviceIdIn(Collection<Long> deviceIds);
 
-    Optional<NoticeKeyword> findByIdAndDeviceIdIn(Long id, Collection<Long> deviceIds);
+  Optional<NoticeKeyword> findByIdAndDeviceIdIn(Long id, Collection<Long> deviceIds);
 
-    void deleteByDeviceIdInAndKeywordAndType(Collection<Long> deviceIds, String keyword, NoticeKeywordType type);
+  void deleteByDeviceIdInAndKeywordAndType(
+      Collection<Long> deviceIds, String keyword, NoticeKeywordType type);
 }

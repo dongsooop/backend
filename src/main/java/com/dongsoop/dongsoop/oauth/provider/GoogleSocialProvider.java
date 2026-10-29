@@ -45,124 +45,122 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 public class GoogleSocialProvider implements SocialProvider {
 
-    private static final String SERVICE_NAME = "google";
-    private static final String ATTRIBUTE_NAME = "sub";
+  private static final String SERVICE_NAME = "google";
+  private static final String ATTRIBUTE_NAME = "sub";
 
-    private final MemberSocialAccountValidator memberSocialAccountValidator;
-    private final MemberSocialAccountRepository memberSocialAccountRepository;
-    private final MemberRepository memberRepository;
-    private final MemberRoleRepository memberRoleRepository;
-    private final RestTemplate restTemplate;
+  private final MemberSocialAccountValidator memberSocialAccountValidator;
+  private final MemberSocialAccountRepository memberSocialAccountRepository;
+  private final MemberRepository memberRepository;
+  private final MemberRoleRepository memberRoleRepository;
+  private final RestTemplate restTemplate;
 
-    @Value("${spring.security.oauth2.client.provider.google.user-info-uri}")
-    private String googleUserInfoUrl;
+  @Value("${spring.security.oauth2.client.provider.google.user-info-uri}")
+  private String googleUserInfoUrl;
 
-    @Value("${spring.security.oauth2.client.provider.google.user-name-attribute}")
-    private String googleUserNameAttribute;
+  @Value("${spring.security.oauth2.client.provider.google.user-name-attribute}")
+  private String googleUserNameAttribute;
 
-    @Value("${oauth.google.revoke-uri}")
-    private String revokeUri;
+  @Value("${oauth.google.revoke-uri}")
+  private String revokeUri;
 
-    public String serviceName() {
-        return SERVICE_NAME;
+  public String serviceName() {
+    return SERVICE_NAME;
+  }
+
+  @Override
+  public String extractProviderId(OAuth2User oAuth2User, String registrationId) {
+    Map<String, Object> attributes = oAuth2User.getAttributes();
+    Object sub = attributes.get(ATTRIBUTE_NAME);
+    if (sub == null) {
+      throw new InvalidGoogleTokenException();
     }
 
-    @Override
-    public String extractProviderId(OAuth2User oAuth2User, String registrationId) {
-        Map<String, Object> attributes = oAuth2User.getAttributes();
-        Object sub = attributes.get(ATTRIBUTE_NAME);
-        if (sub == null) {
-            throw new InvalidGoogleTokenException();
-        }
+    return sub.toString();
+  }
 
-        return sub.toString();
+  @Override
+  @Transactional(readOnly = true)
+  public Authentication login(String providerToken) {
+    String providerId = this.getProviderId(providerToken);
+
+    MemberSocialAccountDto socialAccount =
+        memberSocialAccountValidator.validate(providerId, OAuthProviderType.GOOGLE);
+
+    Long memberId = socialAccount.member().getId();
+
+    List<Role> allRoleByMemberId = memberRoleRepository.findAllByMemberId(memberId);
+
+    Collection<? extends GrantedAuthority> roles =
+        allRoleByMemberId.stream()
+            .map(role -> new SimpleGrantedAuthority(role.getRoleType().name()))
+            .toList();
+
+    return new UsernamePasswordAuthenticationToken(memberId, null, roles);
+  }
+
+  @Override
+  @Transactional
+  public LocalDateTime linkSocialAccount(Long memberId, SocialAccountLinkRequest request) {
+    // 락 획득
+    Member member = this.memberRepository.findAndLockById(memberId);
+
+    String providerId = this.getProviderId(request.providerToken());
+    MemberSocialAccountId socialAccountId =
+        new MemberSocialAccountId(providerId, OAuthProviderType.GOOGLE);
+    MemberSocialAccount socialAccount = new MemberSocialAccount(socialAccountId, member);
+
+    try {
+      MemberSocialAccount saved = this.memberSocialAccountRepository.save(socialAccount);
+      return saved.getCreatedAt();
+
+    } catch (DataIntegrityViolationException e) {
+      // 소셜 계정이 이미 DB에 저장된 상태인 경우
+      if (this.memberSocialAccountRepository.existsById(socialAccountId)) {
+        throw new AlreadyLinkedSocialAccountException();
+      }
+
+      // 회원이 이미 동일한 ProviderType의 소셜 계정과 연동된 경우
+      throw new AlreadyLinkedProviderTypeException();
     }
+  }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Authentication login(String providerToken) {
-        String providerId = this.getProviderId(providerToken);
+  private String getProviderId(String providerToken) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(providerToken);
 
-        MemberSocialAccountDto socialAccount = memberSocialAccountValidator.validate(providerId,
-                OAuthProviderType.GOOGLE);
+    HttpEntity<String> entity = new HttpEntity<>(headers);
 
-        Long memberId = socialAccount.member().getId();
+    try {
+      ResponseEntity<Map> response =
+          restTemplate.exchange(googleUserInfoUrl, HttpMethod.GET, entity, Map.class);
 
-        List<Role> allRoleByMemberId = memberRoleRepository.findAllByMemberId(memberId);
+      Map<String, Object> body = response.getBody();
+      if (body == null || body.get(googleUserNameAttribute) == null) {
+        throw new InvalidGoogleTokenException();
+      }
 
-        Collection<? extends GrantedAuthority> roles = allRoleByMemberId.stream()
-                .map(role -> new SimpleGrantedAuthority(role.getRoleType().name()))
-                .toList();
-
-        return new UsernamePasswordAuthenticationToken(memberId, null, roles);
+      return body.get(googleUserNameAttribute).toString();
+    } catch (HttpClientErrorException | HttpServerErrorException e) {
+      log.info("Google token validation failed: {}", e.getMessage());
+      throw new InvalidGoogleTokenException();
     }
+  }
 
-    @Override
-    @Transactional
-    public LocalDateTime linkSocialAccount(Long memberId, SocialAccountLinkRequest request) {
-        // 락 획득
-        Member member = this.memberRepository.findAndLockById(memberId);
+  @Override
+  public void revoke(String providerToken) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        String providerId = this.getProviderId(request.providerToken());
-        MemberSocialAccountId socialAccountId = new MemberSocialAccountId(providerId, OAuthProviderType.GOOGLE);
-        MemberSocialAccount socialAccount = new MemberSocialAccount(socialAccountId, member);
+    MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+    params.add("token", providerToken);
 
-        try {
-            MemberSocialAccount saved = this.memberSocialAccountRepository.save(socialAccount);
-            return saved.getCreatedAt();
+    HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
 
-        } catch (DataIntegrityViolationException e) {
-            // 소셜 계정이 이미 DB에 저장된 상태인 경우
-            if (this.memberSocialAccountRepository.existsById(socialAccountId)) {
-                throw new AlreadyLinkedSocialAccountException();
-            }
-
-            // 회원이 이미 동일한 ProviderType의 소셜 계정과 연동된 경우
-            throw new AlreadyLinkedProviderTypeException();
-        }
+    try {
+      restTemplate.postForEntity(revokeUri, request, String.class);
+    } catch (HttpClientErrorException | HttpServerErrorException e) {
+      log.warn("Google revoke failed: {}", e.getMessage());
+      throw new InvalidGoogleTokenException();
     }
-
-    private String getProviderId(String providerToken) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(providerToken);
-
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-        try {
-            ResponseEntity<Map> response = restTemplate.exchange(
-                    googleUserInfoUrl,
-                    HttpMethod.GET,
-                    entity,
-                    Map.class
-            );
-
-            Map<String, Object> body = response.getBody();
-            if (body == null || body.get(googleUserNameAttribute) == null) {
-                throw new InvalidGoogleTokenException();
-            }
-
-            return body.get(googleUserNameAttribute).toString();
-        } catch (HttpClientErrorException | HttpServerErrorException e) {
-            log.info("Google token validation failed: {}", e.getMessage());
-            throw new InvalidGoogleTokenException();
-        }
-    }
-
-    @Override
-    public void revoke(String providerToken) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("token", providerToken);
-
-        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-
-        try {
-            restTemplate.postForEntity(revokeUri, request, String.class);
-        } catch (HttpClientErrorException | HttpServerErrorException e) {
-            log.warn("Google revoke failed: {}", e.getMessage());
-            throw new InvalidGoogleTokenException();
-        }
-    }
+  }
 }

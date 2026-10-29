@@ -11,11 +11,11 @@ import org.springframework.context.annotation.Configuration;
 @RequiredArgsConstructor
 public class HomeThreadConfig {
 
-    @Value("${home.thread.pool.size:10}")
-    private Integer fixedThreadPoolSize;
+  @Value("${home.thread.pool.size:10}")
+  private Integer fixedThreadPoolSize;
 
-    @Bean
-    public ExecutorService homeThreadExecutor() {
-        return Executors.newFixedThreadPool(fixedThreadPoolSize);
-    }
+  @Bean
+  public ExecutorService homeThreadExecutor() {
+    return Executors.newFixedThreadPool(fixedThreadPoolSize);
+  }
 }

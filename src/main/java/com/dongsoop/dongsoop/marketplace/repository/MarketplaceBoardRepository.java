@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MarketplaceBoardRepository extends JpaRepository<MarketplaceBoard, Long> {
 
-    boolean existsByIdAndAuthor(Long id, Member author);
+  boolean existsByIdAndAuthor(Long id, Member author);
 
-    Optional<MarketplaceBoard> findByIdAndAuthorId(Long id, Long memberId);
+  Optional<MarketplaceBoard> findByIdAndAuthorId(Long id, Long memberId);
 }

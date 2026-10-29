@@ -25,27 +25,27 @@ import lombok.NoArgsConstructor;
 @Table(name = "member")
 public class Member extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.SEQUENCE)
+  private Long id;
 
-    @Column(name = "email", length = 50, unique = true, nullable = false)
-    private String email;
+  @Column(name = "email", length = 50, unique = true, nullable = false)
+  private String email;
 
-    @Column(name = "nickname", length = 8, unique = true, nullable = false)
-    private String nickname;
+  @Column(name = "nickname", length = 8, unique = true, nullable = false)
+  private String nickname;
 
-    @Column(name = "password", length = 100, nullable = false)
-    private String password;
+  @Column(name = "password", length = 100, nullable = false)
+  private String password;
 
-    @Column(name = "student_id", length = 10)
-    private String studentId;
+  @Column(name = "student_id", length = 10)
+  private String studentId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id")
-    private Department department;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "department_id")
+  private Department department;
 
-    public void updatePassword(String password) {
-        this.password = password;
-    }
+  public void updatePassword(String password) {
+    this.password = password;
+  }
 }

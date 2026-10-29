@@ -16,58 +16,58 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class BlindDateDisconnectHandler {
 
-    private final BlindDateParticipantStorage participantStorage;
-    private final BlindDateSessionStorage sessionStorage;
-    private final BlindDateService blindDateService;
-    private final BlindDateEventQueue eventQueue;
+  private final BlindDateParticipantStorage participantStorage;
+  private final BlindDateSessionStorage sessionStorage;
+  private final BlindDateService blindDateService;
+  private final BlindDateEventQueue eventQueue;
 
-    public void execute(String socketId, Long memberId, String sessionId) {
-        // 참가자/세션 상태를 건드리는 처리는 전부 큐에서 순서대로 처리
-        eventQueue.submit(() -> handle(socketId, memberId, sessionId));
+  public void execute(String socketId, Long memberId, String sessionId) {
+    // 참가자/세션 상태를 건드리는 처리는 전부 큐에서 순서대로 처리
+    eventQueue.submit(() -> handle(socketId, memberId, sessionId));
+  }
+
+  private void handle(String socketId, Long memberId, String sessionId) {
+    // 종료된 세션에서 나가는 경우 별도 처리 안 함
+    if (this.sessionStorage.getState(sessionId) == null) {
+      log.info("Session ID {} has been deleted", sessionId);
+      return;
     }
 
-    private void handle(String socketId, Long memberId, String sessionId) {
-        // 종료된 세션에서 나가는 경우 별도 처리 안 함
-        if (this.sessionStorage.getState(sessionId) == null) {
-            log.info("Session ID {} has been deleted", sessionId);
-            return;
-        }
+    // 참여자 정보에서 소켓 제거 시 남아있는 소켓이 없는지
+    boolean isExit = this.removeSocketByParticipantInfo(socketId, memberId);
 
-        // 참여자 정보에서 소켓 제거 시 남아있는 소켓이 없는지
-        boolean isExit = this.removeSocketByParticipantInfo(socketId, memberId);
+    // 사용자의 연결된 소켓이 없는 경우 퇴장 처리
+    if (isExit && this.sessionStorage.isWaiting(sessionId)) {
+      // 참여중인 세션이 포인터 세션인 경우 회원도 제거 시도
+      this.tryRemoveMember(memberId, sessionId);
+    }
+  }
 
-        // 사용자의 연결된 소켓이 없는 경우 퇴장 처리
-        if (isExit && this.sessionStorage.isWaiting(sessionId)) {
-            // 참여중인 세션이 포인터 세션인 경우 회원도 제거 시도
-            this.tryRemoveMember(memberId, sessionId);
-        }
+  private boolean removeSocketByParticipantInfo(String socketId, Long memberId) {
+    try {
+      // 소켓만 제거하고, 제거 후 연결된 소켓이 없는지 반환
+      return participantStorage.removeSocket(socketId);
+    } catch (IllegalArgumentException e) {
+      log.warn("Socket already removed or not found: socketId={}, memberId={}", socketId, memberId);
+      return false;
+    }
+  }
+
+  private void tryRemoveMember(Long memberId, String sessionId) {
+    // 세션 상태 확인
+    SessionState state = sessionStorage.getState(sessionId);
+
+    // PROCESSING 상태면 포인터가 아니며, 퇴장 처리 안 함
+    if (state != SessionState.WAITING) {
+      return;
     }
 
-    private boolean removeSocketByParticipantInfo(String socketId, Long memberId) {
-        try {
-            // 소켓만 제거하고, 제거 후 연결된 소켓이 없는지 반환
-            return participantStorage.removeSocket(socketId);
-        } catch (IllegalArgumentException e) {
-            log.warn("Socket already removed or not found: socketId={}, memberId={}", socketId, memberId);
-            return false;
-        }
-    }
+    // WAITING 상태일 때만 퇴장 처리
+    participantStorage.removeParticipant(memberId);
 
-    private void tryRemoveMember(Long memberId, String sessionId) {
-        // 세션 상태 확인
-        SessionState state = sessionStorage.getState(sessionId);
+    List<ParticipantInfo> participantInfos = participantStorage.findAllBySessionId(sessionId);
 
-        // PROCESSING 상태면 포인터가 아니며, 퇴장 처리 안 함
-        if (state != SessionState.WAITING) {
-            return;
-        }
-
-        // WAITING 상태일 때만 퇴장 처리
-        participantStorage.removeParticipant(memberId);
-
-        List<ParticipantInfo> participantInfos = participantStorage.findAllBySessionId(sessionId);
-
-        // 인원 업데이트 브로드캐스트
-        blindDateService.broadcastJoinedCount(sessionId, participantInfos.size());
-    }
+    // 인원 업데이트 브로드캐스트
+    blindDateService.broadcastJoinedCount(sessionId, participantInfos.size());
+  }
 }

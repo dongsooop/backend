@@ -7,12 +7,14 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface MarketplaceImageRepository extends JpaRepository<MarketplaceImage, MarketplaceImageId> {
+public interface MarketplaceImageRepository
+    extends JpaRepository<MarketplaceImage, MarketplaceImageId> {
 
-    @Query("SELECT COUNT(mi) FROM MarketplaceImage mi WHERE mi.marketplaceBoard.id = :boardId")
-    Integer countByMarketplaceBoardId(@Param("boardId") Long boardId);
+  @Query("SELECT COUNT(mi) FROM MarketplaceImage mi WHERE mi.marketplaceBoard.id = :boardId")
+  Integer countByMarketplaceBoardId(@Param("boardId") Long boardId);
 
-    @Modifying
-    @Query("UPDATE MarketplaceImage mi SET mi.isDeleted = true WHERE mi.marketplaceBoard.id = :boardId")
-    void deleteByMarketplaceBoardId(@Param("boardId") Long boardId);
+  @Modifying
+  @Query(
+      "UPDATE MarketplaceImage mi SET mi.isDeleted = true WHERE mi.marketplaceBoard.id = :boardId")
+  void deleteByMarketplaceBoardId(@Param("boardId") Long boardId);
 }

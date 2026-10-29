@@ -4,7 +4,7 @@ import com.dongsoop.dongsoop.meal.dto.MealPriceResponse;
 import com.dongsoop.dongsoop.meal.dto.MealWeeklyResponse;
 
 public interface MealService {
-    MealWeeklyResponse getCurrentWeekMealResponse();
+  MealWeeklyResponse getCurrentWeekMealResponse();
 
-    MealPriceResponse getPriceResponse();
+  MealPriceResponse getPriceResponse();
 }

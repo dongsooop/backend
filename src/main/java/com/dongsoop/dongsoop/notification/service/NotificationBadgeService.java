@@ -10,19 +10,12 @@ import java.util.Map;
  */
 public interface NotificationBadgeService {
 
-    /**
-     * 여러 회원의 뱃지를 한 번에 계산한다. 발송 시 알림 payload 에 실을 값이다.
-     */
-    Map<Long, Integer> resolveByMemberIds(Collection<Long> memberIds);
+  /** 여러 회원의 뱃지를 한 번에 계산한다. 발송 시 알림 payload 에 실을 값이다. */
+  Map<Long, Integer> resolveByMemberIds(Collection<Long> memberIds);
 
-    /**
-     * 한 회원의 뱃지를 계산한다.
-     */
-    int resolveByMemberId(Long memberId);
+  /** 한 회원의 뱃지를 계산한다. */
+  int resolveByMemberId(Long memberId);
 
-    /**
-     * 한 회원의 뱃지를 계산해 그 회원의 기기에 갱신 신호를 보낸다.
-     * 읽음 처리처럼 알림 발송 없이 뱃지만 바뀌는 경우에 쓴다.
-     */
-    void pushBadge(Long memberId);
+  /** 한 회원의 뱃지를 계산해 그 회원의 기기에 갱신 신호를 보낸다. 읽음 처리처럼 알림 발송 없이 뱃지만 바뀌는 경우에 쓴다. */
+  void pushBadge(Long memberId);
 }

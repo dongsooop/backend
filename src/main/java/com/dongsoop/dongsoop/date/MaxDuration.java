@@ -12,15 +12,15 @@ import java.lang.annotation.Target;
 @Constraint(validatedBy = {MaxDurationValidator.class})
 public @interface MaxDuration {
 
-    long value() default 2419200L; // 기본 최대 4주 (60 * 60 * 24 * 28일)
+  long value() default 2419200L; // 기본 최대 4주 (60 * 60 * 24 * 28일)
 
-    String start() default "startAt";
+  String start() default "startAt";
 
-    String end() default "endAt";
+  String end() default "endAt";
 
-    String message() default "최대 설정 가능 기간보다 길 수 없습니다.";
+  String message() default "최대 설정 가능 기간보다 길 수 없습니다.";
 
-    Class<?>[] groups() default {};
+  Class<?>[] groups() default {};
 
-    Class<? extends Payload>[] payload() default {};
+  Class<? extends Payload>[] payload() default {};
 }

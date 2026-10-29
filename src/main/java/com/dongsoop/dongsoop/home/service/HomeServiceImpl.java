@@ -39,109 +39,117 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class HomeServiceImpl implements HomeService {
 
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+  private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
-    @Qualifier("homeThreadExecutor")
-    private final ExecutorService homeThreadExecutor;
+  @Qualifier("homeThreadExecutor")
+  private final ExecutorService homeThreadExecutor;
 
-    private final TimetableRepository timetableRepository;
-    private final OfficialScheduleRepository officialScheduleRepository;
-    private final MemberScheduleRepository memberScheduleRepository;
-    private final NoticeRepository noticeRepository;
-    private final RecruitmentQuery recruitmentRepository;
-    private final EclassAssignmentService eclassAssignmentService;
+  private final TimetableRepository timetableRepository;
+  private final OfficialScheduleRepository officialScheduleRepository;
+  private final MemberScheduleRepository memberScheduleRepository;
+  private final NoticeRepository noticeRepository;
+  private final RecruitmentQuery recruitmentRepository;
+  private final EclassAssignmentService eclassAssignmentService;
 
-    @Value("${home.async.timeout.seconds:3}")
-    private int timeoutSeconds;
+  @Value("${home.async.timeout.seconds:3}")
+  private int timeoutSeconds;
 
-    @Override
-    public HomeDto getHome(Long requesterId, DepartmentType departmentType, String fid, String deviceToken) {
-        LocalDate today = LocalDate.now(KST);
-        Year year = Year.now(KST);
-        int month = today.getMonthValue();
-        SemesterType semester = SemesterType.fromMonth(month);
-        DayOfWeek week = today.getDayOfWeek();
+  @Override
+  public HomeDto getHome(
+      Long requesterId, DepartmentType departmentType, String fid, String deviceToken) {
+    LocalDate today = LocalDate.now(KST);
+    Year year = Year.now(KST);
+    int month = today.getMonthValue();
+    SemesterType semester = SemesterType.fromMonth(month);
+    DayOfWeek week = today.getDayOfWeek();
 
-        CompletableFuture<List<HomeTimetable>> fTimetable = call(
-                () -> timetableRepository.searchHomeTimetable(requesterId, year, semester, week));
-        CompletableFuture<List<HomeSchedule>> fMemberSchedules = call(
-                () -> memberScheduleRepository.searchHomeSchedule(requesterId, today));
-        CompletableFuture<List<HomeSchedule>> fOfficialSchedules = call(
-                () -> officialScheduleRepository.searchHomeSchedule(today));
-        CompletableFuture<List<HomeNotice>> fNotices = call(() -> noticeRepository.searchHomeNotices(departmentType));
-        CompletableFuture<List<HomeRecruitment>> fRecruitments = call(
-                () -> recruitmentRepository.searchHomeRecruitment(departmentType.name()));
-        CompletableFuture<HomeEclassSummary> fEclass = call(
-                () -> eclassAssignmentService.getHomeSummary(requesterId, fid, deviceToken));
+    CompletableFuture<List<HomeTimetable>> fTimetable =
+        call(() -> timetableRepository.searchHomeTimetable(requesterId, year, semester, week));
+    CompletableFuture<List<HomeSchedule>> fMemberSchedules =
+        call(() -> memberScheduleRepository.searchHomeSchedule(requesterId, today));
+    CompletableFuture<List<HomeSchedule>> fOfficialSchedules =
+        call(() -> officialScheduleRepository.searchHomeSchedule(today));
+    CompletableFuture<List<HomeNotice>> fNotices =
+        call(() -> noticeRepository.searchHomeNotices(departmentType));
+    CompletableFuture<List<HomeRecruitment>> fRecruitments =
+        call(() -> recruitmentRepository.searchHomeRecruitment(departmentType.name()));
+    CompletableFuture<HomeEclassSummary> fEclass =
+        call(() -> eclassAssignmentService.getHomeSummary(requesterId, fid, deviceToken));
 
-        // 모든 Future 완료 대기
-        CompletableFuture.allOf(
-                fTimetable, fMemberSchedules, fOfficialSchedules, fNotices, fRecruitments, fEclass
-        ).join();
+    // 모든 Future 완료 대기
+    CompletableFuture.allOf(
+            fTimetable, fMemberSchedules, fOfficialSchedules, fNotices, fRecruitments, fEclass)
+        .join();
 
-        // 결과 조합
-        List<HomeTimetable> timetable = fTimetable.join();
-        List<HomeSchedule> schedules = Stream.of(fMemberSchedules, fOfficialSchedules)
-                .flatMap(f -> f.join().stream())
-                .sorted(Comparator.comparing(HomeSchedule::startAt).thenComparing(HomeSchedule::endAt))
-                .toList();
-        List<HomeNotice> notices = fNotices.join();
-        List<HomeRecruitment> popularRecruitments = fRecruitments.join();
-        HomeEclassSummary eclassSummary = fEclass.join();
+    // 결과 조합
+    List<HomeTimetable> timetable = fTimetable.join();
+    List<HomeSchedule> schedules =
+        Stream.of(fMemberSchedules, fOfficialSchedules)
+            .flatMap(f -> f.join().stream())
+            .sorted(Comparator.comparing(HomeSchedule::startAt).thenComparing(HomeSchedule::endAt))
+            .toList();
+    List<HomeNotice> notices = fNotices.join();
+    List<HomeRecruitment> popularRecruitments = fRecruitments.join();
+    HomeEclassSummary eclassSummary = fEclass.join();
 
-        return new HomeDto(timetable, schedules, notices, popularRecruitments, eclassSummary);
+    return new HomeDto(timetable, schedules, notices, popularRecruitments, eclassSummary);
+  }
+
+  /**
+   * 구독한 학과들 기준으로 개인화된 홈을 조합한다 (회원/비회원 공통).
+   *
+   * <p>공지는 {@code departmentTypes}가 비어 있어도 {@code noticeRepository.searchHomeNotices}가 내부적으로
+   * DEPT_1001(대학 공지)을 항상 포함시키므로 별도 분기가 필요 없다.
+   *
+   * <p>추천 공고는 학과 하나만 받는 기존 구조라 구독 학과 중 첫 번째만 반영한다 (다학과 미지원 — 필요하면 별도 확장). 구독이 0개면 학과 필터 없는 무인자 쿼리로
+   * 폴백한다.
+   */
+  @Override
+  public HomeDto getHome(Set<DepartmentType> departmentTypes, String fid, String deviceToken) {
+    LocalDate today = LocalDate.now(KST);
+
+    CompletableFuture<List<HomeSchedule>> fOfficialSchedules =
+        call(() -> officialScheduleRepository.searchHomeSchedule(today));
+    CompletableFuture<List<HomeNotice>> fNotices =
+        call(() -> noticeRepository.searchHomeNotices(departmentTypes));
+    CompletableFuture<List<HomeRecruitment>> fRecruitments =
+        call(getRecruitmentSupplier(departmentTypes));
+    CompletableFuture<HomeEclassSummary> fEclass =
+        call(() -> eclassAssignmentService.getHomeSummary(fid, deviceToken));
+
+    // 모든 Future 완료 대기
+    CompletableFuture.allOf(fOfficialSchedules, fNotices, fRecruitments, fEclass).join();
+
+    // 결과 조합
+    List<HomeSchedule> schedules =
+        fOfficialSchedules.join().stream()
+            .sorted(Comparator.comparing(HomeSchedule::startAt).thenComparing(HomeSchedule::endAt))
+            .toList();
+    List<HomeNotice> notices = fNotices.join();
+    List<HomeRecruitment> popularRecruitments = fRecruitments.join();
+    HomeEclassSummary eclassSummary = fEclass.join();
+
+    return new HomeDto(
+        Collections.emptyList(), schedules, notices, popularRecruitments, eclassSummary);
+  }
+
+  private Supplier<List<HomeRecruitment>> getRecruitmentSupplier(
+      Set<DepartmentType> departmentTypes) {
+    if (departmentTypes.isEmpty()) {
+      return recruitmentRepository::searchHomeRecruitment;
     }
 
-    /**
-     * 구독한 학과들 기준으로 개인화된 홈을 조합한다 (회원/비회원 공통).
-     *
-     * <p>공지는 {@code departmentTypes}가 비어 있어도 {@code noticeRepository.searchHomeNotices}가
-     * 내부적으로 DEPT_1001(대학 공지)을 항상 포함시키므로 별도 분기가 필요 없다.
-     *
-     * <p>추천 공고는 학과 하나만 받는 기존 구조라 구독 학과 중 첫 번째만 반영한다
-     * (다학과 미지원 — 필요하면 별도 확장). 구독이 0개면 학과 필터 없는 무인자 쿼리로 폴백한다.
-     */
-    @Override
-    public HomeDto getHome(Set<DepartmentType> departmentTypes, String fid, String deviceToken) {
-        LocalDate today = LocalDate.now(KST);
+    return () ->
+        recruitmentRepository.searchHomeRecruitment(departmentTypes.iterator().next().name());
+  }
 
-        CompletableFuture<List<HomeSchedule>> fOfficialSchedules = call(
-                () -> officialScheduleRepository.searchHomeSchedule(today));
-        CompletableFuture<List<HomeNotice>> fNotices = call(() -> noticeRepository.searchHomeNotices(departmentTypes));
-        CompletableFuture<List<HomeRecruitment>> fRecruitments = call(getRecruitmentSupplier(departmentTypes));
-        CompletableFuture<HomeEclassSummary> fEclass = call(
-                () -> eclassAssignmentService.getHomeSummary(fid, deviceToken));
-
-        // 모든 Future 완료 대기
-        CompletableFuture.allOf(
-                fOfficialSchedules, fNotices, fRecruitments, fEclass
-        ).join();
-
-        // 결과 조합
-        List<HomeSchedule> schedules = fOfficialSchedules.join().stream()
-                .sorted(Comparator.comparing(HomeSchedule::startAt).thenComparing(HomeSchedule::endAt))
-                .toList();
-        List<HomeNotice> notices = fNotices.join();
-        List<HomeRecruitment> popularRecruitments = fRecruitments.join();
-        HomeEclassSummary eclassSummary = fEclass.join();
-
-        return new HomeDto(Collections.emptyList(), schedules, notices, popularRecruitments, eclassSummary);
-    }
-
-    private Supplier<List<HomeRecruitment>> getRecruitmentSupplier(Set<DepartmentType> departmentTypes) {
-        if (departmentTypes.isEmpty()) {
-            return recruitmentRepository::searchHomeRecruitment;
-        }
-
-        return () -> recruitmentRepository.searchHomeRecruitment(departmentTypes.iterator().next().name());
-    }
-
-    private <T> CompletableFuture<T> call(Supplier<T> supplier) {
-        return CompletableFuture.supplyAsync(supplier, homeThreadExecutor)
-                .orTimeout(timeoutSeconds, TimeUnit.SECONDS)
-                .exceptionally(e -> {
-                    log.error("thrown exception when collect home need's data", e);
-                    throw new HomeAsyncException(e);
-                });
-    }
+  private <T> CompletableFuture<T> call(Supplier<T> supplier) {
+    return CompletableFuture.supplyAsync(supplier, homeThreadExecutor)
+        .orTimeout(timeoutSeconds, TimeUnit.SECONDS)
+        .exceptionally(
+            e -> {
+              log.error("thrown exception when collect home need's data", e);
+              throw new HomeAsyncException(e);
+            });
+  }
 }

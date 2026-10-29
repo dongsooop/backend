@@ -51,220 +51,214 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class MemberServiceImpl implements MemberService {
 
-    private final MemberRepository memberRepository;
-    private final RoleRepository roleRepository;
-    private final MemberRoleRepository memberRoleRepository;
-    private final DepartmentService departmentService;
-    private final PasswordEncoder passwordEncoder;
-    private final TokenGenerator tokenGenerator;
-    private final MemberDuplicationValidator memberDuplicationValidator;
-    private final ReportValidator reportValidator;
-    private final MemberDeviceRepository memberDeviceRepository;
-    private final MemberDeviceService memberDeviceService;
-    private final OAuth2Service oAuth2Service;
+  private final MemberRepository memberRepository;
+  private final RoleRepository roleRepository;
+  private final MemberRoleRepository memberRoleRepository;
+  private final DepartmentService departmentService;
+  private final PasswordEncoder passwordEncoder;
+  private final TokenGenerator tokenGenerator;
+  private final MemberDuplicationValidator memberDuplicationValidator;
+  private final ReportValidator reportValidator;
+  private final MemberDeviceRepository memberDeviceRepository;
+  private final MemberDeviceService memberDeviceService;
+  private final OAuth2Service oAuth2Service;
 
-    @Override
-    @Transactional
-    public void signup(SignupRequest request) {
-        memberDuplicationValidator.validateEmailDuplication(request.getEmail());
-        memberDuplicationValidator.validateNicknameDuplication(request.getNickname());
+  @Override
+  @Transactional
+  public void signup(SignupRequest request) {
+    memberDuplicationValidator.validateEmailDuplication(request.getEmail());
+    memberDuplicationValidator.validateNicknameDuplication(request.getNickname());
 
-        Member member = transformToMemberBySignupRequest(request);
-        memberRepository.save(member);
+    Member member = transformToMemberBySignupRequest(request);
+    memberRepository.save(member);
 
-        Role userRole = roleRepository.findByRoleType(RoleType.USER);
-        MemberRole memberRole = new MemberRole(member, userRole);
-        memberRoleRepository.save(memberRole);
+    Role userRole = roleRepository.findByRoleType(RoleType.USER);
+    MemberRole memberRole = new MemberRole(member, userRole);
+    memberRoleRepository.save(memberRole);
+  }
+
+  private Member transformToMemberBySignupRequest(SignupRequest request) {
+    String email = request.getEmail();
+    String nickname = request.getNickname();
+    DepartmentType departmentType = request.getDepartmentType();
+
+    Department proxyDepartment = departmentService.getReferenceById(departmentType);
+
+    return Member.builder()
+        .email(email)
+        .password(passwordEncoder.encode(request.getPassword()))
+        .nickname(nickname)
+        .department(proxyDepartment)
+        .build();
+  }
+
+  @Override
+  @Transactional
+  public LoginDetails login(LoginRequest loginRequest) {
+    validateMemberExists(loginRequest.getEmail());
+    LoginAuthenticate loginAuthenticate = getLoginAuthenticate(loginRequest.getEmail());
+
+    String password = loginAuthenticate.getPassword();
+    validatePassword(loginRequest.getPassword(), password);
+
+    reportValidator.checkMemberAccessById(loginAuthenticate.getId());
+
+    Authentication authentication = getAuthenticationByLoginAuthenticate(loginAuthenticate);
+
+    Long deviceId = resolveDeviceId(loginRequest, loginAuthenticate.getId());
+    String accessToken = tokenGenerator.generateAccessToken(authentication, deviceId);
+    String refreshToken = tokenGenerator.generateRefreshToken(authentication, deviceId);
+
+    IssuedToken issuedToken = new IssuedToken(accessToken, refreshToken);
+    LoginMemberDetails loginMemberDetails =
+        memberRepository
+            .findLoginMemberDetailById(loginAuthenticate.getId())
+            .orElseThrow(MemberNotFoundException::new);
+
+    return new LoginDetails(loginMemberDetails, issuedToken);
+  }
+
+  /**
+   * FCM 토큰으로 디바이스 ID를 조회한다.
+   *
+   * <p>FCM 토큰이 없거나 등록되지 않은 디바이스이면 {@code null}을 반환한다. JWT에 포함되는 값으로, {@code null}인 경우 블랙리스트 검사를
+   * 건너뛴다.
+   *
+   * <p>로그인 시점에는 디바이스 바인딩이 완료되기 전이므로 member_id 조건 없이 조회한다. 바인딩은 로그인 완료 후 컨트롤러에서 수행된다.
+   */
+  private Long resolveDeviceId(LoginRequest loginRequest, Long memberId) {
+    String fcmToken = loginRequest.getFcmToken();
+    if (!StringUtils.hasText(fcmToken)) {
+      return null;
+    }
+    if (loginRequest.getDeviceType() == MemberDeviceType.WEB) {
+      String webToken = memberDeviceService.createAndBindWebDevice(memberId, fcmToken);
+      return memberDeviceRepository
+          .findByDeviceToken(webToken)
+          .map(MemberDevice::getId)
+          .orElse(null);
+    }
+    return memberDeviceRepository.findByDeviceToken(fcmToken).map(MemberDevice::getId).orElse(null);
+  }
+
+  private void validateMemberExists(String email) {
+    boolean isMemberExists = memberRepository.existsByEmailAndIsDeletedFalse(email);
+    if (!isMemberExists) {
+      throw new MemberNotFoundException();
+    }
+  }
+
+  private Authentication getAuthenticationByLoginAuthenticate(LoginAuthenticate loginAuthenticate) {
+    Long id = loginAuthenticate.getId();
+    List<Role> roleList = memberRoleRepository.findAllByMemberId(id);
+    Collection<GrantedAuthority> role = getAuthoritiesByRoleList(roleList);
+
+    return new UsernamePasswordAuthenticationToken(id, null, role);
+  }
+
+  private Collection<GrantedAuthority> getAuthoritiesByRoleList(List<Role> roleList) {
+    return roleList.stream().map(Role::getRoleType).map(RoleType::getAuthority).toList();
+  }
+
+  private LoginAuthenticate getLoginAuthenticate(String email) {
+    Optional<LoginAuthenticate> optionalAuthenticate =
+        memberRepository.findLoginAuthenticateByEmail(email);
+    return optionalAuthenticate.orElseThrow(MemberNotFoundException::new);
+  }
+
+  @Override
+  public Member getMemberReferenceByContext() {
+    Long id = getMemberIdByContext();
+    return memberRepository.getReferenceById(id);
+  }
+
+  private Long getMemberIdByContext() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    String id = authentication.getName();
+    if (StringUtils.hasText(id) && id.matches("\\d+")) {
+      return Long.valueOf(id);
     }
 
-    private Member transformToMemberBySignupRequest(SignupRequest request) {
-        String email = request.getEmail();
-        String nickname = request.getNickname();
-        DepartmentType departmentType = request.getDepartmentType();
+    throw new MemberNotFoundException();
+  }
 
-        Department proxyDepartment = departmentService.getReferenceById(departmentType);
+  private void validatePassword(String loginPassword, String password) {
+    if (!passwordEncoder.matches(loginPassword, password)) {
+      throw new InvalidPasswordFormatException();
+    }
+  }
 
-        return Member.builder()
-                .email(email)
-                .password(passwordEncoder.encode(request.getPassword()))
-                .nickname(nickname)
-                .department(proxyDepartment)
-                .build();
+  @Override
+  public String getNicknameById(Long userId) {
+    return memberRepository
+        .findById(userId)
+        .map(Member::getNickname)
+        .orElseThrow(MemberNotFoundException::new);
+  }
+
+  @Override
+  public Long getMemberIdByAuthentication() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+    if (authentication == null || authentication.getName() == null) {
+      throw new NotAuthenticationException();
     }
 
-    @Override
-    @Transactional
-    public LoginDetails login(LoginRequest loginRequest) {
-        validateMemberExists(loginRequest.getEmail());
-        LoginAuthenticate loginAuthenticate = getLoginAuthenticate(loginRequest.getEmail());
-
-        String password = loginAuthenticate.getPassword();
-        validatePassword(loginRequest.getPassword(), password);
-
-        reportValidator.checkMemberAccessById(loginAuthenticate.getId());
-
-        Authentication authentication = getAuthenticationByLoginAuthenticate(loginAuthenticate);
-
-        Long deviceId = resolveDeviceId(loginRequest, loginAuthenticate.getId());
-        String accessToken = tokenGenerator.generateAccessToken(authentication, deviceId);
-        String refreshToken = tokenGenerator.generateRefreshToken(authentication, deviceId);
-
-        IssuedToken issuedToken = new IssuedToken(accessToken, refreshToken);
-        LoginMemberDetails loginMemberDetails = memberRepository.findLoginMemberDetailById(
-                        loginAuthenticate.getId())
-                .orElseThrow(MemberNotFoundException::new);
-
-        return new LoginDetails(loginMemberDetails, issuedToken);
+    String id = authentication.getName();
+    if (StringUtils.hasText(id) && id.matches("\\d+")) {
+      return Long.valueOf(id);
     }
 
-    /**
-     * FCM 토큰으로 디바이스 ID를 조회한다.
-     *
-     * <p>FCM 토큰이 없거나 등록되지 않은 디바이스이면 {@code null}을 반환한다.
-     * JWT에 포함되는 값으로, {@code null}인 경우 블랙리스트 검사를 건너뛴다.
-     *
-     * <p>로그인 시점에는 디바이스 바인딩이 완료되기 전이므로 member_id 조건 없이 조회한다.
-     * 바인딩은 로그인 완료 후 컨트롤러에서 수행된다.
-     */
-    private Long resolveDeviceId(LoginRequest loginRequest, Long memberId) {
-        String fcmToken = loginRequest.getFcmToken();
-        if (!StringUtils.hasText(fcmToken)) {
-            return null;
-        }
-        if (loginRequest.getDeviceType() == MemberDeviceType.WEB) {
-            String webToken = memberDeviceService.createAndBindWebDevice(memberId, fcmToken);
-            return memberDeviceRepository.findByDeviceToken(webToken)
-                    .map(MemberDevice::getId)
-                    .orElse(null);
-        }
-        return memberDeviceRepository.findByDeviceToken(fcmToken)
-                .map(MemberDevice::getId)
-                .orElse(null);
+    throw new NotAuthenticationException();
+  }
+
+  @Override
+  @Transactional
+  public void deleteMember() {
+    // 요청 사용자 id
+    Long requesterId = getMemberIdByAuthentication();
+
+    this.oAuth2Service.unlinkMember(requesterId);
+
+    // 가명처리
+    String passwordAlias = generatePasswordAlias();
+
+    DeleteMember deleteMember = new DeleteMember(requesterId, passwordAlias);
+    long updatedCount = memberRepository.softDelete(deleteMember);
+    if (updatedCount == 0L) {
+      log.error("Member with id {} not found or already deleted", requesterId);
+      throw new MemberNotFoundException();
     }
 
-    private void validateMemberExists(String email) {
-        boolean isMemberExists = memberRepository.existsByEmailAndIsDeletedFalse(email);
-        if (!isMemberExists) {
-            throw new MemberNotFoundException();
-        }
-    }
+    List<MemberDevice> devices = memberDeviceRepository.findByMemberId(requesterId);
+    devices.forEach(device -> device.bindMember(null));
+  }
 
-    private Authentication getAuthenticationByLoginAuthenticate(LoginAuthenticate loginAuthenticate) {
-        Long id = loginAuthenticate.getId();
-        List<Role> roleList = memberRoleRepository.findAllByMemberId(id);
-        Collection<GrantedAuthority> role = getAuthoritiesByRoleList(roleList);
+  private String generatePasswordAlias() {
+    String uuid = generateRawUUID();
 
-        return new UsernamePasswordAuthenticationToken(id, null, role);
-    }
+    return passwordEncoder.encode(uuid);
+  }
 
-    private Collection<GrantedAuthority> getAuthoritiesByRoleList(List<Role> roleList) {
-        return roleList.stream()
-                .map(Role::getRoleType)
-                .map(RoleType::getAuthority)
-                .toList();
-    }
+  private String generateRawUUID() {
+    return UUID.randomUUID().toString().replace("-", "");
+  }
 
-    private LoginAuthenticate getLoginAuthenticate(String email) {
-        Optional<LoginAuthenticate> optionalAuthenticate = memberRepository.findLoginAuthenticateByEmail(email);
-        return optionalAuthenticate.orElseThrow(MemberNotFoundException::new);
-    }
+  @Override
+  @Transactional(isolation = Isolation.READ_COMMITTED)
+  public void updatePassword(UpdatePasswordRequest request) {
+    Member member =
+        memberRepository.findByEmail(request.email()).orElseThrow(MemberNotFoundException::new);
 
-    @Override
-    public Member getMemberReferenceByContext() {
-        Long id = getMemberIdByContext();
-        return memberRepository.getReferenceById(id);
-    }
+    member.updatePassword(passwordEncoder.encode(request.password()));
+  }
 
-    private Long getMemberIdByContext() {
-        Authentication authentication = SecurityContextHolder.getContext()
-                .getAuthentication();
-        String id = authentication.getName();
-        if (StringUtils.hasText(id) && id.matches("\\d+")) {
-            return Long.valueOf(id);
-        }
+  @Override
+  public boolean isAuthenticated() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        throw new MemberNotFoundException();
-    }
-
-    private void validatePassword(String loginPassword, String password) {
-        if (!passwordEncoder.matches(loginPassword, password)) {
-            throw new InvalidPasswordFormatException();
-        }
-    }
-
-    @Override
-    public String getNicknameById(Long userId) {
-        return memberRepository.findById(userId)
-                .map(Member::getNickname)
-                .orElseThrow(MemberNotFoundException::new);
-    }
-
-    @Override
-    public Long getMemberIdByAuthentication() {
-        Authentication authentication = SecurityContextHolder.getContext()
-                .getAuthentication();
-
-        if (authentication == null || authentication.getName() == null) {
-            throw new NotAuthenticationException();
-        }
-
-        String id = authentication.getName();
-        if (StringUtils.hasText(id) && id.matches("\\d+")) {
-            return Long.valueOf(id);
-        }
-
-        throw new NotAuthenticationException();
-    }
-
-    @Override
-    @Transactional
-    public void deleteMember() {
-        // 요청 사용자 id
-        Long requesterId = getMemberIdByAuthentication();
-
-        this.oAuth2Service.unlinkMember(requesterId);
-
-        // 가명처리
-        String passwordAlias = generatePasswordAlias();
-
-        DeleteMember deleteMember = new DeleteMember(requesterId, passwordAlias);
-        long updatedCount = memberRepository.softDelete(deleteMember);
-        if (updatedCount == 0L) {
-            log.error("Member with id {} not found or already deleted", requesterId);
-            throw new MemberNotFoundException();
-        }
-
-        List<MemberDevice> devices = memberDeviceRepository.findByMemberId(requesterId);
-        devices.forEach(device -> device.bindMember(null));
-    }
-
-    private String generatePasswordAlias() {
-        String uuid = generateRawUUID();
-
-        return passwordEncoder.encode(uuid);
-    }
-
-    private String generateRawUUID() {
-        return UUID.randomUUID()
-                .toString()
-                .replace("-", "");
-    }
-
-    @Override
-    @Transactional(isolation = Isolation.READ_COMMITTED)
-    public void updatePassword(UpdatePasswordRequest request) {
-        Member member = memberRepository.findByEmail(request.email())
-                .orElseThrow(MemberNotFoundException::new);
-
-        member.updatePassword(passwordEncoder.encode(request.password()));
-    }
-
-    @Override
-    public boolean isAuthenticated() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        return authentication != null
-                && authentication.isAuthenticated()
-                && !(authentication instanceof AnonymousAuthenticationToken);
-    }
+    return authentication != null
+        && authentication.isAuthenticated()
+        && !(authentication instanceof AnonymousAuthenticationToken);
+  }
 }

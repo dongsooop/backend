@@ -14,12 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/web-app-check")
 public class WebAppCheckController {
 
-    private final WebAppCheckService webAppCheckService;
+  private final WebAppCheckService webAppCheckService;
 
-    @PostMapping
-    @ReCaptchaRequired(action = "web_app_check")
-    public ResponseEntity<WebAppCheckResponse> issue() {
-        String token = webAppCheckService.issue();
-        return ResponseEntity.ok(new WebAppCheckResponse(token));
-    }
+  @PostMapping
+  @ReCaptchaRequired(action = "web_app_check")
+  public ResponseEntity<WebAppCheckResponse> issue() {
+    String token = webAppCheckService.issue();
+    return ResponseEntity.ok(new WebAppCheckResponse(token));
+  }
 }

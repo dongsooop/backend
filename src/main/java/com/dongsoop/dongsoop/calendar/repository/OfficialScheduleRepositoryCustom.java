@@ -7,9 +7,9 @@ import java.util.List;
 
 public interface OfficialScheduleRepositoryCustom {
 
-    List<OfficialSchedule> findOfficialScheduleByDuration(LocalDate startAt, LocalDate endAt);
+  List<OfficialSchedule> findOfficialScheduleByDuration(LocalDate startAt, LocalDate endAt);
 
-    List<String> searchTodaySchedule();
+  List<String> searchTodaySchedule();
 
-    List<HomeSchedule> searchHomeSchedule(LocalDate date);
+  List<HomeSchedule> searchHomeSchedule(LocalDate date);
 }

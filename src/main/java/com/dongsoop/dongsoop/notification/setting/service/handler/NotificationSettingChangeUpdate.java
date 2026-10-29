@@ -9,15 +9,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class NotificationSettingChangeUpdate implements NotificationSettingChangeHandler {
 
-    @Override
-    public Class<? extends SettingChanges> getSupportedClass() {
-        return SettingUpdate.class;
-    }
+  @Override
+  public Class<? extends SettingChanges> getSupportedClass() {
+    return SettingUpdate.class;
+  }
 
-    @Override
-    public void apply(List<SettingChanges> changes) {
-        changes.stream()
-                .filter(change -> Objects.nonNull(change.getSetting())) // null인 경우 제외
-                .forEach(s -> s.getSetting().updateEnabled(s.isTargetState())); // null이 아닌 경우 업데이트
-    }
+  @Override
+  public void apply(List<SettingChanges> changes) {
+    changes.stream()
+        .filter(change -> Objects.nonNull(change.getSetting())) // null인 경우 제외
+        .forEach(s -> s.getSetting().updateEnabled(s.isTargetState())); // null이 아닌 경우 업데이트
+  }
 }

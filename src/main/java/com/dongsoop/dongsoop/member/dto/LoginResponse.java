@@ -12,32 +12,33 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class LoginResponse {
 
-    private Long id;
+  private Long id;
 
-    private String accessToken;
+  private String accessToken;
 
-    private String refreshToken;
+  private String refreshToken;
 
-    private String nickname;
+  private String nickname;
 
-    private String email;
+  private String email;
 
-    private DepartmentType departmentType;
+  private DepartmentType departmentType;
 
-    private List<RoleType> role;
+  private List<RoleType> role;
 
-    public LoginResponse(LoginMemberDetails loginMemberDetail, String accessToken, String refreshToken) {
-        if (loginMemberDetail == null) {
-            throw new IllegalArgumentException("LoginMemberDetails cannot be null");
-        }
-
-        this.id = loginMemberDetail.getId();
-        this.nickname = loginMemberDetail.getNickname();
-        this.email = loginMemberDetail.getEmail();
-        this.departmentType = loginMemberDetail.getDepartmentType();
-        this.role = loginMemberDetail.getRole();
-
-        this.accessToken = accessToken;
-        this.refreshToken = refreshToken;
+  public LoginResponse(
+      LoginMemberDetails loginMemberDetail, String accessToken, String refreshToken) {
+    if (loginMemberDetail == null) {
+      throw new IllegalArgumentException("LoginMemberDetails cannot be null");
     }
+
+    this.id = loginMemberDetail.getId();
+    this.nickname = loginMemberDetail.getNickname();
+    this.email = loginMemberDetail.getEmail();
+    this.departmentType = loginMemberDetail.getDepartmentType();
+    this.role = loginMemberDetail.getRole();
+
+    this.accessToken = accessToken;
+    this.refreshToken = refreshToken;
+  }
 }

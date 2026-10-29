@@ -13,18 +13,16 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Department {
 
-    @Id
-    @Getter
-    @Enumerated(EnumType.STRING)
-    private DepartmentType id;
+  @Id
+  @Getter
+  @Enumerated(EnumType.STRING)
+  private DepartmentType id;
 
-    @Getter
-    private String name;
+  @Getter private String name;
 
-    @Getter
-    private String noticeUrl;
+  @Getter private String noticeUrl;
 
-    public boolean equalsId(Department department) {
-        return this.id.equals(department.id);
-    }
+  public boolean equalsId(Department department) {
+    return this.id.equals(department.id);
+  }
 }

@@ -8,6 +8,6 @@ import org.springframework.data.repository.query.Param;
 
 public interface SanctionRepository extends JpaRepository<Sanction, Long> {
 
-    @Query("SELECT s FROM Sanction s WHERE s.member.id = :memberId AND s.isActive = true")
-    List<Sanction> findActiveSanctionsByMemberId(@Param("memberId") Long memberId);
+  @Query("SELECT s FROM Sanction s WHERE s.member.id = :memberId AND s.isActive = true")
+  List<Sanction> findActiveSanctionsByMemberId(@Param("memberId") Long memberId);
 }

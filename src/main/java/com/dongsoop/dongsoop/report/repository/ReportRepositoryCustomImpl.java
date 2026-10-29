@@ -22,190 +22,203 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class ReportRepositoryCustomImpl implements ReportRepositoryCustom {
 
-    private static final QReport report = QReport.report;
-    private static final QMember reporter = new QMember("reporter");
-    private static final QMember admin = new QMember("admin");
-    private static final QMember targetMember = new QMember("targetMember");
-    private static final QSanction sanction = QSanction.sanction;
-    private static final QReport resolvedBy = new QReport("resolvedBy");
+  private static final QReport report = QReport.report;
+  private static final QMember reporter = new QMember("reporter");
+  private static final QMember admin = new QMember("admin");
+  private static final QMember targetMember = new QMember("targetMember");
+  private static final QSanction sanction = QSanction.sanction;
+  private static final QReport resolvedBy = new QReport("resolvedBy");
 
-    private final JPAQueryFactory queryFactory;
-    private final Querydsl querydsl;
+  private final JPAQueryFactory queryFactory;
+  private final Querydsl querydsl;
 
-    public ReportRepositoryCustomImpl(EntityManager entityManager,
-            JPAQueryFactory queryFactory) {
-        this.queryFactory = queryFactory;
-        this.querydsl = new Querydsl(entityManager,
-                new PathBuilder<>(report.getType(), report.getMetadata()));
+  public ReportRepositoryCustomImpl(EntityManager entityManager, JPAQueryFactory queryFactory) {
+    this.queryFactory = queryFactory;
+    this.querydsl =
+        new Querydsl(entityManager, new PathBuilder<>(report.getType(), report.getMetadata()));
+  }
+
+  @Override
+  public List<ReportResponse> findDetailedReportsByFilter(
+      ReportFilterType filterType, Pageable pageable) {
+    BooleanExpression filterCondition = createFilterCondition(filterType);
+    Expression<ReportResponse> projection = createDetailedProjection();
+
+    return buildQuery(filterCondition, projection, pageable);
+  }
+
+  @Override
+  public List<ReportSummaryResponse> findSummaryReportsByFilter(
+      ReportFilterType filterType, Pageable pageable) {
+    BooleanExpression filterCondition = createFilterCondition(filterType);
+    Expression<ReportSummaryResponse> projection = createSummaryProjection();
+
+    return buildSummaryQuery(filterCondition, projection, pageable);
+  }
+
+  private List<ReportSummaryResponse> buildSummaryQuery(
+      BooleanExpression filterCondition,
+      Expression<ReportSummaryResponse> projection,
+      Pageable pageable) {
+    JPAQuery<ReportSummaryResponse> baseQuery = createSummaryBaseQuery(projection, filterCondition);
+    return applySummaryPaginationAndSorting(baseQuery, pageable);
+  }
+
+  private List<ReportSummaryResponse> applySummaryPaginationAndSorting(
+      JPAQuery<ReportSummaryResponse> query, Pageable pageable) {
+    return querydsl.applyPagination(pageable, query).fetch();
+  }
+
+  private JPAQuery<ReportSummaryResponse> createSummaryBaseQuery(
+      Expression<ReportSummaryResponse> projection, BooleanExpression filterCondition) {
+    return queryFactory
+        .select(projection)
+        .from(report)
+        .leftJoin(report.reporter, reporter)
+        .leftJoin(report.targetMember, targetMember)
+        .where(filterCondition);
+  }
+
+  private List<ReportResponse> buildQuery(
+      BooleanExpression filterCondition, Expression<ReportResponse> projection, Pageable pageable) {
+    JPAQuery<ReportResponse> baseQuery = createBaseQuery(projection, filterCondition);
+    return applyPaginationAndSorting(baseQuery, pageable);
+  }
+
+  private Expression<ReportResponse> createDetailedProjection() {
+    return Projections.constructor(
+        ReportResponse.class,
+        report.id,
+        reporter.nickname,
+        report.reportType,
+        report.targetId,
+        report.targetUrl,
+        report.reportReason,
+        report.description,
+        report.isProcessed,
+        admin.nickname,
+        targetMember.nickname,
+        sanction.sanctionType,
+        sanction.reason,
+        sanction.startDate,
+        sanction.endDate,
+        sanction.isActive,
+        report.createdAt,
+        report.chatRoomId,
+        report.chatRoomType,
+        report.messageId,
+        report.messageContent,
+        report.messageSentAt,
+        report.messageContext,
+        report.resolvedByReportId);
+  }
+
+  private Expression<ReportSummaryResponse> createSummaryProjection() {
+    return Projections.constructor(
+        ReportSummaryResponse.class,
+        report.id,
+        reporter.nickname,
+        report.reportType,
+        report.reportReason,
+        report.isProcessed,
+        report.createdAt,
+        report.targetMember.id,
+        report.targetId,
+        report.description,
+        report.chatRoomId,
+        report.chatRoomType,
+        report.messageId,
+        report.messageContent,
+        report.messageSentAt,
+        report.messageContext);
+  }
+
+  private JPAQuery<ReportResponse> createBaseQuery(
+      Expression<ReportResponse> projection, BooleanExpression filterCondition) {
+    return queryFactory
+        .select(projection)
+        .from(report)
+        .leftJoin(report.reporter, reporter)
+        .leftJoin(report.admin, admin)
+        .leftJoin(report.targetMember, targetMember)
+        .leftJoin(resolvedBy)
+        .on(resolvedBy.id.eq(report.resolvedByReportId))
+        // 함께 닫힌 신고는 자기 제재가 없으므로 처리한 신고의 제재를 보여 준다. 제재 행은 처리한 신고에만 있다
+        .leftJoin(sanction)
+        .on(sanction.eq(report.sanction).or(sanction.eq(resolvedBy.sanction)))
+        .where(filterCondition);
+  }
+
+  @Override
+  public Optional<Report> findActiveBanForMember(
+      Long memberId, LocalDateTime currentTime, List<SanctionType> sanctionTypes) {
+    BooleanExpression condition =
+        report
+            .targetMember
+            .id
+            .eq(memberId)
+            .and(sanction.isActive.eq(true))
+            .and(sanction.sanctionType.in(sanctionTypes))
+            .and(sanction.endDate.isNull().or(sanction.endDate.gt(currentTime)));
+
+    return Optional.ofNullable(
+        queryFactory
+            .selectFrom(report)
+            .leftJoin(report.sanction, sanction)
+            .fetchJoin()
+            .where(condition)
+            .orderBy(sanction.endDate.desc())
+            .fetchFirst());
+  }
+
+  private List<ReportResponse> applyPaginationAndSorting(
+      JPAQuery<ReportResponse> query, Pageable pageable) {
+    return querydsl.applyPagination(pageable, query).fetch();
+  }
+
+  private BooleanExpression createFilterCondition(ReportFilterType filterType) {
+    if (ReportFilterType.UNPROCESSED.equals(filterType)) {
+      return isUnprocessed();
     }
 
-    @Override
-    public List<ReportResponse> findDetailedReportsByFilter(ReportFilterType filterType, Pageable pageable) {
-        BooleanExpression filterCondition = createFilterCondition(filterType);
-        Expression<ReportResponse> projection = createDetailedProjection();
-
-        return buildQuery(filterCondition, projection, pageable);
+    if (ReportFilterType.PROCESSED.equals(filterType)) {
+      return isProcessed();
     }
 
-    @Override
-    public List<ReportSummaryResponse> findSummaryReportsByFilter(ReportFilterType filterType, Pageable pageable) {
-        BooleanExpression filterCondition = createFilterCondition(filterType);
-        Expression<ReportSummaryResponse> projection = createSummaryProjection();
-
-        return buildSummaryQuery(filterCondition, projection, pageable);
+    if (ReportFilterType.ACTIVE_SANCTIONS.equals(filterType)) {
+      return isSanctionActive();
     }
 
-    private List<ReportSummaryResponse> buildSummaryQuery(BooleanExpression filterCondition,
-                                                          Expression<ReportSummaryResponse> projection, Pageable pageable) {
-        JPAQuery<ReportSummaryResponse> baseQuery = createSummaryBaseQuery(projection, filterCondition);
-        return applySummaryPaginationAndSorting(baseQuery, pageable);
-    }
+    return Expressions.TRUE;
+  }
 
-    private List<ReportSummaryResponse> applySummaryPaginationAndSorting(JPAQuery<ReportSummaryResponse> query, Pageable pageable) {
-        return querydsl.applyPagination(pageable, query)
-                .fetch();
-    }
+  private BooleanExpression isUnprocessed() {
+    return report.isProcessed.eq(false);
+  }
 
-    private JPAQuery<ReportSummaryResponse> createSummaryBaseQuery(Expression<ReportSummaryResponse> projection,
-                                                                   BooleanExpression filterCondition) {
-        return queryFactory
-                .select(projection)
-                .from(report)
-                .leftJoin(report.reporter, reporter)
-                .leftJoin(report.targetMember, targetMember)
-                .where(filterCondition);
-    }
+  private BooleanExpression isProcessed() {
+    return report.isProcessed.eq(true);
+  }
 
-    private List<ReportResponse> buildQuery(BooleanExpression filterCondition,
-                                            Expression<ReportResponse> projection, Pageable pageable) {
-        JPAQuery<ReportResponse> baseQuery = createBaseQuery(projection, filterCondition);
-        return applyPaginationAndSorting(baseQuery, pageable);
-    }
+  private BooleanExpression isSanctionActive() {
+    return sanction.isActive.eq(true);
+  }
 
-    private Expression<ReportResponse> createDetailedProjection() {
-        return Projections.constructor(ReportResponse.class,
-                report.id,
-                reporter.nickname,
-                report.reportType,
-                report.targetId,
-                report.targetUrl,
-                report.reportReason,
-                report.description,
-                report.isProcessed,
-                admin.nickname,
-                targetMember.nickname,
-                sanction.sanctionType,
-                sanction.reason,
-                sanction.startDate,
-                sanction.endDate,
-                sanction.isActive,
-                report.createdAt,
-                report.chatRoomId,
-                report.chatRoomType,
-                report.messageId,
-                report.messageContent,
-                report.messageSentAt,
-                report.messageContext,
-                report.resolvedByReportId);
-    }
+  @Override
+  public List<Report> findUnprocessedReports(Pageable pageable) {
+    return queryFactory
+        .selectFrom(report)
+        .where(report.isProcessed.eq(false), isAutoSanctionTarget())
+        .orderBy(report.createdAt.asc())
+        .offset(pageable.getOffset())
+        .limit(pageable.getPageSize())
+        .fetch();
+  }
 
-    private Expression<ReportSummaryResponse> createSummaryProjection() {
-        return Projections.constructor(ReportSummaryResponse.class,
-                report.id,
-                reporter.nickname,
-                report.reportType,
-                report.reportReason,
-                report.isProcessed,
-                report.createdAt,
-                report.targetMember.id,
-                report.targetId,
-                report.description,
-                report.chatRoomId,
-                report.chatRoomType,
-                report.messageId,
-                report.messageContent,
-                report.messageSentAt,
-                report.messageContext
-        );
-    }
-
-    private JPAQuery<ReportResponse> createBaseQuery(Expression<ReportResponse> projection,
-                                                     BooleanExpression filterCondition) {
-        return queryFactory
-                .select(projection)
-                .from(report)
-                .leftJoin(report.reporter, reporter)
-                .leftJoin(report.admin, admin)
-                .leftJoin(report.targetMember, targetMember)
-                .leftJoin(resolvedBy).on(resolvedBy.id.eq(report.resolvedByReportId))
-                // 함께 닫힌 신고는 자기 제재가 없으므로 처리한 신고의 제재를 보여 준다. 제재 행은 처리한 신고에만 있다
-                .leftJoin(sanction).on(sanction.eq(report.sanction).or(sanction.eq(resolvedBy.sanction)))
-                .where(filterCondition);
-    }
-
-    @Override
-    public Optional<Report> findActiveBanForMember(Long memberId, LocalDateTime currentTime, List<SanctionType> sanctionTypes) {
-        BooleanExpression condition = report.targetMember.id.eq(memberId)
-                .and(sanction.isActive.eq(true))
-                .and(sanction.sanctionType.in(sanctionTypes))
-                .and(sanction.endDate.isNull().or(sanction.endDate.gt(currentTime)));
-
-        return Optional.ofNullable(
-                queryFactory
-                        .selectFrom(report)
-                        .leftJoin(report.sanction, sanction).fetchJoin()
-                        .where(condition)
-                        .orderBy(sanction.endDate.desc())
-                        .fetchFirst()
-        );
-    }
-
-    private List<ReportResponse> applyPaginationAndSorting(JPAQuery<ReportResponse> query, Pageable pageable) {
-        return querydsl.applyPagination(pageable, query)
-                .fetch();
-    }
-
-    private BooleanExpression createFilterCondition(ReportFilterType filterType) {
-        if (ReportFilterType.UNPROCESSED.equals(filterType)) {
-            return isUnprocessed();
-        }
-
-        if (ReportFilterType.PROCESSED.equals(filterType)) {
-            return isProcessed();
-        }
-
-        if (ReportFilterType.ACTIVE_SANCTIONS.equals(filterType)) {
-            return isSanctionActive();
-        }
-
-        return Expressions.TRUE;
-    }
-
-    private BooleanExpression isUnprocessed() {
-        return report.isProcessed.eq(false);
-    }
-
-    private BooleanExpression isProcessed() {
-        return report.isProcessed.eq(true);
-    }
-
-    private BooleanExpression isSanctionActive() {
-        return sanction.isActive.eq(true);
-    }
-
-    @Override
-    public List<Report> findUnprocessedReports(Pageable pageable) {
-        return queryFactory
-                .selectFrom(report)
-                .where(report.isProcessed.eq(false), isAutoSanctionTarget())
-                .orderBy(report.createdAt.asc())
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .fetch();
-    }
-
-    private BooleanExpression isAutoSanctionTarget() {
-        return report.reportType.in(ReportType.BOARD_TYPES)
-                .or(report.reportType.eq(ReportType.CHAT_MESSAGE).and(report.isAutoReviewed.eq(false)));
-    }
+  private BooleanExpression isAutoSanctionTarget() {
+    return report
+        .reportType
+        .in(ReportType.BOARD_TYPES)
+        .or(report.reportType.eq(ReportType.CHAT_MESSAGE).and(report.isAutoReviewed.eq(false)));
+  }
 }

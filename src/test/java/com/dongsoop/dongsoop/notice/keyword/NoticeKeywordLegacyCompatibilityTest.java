@@ -36,140 +36,136 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 기기 헤더를 보내지 않는 구버전 앱 호환 검증.
  *
- * <p>구버전 앱은 인증 토큰만 보내고 X-Device-Fid / X-Device-Token 을 붙이지 않는다.
- * 이때 키워드는 회원의 모든 기기에 일괄 적용되어야 예전처럼 "내 키워드"로 동작한다.
+ * <p>구버전 앱은 인증 토큰만 보내고 X-Device-Fid / X-Device-Token 을 붙이지 않는다. 이때 키워드는 회원의 모든 기기에 일괄 적용되어야 예전처럼 "내
+ * 키워드"로 동작한다.
  */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
 class NoticeKeywordLegacyCompatibilityTest {
 
-    @Autowired
-    private NoticeKeywordService noticeKeywordService;
+  @Autowired private NoticeKeywordService noticeKeywordService;
 
-    @Autowired
-    private NoticeKeywordRepository noticeKeywordRepository;
+  @Autowired private NoticeKeywordRepository noticeKeywordRepository;
 
-    @Autowired
-    private MemberDeviceRepository memberDeviceRepository;
+  @Autowired private MemberDeviceRepository memberDeviceRepository;
 
-    @Autowired
-    private MemberRepository memberRepository;
+  @Autowired private MemberRepository memberRepository;
 
-    @Autowired
-    private DepartmentRepository departmentRepository;
+  @Autowired private DepartmentRepository departmentRepository;
 
-    @MockitoBean
-    private MemberService memberService;
+  @MockitoBean private MemberService memberService;
 
-    @MockitoBean
-    private FCMService fcmService;
+  @MockitoBean private FCMService fcmService;
 
-    @MockitoBean
-    private BoardSearchRepository boardSearchRepository;
+  @MockitoBean private BoardSearchRepository boardSearchRepository;
 
-    @MockitoBean
-    private RestaurantSearchRepository restaurantSearchRepository;
+  @MockitoBean private RestaurantSearchRepository restaurantSearchRepository;
 
-    private Member member;
-    private MemberDevice phone;
-    private MemberDevice tablet;
+  private Member member;
+  private MemberDevice phone;
+  private MemberDevice tablet;
 
-    private MemberDevice saveDevice(String suffix, Member owner) {
-        MemberDevice device = MemberDevice.builder()
-                .deviceToken("token-" + suffix)
-                .fid("fid-" + suffix)
-                .memberDeviceType(MemberDeviceType.ANDROID)
-                .build();
-        if (owner != null) {
-            device.bindMember(owner);
-        }
-        return memberDeviceRepository.save(device);
+  private MemberDevice saveDevice(String suffix, Member owner) {
+    MemberDevice device =
+        MemberDevice.builder()
+            .deviceToken("token-" + suffix)
+            .fid("fid-" + suffix)
+            .memberDeviceType(MemberDeviceType.ANDROID)
+            .build();
+    if (owner != null) {
+      device.bindMember(owner);
     }
+    return memberDeviceRepository.save(device);
+  }
 
-    @BeforeEach
-    void setup() {
-        Department department = departmentRepository.save(
-                new Department(DepartmentType.DEPT_2001, "테스트학과", null));
-        member = memberRepository.save(
-                new Member(null, "legacy@dongyang.ac.kr", "구버전사용자", "password", null, department));
+  @BeforeEach
+  void setup() {
+    Department department =
+        departmentRepository.save(new Department(DepartmentType.DEPT_2001, "테스트학과", null));
+    member =
+        memberRepository.save(
+            new Member(null, "legacy@dongyang.ac.kr", "구버전사용자", "password", null, department));
 
-        phone = saveDevice("phone", member);
-        tablet = saveDevice("tablet", member);
-    }
+    phone = saveDevice("phone", member);
+    tablet = saveDevice("tablet", member);
+  }
 
-    private void givenAuthenticatedMember() {
-        given(memberService.getMemberIdByAuthentication()).willReturn(member.getId());
-    }
+  private void givenAuthenticatedMember() {
+    given(memberService.getMemberIdByAuthentication()).willReturn(member.getId());
+  }
 
-    @Test
-    @DisplayName("구버전 API 로 추가하면 회원의 모든 기기에 키워드가 생긴다")
-    void legacyAdd_appliesToEveryDeviceOfMember() {
-        givenAuthenticatedMember();
+  @Test
+  @DisplayName("구버전 API 로 추가하면 회원의 모든 기기에 키워드가 생긴다")
+  void legacyAdd_appliesToEveryDeviceOfMember() {
+    givenAuthenticatedMember();
 
+    noticeKeywordService.addKeywordByMember(
+        new NoticeKeywordRequest("장학", NoticeKeywordType.INCLUDE));
+
+    assertThat(noticeKeywordRepository.findAllByDeviceId(phone.getId()))
+        .extracting(NoticeKeyword::getKeyword)
+        .containsExactly("장학");
+    assertThat(noticeKeywordRepository.findAllByDeviceId(tablet.getId()))
+        .extracting(NoticeKeyword::getKeyword)
+        .containsExactly("장학");
+  }
+
+  @Test
+  @DisplayName("구버전 API 로 삭제하면 회원의 모든 기기에서 지워진다")
+  void legacyDelete_removesFromEveryDeviceOfMember() {
+    givenAuthenticatedMember();
+
+    NoticeKeywordResponse added =
         noticeKeywordService.addKeywordByMember(
-                new NoticeKeywordRequest("장학", NoticeKeywordType.INCLUDE));
+            new NoticeKeywordRequest("휴강", NoticeKeywordType.EXCLUDE));
 
-        assertThat(noticeKeywordRepository.findAllByDeviceId(phone.getId()))
-                .extracting(NoticeKeyword::getKeyword)
-                .containsExactly("장학");
-        assertThat(noticeKeywordRepository.findAllByDeviceId(tablet.getId()))
-                .extracting(NoticeKeyword::getKeyword)
-                .containsExactly("장학");
-    }
+    // 구버전 앱은 목록에서 받은 id 하나로 삭제를 요청한다
+    noticeKeywordService.deleteKeywordByMember(added.id());
 
-    @Test
-    @DisplayName("구버전 API 로 삭제하면 회원의 모든 기기에서 지워진다")
-    void legacyDelete_removesFromEveryDeviceOfMember() {
-        givenAuthenticatedMember();
+    assertThat(noticeKeywordRepository.findAllByDeviceId(phone.getId())).isEmpty();
+    assertThat(noticeKeywordRepository.findAllByDeviceId(tablet.getId())).isEmpty();
+  }
 
-        NoticeKeywordResponse added = noticeKeywordService.addKeywordByMember(
-                new NoticeKeywordRequest("휴강", NoticeKeywordType.EXCLUDE));
+  @Test
+  @DisplayName("기기마다 키워드가 달라도 구버전 조회는 합집합을 돌려준다")
+  void legacyGet_returnsUnionAcrossDevices() {
+    givenAuthenticatedMember();
 
-        // 구버전 앱은 목록에서 받은 id 하나로 삭제를 요청한다
-        noticeKeywordService.deleteKeywordByMember(added.id());
+    // 한 기기에서만 신버전으로 키워드를 추가한 상황
+    noticeKeywordService.addKeyword(
+        phone.getFid(), null, new NoticeKeywordRequest("장학", NoticeKeywordType.INCLUDE));
+    noticeKeywordService.addKeyword(
+        tablet.getFid(), null, new NoticeKeywordRequest("휴강", NoticeKeywordType.EXCLUDE));
 
-        assertThat(noticeKeywordRepository.findAllByDeviceId(phone.getId())).isEmpty();
-        assertThat(noticeKeywordRepository.findAllByDeviceId(tablet.getId())).isEmpty();
-    }
+    List<NoticeKeywordResponse> result = noticeKeywordService.getKeywordsByMember();
 
-    @Test
-    @DisplayName("기기마다 키워드가 달라도 구버전 조회는 합집합을 돌려준다")
-    void legacyGet_returnsUnionAcrossDevices() {
-        givenAuthenticatedMember();
+    assertThat(result)
+        .extracting(NoticeKeywordResponse::keyword)
+        .containsExactlyInAnyOrder("장학", "휴강");
+  }
 
-        // 한 기기에서만 신버전으로 키워드를 추가한 상황
-        noticeKeywordService.addKeyword(phone.getFid(), null,
-                new NoticeKeywordRequest("장학", NoticeKeywordType.INCLUDE));
-        noticeKeywordService.addKeyword(tablet.getFid(), null,
-                new NoticeKeywordRequest("휴강", NoticeKeywordType.EXCLUDE));
+  @Test
+  @DisplayName("v2 API 는 지목한 기기에만 적용된다")
+  void v2Add_appliesToThatDeviceOnly() {
+    noticeKeywordService.addKeyword(
+        phone.getFid(), null, new NoticeKeywordRequest("장학", NoticeKeywordType.INCLUDE));
 
-        List<NoticeKeywordResponse> result = noticeKeywordService.getKeywordsByMember();
+    assertThat(noticeKeywordRepository.findAllByDeviceId(phone.getId())).hasSize(1);
+    assertThat(noticeKeywordRepository.findAllByDeviceId(tablet.getId())).isEmpty();
+  }
 
-        assertThat(result).extracting(NoticeKeywordResponse::keyword)
-                .containsExactlyInAnyOrder("장학", "휴강");
-    }
+  @Test
+  @DisplayName("같은 키워드가 이미 있으면 구버전 API 도 중복으로 막힌다")
+  void legacyAdd_rejectsDuplicate() {
+    givenAuthenticatedMember();
 
-    @Test
-    @DisplayName("v2 API 는 지목한 기기에만 적용된다")
-    void v2Add_appliesToThatDeviceOnly() {
-        noticeKeywordService.addKeyword(phone.getFid(), null,
-                new NoticeKeywordRequest("장학", NoticeKeywordType.INCLUDE));
+    noticeKeywordService.addKeywordByMember(
+        new NoticeKeywordRequest("장학", NoticeKeywordType.INCLUDE));
 
-        assertThat(noticeKeywordRepository.findAllByDeviceId(phone.getId())).hasSize(1);
-        assertThat(noticeKeywordRepository.findAllByDeviceId(tablet.getId())).isEmpty();
-    }
-
-    @Test
-    @DisplayName("같은 키워드가 이미 있으면 구버전 API 도 중복으로 막힌다")
-    void legacyAdd_rejectsDuplicate() {
-        givenAuthenticatedMember();
-
-        noticeKeywordService.addKeywordByMember(
-                new NoticeKeywordRequest("장학", NoticeKeywordType.INCLUDE));
-
-        NoticeKeywordRequest duplicateRequest = new NoticeKeywordRequest("장학", NoticeKeywordType.INCLUDE);
-        assertThatThrownBy(() -> noticeKeywordService.addKeywordByMember(duplicateRequest))
-                .isInstanceOf(DuplicateNoticeKeywordException.class);
-    }
+    NoticeKeywordRequest duplicateRequest =
+        new NoticeKeywordRequest("장학", NoticeKeywordType.INCLUDE);
+    assertThatThrownBy(() -> noticeKeywordService.addKeywordByMember(duplicateRequest))
+        .isInstanceOf(DuplicateNoticeKeywordException.class);
+  }
 }

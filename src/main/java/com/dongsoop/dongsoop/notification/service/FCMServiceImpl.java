@@ -37,285 +37,282 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class FCMServiceImpl implements FCMService {
 
-    private final FirebaseMessaging firebaseMessaging;
-    private final MemberDeviceService memberDeviceService;
+  private final FirebaseMessaging firebaseMessaging;
+  private final MemberDeviceService memberDeviceService;
 
-    @Qualifier("notificationExecutor")
-    private final ExecutorService notificationExecutor;
+  @Qualifier("notificationExecutor")
+  private final ExecutorService notificationExecutor;
 
-    @Override
-    public void subscribeTopic(List<String> token, String topic) {
-        try {
-            firebaseMessaging.subscribeToTopic(token, topic);
-        } catch (FirebaseMessagingException e) {
-            log.error("Error subscribing to topic {}: {}", topic, e.getMessage());
-            throw new NotificationSendException(e);
-        }
+  @Override
+  public void subscribeTopic(List<String> token, String topic) {
+    try {
+      firebaseMessaging.subscribeToTopic(token, topic);
+    } catch (FirebaseMessagingException e) {
+      log.error("Error subscribing to topic {}: {}", topic, e.getMessage());
+      throw new NotificationSendException(e);
+    }
+  }
+
+  @Override
+  public void unsubscribeTopic(List<String> token, String topic) {
+    try {
+      firebaseMessaging.unsubscribeFromTopic(token, topic);
+    } catch (FirebaseMessagingException e) {
+      log.error("Error unsubscribing from topic {}: {}", topic, e.getMessage());
+      throw new NotificationSendException(e);
+    }
+  }
+
+  @Override
+  public void sendNotification(
+      List<String> deviceTokenList, NotificationSend notificationSend, Integer badge) {
+    // iOS용 APNs 설정
+    ApnsConfig apnsConfig = getApnsConfig(notificationSend, badge);
+
+    // Android용 설정
+    AndroidConfig androidConfig = getAndroidConfig(notificationSend, badge);
+
+    MulticastMessage message =
+        getMulticastMessage(
+            deviceTokenList,
+            notificationSend.title(),
+            notificationSend.body(),
+            apnsConfig,
+            androidConfig);
+
+    sendMessages(message, deviceTokenList);
+  }
+
+  @Override
+  public void sendToTopic(String topic, NotificationSend notificationSend) {
+    ApnsConfig apnsConfig = getApnsConfig(notificationSend, null);
+    AndroidConfig androidConfig = getAndroidConfig(notificationSend, null);
+
+    Notification notification = getNotification(notificationSend.title(), notificationSend.body());
+
+    Message message =
+        Message.builder()
+            .setTopic(topic)
+            .setNotification(notification)
+            .setApnsConfig(apnsConfig)
+            .setAndroidConfig(androidConfig)
+            .build();
+
+    sendMessage(message);
+  }
+
+  public ApnsConfig getApnsConfig(NotificationSend notificationSend, Integer badge) {
+    Aps aps = getAps(notificationSend.title(), notificationSend.body(), badge);
+
+    return ApnsConfig.builder()
+        .putCustomData("type", notificationSend.type().toString())
+        .putCustomData("value", notificationSend.value())
+        .putCustomData("id", String.valueOf(notificationSend.id()))
+        .setAps(aps)
+        .build();
+  }
+
+  private Notification getNotification(String title, String body) {
+    return Notification.builder().setTitle(title).setBody(body).build();
+  }
+
+  private AndroidConfig getAndroidConfig(NotificationSend notificationSend, Integer badge) {
+    AndroidConfig.Builder builder =
+        AndroidConfig.builder()
+            .setNotification(
+                AndroidNotification.builder().setChannelId(notificationSend.type().name()).build())
+            .putAllData(
+                Map.of(
+                    "type", notificationSend.type().name(),
+                    "value", notificationSend.value(),
+                    "id", String.valueOf(notificationSend.id())));
+
+    if (isInvalidBadge(badge)) {
+      return builder.build();
     }
 
-    @Override
-    public void unsubscribeTopic(List<String> token, String topic) {
-        try {
-            firebaseMessaging.unsubscribeFromTopic(token, topic);
-        } catch (FirebaseMessagingException e) {
-            log.error("Error unsubscribing from topic {}: {}", topic, e.getMessage());
-            throw new NotificationSendException(e);
-        }
+    return builder.putData("badge", String.valueOf(badge)).build();
+  }
+
+  private Aps getAps(String title, String body, Integer badge) {
+    Aps.Builder builder =
+        Aps.builder()
+            .setAlert(ApsAlert.builder().setTitle(title).setBody(body).build())
+            .setSound("default");
+
+    if (isInvalidBadge(badge)) {
+      return builder.build();
     }
 
-    @Override
-    public void sendNotification(List<String> deviceTokenList, NotificationSend notificationSend, Integer badge) {
-        // iOS용 APNs 설정
-        ApnsConfig apnsConfig = getApnsConfig(notificationSend, badge);
+    return builder.setBadge(badge).build();
+  }
 
-        // Android용 설정
-        AndroidConfig androidConfig = getAndroidConfig(notificationSend, badge);
+  private boolean isInvalidBadge(Integer badge) {
+    return badge == null || badge < 0;
+  }
 
-        MulticastMessage message = getMulticastMessage(deviceTokenList, notificationSend.title(),
-                notificationSend.body(), apnsConfig, androidConfig);
+  private MulticastMessage getMulticastMessage(
+      List<String> deviceTokenList,
+      String title,
+      String body,
+      ApnsConfig apnsConfig,
+      AndroidConfig androidConfig) {
+    Notification notification = getNotification(title, body);
 
-        sendMessages(message, deviceTokenList);
+    return MulticastMessage.builder()
+        .addAllTokens(deviceTokenList)
+        .setApnsConfig(apnsConfig)
+        .setAndroidConfig(androidConfig)
+        .setNotification(notification)
+        .build();
+  }
+
+  @Override
+  public void sendMessages(MulticastMessage message, List<String> tokens) {
+    ApiFuture<BatchResponse> future = firebaseMessaging.sendEachForMulticastAsync(message);
+    future.addListener(() -> listener(future, tokens), notificationExecutor);
+  }
+
+  @Override
+  public void sendMessage(Message message) {
+    ApiFuture<String> future = firebaseMessaging.sendAsync(message);
+    future.addListener(() -> listener(future), notificationExecutor);
+  }
+
+  private void listener(ApiFuture<String> future) {
+    String response = getResponse(future);
+
+    log.info("Successfully sent messages: {}", response);
+  }
+
+  private void listener(ApiFuture<BatchResponse> future, List<String> tokens) {
+    BatchResponse response = getResponse(future);
+
+    if (response.getFailureCount() > 0) {
+      handleFailure(response, tokens);
+      throw new NotificationSendException();
     }
 
-    @Override
-    public void sendToTopic(String topic, NotificationSend notificationSend) {
-        ApnsConfig apnsConfig = getApnsConfig(notificationSend, null);
-        AndroidConfig androidConfig = getAndroidConfig(notificationSend, null);
+    log.info("Successfully sent messages: {}", response.getSuccessCount());
+  }
 
-        Notification notification = getNotification(notificationSend.title(), notificationSend.body());
+  private <T> T getResponse(ApiFuture<T> future) {
+    try {
+      return future.get();
 
-        Message message = Message.builder()
-                .setTopic(topic)
-                .setNotification(notification)
-                .setApnsConfig(apnsConfig)
-                .setAndroidConfig(androidConfig)
-                .build();
+    } catch (InterruptedException ie) {
+      Thread.currentThread().interrupt();
+      log.error("Thread interrupted while sending FCM messages", ie);
+      throw new NotificationSendException(ie);
 
-        sendMessage(message);
+    } catch (ExecutionException ee) {
+      log.error("Failed to send FCM messages due to execution error", ee);
+      throw new NotificationSendException(ee);
+
+    } catch (TimeoutException te) {
+      log.error("Timeout waiting for FCM response", te);
+      throw new NotificationSendException(te);
+
+    } catch (CancellationException ce) {
+      log.error("FCM send operation was cancelled", ce);
+      throw new NotificationSendException(ce);
+
+    } catch (RuntimeException re) {
+      log.error("Unexpected error during FCM send", re);
+      throw new NotificationSendException(re);
+    }
+  }
+
+  private void handleFailure(BatchResponse batchResponse, List<String> tokens) {
+    List<SendResponse> responses = batchResponse.getResponses();
+    if (tokens.size() != responses.size()) {
+      log.warn(
+          "Token list size does not match response size: tokens={}, responses={}",
+          tokens.size(),
+          responses.size());
+      throw new ResponseSizeUnmatchedToTokenSizeException(responses.size(), tokens.size());
     }
 
-    public ApnsConfig getApnsConfig(NotificationSend notificationSend, Integer badge) {
-        Aps aps = getAps(notificationSend.title(), notificationSend.body(), badge);
+    for (int i = 0; i < responses.size(); i++) {
+      SendResponse response = responses.get(i);
+      if (response.isSuccessful()) {
+        continue;
+      }
 
-        return ApnsConfig.builder()
-                .putCustomData("type", notificationSend.type().toString())
-                .putCustomData("value", notificationSend.value())
-                .putCustomData("id", String.valueOf(notificationSend.id()))
-                .setAps(aps)
-                .build();
+      handleFailedResponse(response, tokens.get(i));
+    }
+  }
+
+  private void handleFailedResponse(SendResponse response, String token) {
+    FirebaseMessagingException exception = response.getException();
+    if (exception == null) {
+      return;
     }
 
-    private Notification getNotification(String title, String body) {
-        return Notification.builder()
-                .setTitle(title)
-                .setBody(body)
-                .build();
+    // 만료된 토큰 확인
+    if (isUnregisteredToken(exception)) {
+      memberDeviceService.unbindByToken(token);
+      log.warn("Invalid FCM token unbound: {}", token);
+      return;
     }
 
-    private AndroidConfig getAndroidConfig(NotificationSend notificationSend, Integer badge) {
-        AndroidConfig.Builder builder = AndroidConfig.builder()
-                .setNotification(AndroidNotification.builder()
-                        .setChannelId(notificationSend.type().name())
-                        .build())
-                .putAllData(Map.of(
-                        "type", notificationSend.type().name(),
-                        "value", notificationSend.value(),
-                        "id", String.valueOf(notificationSend.id())
-                ));
+    log.error("Error sending FCM message: {}", exception.getMessage());
+  }
 
-        if (isInvalidBadge(badge)) {
-            return builder.build();
-        }
+  private boolean isUnregisteredToken(FirebaseMessagingException exception) {
+    // INVALID_ARGUMENT can also indicate a payload error, not an invalid token.
+    return exception.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED;
+  }
 
-        return builder.putData("badge", String.valueOf(badge))
-                .build();
+  @Override
+  public void sendSilentMessage(String deviceToken, FcmSilentType type) {
+    if (deviceToken == null || deviceToken.isBlank()) {
+      throw new IllegalArgumentException("deviceToken must not be null or empty");
     }
 
-    private Aps getAps(String title, String body, Integer badge) {
-        Aps.Builder builder = Aps.builder()
-                .setAlert(ApsAlert.builder()
-                        .setTitle(title)
-                        .setBody(body)
-                        .build())
-                .setSound("default");
+    String typeName = type.name();
 
-        if (isInvalidBadge(badge)) {
-            return builder.build();
-        }
+    ApnsConfig apnsConfig =
+        ApnsConfig.builder().setAps(Aps.builder().setContentAvailable(true).build()).build();
 
-        return builder.setBadge(badge)
-                .build();
+    AndroidConfig androidConfig =
+        AndroidConfig.builder().setPriority(AndroidConfig.Priority.HIGH).build();
+
+    Message message =
+        Message.builder()
+            .setToken(deviceToken)
+            .putData("type", typeName)
+            .setApnsConfig(apnsConfig)
+            .setAndroidConfig(androidConfig)
+            .build();
+
+    sendMessage(message);
+  }
+
+  public void updateNotificationBadge(List<String> deviceTokens, int badge) {
+    if (deviceTokens == null || deviceTokens.isEmpty()) {
+      log.warn(
+          "updateNotificationBadge called with null or empty deviceTokens. No FCM operation will be performed.");
+      return;
     }
 
-    private boolean isInvalidBadge(Integer badge) {
-        return badge == null || badge < 0;
-    }
+    ApnsConfig apnsConfig =
+        ApnsConfig.builder()
+            .setAps(Aps.builder().setBadge(badge).setContentAvailable(true).build())
+            .putHeader("apns-priority", "10")
+            .build();
 
-    private MulticastMessage getMulticastMessage(
-            List<String> deviceTokenList,
-            String title,
-            String body,
-            ApnsConfig apnsConfig,
-            AndroidConfig androidConfig) {
-        Notification notification = getNotification(title, body);
+    AndroidConfig androidConfig =
+        AndroidConfig.builder().setPriority(AndroidConfig.Priority.NORMAL).build();
 
-        return MulticastMessage.builder()
-                .addAllTokens(deviceTokenList)
-                .setApnsConfig(apnsConfig)
-                .setAndroidConfig(androidConfig)
-                .setNotification(notification)
-                .build();
-    }
+    MulticastMessage messages =
+        MulticastMessage.builder()
+            .addAllTokens(deviceTokens)
+            .setApnsConfig(apnsConfig)
+            .setAndroidConfig(androidConfig)
+            .putData("badge", String.valueOf(badge))
+            .build();
 
-    @Override
-    public void sendMessages(MulticastMessage message, List<String> tokens) {
-        ApiFuture<BatchResponse> future = firebaseMessaging.sendEachForMulticastAsync(message);
-        future.addListener(() -> listener(future, tokens), notificationExecutor);
-    }
-
-    @Override
-    public void sendMessage(Message message) {
-        ApiFuture<String> future = firebaseMessaging.sendAsync(message);
-        future.addListener(() -> listener(future), notificationExecutor);
-    }
-
-    private void listener(ApiFuture<String> future) {
-        String response = getResponse(future);
-
-        log.info("Successfully sent messages: {}", response);
-    }
-
-    private void listener(ApiFuture<BatchResponse> future, List<String> tokens) {
-        BatchResponse response = getResponse(future);
-
-        if (response.getFailureCount() > 0) {
-            handleFailure(response, tokens);
-            throw new NotificationSendException();
-        }
-
-        log.info("Successfully sent messages: {}", response.getSuccessCount());
-    }
-
-    private <T> T getResponse(ApiFuture<T> future) {
-        try {
-            return future.get();
-
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            log.error("Thread interrupted while sending FCM messages", ie);
-            throw new NotificationSendException(ie);
-
-        } catch (ExecutionException ee) {
-            log.error("Failed to send FCM messages due to execution error", ee);
-            throw new NotificationSendException(ee);
-
-        } catch (TimeoutException te) {
-            log.error("Timeout waiting for FCM response", te);
-            throw new NotificationSendException(te);
-
-        } catch (CancellationException ce) {
-            log.error("FCM send operation was cancelled", ce);
-            throw new NotificationSendException(ce);
-
-        } catch (RuntimeException re) {
-            log.error("Unexpected error during FCM send", re);
-            throw new NotificationSendException(re);
-        }
-    }
-
-    private void handleFailure(BatchResponse batchResponse, List<String> tokens) {
-        List<SendResponse> responses = batchResponse.getResponses();
-        if (tokens.size() != responses.size()) {
-            log.warn("Token list size does not match response size: tokens={}, responses={}",
-                    tokens.size(), responses.size());
-            throw new ResponseSizeUnmatchedToTokenSizeException(responses.size(), tokens.size());
-        }
-
-        for (int i = 0; i < responses.size(); i++) {
-            SendResponse response = responses.get(i);
-            if (response.isSuccessful()) {
-                continue;
-            }
-
-            handleFailedResponse(response, tokens.get(i));
-        }
-    }
-
-    private void handleFailedResponse(SendResponse response, String token) {
-        FirebaseMessagingException exception = response.getException();
-        if (exception == null) {
-            return;
-        }
-
-        // 만료된 토큰 확인
-        if (isUnregisteredToken(exception)) {
-            memberDeviceService.unbindByToken(token);
-            log.warn("Invalid FCM token unbound: {}", token);
-            return;
-        }
-
-        log.error("Error sending FCM message: {}", exception.getMessage());
-    }
-
-    private boolean isUnregisteredToken(FirebaseMessagingException exception) {
-        // INVALID_ARGUMENT can also indicate a payload error, not an invalid token.
-        return exception.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED;
-    }
-
-    @Override
-    public void sendSilentMessage(String deviceToken, FcmSilentType type) {
-        if (deviceToken == null || deviceToken.isBlank()) {
-            throw new IllegalArgumentException("deviceToken must not be null or empty");
-        }
-
-        String typeName = type.name();
-
-        ApnsConfig apnsConfig = ApnsConfig.builder()
-                .setAps(Aps.builder()
-                        .setContentAvailable(true)
-                        .build())
-                .build();
-
-        AndroidConfig androidConfig = AndroidConfig.builder()
-                .setPriority(AndroidConfig.Priority.HIGH)
-                .build();
-
-        Message message = Message.builder()
-                .setToken(deviceToken)
-                .putData("type", typeName)
-                .setApnsConfig(apnsConfig)
-                .setAndroidConfig(androidConfig)
-                .build();
-
-        sendMessage(message);
-    }
-
-    public void updateNotificationBadge(List<String> deviceTokens, int badge) {
-        if (deviceTokens == null || deviceTokens.isEmpty()) {
-            log.warn(
-                    "updateNotificationBadge called with null or empty deviceTokens. No FCM operation will be performed.");
-            return;
-        }
-
-        ApnsConfig apnsConfig = ApnsConfig.builder()
-                .setAps(Aps.builder()
-                        .setBadge(badge)
-                        .setContentAvailable(true)
-                        .build())
-                .putHeader("apns-priority", "10")
-                .build();
-
-        AndroidConfig androidConfig = AndroidConfig.builder()
-                .setPriority(AndroidConfig.Priority.NORMAL)
-                .build();
-
-        MulticastMessage messages = MulticastMessage.builder()
-                .addAllTokens(deviceTokens)
-                .setApnsConfig(apnsConfig)
-                .setAndroidConfig(androidConfig)
-                .putData("badge", String.valueOf(badge))
-                .build();
-
-        sendMessages(messages, deviceTokens);
-    }
+    sendMessages(messages, deviceTokens);
+  }
 }

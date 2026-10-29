@@ -16,8 +16,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)
 public class DongsoopApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(DongsoopApplication.class, args);
-    }
-
+  public static void main(String[] args) {
+    SpringApplication.run(DongsoopApplication.class, args);
+  }
 }

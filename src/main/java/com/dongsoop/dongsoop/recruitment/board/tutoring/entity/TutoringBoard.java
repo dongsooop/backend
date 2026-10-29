@@ -27,37 +27,39 @@ import org.hibernate.annotations.SQLRestriction;
 @SQLRestriction("is_deleted = false")
 @SQLDelete(sql = "UPDATE tutoring_board SET is_deleted = true WHERE id = ?")
 @Filter(
-        name = "blockFilter",
-        condition = "NOT EXISTS ( " +
-                "SELECT 1 FROM member_block mb " +
-                "WHERE mb.blocker_id = :blockerId " +
-                "AND mb.blocked_member_id = author " +
-                ")"
-)
+    name = "blockFilter",
+    condition =
+        "NOT EXISTS ( "
+            + "SELECT 1 FROM member_block mb "
+            + "WHERE mb.blocker_id = :blockerId "
+            + "AND mb.blocked_member_id = author "
+            + ")")
 public class TutoringBoard extends RecruitmentBoard {
 
-    @Id
-    @Getter
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "tutoring_board_sequence_generator")
-    private Long id;
+  @Id
+  @Getter
+  @GeneratedValue(
+      strategy = GenerationType.SEQUENCE,
+      generator = "tutoring_board_sequence_generator")
+  private Long id;
 
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id", nullable = false)
-    private Department department;
+  @NotNull
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "department_id", nullable = false)
+  private Department department;
 
-    public boolean equalsId(TutoringBoard that) {
-        return Objects.equals(this.id, that.id);
-    }
+  public boolean equalsId(TutoringBoard that) {
+    return Objects.equals(this.id, that.id);
+  }
 
-    public boolean isSameDepartment(Department that) {
-        DepartmentType thisDepartmentType = this.department.getId();
-        DepartmentType thatDepartmentType = that.getId();
+  public boolean isSameDepartment(Department that) {
+    DepartmentType thisDepartmentType = this.department.getId();
+    DepartmentType thatDepartmentType = that.getId();
 
-        return thisDepartmentType.equals(thatDepartmentType);
-    }
+    return thisDepartmentType.equals(thatDepartmentType);
+  }
 
-    public Department getDepartment() {
-        return this.department;
-    }
+  public Department getDepartment() {
+    return this.department;
+  }
 }

@@ -15,36 +15,37 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class NotificationBadgeServiceImpl implements NotificationBadgeService {
 
-    private final NotificationRepository notificationRepository;
-    private final MemberDeviceService memberDeviceService;
-    private final FCMService fcmService;
+  private final NotificationRepository notificationRepository;
+  private final MemberDeviceService memberDeviceService;
+  private final FCMService fcmService;
 
-    @Override
-    @Transactional(readOnly = true)
-    public Map<Long, Integer> resolveByMemberIds(Collection<Long> memberIds) {
-        if (memberIds.isEmpty()) {
-            return Map.of();
-        }
-
-        return notificationRepository.findUnreadCountByMemberIds(memberIds).stream()
-                .collect(Collectors.toMap(NotificationUnread::getMemberId, NotificationUnread::getUnreadCount));
+  @Override
+  @Transactional(readOnly = true)
+  public Map<Long, Integer> resolveByMemberIds(Collection<Long> memberIds) {
+    if (memberIds.isEmpty()) {
+      return Map.of();
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public int resolveByMemberId(Long memberId) {
-        return notificationRepository.findUnreadCountByMemberId(memberId);
+    return notificationRepository.findUnreadCountByMemberIds(memberIds).stream()
+        .collect(
+            Collectors.toMap(NotificationUnread::getMemberId, NotificationUnread::getUnreadCount));
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public int resolveByMemberId(Long memberId) {
+    return notificationRepository.findUnreadCountByMemberId(memberId);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public void pushBadge(Long memberId) {
+    List<String> devices = memberDeviceService.getDeviceByMemberId(memberId);
+    if (devices.isEmpty()) {
+      return;
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public void pushBadge(Long memberId) {
-        List<String> devices = memberDeviceService.getDeviceByMemberId(memberId);
-        if (devices.isEmpty()) {
-            return;
-        }
-
-        int unreadCount = notificationRepository.findUnreadCountByMemberId(memberId);
-        fcmService.updateNotificationBadge(devices, unreadCount);
-    }
+    int unreadCount = notificationRepository.findUnreadCountByMemberId(memberId);
+    fcmService.updateNotificationBadge(devices, unreadCount);
+  }
 }

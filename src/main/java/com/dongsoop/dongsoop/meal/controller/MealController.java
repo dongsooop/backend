@@ -16,32 +16,26 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class MealController {
 
-    private static final CacheControl CACHE_CONTROL = CacheControl
-            .maxAge(30, TimeUnit.MINUTES)
-            .cachePublic();
+  private static final CacheControl CACHE_CONTROL =
+      CacheControl.maxAge(30, TimeUnit.MINUTES).cachePublic();
 
-    // 가격은 설정 파일 값이라 배포 전에는 바뀌지 않는다
-    private static final CacheControl PRICE_CACHE_CONTROL = CacheControl
-            .maxAge(1, TimeUnit.DAYS)
-            .cachePublic();
+  // 가격은 설정 파일 값이라 배포 전에는 바뀌지 않는다
+  private static final CacheControl PRICE_CACHE_CONTROL =
+      CacheControl.maxAge(1, TimeUnit.DAYS).cachePublic();
 
-    private final MealService mealService;
+  private final MealService mealService;
 
-    @GetMapping("/current")
-    public ResponseEntity<MealWeeklyResponse> getCurrentWeekMeal() {
-        MealWeeklyResponse result = mealService.getCurrentWeekMealResponse();
+  @GetMapping("/current")
+  public ResponseEntity<MealWeeklyResponse> getCurrentWeekMeal() {
+    MealWeeklyResponse result = mealService.getCurrentWeekMealResponse();
 
-        return ResponseEntity.ok()
-                .cacheControl(CACHE_CONTROL)
-                .body(result);
-    }
+    return ResponseEntity.ok().cacheControl(CACHE_CONTROL).body(result);
+  }
 
-    @GetMapping("/prices")
-    public ResponseEntity<MealPriceResponse> getPrices() {
-        MealPriceResponse result = mealService.getPriceResponse();
+  @GetMapping("/prices")
+  public ResponseEntity<MealPriceResponse> getPrices() {
+    MealPriceResponse result = mealService.getPriceResponse();
 
-        return ResponseEntity.ok()
-                .cacheControl(PRICE_CACHE_CONTROL)
-                .body(result);
-    }
+    return ResponseEntity.ok().cacheControl(PRICE_CACHE_CONTROL).body(result);
+  }
 }

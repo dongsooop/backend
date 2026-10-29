@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface DepartmentService {
 
-    Department getReferenceById(DepartmentType departmentType);
+  Department getReferenceById(DepartmentType departmentType);
 
-    List<Department> getAllDepartments();
+  List<Department> getAllDepartments();
 }

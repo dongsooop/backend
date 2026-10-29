@@ -7,9 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "meal.prices")
 public record MealPriceProperties(int ticketPrice, List<Category> categories) {
 
-    public record Category(String name, String note, List<Item> items) {
-    }
+  public record Category(String name, String note, List<Item> items) {}
 
-    public record Item(String name, int price, Integer largePrice, List<String> days) {
-    }
+  public record Item(String name, int price, Integer largePrice, List<String> days) {}
 }

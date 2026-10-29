@@ -13,24 +13,22 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class NotificationSettingChangeDelete implements NotificationSettingChangeHandler {
 
-    private final NotificationSettingRepository notificationSettingRepository;
+  private final NotificationSettingRepository notificationSettingRepository;
 
-    @Override
-    public Class<? extends SettingChanges> getSupportedClass() {
-        return SettingDelete.class;
+  @Override
+  public Class<? extends SettingChanges> getSupportedClass() {
+    return SettingDelete.class;
+  }
+
+  @Override
+  public void apply(List<SettingChanges> changes) {
+    List<NotificationSetting> notificationSettingList =
+        changes.stream().map(SettingChanges::getSetting).filter(Objects::nonNull).toList();
+
+    if (notificationSettingList.isEmpty()) {
+      return;
     }
 
-    @Override
-    public void apply(List<SettingChanges> changes) {
-        List<NotificationSetting> notificationSettingList = changes.stream()
-                .map(SettingChanges::getSetting)
-                .filter(Objects::nonNull)
-                .toList();
-
-        if (notificationSettingList.isEmpty()) {
-            return;
-        }
-
-        notificationSettingRepository.deleteAll(notificationSettingList);
-    }
+    notificationSettingRepository.deleteAll(notificationSettingList);
+  }
 }

@@ -12,36 +12,36 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class MailVerifyNumberGeneratorImpl implements MailVerifyNumberGenerator {
 
-    private static final String CHAR_POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+  private static final String CHAR_POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
-    @Override
-    public String generateVerificationCode(int length) {
-        StringBuilder codeBuilder = new StringBuilder(length);
-        for (int i = 0; i < length; i++) {
-            int index = SECURE_RANDOM.nextInt(CHAR_POOL.length());
-            codeBuilder.append(CHAR_POOL.charAt(index));
-        }
-        return codeBuilder.toString();
+  @Override
+  public String generateVerificationCode(int length) {
+    StringBuilder codeBuilder = new StringBuilder(length);
+    for (int i = 0; i < length; i++) {
+      int index = SECURE_RANDOM.nextInt(CHAR_POOL.length());
+      codeBuilder.append(CHAR_POOL.charAt(index));
     }
+    return codeBuilder.toString();
+  }
 
-    @Override
-    public String getRedisKeyByHashed(String redisPrefix, String userEmail) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(userEmail.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) {
-                    hexString.append('0');
-                }
-                hexString.append(hex);
-            }
-
-            return redisPrefix + hexString;
-        } catch (NoSuchAlgorithmException exception) {
-            throw new UnknownEmailEncodeException(exception);
+  @Override
+  public String getRedisKeyByHashed(String redisPrefix, String userEmail) {
+    try {
+      MessageDigest digest = MessageDigest.getInstance("SHA-256");
+      byte[] hash = digest.digest(userEmail.getBytes(StandardCharsets.UTF_8));
+      StringBuilder hexString = new StringBuilder();
+      for (byte b : hash) {
+        String hex = Integer.toHexString(0xff & b);
+        if (hex.length() == 1) {
+          hexString.append('0');
         }
+        hexString.append(hex);
+      }
+
+      return redisPrefix + hexString;
+    } catch (NoSuchAlgorithmException exception) {
+      throw new UnknownEmailEncodeException(exception);
     }
+  }
 }

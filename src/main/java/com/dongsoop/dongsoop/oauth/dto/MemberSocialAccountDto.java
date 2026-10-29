@@ -6,22 +6,17 @@ import com.dongsoop.dongsoop.role.entity.RoleType;
 import java.util.List;
 
 public record MemberSocialAccountDto(
+    Member member, String providerId, OAuthProviderType providerType, List<RoleType> roleType) {
 
-        Member member,
-        String providerId,
-        OAuthProviderType providerType,
-        List<RoleType> roleType
-) {
+  public boolean isMemberNotMatched() {
+    return this.member == null;
+  }
 
-    public boolean isMemberNotMatched() {
-        return this.member == null;
+  public boolean isMemberDeleted() {
+    if (this.member == null) {
+      return false;
     }
 
-    public boolean isMemberDeleted() {
-        if (this.member == null) {
-            return false;
-        }
-        
-        return this.member.isDeleted();
-    }
+    return this.member.isDeleted();
+  }
 }

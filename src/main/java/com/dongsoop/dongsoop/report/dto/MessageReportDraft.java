@@ -6,7 +6,13 @@ import com.dongsoop.dongsoop.report.entity.ReportChatRoomType;
 import com.dongsoop.dongsoop.report.entity.ReportType;
 import java.time.LocalDateTime;
 
-public record MessageReportDraft(ReportType reportType, String chatRoomId, ReportChatRoomType chatRoomType,
-                                 String targetUrl, Member targetMember, String messageId, String messageContent,
-                                 LocalDateTime messageSentAt, ChatMessageSnapshots messageContext) {
-}
+public record MessageReportDraft(
+    ReportType reportType,
+    String chatRoomId,
+    ReportChatRoomType chatRoomType,
+    String targetUrl,
+    Member targetMember,
+    String messageId,
+    String messageContent,
+    LocalDateTime messageSentAt,
+    ChatMessageSnapshots messageContext) {}

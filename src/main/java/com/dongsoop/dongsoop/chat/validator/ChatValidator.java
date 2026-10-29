@@ -7,8 +7,8 @@ import com.dongsoop.dongsoop.chat.exception.InvalidChatRequestException;
 import com.dongsoop.dongsoop.chat.exception.ManagerKickAttemptException;
 import com.dongsoop.dongsoop.chat.exception.ManagerLeaveRestrictedException;
 import com.dongsoop.dongsoop.chat.exception.SelfChatException;
-import com.dongsoop.dongsoop.chat.exception.UnauthorizedManagerActionException;
 import com.dongsoop.dongsoop.chat.exception.UnauthorizedChatAccessException;
+import com.dongsoop.dongsoop.chat.exception.UnauthorizedManagerActionException;
 import com.dongsoop.dongsoop.chat.exception.UserKickedException;
 import com.dongsoop.dongsoop.chat.exception.UserNotInRoomException;
 import com.dongsoop.dongsoop.chat.service.ChatSyncService;
@@ -24,133 +24,132 @@ import org.springframework.util.StringUtils;
 @Component
 public class ChatValidator {
 
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
-    private final ChatSyncService chatSyncService;
-    private final ChatCommonUtils chatCommonUtils;
+  private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+  private final ChatSyncService chatSyncService;
+  private final ChatCommonUtils chatCommonUtils;
 
-    public ChatValidator(ChatSyncService chatSyncService,
-                         ChatCommonUtils chatCommonUtils) {
-        this.chatSyncService = chatSyncService;
-        this.chatCommonUtils = chatCommonUtils;
+  public ChatValidator(ChatSyncService chatSyncService, ChatCommonUtils chatCommonUtils) {
+    this.chatSyncService = chatSyncService;
+    this.chatCommonUtils = chatCommonUtils;
+  }
+
+  public void validateUserForRoom(String roomId, Long userId) {
+    ChatRoom room = chatSyncService.findRoomOrRestore(roomId);
+
+    validateUserNotKicked(room, userId);
+    validateUserHasAccess(room, userId);
+  }
+
+  public void validateSelfChat(Long user1, Long user2) {
+    if (user1.equals(user2)) {
+      throw new SelfChatException();
+    }
+  }
+
+  public ChatMessage validateAndEnrichMessage(ChatMessage message) {
+    validateMessageRequirements(message);
+    validateUserForRoom(message.getRoomId(), message.getSenderId());
+
+    ChatMessageUtils.enrichMessage(message);
+    return message;
+  }
+
+  public void validateManagerPermission(ChatRoom room, Long requesterId) {
+    validateIsGroupChat(room);
+    validateIsRoomManager(room, requesterId);
+  }
+
+  public void validateKickableUser(ChatRoom room, Long userToKick) {
+    validateUserExistsInRoom(room, userToKick);
+    validateNotKickingManager(room, userToKick);
+  }
+
+  private void validateUserNotKicked(ChatRoom room, Long userId) {
+    if (room.isKicked(userId)) {
+      throw new UserKickedException(room.getRoomId());
+    }
+  }
+
+  private void validateUserHasAccess(ChatRoom room, Long userId) {
+    if (!room.getParticipants().contains(userId)) {
+      throw new UnauthorizedChatAccessException();
+    }
+  }
+
+  private void validateMessageRequirements(ChatMessage message) {
+    validateMessageHasRoomId(message);
+    validateMessageHasSenderId(message);
+  }
+
+  private void validateMessageHasRoomId(ChatMessage message) {
+    if (!StringUtils.hasText(message.getRoomId())) {
+      throw new InvalidChatRequestException();
+    }
+  }
+
+  private void validateMessageHasSenderId(ChatMessage message) {
+    if (message.getSenderId() == null) {
+      throw new InvalidChatRequestException();
+    }
+  }
+
+  private void validateIsGroupChat(ChatRoom room) {
+    if (!room.isGroupChat()) {
+      throw new GroupChatOnlyException("사용자 초대");
+    }
+  }
+
+  private void validateIsRoomManager(ChatRoom room, Long requesterId) {
+    Long managerId = room.getManagerId();
+    if (managerId == null) {
+      throw new UnauthorizedManagerActionException();
+    }
+    if (!Objects.equals(managerId, requesterId)) {
+      throw new UnauthorizedManagerActionException();
+    }
+  }
+
+  private void validateUserExistsInRoom(ChatRoom room, Long userToKick) {
+    if (!room.getParticipants().contains(userToKick)) {
+      throw new UserNotInRoomException();
+    }
+  }
+
+  public void validateNotKickingManager(ChatRoom room, Long userToKick) {
+    if (Objects.equals(room.getManagerId(), userToKick)) {
+      throw new ManagerKickAttemptException();
+    }
+  }
+
+  public void validateManagerCanLeave(ChatRoom room, Long userId) {
+    if (!isManager(room, userId)) {
+      return;
     }
 
-    public void validateUserForRoom(String roomId, Long userId) {
-        ChatRoom room = chatSyncService.findRoomOrRestore(roomId);
-
-        validateUserNotKicked(room, userId);
-        validateUserHasAccess(room, userId);
+    if (!isManagerAloneInRoom(room)) {
+      return;
     }
 
-    public void validateSelfChat(Long user1, Long user2) {
-        if (user1.equals(user2)) {
-            throw new SelfChatException();
-        }
+    validateRecruitmentPeriod(room.getRoomId());
+  }
+
+  private boolean isManager(ChatRoom room, Long userId) {
+    return Objects.equals(room.getManagerId(), userId);
+  }
+
+  private boolean isManagerAloneInRoom(ChatRoom room) {
+    return room.getParticipants().size() == 1;
+  }
+
+  private void validateRecruitmentPeriod(String roomId) {
+    Optional<LocalDateTime> endAt = chatCommonUtils.getRecruitmentEndAt(roomId);
+
+    if (endAt.isPresent() && isRecruitmentPeriodActive(endAt.get())) {
+      throw new ManagerLeaveRestrictedException(endAt.get());
     }
+  }
 
-    public ChatMessage validateAndEnrichMessage(ChatMessage message) {
-        validateMessageRequirements(message);
-        validateUserForRoom(message.getRoomId(), message.getSenderId());
-
-        ChatMessageUtils.enrichMessage(message);
-        return message;
-    }
-
-    public void validateManagerPermission(ChatRoom room, Long requesterId) {
-        validateIsGroupChat(room);
-        validateIsRoomManager(room, requesterId);
-    }
-
-    public void validateKickableUser(ChatRoom room, Long userToKick) {
-        validateUserExistsInRoom(room, userToKick);
-        validateNotKickingManager(room, userToKick);
-    }
-
-    private void validateUserNotKicked(ChatRoom room, Long userId) {
-        if (room.isKicked(userId)) {
-            throw new UserKickedException(room.getRoomId());
-        }
-    }
-
-    private void validateUserHasAccess(ChatRoom room, Long userId) {
-        if (!room.getParticipants().contains(userId)) {
-            throw new UnauthorizedChatAccessException();
-        }
-    }
-
-    private void validateMessageRequirements(ChatMessage message) {
-        validateMessageHasRoomId(message);
-        validateMessageHasSenderId(message);
-    }
-
-    private void validateMessageHasRoomId(ChatMessage message) {
-        if (!StringUtils.hasText(message.getRoomId())) {
-            throw new InvalidChatRequestException();
-        }
-    }
-
-    private void validateMessageHasSenderId(ChatMessage message) {
-        if (message.getSenderId() == null) {
-            throw new InvalidChatRequestException();
-        }
-    }
-
-    private void validateIsGroupChat(ChatRoom room) {
-        if (!room.isGroupChat()) {
-            throw new GroupChatOnlyException("사용자 초대");
-        }
-    }
-
-    private void validateIsRoomManager(ChatRoom room, Long requesterId) {
-        Long managerId = room.getManagerId();
-        if (managerId == null) {
-            throw new UnauthorizedManagerActionException();
-        }
-        if (!Objects.equals(managerId, requesterId)) {
-            throw new UnauthorizedManagerActionException();
-        }
-    }
-
-    private void validateUserExistsInRoom(ChatRoom room, Long userToKick) {
-        if (!room.getParticipants().contains(userToKick)) {
-            throw new UserNotInRoomException();
-        }
-    }
-
-    public void validateNotKickingManager(ChatRoom room, Long userToKick) {
-        if (Objects.equals(room.getManagerId(), userToKick)) {
-            throw new ManagerKickAttemptException();
-        }
-    }
-
-    public void validateManagerCanLeave(ChatRoom room, Long userId) {
-        if (!isManager(room, userId)) {
-            return;
-        }
-
-        if (!isManagerAloneInRoom(room)) {
-            return;
-        }
-
-        validateRecruitmentPeriod(room.getRoomId());
-    }
-
-    private boolean isManager(ChatRoom room, Long userId) {
-        return Objects.equals(room.getManagerId(), userId);
-    }
-
-    private boolean isManagerAloneInRoom(ChatRoom room) {
-        return room.getParticipants().size() == 1;
-    }
-
-    private void validateRecruitmentPeriod(String roomId) {
-        Optional<LocalDateTime> endAt = chatCommonUtils.getRecruitmentEndAt(roomId);
-
-        if (endAt.isPresent() && isRecruitmentPeriodActive(endAt.get())) {
-            throw new ManagerLeaveRestrictedException(endAt.get());
-        }
-    }
-
-    private boolean isRecruitmentPeriodActive(LocalDateTime endAt) {
-        return LocalDateTime.now(KST).isBefore(endAt);
-    }
+  private boolean isRecruitmentPeriodActive(LocalDateTime endAt) {
+    return LocalDateTime.now(KST).isBefore(endAt);
+  }
 }

@@ -31,123 +31,130 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class TutoringApplyServiceImpl implements TutoringApplyService {
 
-    private final MemberService memberService;
-    private final TutoringApplyRepository tutoringApplyRepository;
-    private final TutoringBoardRepository tutoringBoardRepository;
-    private final TutoringApplyRepositoryCustom tutoringApplyRepositoryCustom;
-    private final ChatParticipantService chatParticipantService;
-    private final TutoringApplyNotification tutoringApplyNotification;
+  private final MemberService memberService;
+  private final TutoringApplyRepository tutoringApplyRepository;
+  private final TutoringBoardRepository tutoringBoardRepository;
+  private final TutoringApplyRepositoryCustom tutoringApplyRepositoryCustom;
+  private final ChatParticipantService chatParticipantService;
+  private final TutoringApplyNotification tutoringApplyNotification;
 
-    public void apply(ApplyTutoringBoardRequest request) {
-        Member member = memberService.getMemberReferenceByContext();
-        validateAlreadyApplied(member.getId(), request.boardId());
+  public void apply(ApplyTutoringBoardRequest request) {
+    Member member = memberService.getMemberReferenceByContext();
+    validateAlreadyApplied(member.getId(), request.boardId());
 
-        TutoringBoard tutoringBoard = tutoringBoardRepository.findById(request.boardId())
-                .orElseThrow(() -> new TutoringBoardNotFound(request.boardId()));
+    TutoringBoard tutoringBoard =
+        tutoringBoardRepository
+            .findById(request.boardId())
+            .orElseThrow(() -> new TutoringBoardNotFound(request.boardId()));
 
-        if (tutoringBoard.isAuthor(member)) {
-            throw new TutoringOwnerCannotApplyException(request.boardId());
-        }
-
-        validateDepartment(tutoringBoard, member);
-
-        TutoringApply tutoringApply = TutoringApply.builder()
-                .tutoringBoard(tutoringBoard)
-                .member(member)
-                .build();
-
-        tutoringApplyRepository.save(tutoringApply);
-
-        Long authorId = tutoringBoard.getAuthor().getId();
-        tutoringApplyNotification.sendApplyNotification(tutoringBoard.getId(), tutoringBoard.getTitle(), authorId);
+    if (tutoringBoard.isAuthor(member)) {
+      throw new TutoringOwnerCannotApplyException(request.boardId());
     }
 
-    private void validateAlreadyApplied(Long memberId, Long boardId) {
-        boolean isAlreadyApplied = tutoringApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
-        if (isAlreadyApplied) {
-            throw new TutoringRecruitmentAlreadyAppliedException(memberId, boardId);
-        }
+    validateDepartment(tutoringBoard, member);
+
+    TutoringApply tutoringApply =
+        TutoringApply.builder().tutoringBoard(tutoringBoard).member(member).build();
+
+    tutoringApplyRepository.save(tutoringApply);
+
+    Long authorId = tutoringBoard.getAuthor().getId();
+    tutoringApplyNotification.sendApplyNotification(
+        tutoringBoard.getId(), tutoringBoard.getTitle(), authorId);
+  }
+
+  private void validateAlreadyApplied(Long memberId, Long boardId) {
+    boolean isAlreadyApplied =
+        tutoringApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
+    if (isAlreadyApplied) {
+      throw new TutoringRecruitmentAlreadyAppliedException(memberId, boardId);
+    }
+  }
+
+  private void validateDepartment(TutoringBoard tutoringBoard, Member member) {
+    Department requesterDepartment = member.getDepartment();
+
+    if (!tutoringBoard.isSameDepartment(requesterDepartment)) {
+      Department boardDepartment = tutoringBoard.getDepartment();
+      throw new TutoringBoardDepartmentMismatchException(
+          boardDepartment.getId(), requesterDepartment.getId());
+    }
+  }
+
+  @Override
+  @Transactional
+  public void updateStatus(Long boardId, UpdateApplyStatusRequest request) {
+    Long boardOwnerId = memberService.getMemberIdByAuthentication();
+    if (!tutoringBoardRepository.existsByIdAndAuthorId(boardId, boardOwnerId)) {
+      throw new TutoringBoardNotFound(boardId, boardOwnerId);
     }
 
-    private void validateDepartment(TutoringBoard tutoringBoard, Member member) {
-        Department requesterDepartment = member.getDepartment();
-
-        if (!tutoringBoard.isSameDepartment(requesterDepartment)) {
-            Department boardDepartment = tutoringBoard.getDepartment();
-            throw new TutoringBoardDepartmentMismatchException(boardDepartment.getId(), requesterDepartment.getId());
-        }
+    if (request.compareStatus(RecruitmentApplyStatus.APPLY)) {
+      return;
     }
 
-    @Override
-    @Transactional
-    public void updateStatus(Long boardId, UpdateApplyStatusRequest request) {
-        Long boardOwnerId = memberService.getMemberIdByAuthentication();
-        if (!tutoringBoardRepository.existsByIdAndAuthorId(boardId, boardOwnerId)) {
-            throw new TutoringBoardNotFound(boardId, boardOwnerId);
-        }
+    TutoringApply tutoringApply =
+        tutoringApplyRepositoryCustom
+            .findByBoardIdAndApplierId(boardId, request.applierId())
+            .orElseThrow(() -> new TutoringApplyNotFoundException(request.applierId(), boardId));
 
-        if (request.compareStatus(RecruitmentApplyStatus.APPLY)) {
-            return;
-        }
+    tutoringApply.updateStatus(request.status());
 
-        TutoringApply tutoringApply = tutoringApplyRepositoryCustom.findByBoardIdAndApplierId(boardId,
-                        request.applierId())
-                .orElseThrow(() -> new TutoringApplyNotFoundException(request.applierId(), boardId));
+    String boardTitle = tutoringApply.getTutoringBoard().getTitle();
 
-        tutoringApply.updateStatus(request.status());
-
-        String boardTitle = tutoringApply.getTutoringBoard()
-                .getTitle();
-
-        if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
-            inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
-        }
-
-        tutoringApplyNotification.sendOutcomeNotification(boardId, boardTitle, request.applierId());
+    if (request.compareStatus(RecruitmentApplyStatus.PASS)) {
+      inviteToGroupChat(boardId, request.applierId(), boardOwnerId);
     }
 
-    private void inviteToGroupChat(Long boardId, Long applierId, Long authorId) {
-        TutoringBoard tutoringBoard = tutoringBoardRepository.findById(boardId)
-                .orElseThrow(() -> new TutoringBoardNotFound(boardId));
+    tutoringApplyNotification.sendOutcomeNotification(boardId, boardTitle, request.applierId());
+  }
 
-        if (!tutoringBoard.hasChatRoom()) {
-            log.warn("튜터링 게시판 {}에 채팅방이 연결되지 않음", boardId);
-            return;
-        }
+  private void inviteToGroupChat(Long boardId, Long applierId, Long authorId) {
+    TutoringBoard tutoringBoard =
+        tutoringBoardRepository
+            .findById(boardId)
+            .orElseThrow(() -> new TutoringBoardNotFound(boardId));
 
-        chatParticipantService.inviteUserToGroupChat(tutoringBoard.getRoomId(), authorId, applierId);
+    if (!tutoringBoard.hasChatRoom()) {
+      log.warn("튜터링 게시판 {}에 채팅방이 연결되지 않음", boardId);
+      return;
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId) {
-        Long requesterId = memberService.getMemberIdByAuthentication();
+    chatParticipantService.inviteUserToGroupChat(tutoringBoard.getRoomId(), authorId, applierId);
+  }
 
-        if (!tutoringBoardRepository.existsByIdAndAuthorId(boardId, requesterId)) {
-            throw new TutoringBoardNotFound(boardId, requesterId);
-        }
+  @Override
+  @Transactional(readOnly = true)
+  public List<RecruitmentApplyOverview> getRecruitmentApplyOverview(Long boardId) {
+    Long requesterId = memberService.getMemberIdByAuthentication();
 
-        return tutoringApplyRepository.findApplyOverviewByBoardId(boardId, requesterId);
+    if (!tutoringBoardRepository.existsByIdAndAuthorId(boardId, requesterId)) {
+      throw new TutoringBoardNotFound(boardId, requesterId);
     }
 
-    @Override
-    public ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId) {
-        Long requester = memberService.getMemberIdByAuthentication();
+    return tutoringApplyRepository.findApplyOverviewByBoardId(boardId, requesterId);
+  }
 
-        // 게시물 주인이 아닌 경우 예외
-        if (!tutoringBoardRepository.existsByIdAndAuthorId(boardId, requester)) {
-            throw new TutoringBoardNotFound(boardId);
-        }
+  @Override
+  public ApplyDetails getRecruitmentApplyDetails(Long boardId, Long applierId) {
+    Long requester = memberService.getMemberIdByAuthentication();
 
-        return tutoringApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
-                .orElseThrow(() -> new TutoringApplyNotFoundException(boardId, applierId));
+    // 게시물 주인이 아닌 경우 예외
+    if (!tutoringBoardRepository.existsByIdAndAuthorId(boardId, requester)) {
+      throw new TutoringBoardNotFound(boardId);
     }
 
-    @Override
-    public ApplyDetails getRecruitmentApplyDetails(Long boardId) {
-        Long requester = memberService.getMemberIdByAuthentication();
+    return tutoringApplyRepositoryCustom
+        .findApplyDetailsByBoardIdAndApplierId(boardId, applierId)
+        .orElseThrow(() -> new TutoringApplyNotFoundException(boardId, applierId));
+  }
 
-        return tutoringApplyRepositoryCustom.findApplyDetailsByBoardIdAndApplierId(boardId, requester)
-                .orElseThrow(() -> new TutoringApplyNotFoundException(boardId, requester));
-    }
+  @Override
+  public ApplyDetails getRecruitmentApplyDetails(Long boardId) {
+    Long requester = memberService.getMemberIdByAuthentication();
+
+    return tutoringApplyRepositoryCustom
+        .findApplyDetailsByBoardIdAndApplierId(boardId, requester)
+        .orElseThrow(() -> new TutoringApplyNotFoundException(boardId, requester));
+  }
 }

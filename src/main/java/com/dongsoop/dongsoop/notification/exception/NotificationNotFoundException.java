@@ -5,7 +5,7 @@ import org.springframework.http.HttpStatus;
 
 public class NotificationNotFoundException extends CustomException {
 
-    public NotificationNotFoundException() {
-        super("존재하지 않는 알림입니다.", HttpStatus.NOT_FOUND);
-    }
+  public NotificationNotFoundException() {
+    super("존재하지 않는 알림입니다.", HttpStatus.NOT_FOUND);
+  }
 }

@@ -6,5 +6,5 @@ import lombok.Getter;
 @Getter
 public class FirebaseKeys {
 
-    private List<FirebaseDeviceData> keys;
+  private List<FirebaseDeviceData> keys;
 }

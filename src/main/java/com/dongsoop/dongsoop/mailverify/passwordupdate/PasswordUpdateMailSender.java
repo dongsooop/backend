@@ -11,45 +11,51 @@ import org.springframework.stereotype.Component;
 @Component
 public class PasswordUpdateMailSender extends VerifyMailSender {
 
+  private static final int VERIFY_CODE_EXPIRATION_TIME = 300; // 5 minute
+  private static final String SUBJECT = "[동숲] 인증번호 발송";
 
-    private static final int VERIFY_CODE_EXPIRATION_TIME = 300; // 5 minute
-    private static final String SUBJECT = "[동숲] 인증번호 발송";
+  private final String verifyCodeKeyPrefix;
 
-    private final String verifyCodeKeyPrefix;
+  public PasswordUpdateMailSender(
+      RedisTemplate<String, Object> redisTemplate,
+      JavaMailSender mailSender,
+      MailVerifyNumberGenerator mailVerifyNumberGenerator,
+      MailTextGenerator mailTextGenerator,
+      @Value("${mail.redis.key.opportunity}") String opportunityKey,
+      @Value("${mail.redis.key.code}") String codeKey,
+      @Value("${mail.redis.key.success}") String successKey,
+      @Value("${mail.verify.password-update.redis.prefix}") String verifyCodeKeyPrefix) {
+    super(
+        redisTemplate,
+        mailSender,
+        mailVerifyNumberGenerator,
+        mailTextGenerator,
+        opportunityKey,
+        codeKey,
+        successKey);
+    this.verifyCodeKeyPrefix = verifyCodeKeyPrefix;
+  }
 
-    public PasswordUpdateMailSender(RedisTemplate<String, Object> redisTemplate,
-                                    JavaMailSender mailSender,
-                                    MailVerifyNumberGenerator mailVerifyNumberGenerator,
-                                    MailTextGenerator mailTextGenerator,
-                                    @Value("${mail.redis.key.opportunity}") String opportunityKey,
-                                    @Value("${mail.redis.key.code}") String codeKey,
-                                    @Value("${mail.redis.key.success}") String successKey,
-                                    @Value("${mail.verify.password-update.redis.prefix}") String verifyCodeKeyPrefix) {
-        super(redisTemplate, mailSender, mailVerifyNumberGenerator, mailTextGenerator, opportunityKey, codeKey,
-                successKey);
-        this.verifyCodeKeyPrefix = verifyCodeKeyPrefix;
-    }
+  protected String getSubject() {
+    return SUBJECT;
+  }
 
-    protected String getSubject() {
-        return SUBJECT;
-    }
+  protected int getOpportunityCount() {
+    return DEFAULT_OPPORTUNITY_COUNT;
+  }
 
-    protected int getOpportunityCount() {
-        return DEFAULT_OPPORTUNITY_COUNT;
-    }
+  @Override
+  protected int getCodeLength() {
+    return DEFAULT_CODE_LENGTH;
+  }
 
-    @Override
-    protected int getCodeLength() {
-        return DEFAULT_CODE_LENGTH;
-    }
+  @Override
+  protected String getVerifyCodeKeyPrefix() {
+    return verifyCodeKeyPrefix;
+  }
 
-    @Override
-    protected String getVerifyCodeKeyPrefix() {
-        return verifyCodeKeyPrefix;
-    }
-
-    @Override
-    protected Integer getVerifyCodeExpirationTime() {
-        return VERIFY_CODE_EXPIRATION_TIME;
-    }
+  @Override
+  protected Integer getVerifyCodeExpirationTime() {
+    return VERIFY_CODE_EXPIRATION_TIME;
+  }
 }

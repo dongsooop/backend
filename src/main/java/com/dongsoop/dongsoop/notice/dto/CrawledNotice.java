@@ -14,6 +14,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CrawledNotice {
 
-    Set<NoticeDetails> noticeDetailSet;
-    List<Notice> noticeList;
+  Set<NoticeDetails> noticeDetailSet;
+  List<Notice> noticeList;
 }

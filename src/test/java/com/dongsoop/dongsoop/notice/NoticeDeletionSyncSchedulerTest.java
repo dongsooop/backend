@@ -21,40 +21,41 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class NoticeDeletionSyncSchedulerTest {
 
-    @Mock
-    private DepartmentService departmentService;
+  @Mock private DepartmentService departmentService;
 
-    @Mock
-    private NoticeDeletionSyncService deletionSyncService;
+  @Mock private NoticeDeletionSyncService deletionSyncService;
 
-    @Test
-    void syncDepartmentsSequentiallyOnSchedulerThread() {
-        Department firstDepartment = department(DepartmentType.DEPT_1001);
-        Department secondDepartment = department(DepartmentType.DEPT_2001);
-        when(departmentService.getAllDepartments())
-                .thenReturn(List.of(firstDepartment, secondDepartment));
+  @Test
+  void syncDepartmentsSequentiallyOnSchedulerThread() {
+    Department firstDepartment = department(DepartmentType.DEPT_1001);
+    Department secondDepartment = department(DepartmentType.DEPT_2001);
+    when(departmentService.getAllDepartments())
+        .thenReturn(List.of(firstDepartment, secondDepartment));
 
-        Thread schedulerThread = Thread.currentThread();
-        List<Thread> executionThreads = new ArrayList<>();
-        when(deletionSyncService.sync(firstDepartment)).thenAnswer(invocation -> {
-            executionThreads.add(Thread.currentThread());
-            return new SyncResult(0, 0);
-        });
-        when(deletionSyncService.sync(secondDepartment)).thenAnswer(invocation -> {
-            executionThreads.add(Thread.currentThread());
-            return new SyncResult(0, 0);
-        });
+    Thread schedulerThread = Thread.currentThread();
+    List<Thread> executionThreads = new ArrayList<>();
+    when(deletionSyncService.sync(firstDepartment))
+        .thenAnswer(
+            invocation -> {
+              executionThreads.add(Thread.currentThread());
+              return new SyncResult(0, 0);
+            });
+    when(deletionSyncService.sync(secondDepartment))
+        .thenAnswer(
+            invocation -> {
+              executionThreads.add(Thread.currentThread());
+              return new SyncResult(0, 0);
+            });
 
-        new NoticeDeletionSyncScheduler(departmentService, deletionSyncService)
-                .syncDeletedNotices();
+    new NoticeDeletionSyncScheduler(departmentService, deletionSyncService).syncDeletedNotices();
 
-        InOrder inOrder = inOrder(deletionSyncService);
-        inOrder.verify(deletionSyncService).sync(firstDepartment);
-        inOrder.verify(deletionSyncService).sync(secondDepartment);
-        assertThat(executionThreads).containsExactly(schedulerThread, schedulerThread);
-    }
+    InOrder inOrder = inOrder(deletionSyncService);
+    inOrder.verify(deletionSyncService).sync(firstDepartment);
+    inOrder.verify(deletionSyncService).sync(secondDepartment);
+    assertThat(executionThreads).containsExactly(schedulerThread, schedulerThread);
+  }
 
-    private Department department(DepartmentType departmentType) {
-        return new Department(departmentType, departmentType.name(), "/notice");
-    }
+  private Department department(DepartmentType departmentType) {
+    return new Department(departmentType, departmentType.name(), "/notice");
+  }
 }

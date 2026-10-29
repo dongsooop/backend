@@ -7,11 +7,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class DeviceUtil {
 
-    public Long getDeviceIdFromContext() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.getDetails() instanceof Long id) {
-            return id;
-        }
-        return null;
+  public Long getDeviceIdFromContext() {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    if (auth != null && auth.getDetails() instanceof Long id) {
+      return id;
     }
+    return null;
+  }
 }

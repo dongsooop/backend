@@ -17,51 +17,53 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class OfficialScheduleRepositoryCustomImpl implements OfficialScheduleRepositoryCustom {
 
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+  private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
+  private static final QOfficialSchedule officialSchedule = QOfficialSchedule.officialSchedule;
 
-    private static final QOfficialSchedule officialSchedule = QOfficialSchedule.officialSchedule;
+  private final JPAQueryFactory queryFactory;
 
-    private final JPAQueryFactory queryFactory;
+  @Override
+  public List<OfficialSchedule> findOfficialScheduleByDuration(LocalDate startAt, LocalDate endAt) {
+    return queryFactory
+        .selectFrom(officialSchedule)
+        .where(
+            ScheduleDurationChecker.isDurationWithin(
+                officialSchedule.startAt, officialSchedule.endAt, startAt, endAt))
+        .fetch();
+  }
 
-    @Override
-    public List<OfficialSchedule> findOfficialScheduleByDuration(LocalDate startAt, LocalDate endAt) {
-        return queryFactory.selectFrom(officialSchedule)
-                .where(ScheduleDurationChecker.isDurationWithin(
-                        officialSchedule.startAt,
-                        officialSchedule.endAt,
-                        startAt,
-                        endAt))
-                .fetch();
-    }
+  @Override
+  public List<String> searchTodaySchedule() {
+    LocalDate now = LocalDate.now(KST);
 
-    @Override
-    public List<String> searchTodaySchedule() {
-        LocalDate now = LocalDate.now(KST);
+    // startAt to LocalDate
+    DateExpression<LocalDate> startAtDate =
+        Expressions.dateTemplate(LocalDate.class, "DATE({0})", officialSchedule.startAt);
 
-        // startAt to LocalDate
-        DateExpression<LocalDate> startAtDate = Expressions.dateTemplate(LocalDate.class, "DATE({0})",
-                officialSchedule.startAt);
+    return queryFactory
+        .select(officialSchedule.title)
+        .from(officialSchedule)
+        .where(startAtDate.eq(now))
+        .fetch();
+  }
 
-        return queryFactory.select(officialSchedule.title)
-                .from(officialSchedule)
-                .where(startAtDate.eq(now))
-                .fetch();
-    }
+  @Override
+  public List<HomeSchedule> searchHomeSchedule(LocalDate date) {
+    // startAt to LocalDate
+    DateExpression<LocalDate> startAtDate =
+        Expressions.dateTemplate(LocalDate.class, "DATE({0})", officialSchedule.startAt);
 
-    @Override
-    public List<HomeSchedule> searchHomeSchedule(LocalDate date) {
-        // startAt to LocalDate
-        DateExpression<LocalDate> startAtDate = Expressions.dateTemplate(LocalDate.class, "DATE({0})",
-                officialSchedule.startAt);
-
-        // 날짜 범위를 조회 열에 유지해 기존 DISTINCT 기준을 보존한다.
-        return queryFactory.selectDistinct(officialSchedule.title, officialSchedule.startAt, officialSchedule.endAt)
-                .from(officialSchedule)
-                .where(startAtDate.eq(date))
-                .fetch()
-                .stream()
-                .map(schedule -> HomeSchedule.allDay(schedule.get(officialSchedule.title), ScheduleType.OFFICIAL))
-                .toList();
-    }
+    // 날짜 범위를 조회 열에 유지해 기존 DISTINCT 기준을 보존한다.
+    return queryFactory
+        .selectDistinct(officialSchedule.title, officialSchedule.startAt, officialSchedule.endAt)
+        .from(officialSchedule)
+        .where(startAtDate.eq(date))
+        .fetch()
+        .stream()
+        .map(
+            schedule ->
+                HomeSchedule.allDay(schedule.get(officialSchedule.title), ScheduleType.OFFICIAL))
+        .toList();
+  }
 }

@@ -14,23 +14,24 @@ import software.amazon.awssdk.services.s3.S3Client;
 @Slf4j
 public class LocalS3Config {
 
-    @Bean
-    @Primary
-    public AwsCredentialsProvider customAwsCredentialsProvider() {
-        log.info("Called LocalS3Config.customAwsCredentialsProvider - returning null for local profile.");
-        return null;
-    }
+  @Bean
+  @Primary
+  public AwsCredentialsProvider customAwsCredentialsProvider() {
+    log.info(
+        "Called LocalS3Config.customAwsCredentialsProvider - returning null for local profile.");
+    return null;
+  }
 
-    @Bean
-    @Primary
-    public S3Client s3Client() {
-        log.info("Called LocalS3Config.s3Client - returning null for local profile.");
-        return null;
-    }
+  @Bean
+  @Primary
+  public S3Client s3Client() {
+    log.info("Called LocalS3Config.s3Client - returning null for local profile.");
+    return null;
+  }
 
-    @Bean
-    public AwsRegionProvider customAwsRegionProvider() {
-        log.info("Called LocalS3Config.customAwsRegionProvider - returning null for local profile.");
-        return null;
-    }
+  @Bean
+  public AwsRegionProvider customAwsRegionProvider() {
+    log.info("Called LocalS3Config.customAwsRegionProvider - returning null for local profile.");
+    return null;
+  }
 }

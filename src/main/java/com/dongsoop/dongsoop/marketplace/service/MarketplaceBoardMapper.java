@@ -11,17 +11,17 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class MarketplaceBoardMapper {
 
-    private final MemberService memberService;
+  private final MemberService memberService;
 
-    public MarketplaceBoard toEntity(CreateMarketplaceBoardRequest request) {
-        Member author = memberService.getMemberReferenceByContext();
+  public MarketplaceBoard toEntity(CreateMarketplaceBoardRequest request) {
+    Member author = memberService.getMemberReferenceByContext();
 
-        return MarketplaceBoard.builder()
-                .title(request.title())
-                .content(request.content())
-                .price(request.price())
-                .author(author)
-                .type(request.type())
-                .build();
-    }
+    return MarketplaceBoard.builder()
+        .title(request.title())
+        .content(request.content())
+        .price(request.price())
+        .author(author)
+        .type(request.type())
+        .build();
+  }
 }

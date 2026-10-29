@@ -4,17 +4,17 @@ import java.time.LocalDateTime;
 
 public interface BlindDateStorage {
 
-    void start(Integer maxSessionMemberCount, LocalDateTime expiredDate);
+  void start(Integer maxSessionMemberCount, LocalDateTime expiredDate);
 
-    void stop();
+  void stop();
 
-    void close();
+  void close();
 
-    String getPointer();
+  String getPointer();
 
-    void setPointer(String sessionId);
+  void setPointer(String sessionId);
 
-    boolean isAvailable();
+  boolean isAvailable();
 
-    Integer getMaxSessionMemberCount();
+  Integer getMaxSessionMemberCount();
 }

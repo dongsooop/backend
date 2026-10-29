@@ -9,5 +9,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ReCaptchaRequired {
 
-    String action() default "";
+  String action() default "";
 }

@@ -6,11 +6,4 @@ import jakarta.validation.constraints.NotNull;
 import java.util.Collection;
 
 public record MemberDeviceFindCondition(
-
-        @NotEmpty
-        Collection<Long> memberIds,
-
-        @NotNull
-        NotificationType notificationType
-) {
-}
+    @NotEmpty Collection<Long> memberIds, @NotNull NotificationType notificationType) {}

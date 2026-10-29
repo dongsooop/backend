@@ -10,9 +10,11 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface TimetableRepository extends JpaRepository<Timetable, Long>, TimetableRepositoryCustom {
+public interface TimetableRepository
+    extends JpaRepository<Timetable, Long>, TimetableRepositoryCustom {
 
-    List<TimetableView> findAllByMemberAndYearAndSemester(Member member, Year year, SemesterType semester);
+  List<TimetableView> findAllByMemberAndYearAndSemester(
+      Member member, Year year, SemesterType semester);
 
-    Optional<YearSemester> findYearSemesterById(Long id);
+  Optional<YearSemester> findYearSemesterById(Long id);
 }

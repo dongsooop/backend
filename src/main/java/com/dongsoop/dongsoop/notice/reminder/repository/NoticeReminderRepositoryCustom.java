@@ -9,32 +9,22 @@ import java.util.Optional;
 
 public interface NoticeReminderRepositoryCustom {
 
-    Optional<NoticeReminder> findByIdForUpdate(Long id);
+  Optional<NoticeReminder> findByIdForUpdate(Long id);
 
+  Optional<NoticeReminder> findByDeviceIdAndNoticeDetailsIdForUpdate(
+      Long deviceId, Long noticeDetailsId);
 
-    Optional<NoticeReminder> findByDeviceIdAndNoticeDetailsIdForUpdate(Long deviceId, Long noticeDetailsId);
+  List<Long> findUpcomingIds(NoticeReminderStatus status, LocalDateTime until);
 
-    List<Long> findUpcomingIds(NoticeReminderStatus status, LocalDateTime until);
+  List<Long> findSchedulableIds(
+      NoticeReminderStatus status, LocalDateTime now, LocalDateTime until);
 
-    List<Long> findSchedulableIds(NoticeReminderStatus status, LocalDateTime now, LocalDateTime until);
+  Optional<LocalDateTime> claimForScheduling(
+      Long id, NoticeReminderStatus status, LocalDateTime now, Duration leaseGrace);
 
-    Optional<LocalDateTime> claimForScheduling(
-            Long id,
-            NoticeReminderStatus status,
-            LocalDateTime now,
-            Duration leaseGrace
-    );
+  long recoverStaleProcessing(
+      NoticeReminderStatus processing, NoticeReminderStatus pending, LocalDateTime now);
 
-    long recoverStaleProcessing(
-            NoticeReminderStatus processing,
-            NoticeReminderStatus pending,
-            LocalDateTime now
-    );
-
-    long releaseAfterFailure(
-            Long id,
-            int maxRetryCount,
-            NoticeReminderStatus pending,
-            NoticeReminderStatus failed
-    );
+  long releaseAfterFailure(
+      Long id, int maxRetryCount, NoticeReminderStatus pending, NoticeReminderStatus failed);
 }

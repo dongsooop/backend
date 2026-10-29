@@ -16,45 +16,64 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class TutoringApplyRepositoryCustomImpl implements TutoringApplyRepositoryCustom {
 
-    private static final QTutoringApply tutoringApply = QTutoringApply.tutoringApply;
-    private static final QTutoringBoard tutoringBoard = QTutoringBoard.tutoringBoard;
-    private static final QMember member = QMember.member;
-    private static final QDepartment department = QDepartment.department;
+  private static final QTutoringApply tutoringApply = QTutoringApply.tutoringApply;
+  private static final QTutoringBoard tutoringBoard = QTutoringBoard.tutoringBoard;
+  private static final QMember member = QMember.member;
+  private static final QDepartment department = QDepartment.department;
 
-    private final TutoringRecruitmentApplyProjection tutoringRecruitmentApplyProjection;
+  private final TutoringRecruitmentApplyProjection tutoringRecruitmentApplyProjection;
 
-    private final JPAQueryFactory queryFactory;
+  private final JPAQueryFactory queryFactory;
 
-    @Override
-    public boolean existsByBoardIdAndMemberId(Long boardId, Long memberId) {
-        return queryFactory.selectOne()
-                .from(tutoringApply)
-                .where(tutoringApply.tutoringBoard.id.eq(boardId)
-                        .and(tutoringApply.member.id.eq(memberId)))
-                .fetchFirst() != null;
-    }
+  @Override
+  public boolean existsByBoardIdAndMemberId(Long boardId, Long memberId) {
+    return queryFactory
+            .selectOne()
+            .from(tutoringApply)
+            .where(
+                tutoringApply
+                    .tutoringBoard
+                    .id
+                    .eq(boardId)
+                    .and(tutoringApply.member.id.eq(memberId)))
+            .fetchFirst()
+        != null;
+  }
 
-    @Override
-    public Optional<ApplyDetails> findApplyDetailsByBoardIdAndApplierId(Long boardId, Long applierId) {
-        ApplyDetails result = queryFactory.select(tutoringRecruitmentApplyProjection.getApplyDetailsExpression())
-                .from(tutoringApply)
-                .leftJoin(tutoringApply.tutoringBoard, tutoringBoard)
-                .leftJoin(tutoringApply.member, member)
-                .leftJoin(member.department, department)
-                .where(tutoringApply.tutoringBoard.id.eq(boardId)
-                        .and(tutoringApply.member.id.eq(applierId)))
-                .fetchOne();
+  @Override
+  public Optional<ApplyDetails> findApplyDetailsByBoardIdAndApplierId(
+      Long boardId, Long applierId) {
+    ApplyDetails result =
+        queryFactory
+            .select(tutoringRecruitmentApplyProjection.getApplyDetailsExpression())
+            .from(tutoringApply)
+            .leftJoin(tutoringApply.tutoringBoard, tutoringBoard)
+            .leftJoin(tutoringApply.member, member)
+            .leftJoin(member.department, department)
+            .where(
+                tutoringApply
+                    .tutoringBoard
+                    .id
+                    .eq(boardId)
+                    .and(tutoringApply.member.id.eq(applierId)))
+            .fetchOne();
 
-        return Optional.ofNullable(result);
-    }
+    return Optional.ofNullable(result);
+  }
 
-    @Override
-    public Optional<TutoringApply> findByBoardIdAndApplierId(Long boardId, Long applierId) {
-        TutoringApply result = queryFactory.selectFrom(tutoringApply)
-                .where(tutoringApply.tutoringBoard.id.eq(boardId)
-                        .and(tutoringApply.member.id.eq(applierId)))
-                .fetchOne();
+  @Override
+  public Optional<TutoringApply> findByBoardIdAndApplierId(Long boardId, Long applierId) {
+    TutoringApply result =
+        queryFactory
+            .selectFrom(tutoringApply)
+            .where(
+                tutoringApply
+                    .tutoringBoard
+                    .id
+                    .eq(boardId)
+                    .and(tutoringApply.member.id.eq(applierId)))
+            .fetchOne();
 
-        return Optional.ofNullable(result);
-    }
+    return Optional.ofNullable(result);
+  }
 }

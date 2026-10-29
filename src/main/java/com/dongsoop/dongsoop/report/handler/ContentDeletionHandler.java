@@ -6,33 +6,33 @@ import com.dongsoop.dongsoop.recruitment.board.study.repository.StudyBoardReposi
 import com.dongsoop.dongsoop.recruitment.board.tutoring.repository.TutoringBoardRepository;
 import com.dongsoop.dongsoop.report.entity.Report;
 import com.dongsoop.dongsoop.report.entity.ReportType;
+import java.util.Map;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Component;
-
-import java.util.Map;
 
 @Component
 public class ContentDeletionHandler {
 
-    private final Map<ReportType, JpaRepository<?, Long>> contentDeleters;
+  private final Map<ReportType, JpaRepository<?, Long>> contentDeleters;
 
-    public ContentDeletionHandler(ProjectBoardRepository projectBoardRepository,
-                                  StudyBoardRepository studyBoardRepository,
-                                  MarketplaceBoardRepository marketplaceBoardRepository,
-                                  TutoringBoardRepository tutoringBoardRepository) {
-        this.contentDeleters = Map.of(
-                ReportType.PROJECT_BOARD, projectBoardRepository,
-                ReportType.STUDY_BOARD, studyBoardRepository,
-                ReportType.MARKETPLACE_BOARD, marketplaceBoardRepository,
-                ReportType.TUTORING_BOARD, tutoringBoardRepository
-        );
+  public ContentDeletionHandler(
+      ProjectBoardRepository projectBoardRepository,
+      StudyBoardRepository studyBoardRepository,
+      MarketplaceBoardRepository marketplaceBoardRepository,
+      TutoringBoardRepository tutoringBoardRepository) {
+    this.contentDeleters =
+        Map.of(
+            ReportType.PROJECT_BOARD, projectBoardRepository,
+            ReportType.STUDY_BOARD, studyBoardRepository,
+            ReportType.MARKETPLACE_BOARD, marketplaceBoardRepository,
+            ReportType.TUTORING_BOARD, tutoringBoardRepository);
+  }
+
+  public void deleteContent(Report report) {
+    JpaRepository<?, Long> repository = contentDeleters.get(report.getReportType());
+
+    if (repository != null) {
+      repository.deleteById(report.getTargetId());
     }
-
-    public void deleteContent(Report report) {
-        JpaRepository<?, Long> repository = contentDeleters.get(report.getReportType());
-
-        if (repository != null) {
-            repository.deleteById(report.getTargetId());
-        }
-    }
+  }
 }

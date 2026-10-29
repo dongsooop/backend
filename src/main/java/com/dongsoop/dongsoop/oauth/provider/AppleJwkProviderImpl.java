@@ -23,68 +23,69 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 public class AppleJwkProviderImpl implements AppleJwkProvider {
 
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+  private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
-    private static final String APPLE_JWK_CACHE_KEY = "jwks";
-    private final RestTemplate restTemplate;
-    private final CacheManager cacheManager;
-    private final ObjectMapper objectMapper;
+  private static final String APPLE_JWK_CACHE_KEY = "jwks";
+  private final RestTemplate restTemplate;
+  private final CacheManager cacheManager;
+  private final ObjectMapper objectMapper;
 
-    @Value("${spring.security.oauth2.client.provider.apple.jwk-set-uri}")
-    private String jwtUri;
+  @Value("${spring.security.oauth2.client.provider.apple.jwk-set-uri}")
+  private String jwtUri;
 
-    @Value("${oauth.apple.cache-name}")
-    private String cacheName;
+  @Value("${oauth.apple.cache-name}")
+  private String cacheName;
 
-    @Override
-    @Synchronized
-    public Map<String, AppleJwk> getAppleJwkMap() {
-        Cache cache = this.cacheManager.getCache(cacheName);
-        if (cache != null) {
-            Map<String, AppleJwk> cachedJwks = cache.get(APPLE_JWK_CACHE_KEY, Map.class);
-            if (cachedJwks != null) {
-                return cachedJwks;
-            }
-        }
-
-        ResponseEntity<Map> response = restTemplate.getForEntity(jwtUri, Map.class);
-        Map<String, Object> responseBody = response.getBody();
-        if (responseBody == null) {
-            log.error("failed to fetch apple jwk: response body is null");
-            throw new InvalidAppleTokenException();
-        }
-
-        List<Map<String, Object>> keys = (List<Map<String, Object>>) responseBody.get("keys");
-        if (keys == null || keys.isEmpty()) {
-            log.error("failed to fetch apple jwk: keys field is null or empty");
-            throw new InvalidAppleTokenException();
-        }
-
-        Map<String, AppleJwk> jwkMap = keys.stream()
-                .map(k -> this.objectMapper.convertValue(k, AppleJwk.class))
-                .collect(Collectors.toMap(AppleJwk::kid, jwk -> jwk, (first, second) -> first));
-
-        if (cache != null) {
-            cache.put(APPLE_JWK_CACHE_KEY, jwkMap);
-        }
-
-        return jwkMap;
+  @Override
+  @Synchronized
+  public Map<String, AppleJwk> getAppleJwkMap() {
+    Cache cache = this.cacheManager.getCache(cacheName);
+    if (cache != null) {
+      Map<String, AppleJwk> cachedJwks = cache.get(APPLE_JWK_CACHE_KEY, Map.class);
+      if (cachedJwks != null) {
+        return cachedJwks;
+      }
     }
 
-    @Override
-    @Synchronized
-    public boolean evictAppleJwkCache() {
-        LocalDate today = LocalDate.now(KST);
-
-        Cache cache = this.cacheManager.getCache(cacheName);
-        if (cache == null) {
-            return false;
-        }
-
-        // 캐시 비우기 실행
-        cache.clear();
-        log.info("Apple JWK cache evicted (At: {})", today);
-
-        return true;
+    ResponseEntity<Map> response = restTemplate.getForEntity(jwtUri, Map.class);
+    Map<String, Object> responseBody = response.getBody();
+    if (responseBody == null) {
+      log.error("failed to fetch apple jwk: response body is null");
+      throw new InvalidAppleTokenException();
     }
+
+    List<Map<String, Object>> keys = (List<Map<String, Object>>) responseBody.get("keys");
+    if (keys == null || keys.isEmpty()) {
+      log.error("failed to fetch apple jwk: keys field is null or empty");
+      throw new InvalidAppleTokenException();
+    }
+
+    Map<String, AppleJwk> jwkMap =
+        keys.stream()
+            .map(k -> this.objectMapper.convertValue(k, AppleJwk.class))
+            .collect(Collectors.toMap(AppleJwk::kid, jwk -> jwk, (first, second) -> first));
+
+    if (cache != null) {
+      cache.put(APPLE_JWK_CACHE_KEY, jwkMap);
+    }
+
+    return jwkMap;
+  }
+
+  @Override
+  @Synchronized
+  public boolean evictAppleJwkCache() {
+    LocalDate today = LocalDate.now(KST);
+
+    Cache cache = this.cacheManager.getCache(cacheName);
+    if (cache == null) {
+      return false;
+    }
+
+    // 캐시 비우기 실행
+    cache.clear();
+    log.info("Apple JWK cache evicted (At: {})", today);
+
+    return true;
+  }
 }

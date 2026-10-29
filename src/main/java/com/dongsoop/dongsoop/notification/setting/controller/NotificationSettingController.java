@@ -19,48 +19,46 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/notification-settings")
 public class NotificationSettingController {
 
-    private final NotificationSettingService notificationSettingService;
+  private final NotificationSettingService notificationSettingService;
 
-    @PostMapping("/find")
-    public ResponseEntity<Map<NotificationType, Boolean>> getNotificationSettings(
-            @Valid @RequestBody NotificationSettingFindRequest request) {
-        Map<NotificationType, Boolean> notificationSettings = notificationSettingService.getNotificationSettings(
-                request);
+  @PostMapping("/find")
+  public ResponseEntity<Map<NotificationType, Boolean>> getNotificationSettings(
+      @Valid @RequestBody NotificationSettingFindRequest request) {
+    Map<NotificationType, Boolean> notificationSettings =
+        notificationSettingService.getNotificationSettings(request);
 
-        return ResponseEntity.ok(notificationSettings);
-    }
+    return ResponseEntity.ok(notificationSettings);
+  }
 
-    @PostMapping("/enable")
-    public ResponseEntity<Void> enableNotification(@Valid @RequestBody NotificationSettingRequest request) {
-        notificationSettingService.enableNotification(request);
+  @PostMapping("/enable")
+  public ResponseEntity<Void> enableNotification(
+      @Valid @RequestBody NotificationSettingRequest request) {
+    notificationSettingService.enableNotification(request);
 
-        return ResponseEntity.noContent()
-                .build();
-    }
+    return ResponseEntity.noContent().build();
+  }
 
-    @PostMapping("/disable")
-    public ResponseEntity<Void> disableNotification(@Valid @RequestBody NotificationSettingRequest request) {
-        notificationSettingService.disableNotification(request);
+  @PostMapping("/disable")
+  public ResponseEntity<Void> disableNotification(
+      @Valid @RequestBody NotificationSettingRequest request) {
+    notificationSettingService.disableNotification(request);
 
-        return ResponseEntity.noContent()
-                .build();
-    }
+    return ResponseEntity.noContent().build();
+  }
 
-    @PostMapping("/recruitment-apply")
-    public ResponseEntity<Void> updateRecruitmentApplyNotification(
-            @Valid @RequestBody RecruitmentSettingUpdateRequest request) {
-        notificationSettingService.updateRecruitmentApplyNotification(request);
+  @PostMapping("/recruitment-apply")
+  public ResponseEntity<Void> updateRecruitmentApplyNotification(
+      @Valid @RequestBody RecruitmentSettingUpdateRequest request) {
+    notificationSettingService.updateRecruitmentApplyNotification(request);
 
-        return ResponseEntity.noContent()
-                .build();
-    }
+    return ResponseEntity.noContent().build();
+  }
 
-    @PostMapping("/recruitment-result")
-    public ResponseEntity<Void> updateRecruitmentResultNotification(
-            @Valid @RequestBody RecruitmentSettingUpdateRequest request) {
-        notificationSettingService.updateRecruitmentResultNotification(request);
+  @PostMapping("/recruitment-result")
+  public ResponseEntity<Void> updateRecruitmentResultNotification(
+      @Valid @RequestBody RecruitmentSettingUpdateRequest request) {
+    notificationSettingService.updateRecruitmentResultNotification(request);
 
-        return ResponseEntity.noContent()
-                .build();
-    }
+    return ResponseEntity.noContent().build();
+  }
 }

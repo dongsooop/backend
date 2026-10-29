@@ -29,105 +29,106 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 class GuestDeviceRegisterTest {
 
-    @Autowired
-    private MemberDeviceService memberDeviceService;
+  @Autowired private MemberDeviceService memberDeviceService;
 
-    @Autowired
-    private MemberDeviceRepository memberDeviceRepository;
+  @Autowired private MemberDeviceRepository memberDeviceRepository;
 
-    @Autowired
-    private MemberRepository memberRepository;
+  @Autowired private MemberRepository memberRepository;
 
-    @Autowired
-    private DepartmentRepository departmentRepository;
+  @Autowired private DepartmentRepository departmentRepository;
 
-    @MockitoBean
-    private FCMService fcmService;
+  @MockitoBean private FCMService fcmService;
 
-    @MockitoBean
-    private BoardSearchRepository boardSearchRepository;
+  @MockitoBean private BoardSearchRepository boardSearchRepository;
 
-    @MockitoBean
-    private RestaurantSearchRepository restaurantSearchRepository;
+  @MockitoBean private RestaurantSearchRepository restaurantSearchRepository;
 
-    @Test
-    @DisplayName("처음 등록하는 비회원 디바이스는 새 행으로 저장된다")
-    void creates_new_row_for_brand_new_guest_device() {
-        memberDeviceService.registerDevice("token-new", null, MemberDeviceType.ANDROID, null);
+  @Test
+  @DisplayName("처음 등록하는 비회원 디바이스는 새 행으로 저장된다")
+  void creates_new_row_for_brand_new_guest_device() {
+    memberDeviceService.registerDevice("token-new", null, MemberDeviceType.ANDROID, null);
 
-        assertThat(memberDeviceRepository.findByDeviceToken("token-new")).isPresent();
-    }
+    assertThat(memberDeviceRepository.findByDeviceToken("token-new")).isPresent();
+  }
 
-    @Test
-    @DisplayName("이미 등록된 토큰으로 다시 등록해도 새 행을 만들지 않는다")
-    void does_not_duplicate_row_for_already_registered_token() {
-        memberDeviceService.registerDevice("token-existing", null, MemberDeviceType.ANDROID, null);
-        long countBefore = memberDeviceRepository.count();
+  @Test
+  @DisplayName("이미 등록된 토큰으로 다시 등록해도 새 행을 만들지 않는다")
+  void does_not_duplicate_row_for_already_registered_token() {
+    memberDeviceService.registerDevice("token-existing", null, MemberDeviceType.ANDROID, null);
+    long countBefore = memberDeviceRepository.count();
 
-        memberDeviceService.registerDevice("token-existing", null, MemberDeviceType.ANDROID, null);
+    memberDeviceService.registerDevice("token-existing", null, MemberDeviceType.ANDROID, null);
 
-        assertThat(memberDeviceRepository.count()).isEqualTo(countBefore);
-    }
+    assertThat(memberDeviceRepository.count()).isEqualTo(countBefore);
+  }
 
-    @Test
-    @DisplayName("회원 소유 디바이스 토큰으로 미인증 재등록하면 예외를 던진다")
-    void rejects_reregistration_of_member_owned_device() {
-        departmentRepository.save(new Department(DepartmentType.DEPT_2001, "컴퓨터소프트웨어공학과", "https://example.test/notice"));
-        Department department = departmentRepository.getReferenceById(DepartmentType.DEPT_2001);
-        Member member = memberRepository.save(Member.builder()
+  @Test
+  @DisplayName("회원 소유 디바이스 토큰으로 미인증 재등록하면 예외를 던진다")
+  void rejects_reregistration_of_member_owned_device() {
+    departmentRepository.save(
+        new Department(DepartmentType.DEPT_2001, "컴퓨터소프트웨어공학과", "https://example.test/notice"));
+    Department department = departmentRepository.getReferenceById(DepartmentType.DEPT_2001);
+    Member member =
+        memberRepository.save(
+            Member.builder()
                 .email("guest-test@dongyang.ac.kr")
                 .nickname("테스트원")
                 .password("encoded")
                 .department(department)
                 .build());
 
-        MemberDevice owned = MemberDevice.builder()
-                .deviceToken("token-owned")
-                .memberDeviceType(MemberDeviceType.ANDROID)
-                .member(member)
-                .build();
-        memberDeviceRepository.save(owned);
+    MemberDevice owned =
+        MemberDevice.builder()
+            .deviceToken("token-owned")
+            .memberDeviceType(MemberDeviceType.ANDROID)
+            .member(member)
+            .build();
+    memberDeviceRepository.save(owned);
 
-        assertThatThrownBy(() ->
-                memberDeviceService.registerDevice("token-owned", null, MemberDeviceType.ANDROID, null))
-                .isInstanceOf(AlreadyRegisteredDeviceException.class);
-    }
+    assertThatThrownBy(
+            () ->
+                memberDeviceService.registerDevice(
+                    "token-owned", null, MemberDeviceType.ANDROID, null))
+        .isInstanceOf(AlreadyRegisteredDeviceException.class);
+  }
 
-    @Test
-    @DisplayName("신규 기기 등록 시 fid가 함께 저장된다")
-    void stores_fid_for_brand_new_guest_device() {
-        memberDeviceService.registerDevice("token-new", "fid-new", MemberDeviceType.ANDROID, null);
+  @Test
+  @DisplayName("신규 기기 등록 시 fid가 함께 저장된다")
+  void stores_fid_for_brand_new_guest_device() {
+    memberDeviceService.registerDevice("token-new", "fid-new", MemberDeviceType.ANDROID, null);
 
-        assertThat(memberDeviceRepository.findByFid("fid-new")).isPresent();
-    }
+    assertThat(memberDeviceRepository.findByFid("fid-new")).isPresent();
+  }
 
-    @Test
-    @DisplayName("fid가 이미 등록된 기기는 deviceToken이 바뀌어도 같은 행으로 인식되어 갱신된다")
-    void updates_token_on_same_row_when_fid_matches() {
-        memberDeviceService.registerDevice("token-old", "fid-stable", MemberDeviceType.ANDROID, null);
-        long countBefore = memberDeviceRepository.count();
+  @Test
+  @DisplayName("fid가 이미 등록된 기기는 deviceToken이 바뀌어도 같은 행으로 인식되어 갱신된다")
+  void updates_token_on_same_row_when_fid_matches() {
+    memberDeviceService.registerDevice("token-old", "fid-stable", MemberDeviceType.ANDROID, null);
+    long countBefore = memberDeviceRepository.count();
 
-        memberDeviceService.registerDevice("token-rotated", "fid-stable", MemberDeviceType.ANDROID, null);
+    memberDeviceService.registerDevice(
+        "token-rotated", "fid-stable", MemberDeviceType.ANDROID, null);
 
-        assertThat(memberDeviceRepository.count()).isEqualTo(countBefore);
-        assertThat(memberDeviceRepository.findByFid("fid-stable"))
-                .get()
-                .extracting(MemberDevice::getDeviceToken)
-                .isEqualTo("token-rotated");
-    }
+    assertThat(memberDeviceRepository.count()).isEqualTo(countBefore);
+    assertThat(memberDeviceRepository.findByFid("fid-stable"))
+        .get()
+        .extracting(MemberDevice::getDeviceToken)
+        .isEqualTo("token-rotated");
+  }
 
-    @Test
-    @DisplayName("fid 도입 이전부터 있던 기존 기기는 deviceToken으로 찾아 fid를 백필하고 새 행을 만들지 않는다")
-    void backfills_fid_onto_existing_row_found_by_device_token() {
-        memberDeviceService.registerDevice("token-legacy", null, MemberDeviceType.ANDROID, null);
-        long countBefore = memberDeviceRepository.count();
+  @Test
+  @DisplayName("fid 도입 이전부터 있던 기존 기기는 deviceToken으로 찾아 fid를 백필하고 새 행을 만들지 않는다")
+  void backfills_fid_onto_existing_row_found_by_device_token() {
+    memberDeviceService.registerDevice("token-legacy", null, MemberDeviceType.ANDROID, null);
+    long countBefore = memberDeviceRepository.count();
 
-        memberDeviceService.registerDevice("token-legacy", "fid-backfilled", MemberDeviceType.ANDROID, null);
+    memberDeviceService.registerDevice(
+        "token-legacy", "fid-backfilled", MemberDeviceType.ANDROID, null);
 
-        assertThat(memberDeviceRepository.count()).isEqualTo(countBefore);
-        assertThat(memberDeviceRepository.findByDeviceToken("token-legacy"))
-                .get()
-                .extracting(MemberDevice::getFid)
-                .isEqualTo("fid-backfilled");
-    }
+    assertThat(memberDeviceRepository.count()).isEqualTo(countBefore);
+    assertThat(memberDeviceRepository.findByDeviceToken("token-legacy"))
+        .get()
+        .extracting(MemberDevice::getFid)
+        .isEqualTo("fid-backfilled");
+  }
 }

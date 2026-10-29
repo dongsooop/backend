@@ -7,65 +7,53 @@ import java.time.ZoneId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * ParticipantInfo Entity 단위 테스트
- */
+/** ParticipantInfo Entity 단위 테스트 */
 @DisplayName("ParticipantInfo Entity 단위 테스트")
 class ParticipantInfoTest {
 
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+  private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
-    @Test
-    @DisplayName("create - 모든 필드 설정")
-    void create_SetsAllFields() {
-        // when
-        ParticipantInfo participant = ParticipantInfo.create(
-                "session-123",
-                1L,
-                "socket-456",
-                "익명1"
-        );
+  @Test
+  @DisplayName("create - 모든 필드 설정")
+  void create_SetsAllFields() {
+    // when
+    ParticipantInfo participant = ParticipantInfo.create("session-123", 1L, "socket-456", "익명1");
 
-        // then
-        assertThat(participant.getSessionId()).isEqualTo("session-123");
-        assertThat(participant.getMemberId()).isEqualTo(1L);
-        assertThat(participant.getSocketIds()).containsExactly("socket-456"); // Modified
-        assertThat(participant.getAnonymousName()).isEqualTo("익명1");
-        assertThat(participant.getJoinedAt()).isNotNull();
-    }
+    // then
+    assertThat(participant.getSessionId()).isEqualTo("session-123");
+    assertThat(participant.getMemberId()).isEqualTo(1L);
+    assertThat(participant.getSocketIds()).containsExactly("socket-456"); // Modified
+    assertThat(participant.getAnonymousName()).isEqualTo("익명1");
+    assertThat(participant.getJoinedAt()).isNotNull();
+  }
 
-    @Test
-    @DisplayName("joinedAt - 현재 시간으로 설정")
-    void create_SetsJoinedAtToNow() {
-        // given
-        LocalDateTime before = LocalDateTime.now(KST).minusSeconds(1);
+  @Test
+  @DisplayName("joinedAt - 현재 시간으로 설정")
+  void create_SetsJoinedAtToNow() {
+    // given
+    LocalDateTime before = LocalDateTime.now(KST).minusSeconds(1);
 
-        // when
-        ParticipantInfo participant = ParticipantInfo.create("session-1", 1L, "socket-1", "익명1");
+    // when
+    ParticipantInfo participant = ParticipantInfo.create("session-1", 1L, "socket-1", "익명1");
 
-        // then
-        LocalDateTime after = LocalDateTime.now(KST).plusSeconds(1);
-        assertThat(participant.getJoinedAt()).isBetween(before, after);
-    }
+    // then
+    LocalDateTime after = LocalDateTime.now(KST).plusSeconds(1);
+    assertThat(participant.getJoinedAt()).isBetween(before, after);
+  }
 
-    @Test
-    @DisplayName("builder - 모든 필드 설정 가능 (create 메소드로 대체)")
-    void builder_SetsAllFields() {
-        // given
+  @Test
+  @DisplayName("builder - 모든 필드 설정 가능 (create 메소드로 대체)")
+  void builder_SetsAllFields() {
+    // given
 
-        // when
-        ParticipantInfo participant = ParticipantInfo.create(
-                "session-1",
-                1L,
-                "socket-1",
-                "익명1"
-        );
+    // when
+    ParticipantInfo participant = ParticipantInfo.create("session-1", 1L, "socket-1", "익명1");
 
-        // then
-        assertThat(participant.getSessionId()).isEqualTo("session-1");
-        assertThat(participant.getMemberId()).isEqualTo(1L);
-        assertThat(participant.getSocketIds()).containsExactly("socket-1"); // Modified
-        assertThat(participant.getAnonymousName()).isEqualTo("익명1");
-        // JoinedAt은 create() 시점에 생성되므로, 이제 now와 직접 비교할 수 없음
-    }
+    // then
+    assertThat(participant.getSessionId()).isEqualTo("session-1");
+    assertThat(participant.getMemberId()).isEqualTo(1L);
+    assertThat(participant.getSocketIds()).containsExactly("socket-1"); // Modified
+    assertThat(participant.getAnonymousName()).isEqualTo("익명1");
+    // JoinedAt은 create() 시점에 생성되므로, 이제 now와 직접 비교할 수 없음
+  }
 }

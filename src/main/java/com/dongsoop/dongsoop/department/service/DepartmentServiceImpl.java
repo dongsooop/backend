@@ -13,24 +13,24 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class DepartmentServiceImpl implements DepartmentService {
 
-    private final DepartmentRepository departmentRepository;
+  private final DepartmentRepository departmentRepository;
 
-    @Override
-    public Department getReferenceById(DepartmentType departmentType) {
-        validateDepartment(departmentType);
+  @Override
+  public Department getReferenceById(DepartmentType departmentType) {
+    validateDepartment(departmentType);
 
-        return departmentRepository.getReferenceById(departmentType);
+    return departmentRepository.getReferenceById(departmentType);
+  }
+
+  private void validateDepartment(DepartmentType departmentType) {
+    boolean isExists = departmentRepository.existsById(departmentType);
+    if (!isExists) {
+      throw new DepartmentNotFoundException(departmentType);
     }
+  }
 
-    private void validateDepartment(DepartmentType departmentType) {
-        boolean isExists = departmentRepository.existsById(departmentType);
-        if (!isExists) {
-            throw new DepartmentNotFoundException(departmentType);
-        }
-    }
-
-    @Transactional(readOnly = true)
-    public List<Department> getAllDepartments() {
-        return departmentRepository.findAll();
-    }
+  @Transactional(readOnly = true)
+  public List<Department> getAllDepartments() {
+    return departmentRepository.findAll();
+  }
 }

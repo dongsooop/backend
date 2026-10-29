@@ -21,19 +21,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ReportCreateGuardTest {
 
-    @InjectMocks
-    private ReportServiceImpl reportService;
+  @InjectMocks private ReportServiceImpl reportService;
 
-    @Mock
-    private ReportRepository reportRepository;
+  @Mock private ReportRepository reportRepository;
 
-    @Test
-    @DisplayName("채팅 메시지 신고는 게시판 신고 API로 받을 수 없다")
-    void createReport_ChatMessageType_Throws() {
-        CreateReportRequest request = new CreateReportRequest(ReportType.CHAT_MESSAGE, 1L, ReportReason.SPAM, null);
+  @Test
+  @DisplayName("채팅 메시지 신고는 게시판 신고 API로 받을 수 없다")
+  void createReport_ChatMessageType_Throws() {
+    CreateReportRequest request =
+        new CreateReportRequest(ReportType.CHAT_MESSAGE, 1L, ReportReason.SPAM, null);
 
-        assertThatThrownBy(() -> reportService.createReport(request))
-                .isInstanceOf(UnsupportedReportTypeException.class);
-        verify(reportRepository, never()).save(any());
-    }
+    assertThatThrownBy(() -> reportService.createReport(request))
+        .isInstanceOf(UnsupportedReportTypeException.class);
+    verify(reportRepository, never()).save(any());
+  }
 }

@@ -9,57 +9,57 @@ import org.springframework.stereotype.Component;
 @Component
 public class NoticeLinkParser {
 
-    @Value("${notice.link.layout-header}")
-    private String layoutHeader;
+  @Value("${notice.link.layout-header}")
+  private String layoutHeader;
 
-    @Value("${notice.link.department.notice-regex}")
-    private String departmentNoticeRegex;
+  @Value("${notice.link.department.notice-regex}")
+  private String departmentNoticeRegex;
 
-    @Value("${notice.link.department.url-prefix}")
-    private String departmentUrlPrefix;
+  @Value("${notice.link.department.url-prefix}")
+  private String departmentUrlPrefix;
 
-    @Value("${notice.link.department.url-start}")
-    private String departmentUrlStart;
+  @Value("${notice.link.department.url-start}")
+  private String departmentUrlStart;
 
-    @Value("${notice.link.department.url-suffix}")
-    private String departmentUrlSuffix;
+  @Value("${notice.link.department.url-suffix}")
+  private String departmentUrlSuffix;
 
-    public String parse(String link) {
-        Pattern pattern = Pattern.compile(departmentNoticeRegex);
-        Matcher matcher = pattern.matcher(link);
+  public String parse(String link) {
+    Pattern pattern = Pattern.compile(departmentNoticeRegex);
+    Matcher matcher = pattern.matcher(link);
 
-        if (!link.startsWith(departmentUrlStart)) {
-            return parseUniversity(link);
-        }
-
-        String parsedLink = parseDepartment(matcher);
-        if (parsedLink == null) {
-            throw new NoticeLinkNotAvailableException(link);
-        }
-
-        return parsedLink;
+    if (!link.startsWith(departmentUrlStart)) {
+      return parseUniversity(link);
     }
 
-    private String parseUniversity(String link) {
-        return link + layoutHeader;
+    String parsedLink = parseDepartment(matcher);
+    if (parsedLink == null) {
+      throw new NoticeLinkNotAvailableException(link);
     }
 
-    private String parseDepartment(Matcher matcher) {
-        StringBuilder linkBuilder = new StringBuilder();
-        linkBuilder.append(departmentUrlPrefix);
+    return parsedLink;
+  }
 
-        if (!matcher.find()) {
-            return null;
-        }
+  private String parseUniversity(String link) {
+    return link + layoutHeader;
+  }
 
-        do {
-            String match = matcher.group(1);
-            linkBuilder.append("/").append(match);
-        } while (matcher.find());
+  private String parseDepartment(Matcher matcher) {
+    StringBuilder linkBuilder = new StringBuilder();
+    linkBuilder.append(departmentUrlPrefix);
 
-        linkBuilder.append(departmentUrlSuffix);
-        linkBuilder.append(layoutHeader);
-
-        return linkBuilder.toString();
+    if (!matcher.find()) {
+      return null;
     }
+
+    do {
+      String match = matcher.group(1);
+      linkBuilder.append("/").append(match);
+    } while (matcher.find());
+
+    linkBuilder.append(departmentUrlSuffix);
+    linkBuilder.append(layoutHeader);
+
+    return linkBuilder.toString();
+  }
 }

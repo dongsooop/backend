@@ -30,89 +30,76 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TutoringBoardCreateTest {
 
-    private static final String VALID_TITLE = "This is a test title";
-    private static final String VALID_CONTENT = "This is a test content";
-    private static final String VALID_TAGS = "tag1, tag2";
-    private static final DepartmentType VALID_DEPARTMENT_TYPE = DepartmentType.DEPT_2001;
-    private static final LocalDateTime VALID_START_AT = LocalDateTime.of(2099, 1, 1, 0, 0);
-    private static final LocalDateTime VALID_END_AT = LocalDateTime.of(2099, 12, 31, 23, 59);
+  private static final String VALID_TITLE = "This is a test title";
+  private static final String VALID_CONTENT = "This is a test content";
+  private static final String VALID_TAGS = "tag1, tag2";
+  private static final DepartmentType VALID_DEPARTMENT_TYPE = DepartmentType.DEPT_2001;
+  private static final LocalDateTime VALID_START_AT = LocalDateTime.of(2099, 1, 1, 0, 0);
+  private static final LocalDateTime VALID_END_AT = LocalDateTime.of(2099, 12, 31, 23, 59);
 
-    @InjectMocks
-    private TutoringBoardServiceImpl tutoringBoardService;
+  @InjectMocks private TutoringBoardServiceImpl tutoringBoardService;
 
-    @Mock
-    private ChatCommonUtils chatCommonUtils;
+  @Mock private ChatCommonUtils chatCommonUtils;
 
-    @Mock
-    private MemberService memberService;
+  @Mock private MemberService memberService;
 
-    @Mock
-    private TutoringBoardRepository tutoringBoardRepository;
+  @Mock private TutoringBoardRepository tutoringBoardRepository;
 
-    @Mock
-    private DepartmentRepository departmentRepository;
+  @Mock private DepartmentRepository departmentRepository;
 
-    @Mock
-    private ChatRoomService chatRoomService;
+  @Mock private ChatRoomService chatRoomService;
 
-    private CreateTutoringBoardRequest request;
+  private CreateTutoringBoardRequest request;
 
-    @BeforeEach
-    void setUp() {
-        request = new CreateTutoringBoardRequest(
-                VALID_TITLE,
-                VALID_CONTENT,
-                VALID_TAGS,
-                VALID_START_AT,
-                VALID_END_AT,
-                List.of(VALID_DEPARTMENT_TYPE)
-        );
-    }
+  @BeforeEach
+  void setUp() {
+    request =
+        new CreateTutoringBoardRequest(
+            VALID_TITLE,
+            VALID_CONTENT,
+            VALID_TAGS,
+            VALID_START_AT,
+            VALID_END_AT,
+            List.of(VALID_DEPARTMENT_TYPE));
+  }
 
-    @Test
-    void create_WithValidInput_ShouldPersistCorrectly() {
-        // given
-        when(memberService.getMemberReferenceByContext())
-                .thenReturn(
-                        Member.builder()
-                                .id(1L)
-                                .build());
+  @Test
+  void create_WithValidInput_ShouldPersistCorrectly() {
+    // given
+    when(memberService.getMemberReferenceByContext()).thenReturn(Member.builder().id(1L).build());
 
-        when(chatRoomService.createGroupChatRoom(any(), any(), any()))
-                .thenReturn(
-                        ChatRoom.builder()
-                                .roomId("")
-                                .build());
+    when(chatRoomService.createGroupChatRoom(any(), any(), any()))
+        .thenReturn(ChatRoom.builder().roomId("").build());
 
-        when(tutoringBoardRepository.save(any()))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+    when(tutoringBoardRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(departmentRepository.getReferenceById(VALID_DEPARTMENT_TYPE))
-                .thenReturn(new Department(VALID_DEPARTMENT_TYPE, null, null));
+    when(departmentRepository.getReferenceById(VALID_DEPARTMENT_TYPE))
+        .thenReturn(new Department(VALID_DEPARTMENT_TYPE, null, null));
 
-        // when
-        tutoringBoardService.create(this.request);
+    // when
+    tutoringBoardService.create(this.request);
 
-        // then
-        ArgumentCaptor<TutoringBoard> captor = ArgumentCaptor.forClass(TutoringBoard.class);
-        verify(tutoringBoardRepository).save(captor.capture());
-        TutoringBoard board = captor.getValue();
+    // then
+    ArgumentCaptor<TutoringBoard> captor = ArgumentCaptor.forClass(TutoringBoard.class);
+    verify(tutoringBoardRepository).save(captor.capture());
+    TutoringBoard board = captor.getValue();
 
-        Department department = new Department(VALID_DEPARTMENT_TYPE, null, null);
-        TutoringBoard compareBoard = TutoringBoard.builder()
-                .title(VALID_TITLE)
-                .content(VALID_CONTENT)
-                .tags(VALID_TAGS)
-                .startAt(VALID_START_AT)
-                .endAt(VALID_END_AT)
-                .department(department)
-                .author(Member.builder().id(1L).build())
-                .build();
+    Department department = new Department(VALID_DEPARTMENT_TYPE, null, null);
+    TutoringBoard compareBoard =
+        TutoringBoard.builder()
+            .title(VALID_TITLE)
+            .content(VALID_CONTENT)
+            .tags(VALID_TAGS)
+            .startAt(VALID_START_AT)
+            .endAt(VALID_END_AT)
+            .department(department)
+            .author(Member.builder().id(1L).build())
+            .build();
 
-        assertThat(board)
-                .usingRecursiveComparison()
-                .ignoringExpectedNullFields()
-                .ignoringFields("id", "createdAt", "updatedAt")
-                .isEqualTo(compareBoard);
-    }
+    assertThat(board)
+        .usingRecursiveComparison()
+        .ignoringExpectedNullFields()
+        .ignoringFields("id", "createdAt", "updatedAt")
+        .isEqualTo(compareBoard);
+  }
 }

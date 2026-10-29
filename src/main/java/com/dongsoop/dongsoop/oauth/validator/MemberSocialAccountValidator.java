@@ -5,5 +5,5 @@ import com.dongsoop.dongsoop.oauth.entity.OAuthProviderType;
 
 public interface MemberSocialAccountValidator {
 
-    MemberSocialAccountDto validate(String providerId, OAuthProviderType providerType);
+  MemberSocialAccountDto validate(String providerId, OAuthProviderType providerType);
 }

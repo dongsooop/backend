@@ -5,5 +5,5 @@ import com.querydsl.core.types.ConstructorExpression;
 
 public interface RecruitmentApplyProjection {
 
-    ConstructorExpression<ApplyDetails> getApplyDetailsExpression();
+  ConstructorExpression<ApplyDetails> getApplyDetailsExpression();
 }

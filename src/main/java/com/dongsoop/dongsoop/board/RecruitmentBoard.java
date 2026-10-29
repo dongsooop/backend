@@ -15,25 +15,25 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 public abstract class RecruitmentBoard extends Board {
 
-    @NotNull
-    @Column(name = "start_at", nullable = false)
-    private LocalDateTime startAt;
+  @NotNull
+  @Column(name = "start_at", nullable = false)
+  private LocalDateTime startAt;
 
-    @NotNull
-    @Column(name = "end_at", nullable = false)
-    private LocalDateTime endAt;
+  @NotNull
+  @Column(name = "end_at", nullable = false)
+  private LocalDateTime endAt;
 
-    @Column(name = "tags", length = RecruitmentValidationConstant.TAG_MAX_LENGTH, nullable = false)
-    private String tags;
+  @Column(name = "tags", length = RecruitmentValidationConstant.TAG_MAX_LENGTH, nullable = false)
+  private String tags;
 
-    @Column(name = "chat_room_id", length = 50)
-    private String roomId;
+  @Column(name = "chat_room_id", length = 50)
+  private String roomId;
 
-    public void assignChatRoom(String roomId) {
-        this.roomId = roomId;
-    }
+  public void assignChatRoom(String roomId) {
+    this.roomId = roomId;
+  }
 
-    public boolean hasChatRoom() {
-        return this.roomId != null;
-    }
+  public boolean hasChatRoom() {
+    return this.roomId != null;
+  }
 }

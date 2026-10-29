@@ -5,5 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TutoringBoardRepository extends JpaRepository<TutoringBoard, Long> {
 
-    boolean existsByIdAndAuthorId(Long id, Long authorId);
+  boolean existsByIdAndAuthorId(Long id, Long authorId);
 }

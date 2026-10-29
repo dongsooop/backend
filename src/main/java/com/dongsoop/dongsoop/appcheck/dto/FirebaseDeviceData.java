@@ -9,11 +9,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class FirebaseDeviceData {
 
-    String kty;
-    String use;
-    String alg;
-    String kid;
-    String n;
-    String e;
-    String typ;
+  String kty;
+  String use;
+  String alg;
+  String kid;
+  String n;
+  String e;
+  String typ;
 }

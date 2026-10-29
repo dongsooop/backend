@@ -2,12 +2,6 @@ package com.dongsoop.dongsoop.meal.util;
 
 import com.dongsoop.dongsoop.meal.entity.Meal;
 import com.dongsoop.dongsoop.meal.entity.MealType;
-import lombok.RequiredArgsConstructor;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
-import org.springframework.stereotype.Component;
-
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -15,158 +9,164 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
+import lombok.RequiredArgsConstructor;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class MealParser {
 
-    private static final Pattern DATE_RANGE_PATTERN = Pattern.compile("(\\d{4}\\.\\d{2}\\.\\d{2})\\s+~\\s+(\\d{4}\\.\\d{2}\\.\\d{2})");
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd");
-    private static final int MAX_DAYS = 5;
-    private static final int MIN_MENU_CELLS = 3;
-    private static final String NOTICE_LABEL = "공지사항";
+  private static final Pattern DATE_RANGE_PATTERN =
+      Pattern.compile("(\\d{4}\\.\\d{2}\\.\\d{2})\\s+~\\s+(\\d{4}\\.\\d{2}\\.\\d{2})");
+  private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd");
+  private static final int MAX_DAYS = 5;
+  private static final int MIN_MENU_CELLS = 3;
+  private static final String NOTICE_LABEL = "공지사항";
 
-    // 학교 페이지가 "별미 메뉴" 행을 "단품 메뉴"로 바꿔 표기한다. 되돌릴 경우를 대비해 둘 다 받는다
-    private static final Map<MealType, List<String>> MENU_LABELS = Map.of(
-            MealType.KOREAN, List.of("한식 메뉴"),
-            MealType.SPECIAL, List.of("단품 메뉴", "별미 메뉴")
-    );
+  // 학교 페이지가 "별미 메뉴" 행을 "단품 메뉴"로 바꿔 표기한다. 되돌릴 경우를 대비해 둘 다 받는다
+  private static final Map<MealType, List<String>> MENU_LABELS =
+      Map.of(
+          MealType.KOREAN, List.of("한식 메뉴"),
+          MealType.SPECIAL, List.of("단품 메뉴", "별미 메뉴"));
 
-    private final TextProcessingUtil textProcessingUtil;
-    private final Clock clock;
+  private final TextProcessingUtil textProcessingUtil;
+  private final Clock clock;
 
-    public List<Meal> parseWeeklyMeal(Document document) {
-        DateRange dateRange = parseDateRange(document);
-        Map<MealType, List<String>> menuMap = parseAllMenus(document);
-        return buildMealList(dateRange, menuMap);
+  public List<Meal> parseWeeklyMeal(Document document) {
+    DateRange dateRange = parseDateRange(document);
+    Map<MealType, List<String>> menuMap = parseAllMenus(document);
+    return buildMealList(dateRange, menuMap);
+  }
+
+  public Optional<String> parseNotice(Document document) {
+    return findRowAfter(document, NOTICE_LABEL, 1)
+        .map(row -> row.selectFirst("td"))
+        .map(this::extractNoticeText)
+        .filter(text -> !text.isEmpty() && !"-".equals(text));
+  }
+
+  private DateRange parseDateRange(Document document) {
+    return Optional.of(document.text())
+        .map(DATE_RANGE_PATTERN::matcher)
+        .filter(Matcher::find)
+        .map(this::extractDateRange)
+        .filter(this::validateDateRange)
+        .orElseGet(this::getCurrentWeekDateRange);
+  }
+
+  private DateRange extractDateRange(Matcher matcher) {
+    try {
+      LocalDate startDate = LocalDate.parse(matcher.group(1), DATE_FORMATTER);
+      LocalDate endDate = LocalDate.parse(matcher.group(2), DATE_FORMATTER);
+      return new DateRange(startDate, endDate);
+    } catch (Exception e) {
+      return getCurrentWeekDateRange();
     }
+  }
 
-    public Optional<String> parseNotice(Document document) {
-        return findRowAfter(document, NOTICE_LABEL, 1)
-                .map(row -> row.selectFirst("td"))
-                .map(this::extractNoticeText)
-                .filter(text -> !text.isEmpty() && !"-".equals(text));
+  private boolean validateDateRange(DateRange dateRange) {
+    LocalDate now = LocalDate.now(clock);
+    int currentYear = now.getYear();
+    return Math.abs(dateRange.startDate().getYear() - currentYear) <= 1
+        && Math.abs(dateRange.endDate().getYear() - currentYear) <= 1;
+  }
+
+  private DateRange getCurrentWeekDateRange() {
+    LocalDate today = LocalDate.now(clock);
+    LocalDate monday = today.minusDays(today.getDayOfWeek().getValue() - 1L);
+    return new DateRange(monday, monday.plusDays(4));
+  }
+
+  private Map<MealType, List<String>> parseAllMenus(Document document) {
+    Map<MealType, List<String>> menuMap = new EnumMap<>(MealType.class);
+    for (MealType type : MealType.values()) {
+      menuMap.put(type, parseMenusByType(document, MENU_LABELS.get(type)));
     }
+    return menuMap;
+  }
 
-    private DateRange parseDateRange(Document document) {
-        return Optional.of(document.text())
-                .map(DATE_RANGE_PATTERN::matcher)
-                .filter(Matcher::find)
-                .map(this::extractDateRange)
-                .filter(this::validateDateRange)
-                .orElseGet(this::getCurrentWeekDateRange);
-    }
+  private List<String> parseMenusByType(Document document, List<String> labels) {
+    return labels.stream()
+        .map(label -> findRowAfter(document, label, MIN_MENU_CELLS))
+        .flatMap(Optional::stream)
+        .findFirst()
+        .map(this::extractMenusFromFirstRow)
+        .orElse(Collections.nCopies(MAX_DAYS, textProcessingUtil.getDefaultEmptyMenu()));
+  }
 
-    private DateRange extractDateRange(Matcher matcher) {
-        try {
-            LocalDate startDate = LocalDate.parse(matcher.group(1), DATE_FORMATTER);
-            LocalDate endDate = LocalDate.parse(matcher.group(2), DATE_FORMATTER);
-            return new DateRange(startDate, endDate);
-        } catch (Exception e) {
-            return getCurrentWeekDateRange();
-        }
-    }
+  // 라벨이 적힌 행의 바로 다음 행을 돌려준다. 라벨 행과 내용 행이 위아래로 나뉜 표 구조
+  private Optional<Element> findRowAfter(Document document, String label, int minCells) {
+    return document.select("tr:contains(" + label + ")").stream()
+        .map(Element::nextElementSibling)
+        .filter(Objects::nonNull)
+        .filter(row -> "tr".equals(row.tagName()))
+        .filter(row -> row.select("td").size() >= minCells)
+        .findFirst();
+  }
 
-    private boolean validateDateRange(DateRange dateRange) {
-        LocalDate now = LocalDate.now(clock);
-        int currentYear = now.getYear();
-        return Math.abs(dateRange.startDate().getYear() - currentYear) <= 1 &&
-                Math.abs(dateRange.endDate().getYear() - currentYear) <= 1;
-    }
+  private List<String> extractMenusFromFirstRow(Element menuRow) {
+    Elements cells = menuRow.select("td");
+    return extractMenusFromCells(cells);
+  }
 
-    private DateRange getCurrentWeekDateRange() {
-        LocalDate today = LocalDate.now(clock);
-        LocalDate monday = today.minusDays(today.getDayOfWeek().getValue() - 1L);
-        return new DateRange(monday, monday.plusDays(4));
-    }
+  private List<String> extractMenusFromCells(Elements menuCells) {
+    int cellCount = Math.min(menuCells.size(), MAX_DAYS);
 
-    private Map<MealType, List<String>> parseAllMenus(Document document) {
-        Map<MealType, List<String>> menuMap = new EnumMap<>(MealType.class);
-        for (MealType type : MealType.values()) {
-            menuMap.put(type, parseMenusByType(document, MENU_LABELS.get(type)));
-        }
-        return menuMap;
-    }
+    return IntStream.range(0, MAX_DAYS)
+        .mapToObj(index -> extractMenuFromCell(menuCells, cellCount, index))
+        .toList();
+  }
 
-    private List<String> parseMenusByType(Document document, List<String> labels) {
-        return labels.stream()
-                .map(label -> findRowAfter(document, label, MIN_MENU_CELLS))
-                .flatMap(Optional::stream)
-                .findFirst()
-                .map(this::extractMenusFromFirstRow)
-                .orElse(Collections.nCopies(MAX_DAYS, textProcessingUtil.getDefaultEmptyMenu()));
-    }
+  private String extractMenuFromCell(Elements menuCells, int cellCount, int index) {
+    return Optional.of(index)
+        .filter(i -> i < cellCount)
+        .map(menuCells::get)
+        .map(Element::html)
+        .map(textProcessingUtil::processMenuText)
+        .orElse(textProcessingUtil.getDefaultEmptyMenu());
+  }
 
-    // 라벨이 적힌 행의 바로 다음 행을 돌려준다. 라벨 행과 내용 행이 위아래로 나뉜 표 구조
-    private Optional<Element> findRowAfter(Document document, String label, int minCells) {
-        return document.select("tr:contains(" + label + ")").stream()
-                .map(Element::nextElementSibling)
-                .filter(Objects::nonNull)
-                .filter(row -> "tr".equals(row.tagName()))
-                .filter(row -> row.select("td").size() >= minCells)
-                .findFirst();
-    }
+  private String extractNoticeText(Element cell) {
+    Elements lines = cell.select("span");
+    List<String> texts = lines.isEmpty() ? List.of(cell.text()) : lines.eachText();
 
-    private List<String> extractMenusFromFirstRow(Element menuRow) {
-        Elements cells = menuRow.select("td");
-        return extractMenusFromCells(cells);
-    }
+    return texts.stream()
+        .map(String::trim)
+        .filter(text -> !text.isEmpty())
+        .reduce((first, second) -> first + "\n" + second)
+        .orElse("");
+  }
 
-    private List<String> extractMenusFromCells(Elements menuCells) {
-        int cellCount = Math.min(menuCells.size(), MAX_DAYS);
+  private List<Meal> buildMealList(DateRange dateRange, Map<MealType, List<String>> menuMap) {
+    return IntStream.range(0, MAX_DAYS)
+        .boxed()
+        .map(dayIndex -> createDayMeals(dayIndex, dateRange, menuMap))
+        .flatMap(List::stream)
+        .filter(Objects::nonNull)
+        .toList();
+  }
 
-        return IntStream.range(0, MAX_DAYS)
-                .mapToObj(index -> extractMenuFromCell(menuCells, cellCount, index))
-                .toList();
-    }
+  private List<Meal> createDayMeals(
+      int dayIndex, DateRange dateRange, Map<MealType, List<String>> menuMap) {
+    LocalDate currentDate = dateRange.startDate().plusDays(dayIndex);
+    String dayName = DayOfWeekUtil.toKorean(currentDate.getDayOfWeek());
 
-    private String extractMenuFromCell(Elements menuCells, int cellCount, int index) {
-        return Optional.of(index)
-                .filter(i -> i < cellCount)
-                .map(menuCells::get)
-                .map(Element::html)
-                .map(textProcessingUtil::processMenuText)
-                .orElse(textProcessingUtil.getDefaultEmptyMenu());
-    }
+    return Arrays.stream(MealType.values())
+        .map(type -> createMeal(currentDate, dayName, type, menuMap.get(type).get(dayIndex)))
+        .toList();
+  }
 
-    private String extractNoticeText(Element cell) {
-        Elements lines = cell.select("span");
-        List<String> texts = lines.isEmpty() ? List.of(cell.text()) : lines.eachText();
+  private Meal createMeal(LocalDate date, String dayName, MealType mealType, String menu) {
+    return Meal.builder()
+        .mealDate(date)
+        .dayOfWeek(dayName)
+        .mealType(mealType)
+        .menuItems(menu)
+        .build();
+  }
 
-        return texts.stream()
-                .map(String::trim)
-                .filter(text -> !text.isEmpty())
-                .reduce((first, second) -> first + "\n" + second)
-                .orElse("");
-    }
-
-    private List<Meal> buildMealList(DateRange dateRange, Map<MealType, List<String>> menuMap) {
-        return IntStream.range(0, MAX_DAYS)
-                .boxed()
-                .map(dayIndex -> createDayMeals(dayIndex, dateRange, menuMap))
-                .flatMap(List::stream)
-                .filter(Objects::nonNull)
-                .toList();
-    }
-
-    private List<Meal> createDayMeals(int dayIndex, DateRange dateRange, Map<MealType, List<String>> menuMap) {
-        LocalDate currentDate = dateRange.startDate().plusDays(dayIndex);
-        String dayName = DayOfWeekUtil.toKorean(currentDate.getDayOfWeek());
-
-        return Arrays.stream(MealType.values())
-                .map(type -> createMeal(currentDate, dayName, type, menuMap.get(type).get(dayIndex)))
-                .toList();
-    }
-
-    private Meal createMeal(LocalDate date, String dayName, MealType mealType, String menu) {
-        return Meal.builder()
-                .mealDate(date)
-                .dayOfWeek(dayName)
-                .mealType(mealType)
-                .menuItems(menu)
-                .build();
-    }
-
-    private record DateRange(LocalDate startDate, LocalDate endDate) {
-    }
+  private record DateRange(LocalDate startDate, LocalDate endDate) {}
 }

@@ -16,26 +16,27 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ChatNotificationImpl implements ChatNotification {
 
-    private static final Long NON_SAVE_NOTIFICATION_ID = -1L;
+  private static final Long NON_SAVE_NOTIFICATION_ID = -1L;
 
-    private final MemberDeviceRepository memberDeviceRepository;
-    private final NotificationSendService notificationSendService;
+  private final MemberDeviceRepository memberDeviceRepository;
+  private final NotificationSendService notificationSendService;
 
-    @Async
-    public void send(Set<Long> chatroomMemberIdSet, String chatRoomId, String senderName,
-                     String message) {
-        // 사용자 id를 통해 FCM 토큰을 가져옴
-        MemberDeviceFindCondition condition = new MemberDeviceFindCondition(
-                chatroomMemberIdSet, NotificationType.CHAT);
-        List<MemberDeviceDto> participantsDevice = memberDeviceRepository.findDevicesWithNotification(condition);
+  @Async
+  public void send(
+      Set<Long> chatroomMemberIdSet, String chatRoomId, String senderName, String message) {
+    // 사용자 id를 통해 FCM 토큰을 가져옴
+    MemberDeviceFindCondition condition =
+        new MemberDeviceFindCondition(chatroomMemberIdSet, NotificationType.CHAT);
+    List<MemberDeviceDto> participantsDevice =
+        memberDeviceRepository.findDevicesWithNotification(condition);
 
-        List<String> deviceTokens = participantsDevice.stream()
-                .map(MemberDeviceDto::deviceToken)
-                .toList();
+    List<String> deviceTokens =
+        participantsDevice.stream().map(MemberDeviceDto::deviceToken).toList();
 
-        NotificationSend notificationSend = new NotificationSend(NON_SAVE_NOTIFICATION_ID, senderName, message,
-                NotificationType.CHAT, chatRoomId);
+    NotificationSend notificationSend =
+        new NotificationSend(
+            NON_SAVE_NOTIFICATION_ID, senderName, message, NotificationType.CHAT, chatRoomId);
 
-        notificationSendService.send(deviceTokens, notificationSend);
-    }
+    notificationSendService.send(deviceTokens, notificationSend);
+  }
 }

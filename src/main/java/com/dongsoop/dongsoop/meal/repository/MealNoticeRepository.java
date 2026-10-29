@@ -10,11 +10,11 @@ import org.springframework.data.repository.query.Param;
 
 public interface MealNoticeRepository extends JpaRepository<MealNotice, Long> {
 
-    Optional<MealNotice> findByWeekStart(LocalDate weekStart);
+  Optional<MealNotice> findByWeekStart(LocalDate weekStart);
 
-    void deleteByWeekStart(LocalDate weekStart);
+  void deleteByWeekStart(LocalDate weekStart);
 
-    @Modifying(clearAutomatically = true)
-    @Query("DELETE FROM MealNotice n WHERE n.weekStart < :cutoffDate")
-    int deleteOldNotices(@Param("cutoffDate") LocalDate cutoffDate);
+  @Modifying(clearAutomatically = true)
+  @Query("DELETE FROM MealNotice n WHERE n.weekStart < :cutoffDate")
+  int deleteOldNotices(@Param("cutoffDate") LocalDate cutoffDate);
 }

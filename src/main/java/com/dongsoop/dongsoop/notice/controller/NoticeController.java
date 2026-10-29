@@ -22,29 +22,31 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class NoticeController {
 
-    private final NoticeService noticeService;
+  private final NoticeService noticeService;
 
-    private final NoticeSchedulerImpl noticeScheduler;
+  private final NoticeSchedulerImpl noticeScheduler;
 
-    @GetMapping("/{departmentType}")
-    public ResponseEntity<Page<NoticeListResponse>> getNotice(@PathVariable DepartmentType departmentType,
-                                                              Pageable pageable) {
-        Page<NoticeListResponse> noticeList = noticeService.getNoticeByDepartmentType(departmentType, pageable);
-        return ResponseEntity.ok(noticeList);
-    }
+  @GetMapping("/{departmentType}")
+  public ResponseEntity<Page<NoticeListResponse>> getNotice(
+      @PathVariable DepartmentType departmentType, Pageable pageable) {
+    Page<NoticeListResponse> noticeList =
+        noticeService.getNoticeByDepartmentType(departmentType, pageable);
+    return ResponseEntity.ok(noticeList);
+  }
 
-    @GetMapping("/guest")
-    public ResponseEntity<Page<NoticeListResponse>> getSubscribedNotices(
-            @RequestHeader(value = "X-Device-Fid", required = false) String fid,
-            @RequestHeader(value = "X-Device-Token", required = false) String deviceToken,
-            Pageable pageable) {
-        Page<NoticeListResponse> noticeList = noticeService.getSubscribedNotices(fid, deviceToken, pageable);
-        return ResponseEntity.ok(noticeList);
-    }
+  @GetMapping("/guest")
+  public ResponseEntity<Page<NoticeListResponse>> getSubscribedNotices(
+      @RequestHeader(value = "X-Device-Fid", required = false) String fid,
+      @RequestHeader(value = "X-Device-Token", required = false) String deviceToken,
+      Pageable pageable) {
+    Page<NoticeListResponse> noticeList =
+        noticeService.getSubscribedNotices(fid, deviceToken, pageable);
+    return ResponseEntity.ok(noticeList);
+  }
 
-    @PostMapping
-    @Secured(RoleType.ADMIN_ROLE)
-    public void crawlingNotice() {
-        noticeScheduler.scheduled();
-    }
+  @PostMapping
+  @Secured(RoleType.ADMIN_ROLE)
+  public void crawlingNotice() {
+    noticeScheduler.scheduled();
+  }
 }

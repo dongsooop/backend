@@ -5,13 +5,13 @@ import java.util.List;
 
 public record ChatMessageSnapshots(List<ChatMessageSnapshot> messages) {
 
-    public ChatMessageSnapshots {
-        messages = List.copyOf(messages);
-    }
+  public ChatMessageSnapshots {
+    messages = List.copyOf(messages);
+  }
 
-    @JsonValue
-    @Override
-    public List<ChatMessageSnapshot> messages() {
-        return messages;
-    }
+  @JsonValue
+  @Override
+  public List<ChatMessageSnapshot> messages() {
+    return messages;
+  }
 }

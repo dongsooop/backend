@@ -4,7 +4,7 @@ import java.io.IOException;
 
 public interface FirebaseAppCheck {
 
-    void validate(String token);
+  void validate(String token);
 
-    void updateCache() throws IOException, InterruptedException;
+  void updateCache() throws IOException, InterruptedException;
 }

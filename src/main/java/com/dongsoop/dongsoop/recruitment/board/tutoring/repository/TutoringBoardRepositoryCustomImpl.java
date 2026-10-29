@@ -21,89 +21,107 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class TutoringBoardRepositoryCustomImpl implements TutoringBoardRepositoryCustom {
 
-    private static final QTutoringBoard tutoringBoard = QTutoringBoard.tutoringBoard;
+  private static final QTutoringBoard tutoringBoard = QTutoringBoard.tutoringBoard;
 
-    private static final QTutoringApply tutoringApply = QTutoringApply.tutoringApply;
+  private static final QTutoringApply tutoringApply = QTutoringApply.tutoringApply;
 
-    private final JPAQueryFactory queryFactory;
+  private final JPAQueryFactory queryFactory;
 
-    private final Querydsl querydsl;
+  private final Querydsl querydsl;
 
-    private final RecruitmentRepositoryUtils recruitmentRepositoryUtils;
+  private final RecruitmentRepositoryUtils recruitmentRepositoryUtils;
 
-    private final TutoringRecruitmentProjection projection;
+  private final TutoringRecruitmentProjection projection;
 
-    public TutoringBoardRepositoryCustomImpl(EntityManager entityManager,
-            JPAQueryFactory queryFactory,
-            RecruitmentRepositoryUtils recruitmentRepositoryUtils,
-            TutoringRecruitmentProjection projection) {
-        this.queryFactory = queryFactory;
-        this.recruitmentRepositoryUtils = recruitmentRepositoryUtils;
-        this.projection = projection;
-        this.querydsl = new Querydsl(entityManager,
-                new PathBuilder<>(tutoringBoard.getType(), tutoringBoard.getMetadata()));
-    }
+  public TutoringBoardRepositoryCustomImpl(
+      EntityManager entityManager,
+      JPAQueryFactory queryFactory,
+      RecruitmentRepositoryUtils recruitmentRepositoryUtils,
+      TutoringRecruitmentProjection projection) {
+    this.queryFactory = queryFactory;
+    this.recruitmentRepositoryUtils = recruitmentRepositoryUtils;
+    this.projection = projection;
+    this.querydsl =
+        new Querydsl(
+            entityManager, new PathBuilder<>(tutoringBoard.getType(), tutoringBoard.getMetadata()));
+  }
 
-    /**
-     * 학과별로 모집중인 상태의 튜터링 모집 게시판 목록을 페이지 단위로 조회합니다.
-     *
-     * @param departmentType 학과 타입
-     * @param pageable       페이지 정보
-     * @return 모집중인 튜터링 모집 게시판 목록
-     */
-    @Override
-    @ApplyBlockFilter
-    public List<RecruitmentOverview> findTutoringBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
-                                                                                       Pageable pageable) {
-        return querydsl.applyPagination(pageable, queryFactory.select(projection.getRecruitmentOverviewExpression())
+  /**
+   * 학과별로 모집중인 상태의 튜터링 모집 게시판 목록을 페이지 단위로 조회합니다.
+   *
+   * @param departmentType 학과 타입
+   * @param pageable 페이지 정보
+   * @return 모집중인 튜터링 모집 게시판 목록
+   */
+  @Override
+  @ApplyBlockFilter
+  public List<RecruitmentOverview> findTutoringBoardOverviewsByPageAndDepartmentType(
+      DepartmentType departmentType, Pageable pageable) {
+    return querydsl
+        .applyPagination(
+            pageable,
+            queryFactory
+                .select(projection.getRecruitmentOverviewExpression())
                 .from(tutoringBoard)
                 .leftJoin(tutoringApply)
                 .on(tutoringApply.tutoringBoard.id.eq(tutoringBoard.id))
-                .where(tutoringBoard.department.id.eq(departmentType)
-                        .and(recruitmentRepositoryUtils.isRecruiting(tutoringBoard.startAt, tutoringBoard.endAt)))
+                .where(
+                    tutoringBoard
+                        .department
+                        .id
+                        .eq(departmentType)
+                        .and(
+                            recruitmentRepositoryUtils.isRecruiting(
+                                tutoringBoard.startAt, tutoringBoard.endAt)))
                 .groupBy(tutoringBoard.id))
-                .fetch();
-    }
+        .fetch();
+  }
 
-    /**
-     * 특정 튜터링 모집 게시판 ID를 통해 상세 정보를 조회합니다.
-     *
-     * @param tutoringBoardId  튜터링 모집 게시판 ID
-     * @param viewType         조회자 타입 (예: OWNER, MEMBER, GUEST)
-     * @param isAlreadyApplied 현재 멤버가 이미 신청했는지 여부
-     * @return 튜터링 모집 게시판 상세 정보
-     */
-    @Override
-    public Optional<RecruitmentDetails> findBoardDetailsByIdAndViewType(Long tutoringBoardId,
-                                                                        RecruitmentViewType viewType,
-                                                                        boolean isAlreadyApplied) {
-        RecruitmentDetails details = queryFactory.select(
-                        projection.getRecruitmentDetailsExpression(viewType, isAlreadyApplied))
+  /**
+   * 특정 튜터링 모집 게시판 ID를 통해 상세 정보를 조회합니다.
+   *
+   * @param tutoringBoardId 튜터링 모집 게시판 ID
+   * @param viewType 조회자 타입 (예: OWNER, MEMBER, GUEST)
+   * @param isAlreadyApplied 현재 멤버가 이미 신청했는지 여부
+   * @return 튜터링 모집 게시판 상세 정보
+   */
+  @Override
+  public Optional<RecruitmentDetails> findBoardDetailsByIdAndViewType(
+      Long tutoringBoardId, RecruitmentViewType viewType, boolean isAlreadyApplied) {
+    RecruitmentDetails details =
+        queryFactory
+            .select(projection.getRecruitmentDetailsExpression(viewType, isAlreadyApplied))
+            .from(tutoringBoard)
+            .leftJoin(tutoringApply)
+            .on(tutoringApply.tutoringBoard.id.eq(tutoringBoard.id))
+            .where(tutoringBoard.id.eq(tutoringBoardId))
+            .groupBy(tutoringBoard.id, tutoringBoard.author.nickname)
+            .fetchOne();
+
+    return Optional.ofNullable(details);
+  }
+
+  /**
+   * 학과에 관계없이 모집중인 상태의 모든 튜터링 모집 게시판을 페이지 단위로 조회합니다.
+   *
+   * @param pageable 페이지 정보
+   * @return 튜터링 모집 게시판 목록
+   */
+  @Override
+  @ApplyBlockFilter
+  public List<RecruitmentOverview> findTutoringBoardOverviewsByPage(Pageable pageable) {
+    return querydsl
+        .applyPagination(
+            pageable,
+            queryFactory
+                .select(projection.getRecruitmentOverviewExpression())
                 .from(tutoringBoard)
                 .leftJoin(tutoringApply)
                 .on(tutoringApply.tutoringBoard.id.eq(tutoringBoard.id))
-                .where(tutoringBoard.id.eq(tutoringBoardId))
-                .groupBy(tutoringBoard.id, tutoringBoard.author.nickname)
-                .fetchOne();
-
-        return Optional.ofNullable(details);
-    }
-
-    /**
-     * 학과에 관계없이 모집중인 상태의 모든 튜터링 모집 게시판을 페이지 단위로 조회합니다.
-     *
-     * @param pageable 페이지 정보
-     * @return 튜터링 모집 게시판 목록
-     */
-    @Override
-    @ApplyBlockFilter
-    public List<RecruitmentOverview> findTutoringBoardOverviewsByPage(Pageable pageable) {
-        return querydsl.applyPagination(pageable, queryFactory.select(projection.getRecruitmentOverviewExpression())
-                .from(tutoringBoard)
-                .leftJoin(tutoringApply)
-                .on(tutoringApply.tutoringBoard.id.eq(tutoringBoard.id))
-                .where(recruitmentRepositoryUtils.isRecruiting(tutoringBoard.startAt, tutoringBoard.endAt))
+                .where(
+                    recruitmentRepositoryUtils.isRecruiting(
+                        tutoringBoard.startAt, tutoringBoard.endAt))
                 .groupBy(tutoringBoard.id))
-                .fetch();
-    }
+        .fetch();
+  }
 }

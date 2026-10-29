@@ -26,119 +26,135 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class ProjectBoardRepositoryCustomImpl implements ProjectBoardRepositoryCustom {
 
-    private static final QProjectBoard projectBoard = QProjectBoard.projectBoard;
+  private static final QProjectBoard projectBoard = QProjectBoard.projectBoard;
 
-    private static final QProjectBoardDepartment projectBoardDepartment = QProjectBoardDepartment.projectBoardDepartment;
+  private static final QProjectBoardDepartment projectBoardDepartment =
+      QProjectBoardDepartment.projectBoardDepartment;
 
-    private static final QProjectApply projectApply = QProjectApply.projectApply;
+  private static final QProjectApply projectApply = QProjectApply.projectApply;
 
-    private final JPAQueryFactory queryFactory;
+  private final JPAQueryFactory queryFactory;
 
-    private final Querydsl querydsl;
+  private final Querydsl querydsl;
 
-    private final RecruitmentRepositoryUtils recruitmentRepositoryUtils;
+  private final RecruitmentRepositoryUtils recruitmentRepositoryUtils;
 
-    private final ProjectRecruitmentProjection projection;
+  private final ProjectRecruitmentProjection projection;
 
-    public ProjectBoardRepositoryCustomImpl(EntityManager entityManager,
-            JPAQueryFactory queryFactory,
-            RecruitmentRepositoryUtils recruitmentRepositoryUtils,
-            ProjectRecruitmentProjection projection) {
-        this.queryFactory = queryFactory;
-        this.recruitmentRepositoryUtils = recruitmentRepositoryUtils;
-        this.projection = projection;
-        this.querydsl = new Querydsl(entityManager,
-                new PathBuilder<>(projectBoard.getType(), projectBoard.getMetadata()));
-    }
+  public ProjectBoardRepositoryCustomImpl(
+      EntityManager entityManager,
+      JPAQueryFactory queryFactory,
+      RecruitmentRepositoryUtils recruitmentRepositoryUtils,
+      ProjectRecruitmentProjection projection) {
+    this.queryFactory = queryFactory;
+    this.recruitmentRepositoryUtils = recruitmentRepositoryUtils;
+    this.projection = projection;
+    this.querydsl =
+        new Querydsl(
+            entityManager, new PathBuilder<>(projectBoard.getType(), projectBoard.getMetadata()));
+  }
 
-    /**
-     * 학과별로 모집중인 상태의 프로젝트 모집 게시판 목록을 페이지 단위로 조회합니다.
-     *
-     * @param departmentType 학과 타입
-     * @param pageable       페이지 정보
-     * @return 모집중인 프로젝트 모집 게시판 목록
-     */
-    @Override
-    @ApplyBlockFilter
-    public List<RecruitmentOverview> findProjectBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
-                                                                                      Pageable pageable) {
-        return querydsl.applyPagination(pageable, queryFactory
+  /**
+   * 학과별로 모집중인 상태의 프로젝트 모집 게시판 목록을 페이지 단위로 조회합니다.
+   *
+   * @param departmentType 학과 타입
+   * @param pageable 페이지 정보
+   * @return 모집중인 프로젝트 모집 게시판 목록
+   */
+  @Override
+  @ApplyBlockFilter
+  public List<RecruitmentOverview> findProjectBoardOverviewsByPageAndDepartmentType(
+      DepartmentType departmentType, Pageable pageable) {
+    return querydsl
+        .applyPagination(
+            pageable,
+            queryFactory
                 .select(projection.getRecruitmentOverviewExpression())
                 .from(projectBoard)
                 .leftJoin(projectApply)
                 .on(hasMatchingProjectBoardId(projectApply.projectBoard.id))
                 .leftJoin(projectBoardDepartment)
                 .on(hasMatchingProjectBoardId(projectBoardDepartment.projectBoard.id))
-                .where(recruitmentRepositoryUtils.isRecruiting(projectBoard.startAt, projectBoard.endAt)
+                .where(
+                    recruitmentRepositoryUtils
+                        .isRecruiting(projectBoard.startAt, projectBoard.endAt)
                         .and(projectBoard.id.in(includeDepartmentType(departmentType))))
                 .groupBy(projectBoard.id))
-                .fetch();
-    }
+        .fetch();
+  }
 
-    /**
-     * 특정 프로젝트 모집 게시판 ID와 뷰 타입에 따라 게시판 상세 정보를 조회합니다.
-     *
-     * @param projectBoardId   프로젝트 모집 게시판 ID
-     * @param viewType         조회자 타입 (예: OWNER, MEMBER, GUEST)
-     * @param isAlreadyApplied 현재 멤버가 이미 신청했는지 여부
-     * @return 프로젝트 모집 게시판 상세 정보
-     */
-    @Override
-    public Optional<RecruitmentDetails> findBoardDetailsByIdAndViewType(Long projectBoardId,
-                                                                        RecruitmentViewType viewType,
-                                                                        boolean isAlreadyApplied) {
-        RecruitmentDetails details = queryFactory
-                .select(projection.getRecruitmentDetailsExpression(viewType, isAlreadyApplied))
-                .from(projectBoard)
-                .leftJoin(projectApply)
-                .on(hasMatchingProjectBoardId(projectApply.projectBoard.id))
-                .leftJoin(projectBoardDepartment)
-                .on(hasMatchingProjectBoardId(projectBoardDepartment.projectBoard.id))
-                .groupBy(
-                        projectBoard.id,
-                        projectBoard.title,
-                        projectBoard.content,
-                        projectBoard.tags,
-                        projectBoard.startAt,
-                        projectBoard.endAt,
-                        projectBoard.author.nickname,
-                        projectBoard.createdAt,
-                        projectBoard.updatedAt)
-                .where(projectBoard.id.eq(projectBoardId))
-                .fetchOne();
+  /**
+   * 특정 프로젝트 모집 게시판 ID와 뷰 타입에 따라 게시판 상세 정보를 조회합니다.
+   *
+   * @param projectBoardId 프로젝트 모집 게시판 ID
+   * @param viewType 조회자 타입 (예: OWNER, MEMBER, GUEST)
+   * @param isAlreadyApplied 현재 멤버가 이미 신청했는지 여부
+   * @return 프로젝트 모집 게시판 상세 정보
+   */
+  @Override
+  public Optional<RecruitmentDetails> findBoardDetailsByIdAndViewType(
+      Long projectBoardId, RecruitmentViewType viewType, boolean isAlreadyApplied) {
+    RecruitmentDetails details =
+        queryFactory
+            .select(projection.getRecruitmentDetailsExpression(viewType, isAlreadyApplied))
+            .from(projectBoard)
+            .leftJoin(projectApply)
+            .on(hasMatchingProjectBoardId(projectApply.projectBoard.id))
+            .leftJoin(projectBoardDepartment)
+            .on(hasMatchingProjectBoardId(projectBoardDepartment.projectBoard.id))
+            .groupBy(
+                projectBoard.id,
+                projectBoard.title,
+                projectBoard.content,
+                projectBoard.tags,
+                projectBoard.startAt,
+                projectBoard.endAt,
+                projectBoard.author.nickname,
+                projectBoard.createdAt,
+                projectBoard.updatedAt)
+            .where(projectBoard.id.eq(projectBoardId))
+            .fetchOne();
 
-        return Optional.ofNullable(details);
-    }
+    return Optional.ofNullable(details);
+  }
 
-    /**
-     * 학과에 관계없이 모집중인 상태의 모든 프로젝트 모집 게시판을 페이지 단위로 조회합니다.
-     *
-     * @param pageable 페이지 정보
-     * @return 프로젝트 모집 게시판 목록
-     */
-    @Override
-    @ApplyBlockFilter
-    public List<RecruitmentOverview> findProjectBoardOverviewsByPage(Pageable pageable) {
-        return querydsl.applyPagination(pageable, queryFactory
+  /**
+   * 학과에 관계없이 모집중인 상태의 모든 프로젝트 모집 게시판을 페이지 단위로 조회합니다.
+   *
+   * @param pageable 페이지 정보
+   * @return 프로젝트 모집 게시판 목록
+   */
+  @Override
+  @ApplyBlockFilter
+  public List<RecruitmentOverview> findProjectBoardOverviewsByPage(Pageable pageable) {
+    return querydsl
+        .applyPagination(
+            pageable,
+            queryFactory
                 .select(projection.getRecruitmentOverviewExpression())
                 .from(projectBoard)
                 .leftJoin(projectApply)
                 .on(hasMatchingProjectBoardId(projectApply.projectBoard.id))
                 .leftJoin(projectBoardDepartment)
                 .on(hasMatchingProjectBoardId(projectBoardDepartment.projectBoard.id))
-                .where(recruitmentRepositoryUtils.isRecruiting(projectBoard.startAt, projectBoard.endAt))
+                .where(
+                    recruitmentRepositoryUtils.isRecruiting(
+                        projectBoard.startAt, projectBoard.endAt))
                 .groupBy(projectBoard.id))
-                .fetch();
-    }
+        .fetch();
+  }
 
-    private BooleanExpression hasMatchingProjectBoardId(NumberPath<Long> projectBoardId) {
-        return projectBoard.id.eq(projectBoardId);
-    }
+  private BooleanExpression hasMatchingProjectBoardId(NumberPath<Long> projectBoardId) {
+    return projectBoard.id.eq(projectBoardId);
+  }
 
-    private JPQLQuery<Long> includeDepartmentType(DepartmentType departmentType) {
-        return JPAExpressions.select(projectBoard.id)
-                .leftJoin(projectBoardDepartment)
-                .where(projectBoard.id.eq(projectBoardDepartment.projectBoard.id)
-                        .and(projectBoardDepartment.department.id.eq(departmentType)));
-    }
+  private JPQLQuery<Long> includeDepartmentType(DepartmentType departmentType) {
+    return JPAExpressions.select(projectBoard.id)
+        .leftJoin(projectBoardDepartment)
+        .where(
+            projectBoard
+                .id
+                .eq(projectBoardDepartment.projectBoard.id)
+                .and(projectBoardDepartment.department.id.eq(departmentType)));
+  }
 }

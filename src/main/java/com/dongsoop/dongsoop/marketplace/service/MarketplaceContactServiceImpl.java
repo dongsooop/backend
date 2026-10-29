@@ -19,69 +19,66 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class MarketplaceContactServiceImpl implements MarketplaceContactService {
 
-    private final MarketplaceContactRepository marketplaceContactRepository;
+  private final MarketplaceContactRepository marketplaceContactRepository;
 
-    private final MarketplaceContactRepositoryCustom marketplaceContactRepositoryCustom;
+  private final MarketplaceContactRepositoryCustom marketplaceContactRepositoryCustom;
 
-    private final MarketplaceBoardRepository marketplaceBoardRepository;
+  private final MarketplaceBoardRepository marketplaceBoardRepository;
 
-    private final MarketplaceContactMapper marketplaceContactMapper;
+  private final MarketplaceContactMapper marketplaceContactMapper;
 
-    private final MemberService memberService;
+  private final MemberService memberService;
 
-    private final ChatRoomService chatRoomService;
+  private final ChatRoomService chatRoomService;
 
-    public String contact(ContactMarketplaceRequest request) {
-        Long boardId = request.boardId();
+  public String contact(ContactMarketplaceRequest request) {
+    Long boardId = request.boardId();
 
-        validateBoardExists(boardId);
+    validateBoardExists(boardId);
 
-        Long memberId = memberService.getMemberIdByAuthentication();
-        validateAlreadyContact(memberId, boardId);
+    Long memberId = memberService.getMemberIdByAuthentication();
+    validateAlreadyContact(memberId, boardId);
 
-        String roomId = createMarketplaceChatRoom(memberId, boardId);
+    String roomId = createMarketplaceChatRoom(memberId, boardId);
 
-        MarketplaceContact marketplaceContact = marketplaceContactMapper.toEntity(request);
-        marketplaceContactRepository.save(marketplaceContact);
+    MarketplaceContact marketplaceContact = marketplaceContactMapper.toEntity(request);
+    marketplaceContactRepository.save(marketplaceContact);
 
-        return roomId;
+    return roomId;
+  }
+
+  private void validateBoardExists(Long boardId) {
+    boolean isExistsBoard = marketplaceBoardRepository.existsById(boardId);
+    if (!isExistsBoard) {
+      throw new MarketplaceBoardNotFoundException(boardId);
     }
+  }
 
-    private void validateBoardExists(Long boardId) {
-        boolean isExistsBoard = marketplaceBoardRepository.existsById(boardId);
-        if (!isExistsBoard) {
-            throw new MarketplaceBoardNotFoundException(boardId);
-        }
+  private void validateAlreadyContact(Long memberId, Long boardId) {
+    boolean isAlreadyApplied =
+        marketplaceContactRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
+
+    if (isAlreadyApplied) {
+      throw new MarketplaceAlreadyContactException(memberId, boardId);
     }
+  }
 
-    private void validateAlreadyContact(Long memberId, Long boardId) {
-        boolean isAlreadyApplied = marketplaceContactRepositoryCustom.existsByBoardIdAndMemberId(boardId,
-                memberId);
+  private String createMarketplaceChatRoom(Long buyerId, Long boardId) {
+    SellerIdAndTitle sellerInfo = getSellerIdAndTitleByBoardId(boardId);
 
-        if (isAlreadyApplied) {
-            throw new MarketplaceAlreadyContactException(memberId, boardId);
-        }
-    }
+    ChatRoom chatRoom =
+        chatRoomService.createContactChatRoom(
+            buyerId, sellerInfo.sellerId(), BoardType.MARKETPLACE, boardId, sellerInfo.title());
+    return chatRoom.getRoomId();
+  }
 
-    private String createMarketplaceChatRoom(Long buyerId, Long boardId) {
-        SellerIdAndTitle sellerInfo = getSellerIdAndTitleByBoardId(boardId);
+  private SellerIdAndTitle getSellerIdAndTitleByBoardId(Long boardId) {
+    MarketplaceBoard board =
+        marketplaceBoardRepository
+            .findById(boardId)
+            .orElseThrow(() -> new MarketplaceBoardNotFoundException(boardId));
+    return new SellerIdAndTitle(board.getAuthor().getId(), board.getTitle());
+  }
 
-        ChatRoom chatRoom = chatRoomService.createContactChatRoom(
-                buyerId,
-                sellerInfo.sellerId(),
-                BoardType.MARKETPLACE,
-                boardId,
-                sellerInfo.title()
-        );
-        return chatRoom.getRoomId();
-    }
-
-    private SellerIdAndTitle getSellerIdAndTitleByBoardId(Long boardId) {
-        MarketplaceBoard board = marketplaceBoardRepository.findById(boardId)
-                .orElseThrow(() -> new MarketplaceBoardNotFoundException(boardId));
-        return new SellerIdAndTitle(board.getAuthor().getId(), board.getTitle());
-    }
-
-    private record SellerIdAndTitle(Long sellerId, String title) {
-    }
+  private record SellerIdAndTitle(Long sellerId, String title) {}
 }

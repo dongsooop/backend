@@ -6,13 +6,13 @@ import java.util.List;
 
 public interface EclassAssignmentRepositoryCustom {
 
-    List<EclassAssignment> searchReminderTargets(LocalDateTime from, LocalDateTime to);
+  List<EclassAssignment> searchReminderTargets(LocalDateTime from, LocalDateTime to);
 
-    List<EclassAssignment> searchUpcomingByDevice(Long deviceId, LocalDateTime now, int limit);
+  List<EclassAssignment> searchUpcomingByDevice(Long deviceId, LocalDateTime now, int limit);
 
-    List<EclassAssignment> searchUpcomingByMember(Long memberId, LocalDateTime now, int limit);
+  List<EclassAssignment> searchUpcomingByMember(Long memberId, LocalDateTime now, int limit);
 
-    long countUpcomingByDevice(Long deviceId, LocalDateTime now);
+  long countUpcomingByDevice(Long deviceId, LocalDateTime now);
 
-    long countUpcomingByMember(Long memberId, LocalDateTime now);
+  long countUpcomingByMember(Long memberId, LocalDateTime now);
 }

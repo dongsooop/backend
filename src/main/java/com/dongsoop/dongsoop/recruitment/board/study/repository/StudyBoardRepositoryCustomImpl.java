@@ -26,120 +26,134 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class StudyBoardRepositoryCustomImpl implements StudyBoardRepositoryCustom {
 
-    private static final QStudyBoard studyBoard = QStudyBoard.studyBoard;
+  private static final QStudyBoard studyBoard = QStudyBoard.studyBoard;
 
-    private static final QStudyBoardDepartment studyBoardDepartment = QStudyBoardDepartment.studyBoardDepartment;
+  private static final QStudyBoardDepartment studyBoardDepartment =
+      QStudyBoardDepartment.studyBoardDepartment;
 
-    private static final QStudyApply studyApply = QStudyApply.studyApply;
+  private static final QStudyApply studyApply = QStudyApply.studyApply;
 
-    private final JPAQueryFactory queryFactory;
+  private final JPAQueryFactory queryFactory;
 
-    private final Querydsl querydsl;
+  private final Querydsl querydsl;
 
-    private final StudyRecruitmentProjection projection;
+  private final StudyRecruitmentProjection projection;
 
-    private final RecruitmentRepositoryUtils recruitmentRepositoryUtils;
+  private final RecruitmentRepositoryUtils recruitmentRepositoryUtils;
 
-    public StudyBoardRepositoryCustomImpl(EntityManager entityManager,
-            JPAQueryFactory queryFactory,
-            StudyRecruitmentProjection projection,
-            RecruitmentRepositoryUtils recruitmentRepositoryUtils) {
-        this.queryFactory = queryFactory;
-        this.projection = projection;
-        this.recruitmentRepositoryUtils = recruitmentRepositoryUtils;
-        this.querydsl = new Querydsl(entityManager,
-                new PathBuilder<>(studyBoard.getType(), studyBoard.getMetadata()));
-    }
+  public StudyBoardRepositoryCustomImpl(
+      EntityManager entityManager,
+      JPAQueryFactory queryFactory,
+      StudyRecruitmentProjection projection,
+      RecruitmentRepositoryUtils recruitmentRepositoryUtils) {
+    this.queryFactory = queryFactory;
+    this.projection = projection;
+    this.recruitmentRepositoryUtils = recruitmentRepositoryUtils;
+    this.querydsl =
+        new Querydsl(
+            entityManager, new PathBuilder<>(studyBoard.getType(), studyBoard.getMetadata()));
+  }
 
-    /**
-     * 학과별로 모집중인 상태의 스터디 모집 게시판 목록을 페이지 단위로 조회합니다.
-     *
-     * @param departmentType 학과 타입
-     * @param pageable       페이지 정보
-     * @return 모집중인 스터디 모집 게시판 목록
-     */
-
-    @Override
-    @ApplyBlockFilter
-    public List<RecruitmentOverview> findStudyBoardOverviewsByPageAndDepartmentType(DepartmentType departmentType,
-                                                                                    Pageable pageable) {
-        return querydsl.applyPagination(pageable, queryFactory
+  /**
+   * 학과별로 모집중인 상태의 스터디 모집 게시판 목록을 페이지 단위로 조회합니다.
+   *
+   * @param departmentType 학과 타입
+   * @param pageable 페이지 정보
+   * @return 모집중인 스터디 모집 게시판 목록
+   */
+  @Override
+  @ApplyBlockFilter
+  public List<RecruitmentOverview> findStudyBoardOverviewsByPageAndDepartmentType(
+      DepartmentType departmentType, Pageable pageable) {
+    return querydsl
+        .applyPagination(
+            pageable,
+            queryFactory
                 .select(projection.getRecruitmentOverviewExpression())
                 .from(studyBoard)
                 .leftJoin(studyApply)
                 .on(hasMatchingStudyBoardId(studyApply.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
                 .on(hasMatchingStudyBoardId(studyBoardDepartment.studyBoard.id))
-                .where(recruitmentRepositoryUtils.isRecruiting(studyBoard.startAt, studyBoard.endAt)
+                .where(
+                    recruitmentRepositoryUtils
+                        .isRecruiting(studyBoard.startAt, studyBoard.endAt)
                         .and(studyBoard.id.in(includeDepartmentType(departmentType))))
                 .groupBy(studyBoard.id))
-                .fetch();
-    }
+        .fetch();
+  }
 
-    /**
-     * 특정 스터디 모집 게시판 ID를 통해 상세 정보를 조회합니다.
-     *
-     * @param studyBoardId     스터디 모집 게시판 ID
-     * @param viewType         조회자 타입 (예: OWNER, MEMBER, GUEST)
-     * @param isAlreadyApplied 현재 멤버가 이미 신청했는지 여부
-     * @return 스터디 모집 게시판 상세 정보
-     */
-    @Override
-    public Optional<RecruitmentDetails> findBoardDetailsByIdAndViewType(Long studyBoardId,
-                                                                        RecruitmentViewType viewType,
-                                                                        boolean isAlreadyApplied) {
-        RecruitmentDetails details = queryFactory
-                .select(projection.getRecruitmentDetailsExpression(viewType, isAlreadyApplied))
-                .from(studyBoard)
-                .leftJoin(studyApply)
-                .on(hasMatchingStudyBoardId(studyApply.studyBoard.id))
-                .leftJoin(studyBoardDepartment)
-                .on(hasMatchingStudyBoardId(studyBoardDepartment.studyBoard.id))
-                .groupBy(
-                        studyBoard.id,
-                        studyBoard.title,
-                        studyBoard.content,
-                        studyBoard.tags,
-                        studyBoard.startAt,
-                        studyBoard.endAt,
-                        studyBoard.author.nickname,
-                        studyBoard.createdAt,
-                        studyBoard.updatedAt)
-                .where(studyBoard.id.eq(studyBoardId))
-                .fetchOne();
+  /**
+   * 특정 스터디 모집 게시판 ID를 통해 상세 정보를 조회합니다.
+   *
+   * @param studyBoardId 스터디 모집 게시판 ID
+   * @param viewType 조회자 타입 (예: OWNER, MEMBER, GUEST)
+   * @param isAlreadyApplied 현재 멤버가 이미 신청했는지 여부
+   * @return 스터디 모집 게시판 상세 정보
+   */
+  @Override
+  public Optional<RecruitmentDetails> findBoardDetailsByIdAndViewType(
+      Long studyBoardId, RecruitmentViewType viewType, boolean isAlreadyApplied) {
+    RecruitmentDetails details =
+        queryFactory
+            .select(projection.getRecruitmentDetailsExpression(viewType, isAlreadyApplied))
+            .from(studyBoard)
+            .leftJoin(studyApply)
+            .on(hasMatchingStudyBoardId(studyApply.studyBoard.id))
+            .leftJoin(studyBoardDepartment)
+            .on(hasMatchingStudyBoardId(studyBoardDepartment.studyBoard.id))
+            .groupBy(
+                studyBoard.id,
+                studyBoard.title,
+                studyBoard.content,
+                studyBoard.tags,
+                studyBoard.startAt,
+                studyBoard.endAt,
+                studyBoard.author.nickname,
+                studyBoard.createdAt,
+                studyBoard.updatedAt)
+            .where(studyBoard.id.eq(studyBoardId))
+            .fetchOne();
 
-        return Optional.ofNullable(details);
-    }
+    return Optional.ofNullable(details);
+  }
 
-    /**
-     * 학과에 관계없이 모집중인 상태의 모든 스터디 모집 게시판을 페이지 단위로 조회합니다.
-     *
-     * @param pageable 페이지 정보
-     * @return 스터디 모집 게시판 목록
-     */
-    @Override
-    @ApplyBlockFilter
-    public List<RecruitmentOverview> findStudyBoardOverviewsByPage(Pageable pageable) {
-        return querydsl.applyPagination(pageable, queryFactory
+  /**
+   * 학과에 관계없이 모집중인 상태의 모든 스터디 모집 게시판을 페이지 단위로 조회합니다.
+   *
+   * @param pageable 페이지 정보
+   * @return 스터디 모집 게시판 목록
+   */
+  @Override
+  @ApplyBlockFilter
+  public List<RecruitmentOverview> findStudyBoardOverviewsByPage(Pageable pageable) {
+    return querydsl
+        .applyPagination(
+            pageable,
+            queryFactory
                 .select(projection.getRecruitmentOverviewExpression())
                 .from(studyBoard)
                 .leftJoin(studyApply)
                 .on(hasMatchingStudyBoardId(studyApply.studyBoard.id))
                 .leftJoin(studyBoardDepartment)
                 .on(hasMatchingStudyBoardId(studyBoardDepartment.studyBoard.id))
-                .where(recruitmentRepositoryUtils.isRecruiting(studyBoard.startAt, studyBoard.endAt))
+                .where(
+                    recruitmentRepositoryUtils.isRecruiting(studyBoard.startAt, studyBoard.endAt))
                 .groupBy(studyBoard.id))
-                .fetch();
-    }
+        .fetch();
+  }
 
-    private BooleanExpression hasMatchingStudyBoardId(NumberPath<Long> studyBoardId) {
-        return studyBoard.id.eq(studyBoardId);
-    }
+  private BooleanExpression hasMatchingStudyBoardId(NumberPath<Long> studyBoardId) {
+    return studyBoard.id.eq(studyBoardId);
+  }
 
-    private JPQLQuery<Long> includeDepartmentType(DepartmentType departmentType) {
-        return JPAExpressions.select(studyBoard.id)
-                .leftJoin(studyBoardDepartment)
-                .where(studyBoard.id.eq(studyBoardDepartment.studyBoard.id)
-                        .and(studyBoardDepartment.department.id.eq(departmentType)));
-    }
+  private JPQLQuery<Long> includeDepartmentType(DepartmentType departmentType) {
+    return JPAExpressions.select(studyBoard.id)
+        .leftJoin(studyBoardDepartment)
+        .where(
+            studyBoard
+                .id
+                .eq(studyBoardDepartment.studyBoard.id)
+                .and(studyBoardDepartment.department.id.eq(departmentType)));
+  }
 }

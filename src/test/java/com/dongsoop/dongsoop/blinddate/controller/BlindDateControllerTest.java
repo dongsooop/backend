@@ -25,63 +25,73 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 class BlindDateControllerTest {
-    private final BlindDateParticipantStorageImpl participants = new BlindDateParticipantStorageImpl();
-    private final BlindDateSessionStorageImpl sessions = new BlindDateSessionStorageImpl(event -> {});
-    private final BlindDateStorageImpl operation = new BlindDateStorageImpl();
-    private final BlindDateEventQueue queue = new BlindDateEventQueue();
-    private final BlindDateServiceImpl service = new BlindDateServiceImpl(
-            participants, operation, mock(BlindDateNotification.class), sessions,
-            mock(SimpMessagingTemplate.class), new ManualBlindDateTaskScheduler(), queue,
-            new BlindDateMessageProvider());
-    private final BlindDateController controller = new BlindDateController(service);
+  private final BlindDateParticipantStorageImpl participants =
+      new BlindDateParticipantStorageImpl();
+  private final BlindDateSessionStorageImpl sessions = new BlindDateSessionStorageImpl(event -> {});
+  private final BlindDateStorageImpl operation = new BlindDateStorageImpl();
+  private final BlindDateEventQueue queue = new BlindDateEventQueue();
+  private final BlindDateServiceImpl service =
+      new BlindDateServiceImpl(
+          participants,
+          operation,
+          mock(BlindDateNotification.class),
+          sessions,
+          mock(SimpMessagingTemplate.class),
+          new ManualBlindDateTaskScheduler(),
+          queue,
+          new BlindDateMessageProvider());
+  private final BlindDateController controller = new BlindDateController(service);
 
-    @AfterEach
-    void tearDown() {
-        queue.shutdown();
-    }
+  @AfterEach
+  void tearDown() {
+    queue.shutdown();
+  }
 
-    @Test
-    void availabilityReturnsActualOperationState() {
-        assertThat(controller.isAvailable().getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(controller.isAvailable().getBody()).isFalse();
-        service.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 5));
-        assertThat(controller.isAvailable().getBody()).isTrue();
-    }
+  @Test
+  void availabilityReturnsActualOperationState() {
+    assertThat(controller.isAvailable().getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(controller.isAvailable().getBody()).isFalse();
+    service.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 5));
+    assertThat(controller.isAvailable().getBody()).isTrue();
+  }
 
-    @Test
-    void startReturnsCreatedAndAppliesRequestCapacity() {
-        var response = controller.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 5));
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(response.getBody()).isNull();
-        assertThat(operation.isAvailable()).isTrue();
-        assertThat(operation.getMaxSessionMemberCount()).isEqualTo(5);
-    }
+  @Test
+  void startReturnsCreatedAndAppliesRequestCapacity() {
+    var response =
+        controller.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 5));
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    assertThat(response.getBody()).isNull();
+    assertThat(operation.isAvailable()).isTrue();
+    assertThat(operation.getMaxSessionMemberCount()).isEqualTo(5);
+  }
 
-    @Test
-    void duplicateStartReturnsConflictWithoutChangingCapacityOrSessionPointer() {
-        service.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 3));
-        operation.setPointer("existing");
-        var response = controller.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusHours(2), 5));
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-        assertThat(operation.getMaxSessionMemberCount()).isEqualTo(3);
-        assertThat(operation.getPointer()).isEqualTo("existing");
-    }
+  @Test
+  void duplicateStartReturnsConflictWithoutChangingCapacityOrSessionPointer() {
+    service.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 3));
+    operation.setPointer("existing");
+    var response =
+        controller.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusHours(2), 5));
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    assertThat(operation.getMaxSessionMemberCount()).isEqualTo(3);
+    assertThat(operation.getPointer()).isEqualTo("existing");
+  }
 
-    @Test
-    void bothResetRoutesReturnEmpty204AndRemoveParticipation() throws Exception {
-        service.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 5));
-        MockMvc http = MockMvcBuilders.standaloneSetup(controller).build();
-        for (boolean useDelete : new boolean[]{false, true}) {
-            String id = sessions.create().getSessionId();
-            operation.setPointer(id);
-            participants.addParticipant(id, 1L, "one");
-            http.perform(useDelete ? delete("/blinddate/participants") : post("/blinddate/participants"))
-                    .andExpect(status().isNoContent()).andExpect(content().string(""));
-            queue.awaitIdle();
-            assertThat(sessions.getState(id)).isNull();
-            assertThat(participants.getByMemberId(1L)).isNull();
-            assertThat(operation.getPointer()).isNull();
-            assertThat(operation.isAvailable()).isTrue();
-        }
+  @Test
+  void bothResetRoutesReturnEmpty204AndRemoveParticipation() throws Exception {
+    service.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 5));
+    MockMvc http = MockMvcBuilders.standaloneSetup(controller).build();
+    for (boolean useDelete : new boolean[] {false, true}) {
+      String id = sessions.create().getSessionId();
+      operation.setPointer(id);
+      participants.addParticipant(id, 1L, "one");
+      http.perform(useDelete ? delete("/blinddate/participants") : post("/blinddate/participants"))
+          .andExpect(status().isNoContent())
+          .andExpect(content().string(""));
+      queue.awaitIdle();
+      assertThat(sessions.getState(id)).isNull();
+      assertThat(participants.getByMemberId(1L)).isNull();
+      assertThat(operation.getPointer()).isNull();
+      assertThat(operation.isAvailable()).isTrue();
     }
+  }
 }

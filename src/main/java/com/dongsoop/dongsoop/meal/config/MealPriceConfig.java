@@ -5,5 +5,4 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @EnableConfigurationProperties(MealPriceProperties.class)
-public class MealPriceConfig {
-}
+public class MealPriceConfig {}

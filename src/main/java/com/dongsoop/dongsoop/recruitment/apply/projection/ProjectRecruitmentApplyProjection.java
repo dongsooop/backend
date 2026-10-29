@@ -12,22 +12,23 @@ import org.springframework.stereotype.Component;
 @Component
 public class ProjectRecruitmentApplyProjection implements RecruitmentApplyProjection {
 
-    private static final QProjectBoard board = QProjectBoard.projectBoard;
-    private static final QProjectApply apply = QProjectApply.projectApply;
-    private static final QDepartment department = QDepartment.department;
-    private static final QMember member = QMember.member;
+  private static final QProjectBoard board = QProjectBoard.projectBoard;
+  private static final QProjectApply apply = QProjectApply.projectApply;
+  private static final QDepartment department = QDepartment.department;
+  private static final QMember member = QMember.member;
 
-    @Override
-    public ConstructorExpression<ApplyDetails> getApplyDetailsExpression() {
-        return Projections.constructor(ApplyDetails.class,
-                board.id,
-                board.title,
-                member.id,
-                member.nickname,
-                department.name,
-                apply.applyTime,
-                apply.introduction,
-                apply.motivation,
-                apply.status);
-    }
+  @Override
+  public ConstructorExpression<ApplyDetails> getApplyDetailsExpression() {
+    return Projections.constructor(
+        ApplyDetails.class,
+        board.id,
+        board.title,
+        member.id,
+        member.nickname,
+        department.name,
+        apply.applyTime,
+        apply.introduction,
+        apply.motivation,
+        apply.status);
+  }
 }

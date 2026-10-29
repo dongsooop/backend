@@ -15,45 +15,34 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class NotificationSaveServiceImpl implements NotificationSaveService {
 
-    private final NotificationDetailsRepository notificationDetailsRepository;
-    private final NotificationRepository notificationRepository;
+  private final NotificationDetailsRepository notificationDetailsRepository;
+  private final NotificationRepository notificationRepository;
 
-    @Override
-    @Transactional
-    public List<MemberNotification> saveAll(List<Member> memberList, String title, String body,
-                                            NotificationType type,
-                                            String value) {
-        NotificationDetails details = NotificationDetails.builder()
-                .title(title)
-                .body(body)
-                .type(type)
-                .value(value)
-                .build();
+  @Override
+  @Transactional
+  public List<MemberNotification> saveAll(
+      List<Member> memberList, String title, String body, NotificationType type, String value) {
+    NotificationDetails details =
+        NotificationDetails.builder().title(title).body(body).type(type).value(value).build();
 
-        notificationDetailsRepository.save(details);
+    notificationDetailsRepository.save(details);
 
-        List<MemberNotification> memberNotificationList = memberList.stream()
-                .map(member -> new MemberNotification(details, member))
-                .toList();
+    List<MemberNotification> memberNotificationList =
+        memberList.stream().map(member -> new MemberNotification(details, member)).toList();
 
-        return notificationRepository.saveAll(memberNotificationList);
-    }
+    return notificationRepository.saveAll(memberNotificationList);
+  }
 
-    @Override
-    @Transactional
-    public MemberNotification save(Member member, String title, String body,
-                                   NotificationType type,
-                                   String value) {
-        NotificationDetails details = NotificationDetails.builder()
-                .title(title)
-                .body(body)
-                .type(type)
-                .value(value)
-                .build();
+  @Override
+  @Transactional
+  public MemberNotification save(
+      Member member, String title, String body, NotificationType type, String value) {
+    NotificationDetails details =
+        NotificationDetails.builder().title(title).body(body).type(type).value(value).build();
 
-        notificationDetailsRepository.save(details);
+    notificationDetailsRepository.save(details);
 
-        MemberNotification memberNotification = new MemberNotification(details, member);
-        return notificationRepository.save(memberNotification);
-    }
+    MemberNotification memberNotification = new MemberNotification(details, member);
+    return notificationRepository.save(memberNotification);
+  }
 }

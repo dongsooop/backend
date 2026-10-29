@@ -5,7 +5,7 @@ import java.time.Year;
 
 public interface YearSemester {
 
-    Year getYear();
+  Year getYear();
 
-    SemesterType getSemester();
+  SemesterType getSemester();
 }

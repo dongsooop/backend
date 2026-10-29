@@ -2,7 +2,7 @@ package com.dongsoop.dongsoop.mailverify.service;
 
 public interface MailVerifyNumberGenerator {
 
-    String generateVerificationCode(int length);
+  String generateVerificationCode(int length);
 
-    String getRedisKeyByHashed(String redisPrefix, String userEmail);
+  String getRedisKeyByHashed(String redisPrefix, String userEmail);
 }

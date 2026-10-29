@@ -27,16 +27,6 @@ import com.dongsoop.dongsoop.blinddate.service.BlindDateServiceImpl;
 import com.dongsoop.dongsoop.blinddate.service.BlindDateSessionServiceImpl;
 import com.dongsoop.dongsoop.chat.entity.ChatRoom;
 import com.dongsoop.dongsoop.chat.service.ChatRoomService;
-
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.test.util.ReflectionTestUtils;
-
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -47,227 +37,230 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @Timeout(15)
 @DisplayName("과팅 시작부터 매칭 결과까지 통합 흐름")
 class BlindDateFullFlowIntegrationTest {
 
-    private final BlindDateEventQueue eventQueue = new BlindDateEventQueue();
+  private final BlindDateEventQueue eventQueue = new BlindDateEventQueue();
 
-    @AfterEach
-    void tearDown() {
-        eventQueue.shutdown();
+  @AfterEach
+  void tearDown() {
+    eventQueue.shutdown();
+  }
+
+  @ParameterizedTest(name = "채팅방 생성 지연={0}")
+  @ValueSource(booleans = {false, true})
+  @DisplayName("즉시 성공 알림과 진행 중 작업 이후 타임아웃 종료")
+  void deliversSuccessBeforeSessionTermination(boolean pauseChatRoomCreation) throws Exception {
+    var blindDateStorage = new BlindDateStorageImpl();
+    var participantStorage = new BlindDateParticipantStorageImpl();
+    var sessionStorage = new BlindDateSessionStorageImpl(mock(ApplicationEventPublisher.class));
+    var taskScheduler = new ControllableTaskScheduler();
+    var resultEvents = new CopyOnWriteArrayList<ResultEvent>();
+    var messaging = resultCapturingMessagingTemplate(resultEvents);
+    var notification = mock(BlindDateNotification.class);
+    var chatRoomService = mock(ChatRoomService.class);
+    var chatRoomCreationStarted = new CountDownLatch(1);
+    var allowChatRoomCreation = new CountDownLatch(1);
+    if (!pauseChatRoomCreation) {
+      allowChatRoomCreation.countDown();
     }
+    when(chatRoomService.createOneToOneChatRoom(anyLong(), anyLong(), anyString()))
+        .thenAnswer(
+            invocation -> {
+              chatRoomCreationStarted.countDown();
+              assertThat(allowChatRoomCreation.await(5, TimeUnit.SECONDS))
+                  .as("테스트가 채팅방 생성을 재개해야 한다")
+                  .isTrue();
+              return ChatRoom.builder().roomId("room-1").build();
+            });
 
-    @ParameterizedTest(name = "채팅방 생성 지연={0}")
-    @ValueSource(booleans = {false, true})
-    @DisplayName("즉시 성공 알림과 진행 중 작업 이후 타임아웃 종료")
-    void deliversSuccessBeforeSessionTermination(boolean pauseChatRoomCreation) throws Exception {
-        var blindDateStorage = new BlindDateStorageImpl();
-        var participantStorage = new BlindDateParticipantStorageImpl();
-        var sessionStorage = new BlindDateSessionStorageImpl(mock(ApplicationEventPublisher.class));
-        var taskScheduler = new ControllableTaskScheduler();
-        var resultEvents = new CopyOnWriteArrayList<ResultEvent>();
-        var messaging = resultCapturingMessagingTemplate(resultEvents);
-        var notification = mock(BlindDateNotification.class);
-        var chatRoomService = mock(ChatRoomService.class);
-        var chatRoomCreationStarted = new CountDownLatch(1);
-        var allowChatRoomCreation = new CountDownLatch(1);
-        if (!pauseChatRoomCreation) {
-            allowChatRoomCreation.countDown();
-        }
-        when(chatRoomService.createOneToOneChatRoom(anyLong(), anyLong(), anyString()))
-                .thenAnswer(
-                        invocation -> {
-                            chatRoomCreationStarted.countDown();
-                            assertThat(allowChatRoomCreation.await(5, TimeUnit.SECONDS))
-                                    .as("테스트가 채팅방 생성을 재개해야 한다")
-                                    .isTrue();
-                            return ChatRoom.builder().roomId("room-1").build();
-                        });
+    var service =
+        new BlindDateServiceImpl(
+            participantStorage,
+            blindDateStorage,
+            notification,
+            sessionStorage,
+            messaging,
+            taskScheduler,
+            eventQueue,
+            mock(BlindDateMessageProvider.class));
+    var sessionService = new BlindDateSessionServiceImpl(participantStorage, blindDateStorage);
+    var messages = mock(BlindDateMessageProvider.class);
+    when(messages.getStartMessages()).thenReturn(List.of());
+    when(messages.getRandomEventMessages(1)).thenReturn(List.of("event"));
+    when(messages.getSessionManagerName()).thenReturn("manager");
 
-        var service =
-                new BlindDateServiceImpl(
-                        participantStorage,
-                        blindDateStorage,
-                        notification,
-                        sessionStorage,
-                        messaging,
-                        taskScheduler,
-                        eventQueue,
-                        mock(BlindDateMessageProvider.class));
-        var sessionService = new BlindDateSessionServiceImpl(participantStorage, blindDateStorage);
-        var messages = mock(BlindDateMessageProvider.class);
-        when(messages.getStartMessages()).thenReturn(List.of());
-        when(messages.getRandomEventMessages(1)).thenReturn(List.of("event"));
-        when(messages.getSessionManagerName()).thenReturn("manager");
+    var choiceHandler =
+        new BlindDateChoiceHandler(
+            participantStorage,
+            sessionStorage,
+            messaging,
+            chatRoomService,
+            eventQueue,
+            mock(BlindDateMatchNotification.class));
 
-        var choiceHandler =
-                new BlindDateChoiceHandler(
-                        participantStorage,
-                        sessionStorage,
-                        messaging,
-                        chatRoomService,
-                        eventQueue,
-                        mock(BlindDateMatchNotification.class));
+    var sessionScheduler =
+        new BlindDateSessionSchedulerImpl(
+            participantStorage,
+            sessionStorage,
+            messages,
+            messaging,
+            taskScheduler,
+            eventQueue,
+            choiceHandler);
+    ReflectionTestUtils.setField(sessionScheduler, "eventMessageAmount", 1);
 
-        var sessionScheduler =
-                new BlindDateSessionSchedulerImpl(
-                        participantStorage,
-                        sessionStorage,
-                        messages,
-                        messaging,
-                        taskScheduler,
-                        eventQueue,
-                        choiceHandler);
-        ReflectionTestUtils.setField(sessionScheduler, "eventMessageAmount", 1);
+    var disconnectHandler =
+        new BlindDateDisconnectHandler(participantStorage, sessionStorage, service, eventQueue);
+    var connectHandler =
+        new BlindDateConnectHandler(
+            participantStorage,
+            blindDateStorage,
+            sessionStorage,
+            service,
+            sessionService,
+            sessionScheduler,
+            messaging,
+            eventQueue,
+            disconnectHandler);
 
-        var disconnectHandler =
-                new BlindDateDisconnectHandler(
-                        participantStorage, sessionStorage, service, eventQueue);
-        var connectHandler =
-                new BlindDateConnectHandler(
-                        participantStorage,
-                        blindDateStorage,
-                        sessionStorage,
-                        service,
-                        sessionService,
-                        sessionScheduler,
-                        messaging,
-                        eventQueue,
-                        disconnectHandler);
+    service.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 3));
 
-        service.startBlindDate(new StartBlindDateRequest(LocalDateTime.now().plusHours(1), 3));
+    Map<String, Object> first = new HashMap<>();
+    Map<String, Object> second = new HashMap<>();
+    Map<String, Object> third = new HashMap<>();
+    connectHandler.execute("socket-1", 1L, first);
+    connectHandler.execute("socket-2", 2L, second);
+    connectHandler.execute("socket-3", 3L, third);
+    eventQueue.awaitIdle();
 
-        Map<String, Object> first = new HashMap<>();
-        Map<String, Object> second = new HashMap<>();
-        Map<String, Object> third = new HashMap<>();
-        connectHandler.execute("socket-1", 1L, first);
-        connectHandler.execute("socket-2", 2L, second);
-        connectHandler.execute("socket-3", 3L, third);
+    String sessionId = (String) first.get("sessionId");
+    assertThat(second).containsEntry("sessionId", sessionId);
+    assertThat(third).containsEntry("sessionId", sessionId);
+    assertThat(blindDateStorage.getPointer()).isEqualTo(sessionId);
+    assertThat(sessionStorage.getState(sessionId)).isEqualTo(SessionState.PROCESSING);
+    assertThat(participantStorage.findAllBySessionId(sessionId)).hasSize(3);
+    assertParticipantConnection(participantStorage, sessionId, 1L, "socket-1");
+    assertParticipantConnection(participantStorage, sessionId, 2L, "socket-2");
+    assertParticipantConnection(participantStorage, sessionId, 3L, "socket-3");
+
+    // 실제 세션 스케줄러가 등록한 대화 단계 종료와 선택 단계 시작 작업을 순서대로 실행한다.
+    taskScheduler.runNext();
+    taskScheduler.runNext();
+
+    // 요청 스레드와 무관하게 채팅방 생성 중 선택 마감을 실행할 수 있어야 한다.
+    var choiceRequests = Executors.newSingleThreadExecutor();
+    try {
+      var choices =
+          choiceRequests.submit(
+              () -> {
+                choiceHandler.execute(sessionId, 1L, 2L);
+                choiceHandler.execute(sessionId, 2L, 1L);
+              });
+      assertThat(chatRoomCreationStarted.await(5, TimeUnit.SECONDS))
+          .as("상호 선택의 채팅방 생성이 시작되어야 한다")
+          .isTrue();
+
+      if (!pauseChatRoomCreation) {
         eventQueue.awaitIdle();
-
-        String sessionId = (String) first.get("sessionId");
-        assertThat(second).containsEntry("sessionId", sessionId);
-        assertThat(third).containsEntry("sessionId", sessionId);
-        assertThat(blindDateStorage.getPointer()).isEqualTo(sessionId);
+        assertThat(resultEvents).hasSize(2);
         assertThat(sessionStorage.getState(sessionId)).isEqualTo(SessionState.PROCESSING);
-        assertThat(participantStorage.findAllBySessionId(sessionId)).hasSize(3);
-        assertParticipantConnection(participantStorage, sessionId, 1L, "socket-1");
-        assertParticipantConnection(participantStorage, sessionId, 2L, "socket-2");
-        assertParticipantConnection(participantStorage, sessionId, 3L, "socket-3");
+      }
 
-        // 실제 세션 스케줄러가 등록한 대화 단계 종료와 선택 단계 시작 작업을 순서대로 실행한다.
-        taskScheduler.runNext();
-        taskScheduler.runNext();
+      // 타임아웃은 진행 중 작업 뒤에 세션 종료를 예약한다.
+      taskScheduler.runNext();
+      if (pauseChatRoomCreation) {
+        assertThat(resultEvents).as("채팅방 생성 중에는 성공 결과가 없어야 한다").isEmpty();
+        assertThat(sessionStorage.getState(sessionId))
+            .as("성공 처리 중에는 세션을 종료하면 안 된다")
+            .isEqualTo(SessionState.PROCESSING);
+      }
 
-        // 요청 스레드와 무관하게 채팅방 생성 중 선택 마감을 실행할 수 있어야 한다.
-        var choiceRequests = Executors.newSingleThreadExecutor();
-        try {
-            var choices =
-                    choiceRequests.submit(
-                            () -> {
-                                choiceHandler.execute(sessionId, 1L, 2L);
-                                choiceHandler.execute(sessionId, 2L, 1L);
-                            });
-            assertThat(chatRoomCreationStarted.await(5, TimeUnit.SECONDS))
-                    .as("상호 선택의 채팅방 생성이 시작되어야 한다")
-                    .isTrue();
-
-            if (!pauseChatRoomCreation) {
-                eventQueue.awaitIdle();
-                assertThat(resultEvents).hasSize(2);
-                assertThat(sessionStorage.getState(sessionId)).isEqualTo(SessionState.PROCESSING);
-            }
-
-            // 타임아웃은 진행 중 작업 뒤에 세션 종료를 예약한다.
-            taskScheduler.runNext();
-            if (pauseChatRoomCreation) {
-                assertThat(resultEvents).as("채팅방 생성 중에는 성공 결과가 없어야 한다").isEmpty();
-                assertThat(sessionStorage.getState(sessionId))
-                        .as("성공 처리 중에는 세션을 종료하면 안 된다")
-                        .isEqualTo(SessionState.PROCESSING);
-            }
-
-            allowChatRoomCreation.countDown();
-            choices.get(5, TimeUnit.SECONDS);
-            eventQueue.awaitIdle();
-        } finally {
-            allowChatRoomCreation.countDown();
-            choiceRequests.shutdownNow();
-        }
-
-        assertThat(resultEvents)
-                .hasSize(2)
-                .containsExactlyInAnyOrder(
-                        chatRoomCreated(sessionId, 2L), chatRoomCreated(sessionId, 1L));
-        assertThat(sessionStorage.getState(sessionId)).isNull();
+      allowChatRoomCreation.countDown();
+      choices.get(5, TimeUnit.SECONDS);
+      eventQueue.awaitIdle();
+    } finally {
+      allowChatRoomCreation.countDown();
+      choiceRequests.shutdownNow();
     }
 
-    private void assertParticipantConnection(
-            BlindDateParticipantStorageImpl participantStorage,
-            String sessionId,
-            Long memberId,
-            String socketId) {
-        var byMember = participantStorage.getByMemberId(memberId);
-        var bySocket = participantStorage.getBySocketId(socketId);
+    assertThat(resultEvents)
+        .hasSize(2)
+        .containsExactlyInAnyOrder(chatRoomCreated(sessionId, 2L), chatRoomCreated(sessionId, 1L));
+    assertThat(sessionStorage.getState(sessionId)).isNull();
+  }
 
-        assertThat(byMember).isNotNull();
-        assertThat(bySocket.getMemberId()).isEqualTo(memberId);
-        assertThat(bySocket.getSessionId()).isEqualTo(sessionId);
-        assertThat(byMember.getSessionId()).isEqualTo(sessionId);
-        assertThat(byMember.getMemberId()).isEqualTo(memberId);
-        assertThat(byMember.getSocketIds()).containsExactly(socketId);
+  private void assertParticipantConnection(
+      BlindDateParticipantStorageImpl participantStorage,
+      String sessionId,
+      Long memberId,
+      String socketId) {
+    var byMember = participantStorage.getByMemberId(memberId);
+    var bySocket = participantStorage.getBySocketId(socketId);
+
+    assertThat(byMember).isNotNull();
+    assertThat(bySocket.getMemberId()).isEqualTo(memberId);
+    assertThat(bySocket.getSessionId()).isEqualTo(sessionId);
+    assertThat(byMember.getSessionId()).isEqualTo(sessionId);
+    assertThat(byMember.getMemberId()).isEqualTo(memberId);
+    assertThat(byMember.getSocketIds()).containsExactly(socketId);
+  }
+
+  private SimpMessagingTemplate resultCapturingMessagingTemplate(List<ResultEvent> resultEvents) {
+    SimpMessagingTemplate messaging = mock(SimpMessagingTemplate.class);
+    doAnswer(
+            invocation -> {
+              String destination = invocation.getArgument(0);
+              if (destination.endsWith("/chatroom") || destination.endsWith("/failed")) {
+                resultEvents.add(new ResultEvent(destination, invocation.getArgument(1)));
+              }
+              return null;
+            })
+        .when(messaging)
+        .convertAndSend(anyString(), any(Object.class));
+    return messaging;
+  }
+
+  private ResultEvent chatRoomCreated(String sessionId, Long memberId) {
+    return new ResultEvent(
+        BlindDateTopic.chatRoomCreated(sessionId, memberId), Map.of("chatRoomId", "room-1"));
+  }
+
+  private record ResultEvent(String destination, Object payload) {}
+
+  private static final class ControllableTaskScheduler extends BlindDateTaskScheduler {
+
+    private final BlockingQueue<Runnable> sessionTasks = new LinkedBlockingQueue<>();
+
+    @Override
+    public void schedule(Runnable task, long delay) {
+      sessionTasks.add(task);
     }
 
-    private SimpMessagingTemplate resultCapturingMessagingTemplate(List<ResultEvent> resultEvents) {
-        SimpMessagingTemplate messaging = mock(SimpMessagingTemplate.class);
-        doAnswer(
-                        invocation -> {
-                            String destination = invocation.getArgument(0);
-                            if (destination.endsWith("/chatroom")
-                                    || destination.endsWith("/failed")) {
-                                resultEvents.add(
-                                        new ResultEvent(destination, invocation.getArgument(1)));
-                            }
-                            return null;
-                        })
-                .when(messaging)
-                .convertAndSend(anyString(), any(Object.class));
-        return messaging;
+    @Override
+    public void schedule(Runnable cleanupTask, LocalDateTime endTime) {
+      // 과팅 운영 종료 예약은 이 세션 결과 흐름에서 실행하지 않는다.
     }
 
-    private ResultEvent chatRoomCreated(String sessionId, Long memberId) {
-        return new ResultEvent(
-                BlindDateTopic.chatRoomCreated(sessionId, memberId),
-                Map.of("chatRoomId", "room-1"));
+    @Override
+    public void cleanupAllSessions() {
+      sessionTasks.clear();
     }
 
-    private record ResultEvent(String destination, Object payload) {}
-
-    private static final class ControllableTaskScheduler extends BlindDateTaskScheduler {
-
-        private final BlockingQueue<Runnable> sessionTasks = new LinkedBlockingQueue<>();
-
-        @Override
-        public void schedule(Runnable task, long delay) {
-            sessionTasks.add(task);
-        }
-
-        @Override
-        public void schedule(Runnable cleanupTask, LocalDateTime endTime) {
-            // 과팅 운영 종료 예약은 이 세션 결과 흐름에서 실행하지 않는다.
-        }
-
-        @Override
-        public void cleanupAllSessions() {
-            sessionTasks.clear();
-        }
-
-        private void runNext() throws InterruptedException {
-            Runnable task = sessionTasks.poll(5, TimeUnit.SECONDS);
-            assertThat(task).as("다음 과팅 세션 작업이 등록되어야 한다").isNotNull();
-            task.run();
-        }
+    private void runNext() throws InterruptedException {
+      Runnable task = sessionTasks.poll(5, TimeUnit.SECONDS);
+      assertThat(task).as("다음 과팅 세션 작업이 등록되어야 한다").isNotNull();
+      task.run();
     }
+  }
 }

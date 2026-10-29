@@ -34,92 +34,116 @@ import org.springframework.transaction.support.TransactionTemplate;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import(RepositoryLockOwnershipTest.Config.class)
 class RepositoryLockOwnershipTest extends AbstractIntegrationTest {
-    @Autowired EntityManager em;
-    @Autowired MemberRepository members;
-    @Autowired MemberDeviceRepository devices;
-    @Autowired PlatformTransactionManager transactions;
+  @Autowired EntityManager em;
+  @Autowired MemberRepository members;
+  @Autowired MemberDeviceRepository devices;
+  @Autowired PlatformTransactionManager transactions;
 
-    @TestConfiguration
-    static class Config {
-        @Bean JPAQueryFactory queryFactory(EntityManager em) { return new JPAQueryFactory(em); }
+  @TestConfiguration
+  static class Config {
+    @Bean
+    JPAQueryFactory queryFactory(EntityManager em) {
+      return new JPAQueryFactory(em);
     }
+  }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    void ownerRepositoryRetainsRowLockUntilCallingTransactionEnds(boolean memberLock) throws Exception {
-        var tx = new TransactionTemplate(transactions);
-        Long id = tx.execute(status -> {
-            Member member = Member.builder().email("lock-" + memberLock + "@example.test")
-                    .nickname("l" + memberLock).password("encoded").build();
-            em.persist(member);
-            MemberDevice device = persistDevice(member, "lock-" + memberLock);
-            if (device.getId().equals(member.getId())) {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
+  void ownerRepositoryRetainsRowLockUntilCallingTransactionEnds(boolean memberLock)
+      throws Exception {
+    var tx = new TransactionTemplate(transactions);
+    Long id =
+        tx.execute(
+            status -> {
+              Member member =
+                  Member.builder()
+                      .email("lock-" + memberLock + "@example.test")
+                      .nickname("l" + memberLock)
+                      .password("encoded")
+                      .build();
+              em.persist(member);
+              MemberDevice device = persistDevice(member, "lock-" + memberLock);
+              if (device.getId().equals(member.getId())) {
                 device = persistDevice(member, "distinct-lock-" + memberLock);
-            }
-            em.flush();
-            assertThat(device.getId()).isNotEqualTo(member.getId());
-            if (memberLock) {
+              }
+              em.flush();
+              assertThat(device.getId()).isNotEqualTo(member.getId());
+              if (memberLock) {
                 return member.getId();
-            }
-            return device.getId();
-        });
-        var locked = new CountDownLatch(1);
-        var release = new CountDownLatch(1);
-        var executor = Executors.newSingleThreadExecutor();
-        var holder = executor.submit(() -> tx.executeWithoutResult(status -> {
-            lock(memberLock, id);
-            locked.countDown();
-            try {
-                if (!release.await(10, TimeUnit.SECONDS)) {
-                    throw new IllegalStateException("lock release was not signalled");
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException(e);
-            }
-        }));
-        try {
-            assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
-            assertThatThrownBy(() -> tx.executeWithoutResult(status -> {
-                em.createNativeQuery("SET LOCAL lock_timeout = '250ms'").executeUpdate();
-                updateTargetRow(memberLock, id);
-            })).hasRootCauseInstanceOf(SQLException.class).hasStackTraceContaining("lock timeout");
-        } finally {
-            release.countDown();
-            try {
-                holder.get(10, TimeUnit.SECONDS);
-            } finally {
-                executor.shutdownNow();
-            }
-        }
-        Integer updatedRows = tx.execute(status -> updateTargetRow(memberLock, id));
-        assertThat(updatedRows).isEqualTo(1);
+              }
+              return device.getId();
+            });
+    var locked = new CountDownLatch(1);
+    var release = new CountDownLatch(1);
+    var executor = Executors.newSingleThreadExecutor();
+    var holder =
+        executor.submit(
+            () ->
+                tx.executeWithoutResult(
+                    status -> {
+                      lock(memberLock, id);
+                      locked.countDown();
+                      try {
+                        if (!release.await(10, TimeUnit.SECONDS)) {
+                          throw new IllegalStateException("lock release was not signalled");
+                        }
+                      } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException(e);
+                      }
+                    }));
+    try {
+      assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
+      assertThatThrownBy(
+              () ->
+                  tx.executeWithoutResult(
+                      status -> {
+                        em.createNativeQuery("SET LOCAL lock_timeout = '250ms'").executeUpdate();
+                        updateTargetRow(memberLock, id);
+                      }))
+          .hasRootCauseInstanceOf(SQLException.class)
+          .hasStackTraceContaining("lock timeout");
+    } finally {
+      release.countDown();
+      try {
+        holder.get(10, TimeUnit.SECONDS);
+      } finally {
+        executor.shutdownNow();
+      }
     }
+    Integer updatedRows = tx.execute(status -> updateTargetRow(memberLock, id));
+    assertThat(updatedRows).isEqualTo(1);
+  }
 
-    private MemberDevice persistDevice(Member member, String token) {
-        MemberDevice device = MemberDevice.builder().member(member).memberDeviceType(MemberDeviceType.IOS)
-                .deviceToken(token).build();
-        em.persist(device);
-        return device;
-    }
+  private MemberDevice persistDevice(Member member, String token) {
+    MemberDevice device =
+        MemberDevice.builder()
+            .member(member)
+            .memberDeviceType(MemberDeviceType.IOS)
+            .deviceToken(token)
+            .build();
+    em.persist(device);
+    return device;
+  }
 
-    private int updateTargetRow(boolean memberLock, Long id) {
-        if (memberLock) {
-            return em.createNativeQuery("UPDATE member SET password = password WHERE id = :id")
-                    .setParameter("id", id)
-                    .executeUpdate();
-        }
-        return em.createNativeQuery("UPDATE member_device SET device_token = device_token WHERE id = :id")
-                .setParameter("id", id)
-                .executeUpdate();
+  private int updateTargetRow(boolean memberLock, Long id) {
+    if (memberLock) {
+      return em.createNativeQuery("UPDATE member SET password = password WHERE id = :id")
+          .setParameter("id", id)
+          .executeUpdate();
     }
+    return em.createNativeQuery(
+            "UPDATE member_device SET device_token = device_token WHERE id = :id")
+        .setParameter("id", id)
+        .executeUpdate();
+  }
 
-    private void lock(boolean memberLock, Long id) {
-        if (memberLock) {
-            members.findAndLockById(id);
-            return;
-        }
-        devices.lockById(id);
+  private void lock(boolean memberLock, Long id) {
+    if (memberLock) {
+      members.findAndLockById(id);
+      return;
     }
+    devices.lockById(id);
+  }
 }

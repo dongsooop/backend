@@ -11,12 +11,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatRoomListResponse {
-    private String roomId;
-    private String title;
-    private int participantCount;
-    private String lastMessage;
-    private int unreadCount;
-    private LocalDateTime lastActivityAt;
-    private boolean isGroupChat;
-    private String roomType;
+  private String roomId;
+  private String title;
+  private int participantCount;
+  private String lastMessage;
+  private int unreadCount;
+  private LocalDateTime lastActivityAt;
+  private boolean isGroupChat;
+  private String roomType;
 }

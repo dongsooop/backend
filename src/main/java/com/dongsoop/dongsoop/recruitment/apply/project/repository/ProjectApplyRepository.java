@@ -10,8 +10,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface ProjectApplyRepository extends JpaRepository<ProjectApply, ProjectApplyKey> {
 
-    @Query(
-            """
+  @Query(
+      """
                     SELECT m.id AS memberId,
                         m.nickname AS memberName,
                         pa.status AS status,
@@ -20,8 +20,7 @@ public interface ProjectApplyRepository extends JpaRepository<ProjectApply, Proj
                     JOIN Member m ON pa.member.id = m.id
                     WHERE pa.projectBoard.id = :boardId
                         AND pa.projectBoard.author.id = :authorId
-                    """
-    )
-    List<RecruitmentApplyOverview> findApplyOverviewByBoardId(@Param("boardId") Long boardId,
-                                                              @Param("authorId") Long authorId);
+                    """)
+  List<RecruitmentApplyOverview> findApplyOverviewByBoardId(
+      @Param("boardId") Long boardId, @Param("authorId") Long authorId);
 }

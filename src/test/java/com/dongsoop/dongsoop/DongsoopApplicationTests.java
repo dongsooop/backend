@@ -8,12 +8,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @SpringBootTest
 class DongsoopApplicationTests {
 
-    // elasticsearch를 연결하지 않은 상태에서 테스트하기 위해 MockitoBean 사용
-    @MockitoBean
-    private BoardSearchRepository boardSearchRepository;
+  // elasticsearch를 연결하지 않은 상태에서 테스트하기 위해 MockitoBean 사용
+  @MockitoBean private BoardSearchRepository boardSearchRepository;
 
-    @Test
-    void contextLoads() {
-    }
-
+  @Test
+  void contextLoads() {}
 }

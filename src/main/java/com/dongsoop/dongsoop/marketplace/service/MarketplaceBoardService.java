@@ -13,15 +13,17 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface MarketplaceBoardService {
 
-    MarketplaceBoard create(CreateMarketplaceBoardRequest request, MultipartFile[] images) throws IOException;
+  MarketplaceBoard create(CreateMarketplaceBoardRequest request, MultipartFile[] images)
+      throws IOException;
 
-    List<MarketplaceBoardOverview> getMarketplaceBoards(Pageable pageable, MarketplaceType type);
+  List<MarketplaceBoardOverview> getMarketplaceBoards(Pageable pageable, MarketplaceType type);
 
-    MarketplaceBoardDetails getBoardDetails(Long boardId);
+  MarketplaceBoardDetails getBoardDetails(Long boardId);
 
-    void delete(Long boardId);
+  void delete(Long boardId);
 
-    void update(Long boardId, UpdateMarketplaceBoardRequest request, MultipartFile[] images) throws IOException;
+  void update(Long boardId, UpdateMarketplaceBoardRequest request, MultipartFile[] images)
+      throws IOException;
 
-    void close(Long boardId);
+  void close(Long boardId);
 }

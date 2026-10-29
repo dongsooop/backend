@@ -25,54 +25,57 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class JwtLogoutHandler implements LogoutHandler {
 
-    private static final String AUTHORIZATION_HEADER = "Authorization";
-    private static final String BEARER_PREFIX = "Bearer ";
-    private static final int TOKEN_START_INDEX = BEARER_PREFIX.length();
+  private static final String AUTHORIZATION_HEADER = "Authorization";
+  private static final String BEARER_PREFIX = "Bearer ";
+  private static final int TOKEN_START_INDEX = BEARER_PREFIX.length();
 
-    private final MemberDeviceRepository memberDeviceRepository;
-    private final JwtUtil jwtUtil;
-    private final FCMService fcmService;
-    private final DeviceBlacklistService deviceBlacklistService;
+  private final MemberDeviceRepository memberDeviceRepository;
+  private final JwtUtil jwtUtil;
+  private final FCMService fcmService;
+  private final DeviceBlacklistService deviceBlacklistService;
 
-    @Value("${notification.topic.anonymous}")
-    private String anonymousTopic;
+  @Value("${notification.topic.anonymous}")
+  private String anonymousTopic;
 
-    @Override
-    @Transactional
-    public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
-        String deviceToken = request.getHeader("Device-Token");
-        if (!StringUtils.hasText(deviceToken)) {
-            throw new DeviceInformationNotIncludedInHeaderException();
-        }
-
-        String token = extractTokenFromHeader(request);
-        Claims claims = jwtUtil.getClaims(token);
-        Long memberId = Long.valueOf(claims.getSubject());
-
-        MemberDevice device = memberDeviceRepository.findByMemberIdAndDeviceToken(memberId, deviceToken)
-                .orElseThrow(UnregisteredDeviceException::new);
-
-        deviceBlacklistService.blacklist(device.getId());
-
-        if (device.getMemberDeviceType() == MemberDeviceType.WEB) {
-            memberDeviceRepository.delete(device);
-            return;
-        }
-
-        device.bindMember(null);
-        fcmService.subscribeTopic(List.of(deviceToken), anonymousTopic);
-        fcmService.updateNotificationBadge(List.of(deviceToken), 0);
+  @Override
+  @Transactional
+  public void logout(
+      HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
+    String deviceToken = request.getHeader("Device-Token");
+    if (!StringUtils.hasText(deviceToken)) {
+      throw new DeviceInformationNotIncludedInHeaderException();
     }
 
-    private String extractTokenFromHeader(HttpServletRequest request) throws TokenNotFoundException {
-        String tokenHeader = request.getHeader(AUTHORIZATION_HEADER);
+    String token = extractTokenFromHeader(request);
+    Claims claims = jwtUtil.getClaims(token);
+    Long memberId = Long.valueOf(claims.getSubject());
 
-        if (!StringUtils.hasText(tokenHeader) ||
-                tokenHeader.length() <= TOKEN_START_INDEX ||
-                !tokenHeader.startsWith(BEARER_PREFIX)) {
-            throw new TokenNotFoundException();
-        }
+    MemberDevice device =
+        memberDeviceRepository
+            .findByMemberIdAndDeviceToken(memberId, deviceToken)
+            .orElseThrow(UnregisteredDeviceException::new);
 
-        return tokenHeader.substring(TOKEN_START_INDEX);
+    deviceBlacklistService.blacklist(device.getId());
+
+    if (device.getMemberDeviceType() == MemberDeviceType.WEB) {
+      memberDeviceRepository.delete(device);
+      return;
     }
+
+    device.bindMember(null);
+    fcmService.subscribeTopic(List.of(deviceToken), anonymousTopic);
+    fcmService.updateNotificationBadge(List.of(deviceToken), 0);
+  }
+
+  private String extractTokenFromHeader(HttpServletRequest request) throws TokenNotFoundException {
+    String tokenHeader = request.getHeader(AUTHORIZATION_HEADER);
+
+    if (!StringUtils.hasText(tokenHeader)
+        || tokenHeader.length() <= TOKEN_START_INDEX
+        || !tokenHeader.startsWith(BEARER_PREFIX)) {
+      throw new TokenNotFoundException();
+    }
+
+    return tokenHeader.substring(TOKEN_START_INDEX);
+  }
 }

@@ -33,68 +33,71 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class MarketplaceBoardController {
 
-    private static final int MAX_IMAGES = 3;
+  private static final int MAX_IMAGES = 3;
 
-    private final MarketplaceBoardService marketplaceBoardService;
+  private final MarketplaceBoardService marketplaceBoardService;
 
-    @GetMapping("/type/{type}")
-    public ResponseEntity<List<MarketplaceBoardOverview>> getMarketplaceBoards(Pageable pageable,
-                                                                               @PathVariable("type") MarketplaceType type) {
-        List<MarketplaceBoardOverview> marketplaceBoardOverviewList = marketplaceBoardService.getMarketplaceBoards(
-                pageable, type);
+  @GetMapping("/type/{type}")
+  public ResponseEntity<List<MarketplaceBoardOverview>> getMarketplaceBoards(
+      Pageable pageable, @PathVariable("type") MarketplaceType type) {
+    List<MarketplaceBoardOverview> marketplaceBoardOverviewList =
+        marketplaceBoardService.getMarketplaceBoards(pageable, type);
 
-        return ResponseEntity.ok(marketplaceBoardOverviewList);
+    return ResponseEntity.ok(marketplaceBoardOverviewList);
+  }
+
+  @GetMapping("/{boardId}")
+  public ResponseEntity<MarketplaceBoardDetails> getMarketplaceBoardDetails(
+      @PathVariable("boardId") Long boardId) {
+    MarketplaceBoardDetails marketplaceBoardDetails =
+        marketplaceBoardService.getBoardDetails(boardId);
+
+    return ResponseEntity.ok(marketplaceBoardDetails);
+  }
+
+  @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<Void> createMarketplaceBoard(
+      @RequestPart("request") @Valid CreateMarketplaceBoardRequest request,
+      @RequestPart(value = "image", required = false) MultipartFile[] images)
+      throws IOException {
+    if (images != null && images.length > MAX_IMAGES) {
+      throw new TooManyImagesForMarketplaceException(MAX_IMAGES);
+    }
+    MarketplaceBoard board = marketplaceBoardService.create(request, images);
+
+    URI uri = URI.create("/marketplace-board/" + board.getId());
+
+    return ResponseEntity.created(uri).build();
+  }
+
+  @DeleteMapping("/{boardId}")
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<Void> deleteMarketplaceBoard(@PathVariable("boardId") Long boardId) {
+    marketplaceBoardService.delete(boardId);
+    return ResponseEntity.noContent().build();
+  }
+
+  @PatchMapping(value = "/{boardId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<Void> updateMarketplaceBoard(
+      @PathVariable("boardId") Long boardId,
+      @RequestPart("request") @Valid UpdateMarketplaceBoardRequest request,
+      @RequestPart(value = "image", required = false) MultipartFile[] images)
+      throws IOException {
+    if (images != null && images.length > MAX_IMAGES) {
+      throw new TooManyImagesForMarketplaceException(MAX_IMAGES);
     }
 
-    @GetMapping("/{boardId}")
-    public ResponseEntity<MarketplaceBoardDetails> getMarketplaceBoardDetails(@PathVariable("boardId") Long boardId) {
-        MarketplaceBoardDetails marketplaceBoardDetails = marketplaceBoardService.getBoardDetails(boardId);
+    marketplaceBoardService.update(boardId, request, images);
 
-        return ResponseEntity.ok(marketplaceBoardDetails);
-    }
+    return ResponseEntity.noContent().build();
+  }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> createMarketplaceBoard(
-            @RequestPart("request") @Valid CreateMarketplaceBoardRequest request,
-            @RequestPart(value = "image", required = false) MultipartFile[] images) throws IOException {
-        if (images != null && images.length > MAX_IMAGES) {
-            throw new TooManyImagesForMarketplaceException(MAX_IMAGES);
-        }
-        MarketplaceBoard board = marketplaceBoardService.create(request, images);
-
-        URI uri = URI.create("/marketplace-board/" + board.getId());
-
-        return ResponseEntity.created(uri)
-                .build();
-    }
-
-    @DeleteMapping("/{boardId}")
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> deleteMarketplaceBoard(@PathVariable("boardId") Long boardId) {
-        marketplaceBoardService.delete(boardId);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PatchMapping(value = "/{boardId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> updateMarketplaceBoard(
-            @PathVariable("boardId") Long boardId,
-            @RequestPart("request") @Valid UpdateMarketplaceBoardRequest request,
-            @RequestPart(value = "image", required = false) MultipartFile[] images) throws IOException {
-        if (images != null && images.length > MAX_IMAGES) {
-            throw new TooManyImagesForMarketplaceException(MAX_IMAGES);
-        }
-
-        marketplaceBoardService.update(boardId, request, images);
-
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/{boardId}")
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<Void> closeMarketplaceBoard(@PathVariable("boardId") Long boardId) {
-        marketplaceBoardService.close(boardId);
-        return ResponseEntity.noContent().build();
-    }
+  @PostMapping("/{boardId}")
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<Void> closeMarketplaceBoard(@PathVariable("boardId") Long boardId) {
+    marketplaceBoardService.close(boardId);
+    return ResponseEntity.noContent().build();
+  }
 }

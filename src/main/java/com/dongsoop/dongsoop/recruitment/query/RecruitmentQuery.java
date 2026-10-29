@@ -1,25 +1,27 @@
 package com.dongsoop.dongsoop.recruitment.query;
 
-import com.dongsoop.dongsoop.recruitment.query.dto.RecruitmentSummary;
 import com.dongsoop.dongsoop.recruitment.board.dto.HomeRecruitment;
 import com.dongsoop.dongsoop.recruitment.board.tutoring.entity.TutoringBoard;
+import com.dongsoop.dongsoop.recruitment.query.dto.RecruitmentSummary;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.repository.Repository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 
 /** 읽기 전용 통합 조회. TutoringBoard는 Spring Data 쿼리 생성에 필요한 메타데이터 기준이다. */
 public interface RecruitmentQuery extends Repository<TutoringBoard, Long> {
 
-    /**
-     * 특정 회원이 신청한 전체 타입의 모집 게시판 목록을 페이지 단위로 조회합니다.
-     *
-     * @param memberId 회원 ID
-     * @param pageable 페이지 정보
-     * @return 신청한 모집 게시판 목록
-     */
-    @Query(value = """
+  /**
+   * 특정 회원이 신청한 전체 타입의 모집 게시판 목록을 페이지 단위로 조회합니다.
+   *
+   * @param memberId 회원 ID
+   * @param pageable 페이지 정보
+   * @return 신청한 모집 게시판 목록
+   */
+  @Query(
+      value =
+          """
             SELECT
                 id, volunteer, startAt, endAt, title, content, tags, departmentTypeList, boardType, createdAt, status
             FROM (
@@ -49,9 +51,9 @@ public interface RecruitmentQuery extends Repository<TutoringBoard, Long> {
                 WHERE pa.member_id = :memberId
                     AND NOT p.is_deleted
                 GROUP BY p.id, pa.apply_time)
-            
+
                 UNION ALL
-            
+
                 (SELECT
                     s.id AS id,
                     (SELECT COUNT(DISTINCT subsa.member_id)::BIGINT
@@ -78,9 +80,9 @@ public interface RecruitmentQuery extends Repository<TutoringBoard, Long> {
                 WHERE sa.member_id = :memberId
                     AND NOT s.is_deleted
                 GROUP BY s.id, sa.apply_time)
-            
+
                 UNION ALL
-            
+
                 (SELECT
                     t.id AS id,
                     (SELECT COUNT(DISTINCT subta.member_id)::BIGINT
@@ -111,19 +113,20 @@ public interface RecruitmentQuery extends Repository<TutoringBoard, Long> {
             LIMIT :#{#pageable.pageSize}
             OFFSET :#{#pageable.offset}
             """,
-            nativeQuery = true
-    )
-    List<RecruitmentSummary> findApplyRecruitmentsByMemberId(@Param("memberId") Long memberId,
-                                                                @Param("pageable") Pageable pageable);
+      nativeQuery = true)
+  List<RecruitmentSummary> findApplyRecruitmentsByMemberId(
+      @Param("memberId") Long memberId, @Param("pageable") Pageable pageable);
 
-    /**
-     * 특정 회원이 개설한 전체 타입의 모집 게시판 목록을 페이지 단위로 조회합니다.
-     *
-     * @param memberId 회원 ID
-     * @param pageable 페이지 정보
-     * @return 개설한 모집 게시판 목록
-     */
-    @Query(value = """
+  /**
+   * 특정 회원이 개설한 전체 타입의 모집 게시판 목록을 페이지 단위로 조회합니다.
+   *
+   * @param memberId 회원 ID
+   * @param pageable 페이지 정보
+   * @return 개설한 모집 게시판 목록
+   */
+  @Query(
+      value =
+          """
             SELECT
                 id, volunteer, startAt, endAt, title, content, tags, departmentTypeList, boardType, createdAt, status
             FROM (
@@ -151,9 +154,9 @@ public interface RecruitmentQuery extends Repository<TutoringBoard, Long> {
                 WHERE p.author = :memberId
                     AND NOT p.is_deleted
                 GROUP BY p.id)
-            
+
                 UNION ALL
-            
+
                 (SELECT
                     s.id AS id,
                     (SELECT COUNT(DISTINCT subsa.member_id)::BIGINT
@@ -178,9 +181,9 @@ public interface RecruitmentQuery extends Repository<TutoringBoard, Long> {
                 WHERE s.author = :memberId
                     AND NOT s.is_deleted
                 GROUP BY s.id)
-            
+
                 UNION ALL
-            
+
                 (SELECT
                     t.id AS id,
                     (SELECT COUNT(DISTINCT subta.member_id)::BIGINT
@@ -209,17 +212,18 @@ public interface RecruitmentQuery extends Repository<TutoringBoard, Long> {
             LIMIT :#{#pageable.pageSize}
             OFFSET :#{#pageable.offset}
             """,
-            nativeQuery = true
-    )
-    List<RecruitmentSummary> findOpenedRecruitmentsByMemberId(@Param("memberId") Long memberId,
-                                                                 @Param("pageable") Pageable pageable);
+      nativeQuery = true)
+  List<RecruitmentSummary> findOpenedRecruitmentsByMemberId(
+      @Param("memberId") Long memberId, @Param("pageable") Pageable pageable);
 
-    /**
-     * 홈 화면에 표시할 모집 게시판 목록을 조회합니다. (최신 3개)
-     *
-     * @return 개설한 모집 게시판 목록
-     */
-    @Query(value = """
+  /**
+   * 홈 화면에 표시할 모집 게시판 목록을 조회합니다. (최신 3개)
+   *
+   * @return 개설한 모집 게시판 목록
+   */
+  @Query(
+      value =
+          """
             SELECT
                 id, volunteer, title, content, tags, type
             FROM (
@@ -241,9 +245,9 @@ public interface RecruitmentQuery extends Repository<TutoringBoard, Long> {
                     AND p.start_at <= NOW()
                     AND d.id = :departmentName
                 GROUP BY p.id)
-            
+
                 UNION ALL
-            
+
                 (SELECT
                     s.id AS id,
                     (SELECT COUNT(DISTINCT subsa.member_id)::BIGINT
@@ -262,9 +266,9 @@ public interface RecruitmentQuery extends Repository<TutoringBoard, Long> {
                     AND s.start_at <= NOW()
                     AND d.id = :departmentName
                 GROUP BY s.id)
-            
+
                 UNION ALL
-            
+
                 (SELECT
                     t.id AS id,
                     (SELECT COUNT(DISTINCT subta.member_id)::BIGINT
@@ -286,16 +290,17 @@ public interface RecruitmentQuery extends Repository<TutoringBoard, Long> {
             ORDER BY combined_results.createdAt DESC
             LIMIT 3
             """,
-            nativeQuery = true
-    )
-    List<HomeRecruitment> searchHomeRecruitment(String departmentName);
+      nativeQuery = true)
+  List<HomeRecruitment> searchHomeRecruitment(String departmentName);
 
-    /**
-     * 홈 화면에 표시할 모집 게시판 목록을 조회합니다. (최신 3개)
-     *
-     * @return 개설한 모집 게시판 목록
-     */
-    @Query(value = """
+  /**
+   * 홈 화면에 표시할 모집 게시판 목록을 조회합니다. (최신 3개)
+   *
+   * @return 개설한 모집 게시판 목록
+   */
+  @Query(
+      value =
+          """
             SELECT
                 id, volunteer, title, content, tags, type
             FROM (
@@ -316,9 +321,9 @@ public interface RecruitmentQuery extends Repository<TutoringBoard, Long> {
                     AND p.end_at > NOW()
                     AND p.start_at <= NOW()
                 GROUP BY p.id)
-            
+
                 UNION ALL
-            
+
                 (SELECT
                     s.id AS id,
                     (SELECT COUNT(DISTINCT subsa.member_id)::BIGINT
@@ -336,9 +341,9 @@ public interface RecruitmentQuery extends Repository<TutoringBoard, Long> {
                     AND s.end_at > NOW()
                     AND s.start_at <= NOW()
                 GROUP BY s.id)
-            
+
                 UNION ALL
-            
+
                 (SELECT
                     t.id AS id,
                     (SELECT COUNT(DISTINCT subta.member_id)::BIGINT
@@ -359,7 +364,6 @@ public interface RecruitmentQuery extends Repository<TutoringBoard, Long> {
             ORDER BY combined_results.createdAt DESC
             LIMIT 3
             """,
-            nativeQuery = true
-    )
-    List<HomeRecruitment> searchHomeRecruitment();
+      nativeQuery = true)
+  List<HomeRecruitment> searchHomeRecruitment();
 }

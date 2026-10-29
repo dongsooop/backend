@@ -27,51 +27,53 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class TutoringApplyController {
 
-    private final TutoringApplyService tutoringApplyService;
+  private final TutoringApplyService tutoringApplyService;
 
-    @GetMapping("/{boardId}")
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<List<RecruitmentApplyOverview>> getApplyById(
-            @PathVariable("boardId") @Positive Long boardId) {
-        List<RecruitmentApplyOverview> overviewList = tutoringApplyService.getRecruitmentApplyOverview(
-                boardId);
+  @GetMapping("/{boardId}")
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<List<RecruitmentApplyOverview>> getApplyById(
+      @PathVariable("boardId") @Positive Long boardId) {
+    List<RecruitmentApplyOverview> overviewList =
+        tutoringApplyService.getRecruitmentApplyOverview(boardId);
 
-        return ResponseEntity.ok(overviewList);
-    }
+    return ResponseEntity.ok(overviewList);
+  }
 
-    @GetMapping("/{boardId}/applier/{applierId}")
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<ApplyDetails> getApplyDetails(@PathVariable("boardId") @Positive Long boardId,
-                                                        @PathVariable("applierId") @Positive Long applierId) {
-        ApplyDetails applyDetails = tutoringApplyService.getRecruitmentApplyDetails(boardId, applierId);
+  @GetMapping("/{boardId}/applier/{applierId}")
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<ApplyDetails> getApplyDetails(
+      @PathVariable("boardId") @Positive Long boardId,
+      @PathVariable("applierId") @Positive Long applierId) {
+    ApplyDetails applyDetails = tutoringApplyService.getRecruitmentApplyDetails(boardId, applierId);
 
-        return ResponseEntity.ok(applyDetails);
-    }
+    return ResponseEntity.ok(applyDetails);
+  }
 
-    @GetMapping("/self/{boardId}")
-    @Secured(RoleType.USER_ROLE)
-    public ResponseEntity<ApplyDetails> getApplyDetailsBySelf(@PathVariable("boardId") @Positive Long boardId) {
-        ApplyDetails applyDetails = tutoringApplyService.getRecruitmentApplyDetails(boardId);
+  @GetMapping("/self/{boardId}")
+  @Secured(RoleType.USER_ROLE)
+  public ResponseEntity<ApplyDetails> getApplyDetailsBySelf(
+      @PathVariable("boardId") @Positive Long boardId) {
+    ApplyDetails applyDetails = tutoringApplyService.getRecruitmentApplyDetails(boardId);
 
-        return ResponseEntity.ok(applyDetails);
-    }
+    return ResponseEntity.ok(applyDetails);
+  }
 
-    @PostMapping
-    @Secured(value = RoleType.USER_ROLE)
-    public ResponseEntity<Void> applyTutoringBoard(@RequestBody ApplyTutoringBoardRequest request) {
-        tutoringApplyService.apply(request);
+  @PostMapping
+  @Secured(value = RoleType.USER_ROLE)
+  public ResponseEntity<Void> applyTutoringBoard(@RequestBody ApplyTutoringBoardRequest request) {
+    tutoringApplyService.apply(request);
 
-        URI uri = URI.create("/tutoring-board/" + request.boardId());
+    URI uri = URI.create("/tutoring-board/" + request.boardId());
 
-        return ResponseEntity.created(uri)
-                .build();
-    }
+    return ResponseEntity.created(uri).build();
+  }
 
-    @PatchMapping("/{boardId}")
-    @Secured(value = RoleType.USER_ROLE)
-    public ResponseEntity<Void> updateStatus(@NotNull @Positive @PathVariable Long boardId,
-                                             @RequestBody @Valid UpdateApplyStatusRequest request) {
-        tutoringApplyService.updateStatus(boardId, request);
-        return ResponseEntity.noContent().build();
-    }
+  @PatchMapping("/{boardId}")
+  @Secured(value = RoleType.USER_ROLE)
+  public ResponseEntity<Void> updateStatus(
+      @NotNull @Positive @PathVariable Long boardId,
+      @RequestBody @Valid UpdateApplyStatusRequest request) {
+    tutoringApplyService.updateStatus(boardId, request);
+    return ResponseEntity.noContent().build();
+  }
 }

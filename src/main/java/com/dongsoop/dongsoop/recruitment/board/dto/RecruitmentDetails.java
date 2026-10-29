@@ -7,49 +7,57 @@ import java.util.Arrays;
 import java.util.List;
 
 public record RecruitmentDetails(
+    Long id,
+    Long authorId,
+    String title,
+    String content,
+    String tags,
+    LocalDateTime startAt,
+    LocalDateTime endAt,
+    List<DepartmentType> departmentTypeList,
+    String author,
+    LocalDateTime createdAt,
+    LocalDateTime updatedAt,
+    Integer volunteer,
+    RecruitmentViewType viewType,
+    boolean isAlreadyApplied) {
+  public RecruitmentDetails(
+      Long id,
+      Long authorId,
+      String title,
+      String content,
+      String tags,
+      LocalDateTime startAt,
+      LocalDateTime endAt,
+      String departmentTypes,
+      String author,
+      LocalDateTime createdAt,
+      LocalDateTime updatedAt,
+      Integer volunteer,
+      RecruitmentViewType viewType,
+      boolean isAlreadyApplied) {
+    this(
+        id,
+        authorId,
+        title,
+        content,
+        tags,
+        startAt,
+        endAt,
+        getDepartmentTypeList(departmentTypes),
+        author,
+        createdAt,
+        updatedAt,
+        volunteer,
+        viewType,
+        isAlreadyApplied);
+  }
 
-        Long id,
-        Long authorId,
-        String title,
-        String content,
-        String tags,
-        LocalDateTime startAt,
-        LocalDateTime endAt,
-        List<DepartmentType> departmentTypeList,
-        String author,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt,
-        Integer volunteer,
-        RecruitmentViewType viewType,
-        boolean isAlreadyApplied
-) {
-    public RecruitmentDetails(Long id, Long authorId, String title, String content, String tags, LocalDateTime startAt,
-                              LocalDateTime endAt, String departmentTypes, String author, LocalDateTime createdAt,
-                              LocalDateTime updatedAt, Integer volunteer, RecruitmentViewType viewType,
-                              boolean isAlreadyApplied) {
-        this(
-                id,
-                authorId,
-                title,
-                content,
-                tags,
-                startAt,
-                endAt,
-                getDepartmentTypeList(departmentTypes),
-                author,
-                createdAt,
-                updatedAt,
-                volunteer,
-                viewType,
-                isAlreadyApplied
-        );
-    }
-
-    private static List<DepartmentType> getDepartmentTypeList(String departmentTypes) {
-        return Arrays.stream(departmentTypes.split(","))
-                .map(String::trim)
-                .map(DepartmentType::valueOf)
-                .distinct()
-                .toList();
-    }
+  private static List<DepartmentType> getDepartmentTypeList(String departmentTypes) {
+    return Arrays.stream(departmentTypes.split(","))
+        .map(String::trim)
+        .map(DepartmentType::valueOf)
+        .distinct()
+        .toList();
+  }
 }

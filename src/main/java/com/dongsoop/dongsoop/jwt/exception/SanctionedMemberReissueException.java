@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 
 public class SanctionedMemberReissueException extends CustomException {
 
-    public SanctionedMemberReissueException(MemberSanctionedException cause) {
-        super(cause.getMessage(), HttpStatus.UNAUTHORIZED, cause);
-    }
+  public SanctionedMemberReissueException(MemberSanctionedException cause) {
+    super(cause.getMessage(), HttpStatus.UNAUTHORIZED, cause);
+  }
 }

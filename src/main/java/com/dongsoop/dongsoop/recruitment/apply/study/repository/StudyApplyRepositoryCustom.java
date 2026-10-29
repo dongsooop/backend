@@ -6,9 +6,9 @@ import java.util.Optional;
 
 public interface StudyApplyRepositoryCustom {
 
-    boolean existsByBoardIdAndMemberId(Long boardId, Long memberId);
+  boolean existsByBoardIdAndMemberId(Long boardId, Long memberId);
 
-    Optional<ApplyDetails> findApplyDetailsByBoardIdAndApplierId(Long boardId, Long applierId);
+  Optional<ApplyDetails> findApplyDetailsByBoardIdAndApplierId(Long boardId, Long applierId);
 
-    Optional<StudyApply> findByBoardIdAndApplierId(Long boardId, Long applierId);
+  Optional<StudyApply> findByBoardIdAndApplierId(Long boardId, Long applierId);
 }

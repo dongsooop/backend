@@ -20,26 +20,26 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class SubscribeDepartmentController {
 
-    private final NoticePreferenceService noticePreferenceService;
+  private final NoticePreferenceService noticePreferenceService;
 
-    @PutMapping
-    public ResponseEntity<Void> updateDepartments(
-            @RequestHeader(value = "X-Device-Fid", required = false) String fid,
-            @RequestHeader(value = "X-Device-Token", required = false) String deviceToken,
-            @RequestBody @Valid SubscribeDepartmentRequest request) {
-        noticePreferenceService.updateDepartments(fid, deviceToken, request.departmentTypes());
+  @PutMapping
+  public ResponseEntity<Void> updateDepartments(
+      @RequestHeader(value = "X-Device-Fid", required = false) String fid,
+      @RequestHeader(value = "X-Device-Token", required = false) String deviceToken,
+      @RequestBody @Valid SubscribeDepartmentRequest request) {
+    noticePreferenceService.updateDepartments(fid, deviceToken, request.departmentTypes());
 
-        return ResponseEntity.noContent()
-                .build();
-    }
+    return ResponseEntity.noContent().build();
+  }
 
-    @GetMapping
-    public ResponseEntity<SubscribeDepartmentResponse> getDepartments(
-            @RequestHeader(value = "X-Device-Fid", required = false) String fid,
-            @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
-        List<DepartmentType> departmentTypes = noticePreferenceService.getDepartmentTypes(fid, deviceToken);
-        SubscribeDepartmentResponse response = new SubscribeDepartmentResponse(departmentTypes);
+  @GetMapping
+  public ResponseEntity<SubscribeDepartmentResponse> getDepartments(
+      @RequestHeader(value = "X-Device-Fid", required = false) String fid,
+      @RequestHeader(value = "X-Device-Token", required = false) String deviceToken) {
+    List<DepartmentType> departmentTypes =
+        noticePreferenceService.getDepartmentTypes(fid, deviceToken);
+    SubscribeDepartmentResponse response = new SubscribeDepartmentResponse(departmentTypes);
 
-        return ResponseEntity.ok(response);
-    }
+    return ResponseEntity.ok(response);
+  }
 }

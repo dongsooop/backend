@@ -6,12 +6,16 @@ import com.dongsoop.dongsoop.notification.setting.entity.NotificationSetting;
 
 public class SettingDelete extends SettingChanges {
 
-    public SettingDelete(NotificationSetting setting, MemberDevice device, NotificationType type, boolean targetState) {
-        super(setting, device, type, targetState);
-    }
+  public SettingDelete(
+      NotificationSetting setting,
+      MemberDevice device,
+      NotificationType type,
+      boolean targetState) {
+    super(setting, device, type, targetState);
+  }
 
-    @Override
-    public String getTypeName() {
-        return "Deleted";
-    }
+  @Override
+  public String getTypeName() {
+    return "Deleted";
+  }
 }

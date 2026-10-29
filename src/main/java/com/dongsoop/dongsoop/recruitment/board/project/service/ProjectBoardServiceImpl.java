@@ -32,104 +32,108 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ProjectBoardServiceImpl implements ProjectBoardService {
 
-    private final ProjectBoardRepository projectBoardRepository;
-    private final ProjectBoardRepositoryCustom projectBoardRepositoryCustom;
-    private final MemberService memberService;
-    private final DepartmentRepository departmentRepository;
-    private final ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
-    private final ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
-    private final ChatService chatService;
-    private final ChatRoomService chatRoomService;
-    private final ChatCommonUtils chatCommonUtils;
+  private final ProjectBoardRepository projectBoardRepository;
+  private final ProjectBoardRepositoryCustom projectBoardRepositoryCustom;
+  private final MemberService memberService;
+  private final DepartmentRepository departmentRepository;
+  private final ProjectBoardDepartmentRepository projectBoardDepartmentRepository;
+  private final ProjectApplyRepositoryCustom projectApplyRepositoryCustom;
+  private final ChatService chatService;
+  private final ChatRoomService chatRoomService;
+  private final ChatCommonUtils chatCommonUtils;
 
-    @Transactional
-    public ProjectBoard create(CreateProjectBoardRequest request) {
-        ProjectBoard projectBoardToSave = transformToProjectBoard(request);
-        List<Department> departmentList = getDepartmentReferenceList(request.departmentTypeList());
+  @Transactional
+  public ProjectBoard create(CreateProjectBoardRequest request) {
+    ProjectBoard projectBoardToSave = transformToProjectBoard(request);
+    List<Department> departmentList = getDepartmentReferenceList(request.departmentTypeList());
 
-        ProjectBoard savedBoard = projectBoardRepository.save(projectBoardToSave);
-        createAndLinkChatRoom(savedBoard);
+    ProjectBoard savedBoard = projectBoardRepository.save(projectBoardToSave);
+    createAndLinkChatRoom(savedBoard);
 
-        List<ProjectBoardDepartment> projectBoardDepartmentList = departmentList.stream()
-                .map(department -> new ProjectBoardDepartment(savedBoard, department))
-                .toList();
+    List<ProjectBoardDepartment> projectBoardDepartmentList =
+        departmentList.stream()
+            .map(department -> new ProjectBoardDepartment(savedBoard, department))
+            .toList();
 
-        projectBoardDepartmentRepository.saveAll(projectBoardDepartmentList);
-        return savedBoard;
+    projectBoardDepartmentRepository.saveAll(projectBoardDepartmentList);
+    return savedBoard;
+  }
+
+  private void createAndLinkChatRoom(ProjectBoard projectBoard) {
+    Member author = projectBoard.getAuthor();
+    String chatRoomTitle = String.format("[프로젝트] %s", projectBoard.getTitle());
+    Set<Long> initialParticipants = Set.of(author.getId());
+
+    ChatRoom chatRoom =
+        chatRoomService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
+
+    projectBoard.assignChatRoom(chatRoom.getRoomId());
+    chatCommonUtils.saveRecruitmentEndAt(chatRoom.getRoomId(), projectBoard.getEndAt());
+  }
+
+  public List<RecruitmentOverview> getBoardByPageAndDepartmentType(
+      DepartmentType departmentType, Pageable pageable) {
+    return projectBoardRepositoryCustom.findProjectBoardOverviewsByPageAndDepartmentType(
+        departmentType, pageable);
+  }
+
+  public List<RecruitmentOverview> getBoardByPage(Pageable pageable) {
+    return projectBoardRepositoryCustom.findProjectBoardOverviewsByPage(pageable);
+  }
+
+  public RecruitmentDetails getBoardDetailsById(Long boardId) {
+    try {
+      Long memberId = memberService.getMemberIdByAuthentication();
+      boolean isOwner = projectBoardRepository.existsByIdAndAuthorId(boardId, memberId);
+      if (isOwner) {
+        return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
+      }
+
+      boolean isAlreadyApplied =
+          projectApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
+
+      return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
+    } catch (NotAuthenticationException exception) {
+      return getBoardDetailsWithViewType(boardId, RecruitmentViewType.GUEST);
+    }
+  }
+
+  private RecruitmentDetails getBoardDetailsWithViewType(
+      Long boardId, RecruitmentViewType viewType, boolean isAlreadyApplied) {
+    return projectBoardRepositoryCustom
+        .findBoardDetailsByIdAndViewType(boardId, viewType, isAlreadyApplied)
+        .orElseThrow(() -> new ProjectBoardNotFound(boardId));
+  }
+
+  private RecruitmentDetails getBoardDetailsWithViewType(
+      Long boardId, RecruitmentViewType viewType) {
+    return getBoardDetailsWithViewType(boardId, viewType, false);
+  }
+
+  private ProjectBoard transformToProjectBoard(CreateProjectBoardRequest request) {
+    Member member = memberService.getMemberReferenceByContext();
+
+    return ProjectBoard.builder()
+        .title(request.title())
+        .content(request.content())
+        .startAt(request.startAt())
+        .endAt(request.endAt())
+        .tags(request.tags())
+        .author(member)
+        .build();
+  }
+
+  private List<Department> getDepartmentReferenceList(List<DepartmentType> departmentTypeList) {
+    return departmentTypeList.stream().map(departmentRepository::getReferenceById).toList();
+  }
+
+  @Override
+  public void deleteBoardById(Long boardId) {
+    Long requesterId = memberService.getMemberIdByAuthentication();
+    if (!projectBoardRepository.existsByIdAndAuthorId(boardId, requesterId)) {
+      throw new ProjectBoardNotFound(boardId, requesterId);
     }
 
-    private void createAndLinkChatRoom(ProjectBoard projectBoard) {
-        Member author = projectBoard.getAuthor();
-        String chatRoomTitle = String.format("[프로젝트] %s", projectBoard.getTitle());
-        Set<Long> initialParticipants = Set.of(author.getId());
-
-        ChatRoom chatRoom = chatRoomService.createGroupChatRoom(author.getId(), initialParticipants, chatRoomTitle);
-
-        projectBoard.assignChatRoom(chatRoom.getRoomId());
-        chatCommonUtils.saveRecruitmentEndAt(chatRoom.getRoomId(), projectBoard.getEndAt());
-    }
-
-    public List<RecruitmentOverview> getBoardByPageAndDepartmentType(DepartmentType departmentType,
-                                                                     Pageable pageable) {
-        return projectBoardRepositoryCustom.findProjectBoardOverviewsByPageAndDepartmentType(departmentType, pageable);
-    }
-
-    public List<RecruitmentOverview> getBoardByPage(Pageable pageable) {
-        return projectBoardRepositoryCustom.findProjectBoardOverviewsByPage(pageable);
-    }
-
-    public RecruitmentDetails getBoardDetailsById(Long boardId) {
-        try {
-            Long memberId = memberService.getMemberIdByAuthentication();
-            boolean isOwner = projectBoardRepository.existsByIdAndAuthorId(boardId, memberId);
-            if (isOwner) {
-                return getBoardDetailsWithViewType(boardId, RecruitmentViewType.OWNER);
-            }
-
-            boolean isAlreadyApplied = projectApplyRepositoryCustom.existsByBoardIdAndMemberId(boardId, memberId);
-
-            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.MEMBER, isAlreadyApplied);
-        } catch (NotAuthenticationException exception) {
-            return getBoardDetailsWithViewType(boardId, RecruitmentViewType.GUEST);
-        }
-    }
-
-    private RecruitmentDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType,
-                                                           boolean isAlreadyApplied) {
-        return projectBoardRepositoryCustom.findBoardDetailsByIdAndViewType(boardId, viewType, isAlreadyApplied)
-                .orElseThrow(() -> new ProjectBoardNotFound(boardId));
-    }
-
-    private RecruitmentDetails getBoardDetailsWithViewType(Long boardId, RecruitmentViewType viewType) {
-        return getBoardDetailsWithViewType(boardId, viewType, false);
-    }
-
-    private ProjectBoard transformToProjectBoard(CreateProjectBoardRequest request) {
-        Member member = memberService.getMemberReferenceByContext();
-
-        return ProjectBoard.builder()
-                .title(request.title())
-                .content(request.content())
-                .startAt(request.startAt())
-                .endAt(request.endAt())
-                .tags(request.tags())
-                .author(member)
-                .build();
-    }
-
-    private List<Department> getDepartmentReferenceList(List<DepartmentType> departmentTypeList) {
-        return departmentTypeList.stream()
-                .map(departmentRepository::getReferenceById)
-                .toList();
-    }
-
-    @Override
-    public void deleteBoardById(Long boardId) {
-        Long requesterId = memberService.getMemberIdByAuthentication();
-        if (!projectBoardRepository.existsByIdAndAuthorId(boardId, requesterId)) {
-            throw new ProjectBoardNotFound(boardId, requesterId);
-        }
-
-        projectBoardRepository.deleteById(boardId);
-    }
+    projectBoardRepository.deleteById(boardId);
+  }
 }

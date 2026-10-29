@@ -26,40 +26,43 @@ import org.springframework.test.context.ActiveProfiles;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import(OfficialScheduleProjectionIntegrationTest.QueryConfig.class)
 class OfficialScheduleProjectionIntegrationTest extends AbstractIntegrationTest {
-    @Autowired private OfficialScheduleRepository repository;
-    @Autowired private EntityManager entityManager;
+  @Autowired private OfficialScheduleRepository repository;
+  @Autowired private EntityManager entityManager;
 
-    @TestConfiguration
-    static class QueryConfig {
-        @Bean
-        JPAQueryFactory queryFactory(EntityManager entityManager) {
-            return new JPAQueryFactory(entityManager);
-        }
+  @TestConfiguration
+  static class QueryConfig {
+    @Bean
+    JPAQueryFactory queryFactory(EntityManager entityManager) {
+      return new JPAQueryFactory(entityManager);
     }
+  }
 
-    @Test
-    void preservesDateFilterDistinctRangeAndAllDayResponse() {
-        LocalDate today = LocalDate.of(2026, 10, 14);
-        save("공식 일정", today, today);
-        save("공식 일정", today, today);
-        save("공식 일정", today, today.plusDays(1));
-        save("다음날 일정", today.plusDays(1), today.plusDays(1));
-        entityManager.flush();
-        entityManager.clear();
+  @Test
+  void preservesDateFilterDistinctRangeAndAllDayResponse() {
+    LocalDate today = LocalDate.of(2026, 10, 14);
+    save("공식 일정", today, today);
+    save("공식 일정", today, today);
+    save("공식 일정", today, today.plusDays(1));
+    save("다음날 일정", today.plusDays(1), today.plusDays(1));
+    entityManager.flush();
+    entityManager.clear();
 
-        List<HomeSchedule> schedules = repository.searchHomeSchedule(today);
+    List<HomeSchedule> schedules = repository.searchHomeSchedule(today);
 
-        // 같은 제목이어도 날짜 범위가 다르면 별도 행이며, 같은 범위의 중복만 제거한다.
-        assertThat(schedules).hasSize(2).allSatisfy(schedule -> {
-            assertThat(schedule.title()).isEqualTo("공식 일정");
-            assertThat(schedule.startAt()).isEqualTo(LocalTime.MIN);
-            assertThat(schedule.endAt()).isEqualTo(LocalTime.MAX);
-            assertThat(schedule.type()).isEqualTo(ScheduleType.OFFICIAL);
-        });
-        assertThat(repository.searchHomeSchedule(today.minusDays(1))).isEmpty();
-    }
+    // 같은 제목이어도 날짜 범위가 다르면 별도 행이며, 같은 범위의 중복만 제거한다.
+    assertThat(schedules)
+        .hasSize(2)
+        .allSatisfy(
+            schedule -> {
+              assertThat(schedule.title()).isEqualTo("공식 일정");
+              assertThat(schedule.startAt()).isEqualTo(LocalTime.MIN);
+              assertThat(schedule.endAt()).isEqualTo(LocalTime.MAX);
+              assertThat(schedule.type()).isEqualTo(ScheduleType.OFFICIAL);
+            });
+    assertThat(repository.searchHomeSchedule(today.minusDays(1))).isEmpty();
+  }
 
-    private void save(String title, LocalDate startAt, LocalDate endAt) {
-        repository.save(OfficialSchedule.builder().title(title).startAt(startAt).endAt(endAt).build());
-    }
+  private void save(String title, LocalDate startAt, LocalDate endAt) {
+    repository.save(OfficialSchedule.builder().title(title).startAt(startAt).endAt(endAt).build());
+  }
 }

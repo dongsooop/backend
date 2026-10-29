@@ -5,13 +5,8 @@ import jakarta.validation.constraints.Positive;
 import java.util.List;
 
 public record UpdateMarketplaceBoardRequest(
-
-        String title,
-        String content,
-
-        @Positive
-        Long price,
-        List<String> deleteImageUrls,
-        MarketplaceType type
-) {
-}
+    String title,
+    String content,
+    @Positive Long price,
+    List<String> deleteImageUrls,
+    MarketplaceType type) {}

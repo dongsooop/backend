@@ -16,31 +16,30 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class NotificationSettingId implements Serializable {
 
-    @Serial
-    private static final long serialVersionUID = 1L;
+  @Serial private static final long serialVersionUID = 1L;
 
-    @Column(name = "member_device_id", nullable = false, updatable = false)
-    private Long deviceId;
+  @Column(name = "member_device_id", nullable = false, updatable = false)
+  private Long deviceId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "notification_type", nullable = false, updatable = false)
-    private NotificationType notificationType;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "notification_type", nullable = false, updatable = false)
+  private NotificationType notificationType;
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        NotificationSettingId that = (NotificationSettingId) o;
-        return Objects.equals(this.deviceId, that.deviceId)
-                && Objects.equals(this.notificationType, that.notificationType);
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(this.deviceId, this.notificationType);
+    if (o == null || getClass() != o.getClass()) {
+      return false;
     }
+    NotificationSettingId that = (NotificationSettingId) o;
+    return Objects.equals(this.deviceId, that.deviceId)
+        && Objects.equals(this.notificationType, that.notificationType);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(this.deviceId, this.notificationType);
+  }
 }

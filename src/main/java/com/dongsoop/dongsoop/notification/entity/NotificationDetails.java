@@ -26,20 +26,22 @@ import org.hibernate.annotations.SQLRestriction;
 @SequenceGenerator(name = "notification_details_sequence_generator")
 public class NotificationDetails extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "notification_details_sequence_generator")
-    private Long id;
+  @Id
+  @GeneratedValue(
+      strategy = GenerationType.SEQUENCE,
+      generator = "notification_details_sequence_generator")
+  private Long id;
 
-    @Column(name = "title", nullable = false)
-    private String title;
+  @Column(name = "title", nullable = false)
+  private String title;
 
-    @Column(name = "body", nullable = false)
-    private String body;
+  @Column(name = "body", nullable = false)
+  private String body;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false)
-    private NotificationType type;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "type", nullable = false)
+  private NotificationType type;
 
-    @Column(name = "\"value\"", nullable = false)
-    private String value;
+  @Column(name = "\"value\"", nullable = false)
+  private String value;
 }

@@ -7,9 +7,9 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
 import com.dongsoop.dongsoop.department.entity.Department;
 import com.dongsoop.dongsoop.department.entity.DepartmentType;
-import com.dongsoop.dongsoop.appcheck.FirebaseAppCheck;
 import com.dongsoop.dongsoop.jwt.filter.JwtFilter;
 import com.dongsoop.dongsoop.memberdevice.service.MemberDeviceService;
 import com.dongsoop.dongsoop.memberdevice.util.DeviceUtil;
@@ -40,111 +40,98 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 @AutoConfigureMockMvc(addFilters = false)
 class TutoringBoardStartAtTest {
 
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+  private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
-    private final JSONObject json = new JSONObject();
+  private final JSONObject json = new JSONObject();
 
-    private static final String REQUEST_URL = "/tutoring-board";
+  private static final String REQUEST_URL = "/tutoring-board";
 
-    @Autowired
-    private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-    @MockitoBean
-    private TutoringBoardServiceImpl tutoringBoardService;
+  @MockitoBean private TutoringBoardServiceImpl tutoringBoardService;
 
-    @MockitoBean
-    private JwtFilter jwtFilter;
-    @MockitoBean
-    private FirebaseAppCheck firebaseAppCheck;
-    @MockitoBean
-    private DeviceUtil deviceUtil;
-    @MockitoBean
-    private MemberDeviceService memberDeviceService;
+  @MockitoBean private JwtFilter jwtFilter;
+  @MockitoBean private FirebaseAppCheck firebaseAppCheck;
+  @MockitoBean private DeviceUtil deviceUtil;
+  @MockitoBean private MemberDeviceService memberDeviceService;
 
-    @BeforeEach
-    void setUp() throws JSONException {
-        json.put("title", "title");
-        json.put("tags", "tags");
-        json.put("content", "content");
-        JSONArray departmentTypeList = new JSONArray();
-        departmentTypeList.put(DepartmentType.DEPT_2001.name());
-        json.put("departmentTypeList", departmentTypeList);
-    }
+  @BeforeEach
+  void setUp() throws JSONException {
+    json.put("title", "title");
+    json.put("tags", "tags");
+    json.put("content", "content");
+    JSONArray departmentTypeList = new JSONArray();
+    departmentTypeList.put(DepartmentType.DEPT_2001.name());
+    json.put("departmentTypeList", departmentTypeList);
+  }
 
-    @Test
-    @DisplayName("모집 게시판 생성 시 모집 시작일이 과거일 경우 예외를 던진다")
-    void startRecruitment_WithPast_ShouldThrowException() throws Exception {
-        // given
-        json.put("startAt", LocalDateTime.of(1999, 10, 1, 0, 0, 0));
-        json.put("endAt", LocalDateTime.of(1999, 10, 30, 23, 59, 59));
+  @Test
+  @DisplayName("모집 게시판 생성 시 모집 시작일이 과거일 경우 예외를 던진다")
+  void startRecruitment_WithPast_ShouldThrowException() throws Exception {
+    // given
+    json.put("startAt", LocalDateTime.of(1999, 10, 1, 0, 0, 0));
+    json.put("endAt", LocalDateTime.of(1999, 10, 30, 23, 59, 59));
 
-        // when
-        MockHttpServletRequestBuilder content = post(REQUEST_URL)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(json.toString());
+    // when
+    MockHttpServletRequestBuilder content =
+        post(REQUEST_URL).contentType(MediaType.APPLICATION_JSON).content(json.toString());
 
-        // then
-        MvcResult result = mockMvc.perform(content)
-                .andExpect(status().isBadRequest())
-                .andReturn();
+    // then
+    MvcResult result = mockMvc.perform(content).andExpect(status().isBadRequest()).andReturn();
 
-        Throwable throwable = result.getResolvedException();
-        assertNotNull(throwable);
-        assertInstanceOf(MethodArgumentNotValidException.class, throwable);
-    }
+    Throwable throwable = result.getResolvedException();
+    assertNotNull(throwable);
+    assertInstanceOf(MethodArgumentNotValidException.class, throwable);
+  }
 
-    @Test
-    @DisplayName("모집 게시판 생성 시 모집 시작일이 오늘일 경우 성공 상태를 반환한다")
-    void startRecruitment_WithToday_ShouldResponseSuccess() throws Exception {
-        // given
-        DepartmentType departmentType = DepartmentType.DEPT_2001;
-        Department department = new Department(departmentType, null, null);
+  @Test
+  @DisplayName("모집 게시판 생성 시 모집 시작일이 오늘일 경우 성공 상태를 반환한다")
+  void startRecruitment_WithToday_ShouldResponseSuccess() throws Exception {
+    // given
+    DepartmentType departmentType = DepartmentType.DEPT_2001;
+    Department department = new Department(departmentType, null, null);
 
-        TutoringBoard tutoringBoard = TutoringBoard.builder()
-                .id(1L)
-                .title("title")
-                .content("content")
-                .tags("tags")
-                .startAt(LocalDate.now(KST).atStartOfDay())
-                .endAt(LocalDate.now(KST).atStartOfDay())
-                .department(department)
-                .build();
+    TutoringBoard tutoringBoard =
+        TutoringBoard.builder()
+            .id(1L)
+            .title("title")
+            .content("content")
+            .tags("tags")
+            .startAt(LocalDate.now(KST).atStartOfDay())
+            .endAt(LocalDate.now(KST).atStartOfDay())
+            .department(department)
+            .build();
 
-        when(tutoringBoardService.create(any(CreateTutoringBoardRequest.class)))
-                .thenReturn(tutoringBoard);
+    when(tutoringBoardService.create(any(CreateTutoringBoardRequest.class)))
+        .thenReturn(tutoringBoard);
 
-        json.put("startAt", LocalDate.now(KST).atStartOfDay());
-        json.put("endAt", LocalDate.now(KST).atStartOfDay().plusDays(1));
+    json.put("startAt", LocalDate.now(KST).atStartOfDay());
+    json.put("endAt", LocalDate.now(KST).atStartOfDay().plusDays(1));
 
-        // when
-        MockHttpServletRequestBuilder httpContent = post(REQUEST_URL)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(json.toString());
+    // when
+    MockHttpServletRequestBuilder httpContent =
+        post(REQUEST_URL).contentType(MediaType.APPLICATION_JSON).content(json.toString());
 
-        // then
-        mockMvc.perform(httpContent)
-                .andExpect(status().isCreated());
-    }
+    // then
+    mockMvc.perform(httpContent).andExpect(status().isCreated());
+  }
 
-    @Test
-    @DisplayName("모집 게시판 생성 시 모집 시작일이 null인 경우 예외를 던진다")
-    void startRecruitment_WithNull_ShouldThrowException() throws Exception {
-        // given
-        json.put("startAt", JSONObject.NULL);
-        json.put("endAt", JSONObject.NULL);
+  @Test
+  @DisplayName("모집 게시판 생성 시 모집 시작일이 null인 경우 예외를 던진다")
+  void startRecruitment_WithNull_ShouldThrowException() throws Exception {
+    // given
+    json.put("startAt", JSONObject.NULL);
+    json.put("endAt", JSONObject.NULL);
 
-        // when
-        MockHttpServletRequestBuilder content = post(REQUEST_URL)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(json.toString());
+    // when
+    MockHttpServletRequestBuilder content =
+        post(REQUEST_URL).contentType(MediaType.APPLICATION_JSON).content(json.toString());
 
-        // then
-        MvcResult result = mockMvc.perform(content)
-                .andExpect(status().isBadRequest())
-                .andReturn();
+    // then
+    MvcResult result = mockMvc.perform(content).andExpect(status().isBadRequest()).andReturn();
 
-        Throwable throwable = result.getResolvedException();
-        assertNotNull(throwable);
-        assertInstanceOf(MethodArgumentNotValidException.class, throwable);
-    }
+    Throwable throwable = result.getResolvedException();
+    assertNotNull(throwable);
+    assertInstanceOf(MethodArgumentNotValidException.class, throwable);
+  }
 }

@@ -8,19 +8,20 @@ import java.util.List;
 
 public interface FCMService {
 
-    void sendToTopic(String topic, NotificationSend notificationSend);
+  void sendToTopic(String topic, NotificationSend notificationSend);
 
-    void subscribeTopic(List<String> token, String topic);
+  void subscribeTopic(List<String> token, String topic);
 
-    void unsubscribeTopic(List<String> token, String topic);
+  void unsubscribeTopic(List<String> token, String topic);
 
-    void sendNotification(List<String> fcmTokenList, NotificationSend notificationSend, Integer badge);
+  void sendNotification(
+      List<String> fcmTokenList, NotificationSend notificationSend, Integer badge);
 
-    void sendMessages(MulticastMessage message, List<String> tokens);
+  void sendMessages(MulticastMessage message, List<String> tokens);
 
-    void sendMessage(Message message);
+  void sendMessage(Message message);
 
-    void updateNotificationBadge(List<String> deviceTokens, int badge);
+  void updateNotificationBadge(List<String> deviceTokens, int badge);
 
-    void sendSilentMessage(String deviceToken, FcmSilentType type);
+  void sendSilentMessage(String deviceToken, FcmSilentType type);
 }

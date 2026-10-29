@@ -25,111 +25,111 @@ import org.springframework.util.StringUtils;
 @Component
 @RequiredArgsConstructor
 public class StompHandler implements ChannelInterceptor {
-    private static final String PREFIX = "Bearer";
-    private static final Integer TOKEN_START_INDEX = 7;
+  private static final String PREFIX = "Bearer";
+  private static final Integer TOKEN_START_INDEX = 7;
 
-    private final JwtValidator jwtValidator;
-    private final JwtUtil jwtUtil;
-    private final WebSocketSessionManager sessionManager;
-    private final DeviceBlacklistService deviceBlacklistService;
+  private final JwtValidator jwtValidator;
+  private final JwtUtil jwtUtil;
+  private final WebSocketSessionManager sessionManager;
+  private final DeviceBlacklistService deviceBlacklistService;
 
-    @Override
-    @Nullable
-    @SuppressWarnings("java:S2638") // SONARJAVA-5865: Spring @NonNullApi and @Nullable override false positive
-    public Message<?> preSend(Message<?> message, MessageChannel channel) {
-        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+  @Override
+  @Nullable
+  @SuppressWarnings(
+      "java:S2638") // SONARJAVA-5865: Spring @NonNullApi and @Nullable override false positive
+  public Message<?> preSend(Message<?> message, MessageChannel channel) {
+    StompHeaderAccessor accessor =
+        MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-        if (accessor == null) {
-            return message;
-        }
-        processCommand(accessor, accessor.getCommand());
-        return message;
+    if (accessor == null) {
+      return message;
+    }
+    processCommand(accessor, accessor.getCommand());
+    return message;
+  }
+
+  private void processCommand(StompHeaderAccessor accessor, StompCommand command) {
+    if (StompCommand.CONNECT == command) {
+      authenticateConnection(accessor);
+    }
+    if (StompCommand.DISCONNECT == command) {
+      handleDisconnect(accessor);
+    }
+  }
+
+  private void authenticateConnection(StompHeaderAccessor accessor) {
+    String token = extractToken(accessor);
+    validateToken(token);
+    setAuthentication(accessor, token);
+
+    Long userId = getUserIdFromToken(token);
+    Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
+    if (sessionAttributes != null) {
+      sessionAttributes.put("memberId", userId);
     }
 
-    private void processCommand(StompHeaderAccessor accessor, StompCommand command) {
-        if (StompCommand.CONNECT == command) {
-            authenticateConnection(accessor);
-        }
-        if (StompCommand.DISCONNECT == command) {
-            handleDisconnect(accessor);
-        }
+    String sessionId = accessor.getSessionId();
+
+    if (sessionId != null) {
+      sessionManager.addUserSession(userId, sessionId);
+    }
+  }
+
+  private void handleDisconnect(StompHeaderAccessor accessor) {
+    String sessionId = accessor.getSessionId();
+    if (sessionId != null) {
+      sessionManager.removeSession(sessionId);
+    }
+  }
+
+  private Long getUserIdFromToken(String token) {
+    return jwtUtil.getTokenInformation(token).getId();
+  }
+
+  private String extractToken(StompHeaderAccessor accessor) {
+    String tokenHeader = accessor.getFirstNativeHeader("Authorization");
+    return extractTokenFromHeader(tokenHeader);
+  }
+
+  private String extractTokenFromHeader(String tokenHeader) {
+    boolean isInvalidToken =
+        !StringUtils.hasText(tokenHeader)
+            || tokenHeader.length() <= TOKEN_START_INDEX
+            || !tokenHeader.startsWith(PREFIX);
+
+    if (isInvalidToken) {
+      throw new UnauthorizedChatAccessException();
     }
 
-    private void authenticateConnection(StompHeaderAccessor accessor) {
-        String token = extractToken(accessor);
-        validateToken(token);
-        setAuthentication(accessor, token);
+    return tokenHeader.substring(TOKEN_START_INDEX);
+  }
 
-        Long userId = getUserIdFromToken(token);
-        Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
-        if (sessionAttributes != null) {
-            sessionAttributes.put("memberId", userId);
-        }
+  private void validateToken(String token) {
+    try {
+      Claims claims = jwtUtil.getClaims(token);
+      jwtValidator.validate(claims);
 
-        String sessionId = accessor.getSessionId();
-
-        if (sessionId != null) {
-            sessionManager.addUserSession(userId, sessionId);
-        }
+      // HTTP 요청(JwtFilter)과 같이 로그아웃·정지로 블랙리스트된 디바이스의 토큰은 연결을 거절한다
+      Long deviceId = claims.get(JwtUtil.DEVICE_ID_CLAIM, Long.class);
+      if (deviceId != null) {
+        deviceBlacklistService.validateNotBlacklisted(deviceId, JwtUtil.getIssuedAt(claims));
+      }
+    } catch (Exception e) {
+      throw new UnauthorizedChatAccessException(e);
     }
+  }
 
-    private void handleDisconnect(StompHeaderAccessor accessor) {
-        String sessionId = accessor.getSessionId();
-        if (sessionId != null) {
-            sessionManager.removeSession(sessionId);
-        }
+  private void setAuthentication(StompHeaderAccessor accessor, String token) {
+    try {
+      AuthenticationInformationByToken tokenInfo = jwtUtil.getTokenInformation(token);
+
+      Authentication authentication =
+          new UsernamePasswordAuthenticationToken(tokenInfo.getId(), null, tokenInfo.getRole());
+
+      accessor.setUser(authentication);
+      SecurityContextHolder.getContext().setAuthentication(authentication);
+    } catch (Exception e) {
+      throw new UnauthorizedChatAccessException(e);
     }
-
-    private Long getUserIdFromToken(String token) {
-        return jwtUtil.getTokenInformation(token).getId();
-    }
-
-    private String extractToken(StompHeaderAccessor accessor) {
-        String tokenHeader = accessor.getFirstNativeHeader("Authorization");
-        return extractTokenFromHeader(tokenHeader);
-    }
-
-    private String extractTokenFromHeader(String tokenHeader) {
-        boolean isInvalidToken = !StringUtils.hasText(tokenHeader) ||
-                tokenHeader.length() <= TOKEN_START_INDEX ||
-                !tokenHeader.startsWith(PREFIX);
-
-        if (isInvalidToken) {
-            throw new UnauthorizedChatAccessException();
-        }
-
-        return tokenHeader.substring(TOKEN_START_INDEX);
-    }
-
-    private void validateToken(String token) {
-        try {
-            Claims claims = jwtUtil.getClaims(token);
-            jwtValidator.validate(claims);
-
-            // HTTP 요청(JwtFilter)과 같이 로그아웃·정지로 블랙리스트된 디바이스의 토큰은 연결을 거절한다
-            Long deviceId = claims.get(JwtUtil.DEVICE_ID_CLAIM, Long.class);
-            if (deviceId != null) {
-                deviceBlacklistService.validateNotBlacklisted(deviceId, JwtUtil.getIssuedAt(claims));
-            }
-        } catch (Exception e) {
-            throw new UnauthorizedChatAccessException(e);
-        }
-    }
-
-    private void setAuthentication(StompHeaderAccessor accessor, String token) {
-        try {
-            AuthenticationInformationByToken tokenInfo = jwtUtil.getTokenInformation(token);
-
-            Authentication authentication = new UsernamePasswordAuthenticationToken(
-                    tokenInfo.getId(),
-                    null,
-                    tokenInfo.getRole()
-            );
-
-            accessor.setUser(authentication);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-        } catch (Exception e) {
-            throw new UnauthorizedChatAccessException(e);
-        }
-    }
+  }
 }

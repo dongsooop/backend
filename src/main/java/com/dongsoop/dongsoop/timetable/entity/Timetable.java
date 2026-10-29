@@ -29,62 +29,62 @@ import org.hibernate.annotations.SQLRestriction;
 @SQLDelete(sql = "UPDATE timetable SET is_deleted = true WHERE id = ?")
 public class Timetable extends BaseEntity {
 
-    @Id
-    @GeneratedValue(generator = "timetable_sequence_generator")
-    private Long id;
+  @Id
+  @GeneratedValue(generator = "timetable_sequence_generator")
+  private Long id;
 
-    @Column(name = "name", length = 15, nullable = false)
-    private String name;
+  @Column(name = "name", length = 15, nullable = false)
+  private String name;
 
-    @Column(name = "professor", length = 8)
-    private String professor;
+  @Column(name = "professor", length = 8)
+  private String professor;
 
-    @Column(name = "location", length = 10)
-    private String location;
+  @Column(name = "location", length = 10)
+  private String location;
 
-    @Column(name = "week", nullable = false)
-    private DayOfWeek week;
+  @Column(name = "week", nullable = false)
+  private DayOfWeek week;
 
-    @Column(name = "start_at", nullable = false)
-    private LocalTime startAt;
+  @Column(name = "start_at", nullable = false)
+  private LocalTime startAt;
 
-    @Column(name = "end_at", nullable = false)
-    private LocalTime endAt;
+  @Column(name = "end_at", nullable = false)
+  private LocalTime endAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false, updatable = false)
-    private Member member;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "member_id", nullable = false, updatable = false)
+  private Member member;
 
-    @Column(name = "\"year\"", nullable = false, updatable = false)
-    private Year year;
+  @Column(name = "\"year\"", nullable = false, updatable = false)
+  private Year year;
 
-    @Column(name = "semester", nullable = false, updatable = false)
-    @Enumerated(EnumType.STRING)
-    private SemesterType semester;
+  @Column(name = "semester", nullable = false, updatable = false)
+  @Enumerated(EnumType.STRING)
+  private SemesterType semester;
 
-    public void update(UpdateTimetableRequest request) {
-        if (request.name() != null) {
-            this.name = request.name();
-        }
-
-        if (request.professor() != null) {
-            this.professor = request.professor();
-        }
-
-        if (request.location() != null) {
-            this.location = request.location();
-        }
-
-        if (request.week() != null) {
-            this.week = request.week();
-        }
-
-        if (request.startAt() != null) {
-            this.startAt = request.startAt();
-        }
-
-        if (request.endAt() != null) {
-            this.endAt = request.endAt();
-        }
+  public void update(UpdateTimetableRequest request) {
+    if (request.name() != null) {
+      this.name = request.name();
     }
+
+    if (request.professor() != null) {
+      this.professor = request.professor();
+    }
+
+    if (request.location() != null) {
+      this.location = request.location();
+    }
+
+    if (request.week() != null) {
+      this.week = request.week();
+    }
+
+    if (request.startAt() != null) {
+      this.startAt = request.startAt();
+    }
+
+    if (request.endAt() != null) {
+      this.endAt = request.endAt();
+    }
+  }
 }

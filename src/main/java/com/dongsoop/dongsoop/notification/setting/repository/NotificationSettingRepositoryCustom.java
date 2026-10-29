@@ -5,5 +5,5 @@ import java.util.List;
 
 public interface NotificationSettingRepositoryCustom {
 
-    List<NotificationActiveStatus> findByDeviceToken(String deviceToken);
+  List<NotificationActiveStatus> findByDeviceToken(String deviceToken);
 }

@@ -25,24 +25,26 @@ import lombok.NoArgsConstructor;
 @Table(name = "notice_keyword")
 public class NoticeKeyword extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "notice_keyword_sequence_generator")
-    private Long id;
+  @Id
+  @GeneratedValue(
+      strategy = GenerationType.SEQUENCE,
+      generator = "notice_keyword_sequence_generator")
+  private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_device_id", nullable = false)
-    private MemberDevice device;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "member_device_id", nullable = false)
+  private MemberDevice device;
 
-    @Column(name = "keyword", length = 20, nullable = false)
-    private String keyword;
+  @Column(name = "keyword", length = 20, nullable = false)
+  private String keyword;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false)
-    private NoticeKeywordType type;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "type", nullable = false)
+  private NoticeKeywordType type;
 
-    public NoticeKeyword(MemberDevice device, String keyword, NoticeKeywordType type) {
-        this.device = device;
-        this.keyword = keyword;
-        this.type = type;
-    }
+  public NoticeKeyword(MemberDevice device, String keyword, NoticeKeywordType type) {
+    this.device = device;
+    this.keyword = keyword;
+    this.type = type;
+  }
 }

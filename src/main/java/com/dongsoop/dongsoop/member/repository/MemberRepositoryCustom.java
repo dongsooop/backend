@@ -9,11 +9,11 @@ import java.util.Optional;
 
 public interface MemberRepositoryCustom {
 
-    Member findAndLockById(Long memberId);
+  Member findAndLockById(Long memberId);
 
-    Optional<LoginMemberDetails> findLoginMemberDetailById(Long id);
+  Optional<LoginMemberDetails> findLoginMemberDetailById(Long id);
 
-    long softDelete(DeleteMember deleteMember);
+  long softDelete(DeleteMember deleteMember);
 
-    List<Member> findByRoleTypeWithDevice(RoleType roleType);
+  List<Member> findByRoleTypeWithDevice(RoleType roleType);
 }

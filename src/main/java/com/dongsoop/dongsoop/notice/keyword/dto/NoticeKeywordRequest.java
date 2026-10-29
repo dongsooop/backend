@@ -6,12 +6,4 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record NoticeKeywordRequest(
-
-        @NotBlank
-        @Size(max = 20)
-        String keyword,
-
-        @NotNull
-        NoticeKeywordType type
-) {
-}
+    @NotBlank @Size(max = 20) String keyword, @NotNull NoticeKeywordType type) {}

@@ -15,60 +15,60 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class JwtValidator {
 
-    @Value("${jwt.claims.role.name}")
-    private String roleClaimName;
+  @Value("${jwt.claims.role.name}")
+  private String roleClaimName;
 
-    @Value("${jwt.claims.type.name}")
-    private String typeClaimName;
+  @Value("${jwt.claims.type.name}")
+  private String typeClaimName;
 
-    public void validate(Claims claims) {
-        // 요청자 ID 검사
-        String subject = claims.getSubject();
-        if (!StringUtils.hasText(subject) || !subject.matches("\\d+")) {
-            throw new TokenMalformedException();
-        }
-
-        // 토큰 내용 검사
-        validateClaims(claims);
+  public void validate(Claims claims) {
+    // 요청자 ID 검사
+    String subject = claims.getSubject();
+    if (!StringUtils.hasText(subject) || !subject.matches("\\d+")) {
+      throw new TokenMalformedException();
     }
 
-    private void validateClaims(Claims claims) {
-        List<?> auth = claims.get(roleClaimName, List.class);
+    // 토큰 내용 검사
+    validateClaims(claims);
+  }
 
-        if (auth == null || auth.isEmpty()) {
-            throw new TokenRoleNotAvailableException();
-        }
+  private void validateClaims(Claims claims) {
+    List<?> auth = claims.get(roleClaimName, List.class);
 
-        // 타입 체크 시 JWTType enum에 존재하지 않는 경우 IllegalArgumentException 발생
-        validateTokenType(claims);
+    if (auth == null || auth.isEmpty()) {
+      throw new TokenRoleNotAvailableException();
     }
 
-    private JWTType validateTokenType(Claims claims) {
-        try {
-            String type = claims.get(typeClaimName, String.class);
-            if (!StringUtils.hasText(type)) {
-                throw new TokenMalformedException();
-            }
+    // 타입 체크 시 JWTType enum에 존재하지 않는 경우 IllegalArgumentException 발생
+    validateTokenType(claims);
+  }
 
-            return JWTType.valueOf(type);
-        } catch (IllegalArgumentException exception) {
-            throw new TokenMalformedException();
-        }
+  private JWTType validateTokenType(Claims claims) {
+    try {
+      String type = claims.get(typeClaimName, String.class);
+      if (!StringUtils.hasText(type)) {
+        throw new TokenMalformedException();
+      }
+
+      return JWTType.valueOf(type);
+    } catch (IllegalArgumentException exception) {
+      throw new TokenMalformedException();
     }
+  }
 
-    public void validateAccessToken(Claims claims) {
-        JWTType type = validateTokenType(claims);
+  public void validateAccessToken(Claims claims) {
+    JWTType type = validateTokenType(claims);
 
-        if (!JWTType.ACCESS.equals(type)) {
-            throw new NotAccessTokenException();
-        }
+    if (!JWTType.ACCESS.equals(type)) {
+      throw new NotAccessTokenException();
     }
+  }
 
-    public void validateRefreshToken(Claims claims) {
-        JWTType type = validateTokenType(claims);
+  public void validateRefreshToken(Claims claims) {
+    JWTType type = validateTokenType(claims);
 
-        if (!JWTType.REFRESH.equals(type)) {
-            throw new NotRefreshTokenException();
-        }
+    if (!JWTType.REFRESH.equals(type)) {
+      throw new NotRefreshTokenException();
     }
+  }
 }

@@ -22,97 +22,100 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ReportValidator {
 
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+  private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
-    private final ReportRepository reportRepository;
-    private final ProjectBoardRepository projectBoardRepository;
-    private final StudyBoardRepository studyBoardRepository;
-    private final MarketplaceBoardRepository marketplaceBoardRepository;
-    private final TutoringBoardRepository tutoringBoardRepository;
-    private final MemberRepository memberRepository;
+  private final ReportRepository reportRepository;
+  private final ProjectBoardRepository projectBoardRepository;
+  private final StudyBoardRepository studyBoardRepository;
+  private final MarketplaceBoardRepository marketplaceBoardRepository;
+  private final TutoringBoardRepository tutoringBoardRepository;
+  private final MemberRepository memberRepository;
 
-    public void checkMemberAccessById(Long memberId) {
-        reportRepository.findActiveBanForMember(memberId, LocalDateTime.now(KST), SanctionType.BAN_TYPES)
-                .ifPresent(report -> {
-                    throw new MemberSanctionedException(report.getSanction());
-                });
+  public void checkMemberAccessById(Long memberId) {
+    reportRepository
+        .findActiveBanForMember(memberId, LocalDateTime.now(KST), SanctionType.BAN_TYPES)
+        .ifPresent(
+            report -> {
+              throw new MemberSanctionedException(report.getSanction());
+            });
+  }
+
+  public void validateAll(Member reporter, ReportType reportType, Long targetId) {
+    validateTargetExists(reportType, targetId);
+    validateNotSelfReport(reporter, reportType, targetId);
+    validateNotDuplicate(reporter, reportType, targetId);
+  }
+
+  private void validateTargetExists(ReportType reportType, Long targetId) {
+    boolean exists = checkTargetExists(reportType, targetId);
+
+    if (!exists) {
+      throw new ReportTargetNotFoundException(reportType.name(), targetId);
+    }
+  }
+
+  private void validateNotSelfReport(Member reporter, ReportType reportType, Long targetId) {
+    boolean isSelfReport = checkSelfReport(reporter, reportType, targetId);
+
+    if (isSelfReport) {
+      throw new SelfReportException();
+    }
+  }
+
+  private void validateNotDuplicate(Member reporter, ReportType reportType, Long targetId) {
+    boolean isDuplicate =
+        reportRepository.existsByReporterAndReportTypeAndTargetId(reporter, reportType, targetId);
+
+    if (isDuplicate) {
+      throw new DuplicateReportException();
+    }
+  }
+
+  private boolean checkTargetExists(ReportType reportType, Long targetId) {
+    if (ReportType.PROJECT_BOARD.equals(reportType)) {
+      return projectBoardRepository.existsById(targetId);
     }
 
-    public void validateAll(Member reporter, ReportType reportType, Long targetId) {
-        validateTargetExists(reportType, targetId);
-        validateNotSelfReport(reporter, reportType, targetId);
-        validateNotDuplicate(reporter, reportType, targetId);
+    if (ReportType.STUDY_BOARD.equals(reportType)) {
+      return studyBoardRepository.existsById(targetId);
     }
 
-    private void validateTargetExists(ReportType reportType, Long targetId) {
-        boolean exists = checkTargetExists(reportType, targetId);
-
-        if (!exists) {
-            throw new ReportTargetNotFoundException(reportType.name(), targetId);
-        }
+    if (ReportType.MARKETPLACE_BOARD.equals(reportType)) {
+      return marketplaceBoardRepository.existsById(targetId);
     }
 
-    private void validateNotSelfReport(Member reporter, ReportType reportType, Long targetId) {
-        boolean isSelfReport = checkSelfReport(reporter, reportType, targetId);
-
-        if (isSelfReport) {
-            throw new SelfReportException();
-        }
+    if (ReportType.TUTORING_BOARD.equals(reportType)) {
+      return tutoringBoardRepository.existsById(targetId);
     }
 
-    private void validateNotDuplicate(Member reporter, ReportType reportType, Long targetId) {
-        boolean isDuplicate = reportRepository.existsByReporterAndReportTypeAndTargetId(reporter, reportType, targetId);
-
-        if (isDuplicate) {
-            throw new DuplicateReportException();
-        }
+    if (ReportType.MEMBER.equals(reportType)) {
+      return memberRepository.existsById(targetId);
     }
 
-    private boolean checkTargetExists(ReportType reportType, Long targetId) {
-        if (ReportType.PROJECT_BOARD.equals(reportType)) {
-            return projectBoardRepository.existsById(targetId);
-        }
+    throw new IllegalArgumentException("Undefined ReportType: " + reportType);
+  }
 
-        if (ReportType.STUDY_BOARD.equals(reportType)) {
-            return studyBoardRepository.existsById(targetId);
-        }
-
-        if (ReportType.MARKETPLACE_BOARD.equals(reportType)) {
-            return marketplaceBoardRepository.existsById(targetId);
-        }
-
-        if (ReportType.TUTORING_BOARD.equals(reportType)) {
-            return tutoringBoardRepository.existsById(targetId);
-        }
-
-        if (ReportType.MEMBER.equals(reportType)) {
-            return memberRepository.existsById(targetId);
-        }
-
-        throw new IllegalArgumentException("Undefined ReportType: " + reportType);
+  private boolean checkSelfReport(Member reporter, ReportType reportType, Long targetId) {
+    if (ReportType.PROJECT_BOARD.equals(reportType)) {
+      return projectBoardRepository.existsByIdAndAuthorId(targetId, reporter.getId());
     }
 
-    private boolean checkSelfReport(Member reporter, ReportType reportType, Long targetId) {
-        if (ReportType.PROJECT_BOARD.equals(reportType)) {
-            return projectBoardRepository.existsByIdAndAuthorId(targetId, reporter.getId());
-        }
-
-        if (ReportType.STUDY_BOARD.equals(reportType)) {
-            return studyBoardRepository.existsByIdAndAuthorId(targetId, reporter.getId());
-        }
-
-        if (ReportType.MARKETPLACE_BOARD.equals(reportType)) {
-            return marketplaceBoardRepository.existsByIdAndAuthor(targetId, reporter);
-        }
-
-        if (ReportType.TUTORING_BOARD.equals(reportType)) {
-            return tutoringBoardRepository.existsByIdAndAuthorId(targetId, reporter.getId());
-        }
-
-        if (ReportType.MEMBER.equals(reportType)) {
-            return targetId.equals(reporter.getId());
-        }
-
-        throw new IllegalArgumentException("Undefined ReportType: " + reportType);
+    if (ReportType.STUDY_BOARD.equals(reportType)) {
+      return studyBoardRepository.existsByIdAndAuthorId(targetId, reporter.getId());
     }
+
+    if (ReportType.MARKETPLACE_BOARD.equals(reportType)) {
+      return marketplaceBoardRepository.existsByIdAndAuthor(targetId, reporter);
+    }
+
+    if (ReportType.TUTORING_BOARD.equals(reportType)) {
+      return tutoringBoardRepository.existsByIdAndAuthorId(targetId, reporter.getId());
+    }
+
+    if (ReportType.MEMBER.equals(reportType)) {
+      return targetId.equals(reporter.getId());
+    }
+
+    throw new IllegalArgumentException("Undefined ReportType: " + reportType);
+  }
 }

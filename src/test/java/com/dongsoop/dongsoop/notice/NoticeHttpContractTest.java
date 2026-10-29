@@ -22,42 +22,48 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 @ExtendWith(MockitoExtension.class)
 class NoticeHttpContractTest {
-    @Mock NoticeService service;
-    @Mock NoticeSchedulerImpl scheduler;
-    @InjectMocks NoticeController controller;
-    private MockMvc mvc;
+  @Mock NoticeService service;
+  @Mock NoticeSchedulerImpl scheduler;
+  @InjectMocks NoticeController controller;
+  private MockMvc mvc;
 
-    @BeforeEach
-    void setup() {
-        mvc = MockMvcBuilders.standaloneSetup(controller)
-                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver()).build();
-    }
+  @BeforeEach
+  void setup() {
+    mvc =
+        MockMvcBuilders.standaloneSetup(controller)
+            .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+            .build();
+  }
 
-    @Test
-    void departmentPathAndPagingAreBound() throws Exception {
-        var page = PageRequest.of(2, 5);
-        when(service.getNoticeByDepartmentType(DepartmentType.DEPT_2001, page)).thenReturn(Page.empty(page));
-        mvc.perform(get("/notice/DEPT_2001").param("page", "2").param("size", "5"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.number").value(2))
-                .andExpect(jsonPath("$.size").value(5));
-        verify(service).getNoticeByDepartmentType(DepartmentType.DEPT_2001, page);
-    }
+  @Test
+  void departmentPathAndPagingAreBound() throws Exception {
+    var page = PageRequest.of(2, 5);
+    when(service.getNoticeByDepartmentType(DepartmentType.DEPT_2001, page))
+        .thenReturn(Page.empty(page));
+    mvc.perform(get("/notice/DEPT_2001").param("page", "2").param("size", "5"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.number").value(2))
+        .andExpect(jsonPath("$.size").value(5));
+    verify(service).getNoticeByDepartmentType(DepartmentType.DEPT_2001, page);
+  }
 
-    @Test
-    void guestHeadersArePassedTogetherAndRemainOptional() throws Exception {
-        var page = PageRequest.of(0, 20);
-        when(service.getSubscribedNotices("fid", "token", page)).thenReturn(Page.empty(page));
-        when(service.getSubscribedNotices(null, null, page)).thenReturn(Page.empty(page));
-        mvc.perform(get("/notice/guest").header("X-Device-Fid", "fid").header("X-Device-Token", "token"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.content").isEmpty());
-        mvc.perform(get("/notice/guest")).andExpect(status().isOk());
-        verify(service).getSubscribedNotices("fid", "token", page);
-        verify(service).getSubscribedNotices(null, null, page);
-    }
+  @Test
+  void guestHeadersArePassedTogetherAndRemainOptional() throws Exception {
+    var page = PageRequest.of(0, 20);
+    when(service.getSubscribedNotices("fid", "token", page)).thenReturn(Page.empty(page));
+    when(service.getSubscribedNotices(null, null, page)).thenReturn(Page.empty(page));
+    mvc.perform(
+            get("/notice/guest").header("X-Device-Fid", "fid").header("X-Device-Token", "token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content").isEmpty());
+    mvc.perform(get("/notice/guest")).andExpect(status().isOk());
+    verify(service).getSubscribedNotices("fid", "token", page);
+    verify(service).getSubscribedNotices(null, null, page);
+  }
 
-    @Test
-    void unknownDepartmentCannotReachService() throws Exception {
-        mvc.perform(get("/notice/UNKNOWN")).andExpect(status().isBadRequest());
-        verifyNoInteractions(service, scheduler);
-    }
+  @Test
+  void unknownDepartmentCannotReachService() throws Exception {
+    mvc.perform(get("/notice/UNKNOWN")).andExpect(status().isBadRequest());
+    verifyNoInteractions(service, scheduler);
+  }
 }

@@ -30,93 +30,91 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/member")
 public class MemberController {
 
-    private final MemberService memberService;
-    private final LoginNotificationService loginNotificationService;
-    private final MemberDuplicationValidator memberDuplicationValidator;
-    private final PasswordUpdateMailValidator passwordUpdateMailValidator;
-    private final RegisterMailValidator registerMailValidator;
-    private final MemberDeviceService memberDeviceService;
-    private final FCMService fcmService;
+  private final MemberService memberService;
+  private final LoginNotificationService loginNotificationService;
+  private final MemberDuplicationValidator memberDuplicationValidator;
+  private final PasswordUpdateMailValidator passwordUpdateMailValidator;
+  private final RegisterMailValidator registerMailValidator;
+  private final MemberDeviceService memberDeviceService;
+  private final FCMService fcmService;
 
-    @Value("${notification.topic.anonymous}")
-    private String anonymousTopic;
+  @Value("${notification.topic.anonymous}")
+  private String anonymousTopic;
 
-    @PostMapping("/password")
-    public ResponseEntity<Void> updatePassword(@RequestBody @Valid UpdatePasswordRequest request) {
-        passwordUpdateMailValidator.validateVerifySuccess(request.email());
-        memberService.updatePassword(request);
-        passwordUpdateMailValidator.removeVerificationCode(request.email());
+  @PostMapping("/password")
+  public ResponseEntity<Void> updatePassword(@RequestBody @Valid UpdatePasswordRequest request) {
+    passwordUpdateMailValidator.validateVerifySuccess(request.email());
+    memberService.updatePassword(request);
+    passwordUpdateMailValidator.removeVerificationCode(request.email());
 
-        return ResponseEntity.noContent()
-                .build();
+    return ResponseEntity.noContent().build();
+  }
+
+  @PostMapping("/signup")
+  public ResponseEntity<Void> signup(@RequestBody @Valid SignupRequest signupRequest) {
+    registerMailValidator.validateVerifySuccess(signupRequest.getEmail());
+    memberService.signup(signupRequest);
+    registerMailValidator.removeVerificationCode(signupRequest.getEmail());
+
+    return ResponseEntity.status(HttpStatus.CREATED).build();
+  }
+
+  @PostMapping("/login")
+  public ResponseEntity<LoginResponse> login(
+      @Valid @RequestBody LoginRequest loginRequest, HttpServletRequest request) {
+    LoginDetails loginDetail = memberService.login(loginRequest);
+
+    IssuedToken issuedToken = loginDetail.getIssuedToken();
+    String accessToken = issuedToken.getAccessToken();
+    String refreshToken = issuedToken.getRefreshToken();
+
+    Long memberId = loginDetail.getLoginMemberDetail().getId();
+
+    if (StringUtils.hasText(loginRequest.getFcmToken())
+        && loginRequest.getDeviceType() != MemberDeviceType.WEB) {
+      memberDeviceService.bindDeviceWithMemberId(memberId, loginRequest.getFcmToken());
+      fcmService.unsubscribeTopic(List.of(loginRequest.getFcmToken()), anonymousTopic);
     }
 
-    @PostMapping("/signup")
-    public ResponseEntity<Void> signup(@RequestBody @Valid SignupRequest signupRequest) {
-        registerMailValidator.validateVerifySuccess(signupRequest.getEmail());
-        memberService.signup(signupRequest);
-        registerMailValidator.removeVerificationCode(signupRequest.getEmail());
+    String ipAddress = resolveClientIp(request);
+    String userAgent = request.getHeader("User-Agent");
+    loginNotificationService.sendLoginNotification(
+        memberId, loginRequest.getEmail(), ipAddress, userAgent);
 
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    LoginResponse loginResponse =
+        new LoginResponse(loginDetail.getLoginMemberDetail(), accessToken, refreshToken);
+    return ResponseEntity.ok(loginResponse);
+  }
+
+  private String resolveClientIp(HttpServletRequest request) {
+    String xForwardedFor = request.getHeader("X-Forwarded-For");
+    if (StringUtils.hasText(xForwardedFor)) {
+      return xForwardedFor.split(",")[0].trim();
     }
+    return request.getRemoteAddr();
+  }
 
-    @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest,
-                                               HttpServletRequest request) {
-        LoginDetails loginDetail = memberService.login(loginRequest);
+  @PostMapping("/validate/email")
+  public ResponseEntity<Void> validateEmail(@RequestBody @Valid EmailValidateRequest request) {
+    memberDuplicationValidator.validateEmailDuplication(request.email());
+    return ResponseEntity.noContent().build();
+  }
 
-        IssuedToken issuedToken = loginDetail.getIssuedToken();
-        String accessToken = issuedToken.getAccessToken();
-        String refreshToken = issuedToken.getRefreshToken();
+  @PostMapping("/validate/nickname")
+  public ResponseEntity<Void> validateNickname(
+      @RequestBody @Valid NicknameValidateRequest request) {
+    memberDuplicationValidator.validateNicknameDuplication(request.nickname());
+    return ResponseEntity.noContent().build();
+  }
 
-        Long memberId = loginDetail.getLoginMemberDetail().getId();
-
-        if (StringUtils.hasText(loginRequest.getFcmToken())
-                && loginRequest.getDeviceType() != MemberDeviceType.WEB) {
-            memberDeviceService.bindDeviceWithMemberId(memberId, loginRequest.getFcmToken());
-            fcmService.unsubscribeTopic(List.of(loginRequest.getFcmToken()), anonymousTopic);
-        }
-
-        String ipAddress = resolveClientIp(request);
-        String userAgent = request.getHeader("User-Agent");
-        loginNotificationService.sendLoginNotification(memberId, loginRequest.getEmail(), ipAddress, userAgent);
-
-        LoginResponse loginResponse = new LoginResponse(loginDetail.getLoginMemberDetail(), accessToken, refreshToken);
-        return ResponseEntity.ok(loginResponse);
-    }
-
-    private String resolveClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (StringUtils.hasText(xForwardedFor)) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
-    }
-
-    @PostMapping("/validate/email")
-    public ResponseEntity<Void> validateEmail(@RequestBody @Valid EmailValidateRequest request) {
-        memberDuplicationValidator.validateEmailDuplication(request.email());
-        return ResponseEntity.noContent()
-                .build();
-    }
-
-    @PostMapping("/validate/nickname")
-    public ResponseEntity<Void> validateNickname(@RequestBody @Valid NicknameValidateRequest request) {
-        memberDuplicationValidator.validateNicknameDuplication(request.nickname());
-        return ResponseEntity.noContent()
-                .build();
-    }
-
-    @DeleteMapping
-    public ResponseEntity<Void> deleteMember() {
-        memberService.deleteMember();
-        return ResponseEntity.noContent()
-                .build();
-    }
+  @DeleteMapping
+  public ResponseEntity<Void> deleteMember() {
+    memberService.deleteMember();
+    return ResponseEntity.noContent().build();
+  }
 }

@@ -14,30 +14,30 @@ import org.springframework.web.socket.messaging.StompSubProtocolErrorHandler;
 @Component
 public class CustomStompErrorHandler extends StompSubProtocolErrorHandler {
 
-    @Override
-    public Message<byte[]> handleClientMessageProcessingError(Message<byte[]> clientMessage, Throwable ex) {
-        if (ex instanceof UserKickedException) {
-            log.warn("사용자가 강퇴되었습니다: {}", ex.getMessage());
-            return createStompErrorMessage(clientMessage, ex.getMessage());
-        }
-        return super.handleClientMessageProcessingError(clientMessage, ex);
+  @Override
+  public Message<byte[]> handleClientMessageProcessingError(
+      Message<byte[]> clientMessage, Throwable ex) {
+    if (ex instanceof UserKickedException) {
+      log.warn("사용자가 강퇴되었습니다: {}", ex.getMessage());
+      return createStompErrorMessage(clientMessage, ex.getMessage());
+    }
+    return super.handleClientMessageProcessingError(clientMessage, ex);
+  }
+
+  private Message<byte[]> createStompErrorMessage(
+      Message<byte[]> clientMessage, String errorMessage) {
+    StompHeaderAccessor clientHeaderAccessor = StompHeaderAccessor.wrap(clientMessage);
+    String sessionId = clientHeaderAccessor.getSessionId();
+
+    StompHeaderAccessor errorHeaderAccessor = StompHeaderAccessor.create(StompCommand.ERROR);
+    errorHeaderAccessor.setSessionId(sessionId);
+    errorHeaderAccessor.setMessage(errorMessage);
+
+    if (clientHeaderAccessor.getUser() != null) {
+      errorHeaderAccessor.setUser(clientHeaderAccessor.getUser());
     }
 
-    private Message<byte[]> createStompErrorMessage(Message<byte[]> clientMessage, String errorMessage) {
-        StompHeaderAccessor clientHeaderAccessor = StompHeaderAccessor.wrap(clientMessage);
-        String sessionId = clientHeaderAccessor.getSessionId();
-
-        StompHeaderAccessor errorHeaderAccessor = StompHeaderAccessor.create(StompCommand.ERROR);
-        errorHeaderAccessor.setSessionId(sessionId);
-        errorHeaderAccessor.setMessage(errorMessage);
-
-        if (clientHeaderAccessor.getUser() != null) {
-            errorHeaderAccessor.setUser(clientHeaderAccessor.getUser());
-        }
-
-        return MessageBuilder.createMessage(
-                errorMessage.getBytes(StandardCharsets.UTF_8),
-                errorHeaderAccessor.getMessageHeaders()
-        );
-    }
+    return MessageBuilder.createMessage(
+        errorMessage.getBytes(StandardCharsets.UTF_8), errorHeaderAccessor.getMessageHeaders());
+  }
 }

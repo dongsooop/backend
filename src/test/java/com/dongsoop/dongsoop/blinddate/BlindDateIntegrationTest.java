@@ -2,9 +2,9 @@ package com.dongsoop.dongsoop.blinddate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
@@ -17,12 +17,12 @@ import com.dongsoop.dongsoop.blinddate.config.BlindDateMessageProvider;
 import com.dongsoop.dongsoop.blinddate.dto.StartBlindDateRequest;
 import com.dongsoop.dongsoop.blinddate.entity.ParticipantInfo;
 import com.dongsoop.dongsoop.blinddate.entity.SessionInfo.SessionState;
+import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateChoiceHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateConnectHandler;
 import com.dongsoop.dongsoop.blinddate.handler.BlindDateDisconnectHandler;
-import com.dongsoop.dongsoop.blinddate.executor.BlindDateEventQueue;
-import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
 import com.dongsoop.dongsoop.blinddate.notification.BlindDateMatchNotification;
+import com.dongsoop.dongsoop.blinddate.notification.BlindDateNotification;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorage;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateParticipantStorageImpl;
 import com.dongsoop.dongsoop.blinddate.repository.BlindDateSessionStorage;
@@ -57,787 +57,797 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 /**
  * 과팅 전체 시나리오 통합 테스트
- * <p>
- * 실제 존재하는 Handler와 Repository를 사용한 통합 테스트
+ *
+ * <p>실제 존재하는 Handler와 Repository를 사용한 통합 테스트
  */
 @DisplayName("과팅 전체 시나리오 통합 테스트")
 class BlindDateIntegrationTest {
 
-    private static final Logger log = LoggerFactory.getLogger(BlindDateIntegrationTest.class);
+  private static final Logger log = LoggerFactory.getLogger(BlindDateIntegrationTest.class);
 
-    private BlindDateServiceImpl blindDateService;
-    private BlindDateStorage blindDateStorage;
-    private BlindDateSessionStorage sessionStorage;
-    private BlindDateParticipantStorage participantStorage;
-    private BlindDateSessionService sessionService;
-    private BlindDateConnectHandler connectHandler;
-    private BlindDateChoiceHandler choiceHandler;
-    private BlindDateDisconnectHandler disconnectHandler;
-    private BlindDateSessionScheduler sessionScheduler;
-    private BlindDateTaskScheduler taskScheduler;
-    private BlindDateEventQueue eventQueue;
-    private SimpMessagingTemplate messagingTemplate;
-    private final List<JoinResponse> joinResponses = new java.util.concurrent.CopyOnWriteArrayList<>();
+  private BlindDateServiceImpl blindDateService;
+  private BlindDateStorage blindDateStorage;
+  private BlindDateSessionStorage sessionStorage;
+  private BlindDateParticipantStorage participantStorage;
+  private BlindDateSessionService sessionService;
+  private BlindDateConnectHandler connectHandler;
+  private BlindDateChoiceHandler choiceHandler;
+  private BlindDateDisconnectHandler disconnectHandler;
+  private BlindDateSessionScheduler sessionScheduler;
+  private BlindDateTaskScheduler taskScheduler;
+  private BlindDateEventQueue eventQueue;
+  private SimpMessagingTemplate messagingTemplate;
+  private final List<JoinResponse> joinResponses =
+      new java.util.concurrent.CopyOnWriteArrayList<>();
 
-    @BeforeEach
-    void setUp() {
-        // Repository 초기화
-        blindDateStorage = new BlindDateStorageImpl();
-        participantStorage = new BlindDateParticipantStorageImpl();
-        sessionStorage = new BlindDateSessionStorageImpl(event -> {});
+  @BeforeEach
+  void setUp() {
+    // Repository 초기화
+    blindDateStorage = new BlindDateStorageImpl();
+    participantStorage = new BlindDateParticipantStorageImpl();
+    sessionStorage = new BlindDateSessionStorageImpl(event -> {});
 
-        // 큐 초기화
-        eventQueue = new BlindDateEventQueue();
+    // 큐 초기화
+    eventQueue = new BlindDateEventQueue();
 
-        // Mock 초기화
-        messagingTemplate = mock(SimpMessagingTemplate.class);
-        doAnswer(call -> {
-            joinResponses.add(new JoinResponse(call.getArgument(0), call.getArgument(1), call.getArgument(2)));
-            return null;
-        }).when(messagingTemplate).convertAndSendToUser(anyString(), anyString(), any(Object.class));
-        BlindDateNotification notification = mock(BlindDateNotification.class);
-        sessionScheduler = mock(BlindDateSessionScheduler.class);
-        ChatRoomService chatRoomService = mock(ChatRoomService.class);
+    // Mock 초기화
+    messagingTemplate = mock(SimpMessagingTemplate.class);
+    doAnswer(
+            call -> {
+              joinResponses.add(
+                  new JoinResponse(call.getArgument(0), call.getArgument(1), call.getArgument(2)));
+              return null;
+            })
+        .when(messagingTemplate)
+        .convertAndSendToUser(anyString(), anyString(), any(Object.class));
+    BlindDateNotification notification = mock(BlindDateNotification.class);
+    sessionScheduler = mock(BlindDateSessionScheduler.class);
+    ChatRoomService chatRoomService = mock(ChatRoomService.class);
 
-        // ChatRoomService mock 설정
-        when(chatRoomService.createOneToOneChatRoom(anyLong(), anyLong(), anyString()))
-                .thenAnswer(invocation -> {
-                    Long user1 = invocation.getArgument(0);
-                    Long user2 = invocation.getArgument(1);
-                    String title = invocation.getArgument(2);
-                    return com.dongsoop.dongsoop.chat.entity.ChatRoom.builder()
-                            .roomId("chatroom-" + user1 + "-" + user2)
-                            .title(title)
-                            .build();
-                });
+    // ChatRoomService mock 설정
+    when(chatRoomService.createOneToOneChatRoom(anyLong(), anyLong(), anyString()))
+        .thenAnswer(
+            invocation -> {
+              Long user1 = invocation.getArgument(0);
+              Long user2 = invocation.getArgument(1);
+              String title = invocation.getArgument(2);
+              return com.dongsoop.dongsoop.chat.entity.ChatRoom.builder()
+                  .roomId("chatroom-" + user1 + "-" + user2)
+                  .title(title)
+                  .build();
+            });
 
-        // TaskScheduler 초기화
-        taskScheduler = new BlindDateTaskScheduler();
+    // TaskScheduler 초기화
+    taskScheduler = new BlindDateTaskScheduler();
 
-        // Service 초기화
-        blindDateService = new BlindDateServiceImpl(
-                participantStorage,
-                blindDateStorage,
-                notification,
-                sessionStorage,
-                messagingTemplate,
-                taskScheduler,
-                eventQueue,
-                new BlindDateMessageProvider()
-        );
+    // Service 초기화
+    blindDateService =
+        new BlindDateServiceImpl(
+            participantStorage,
+            blindDateStorage,
+            notification,
+            sessionStorage,
+            messagingTemplate,
+            taskScheduler,
+            eventQueue,
+            new BlindDateMessageProvider());
 
-        sessionService = new BlindDateSessionServiceImpl(
-                participantStorage,
-                blindDateStorage
-        );
+    sessionService = new BlindDateSessionServiceImpl(participantStorage, blindDateStorage);
 
-        // Handler 초기화
-        disconnectHandler = new BlindDateDisconnectHandler(
-                participantStorage,
-                sessionStorage,
-                blindDateService,
-                eventQueue
-        );
+    // Handler 초기화
+    disconnectHandler =
+        new BlindDateDisconnectHandler(
+            participantStorage, sessionStorage, blindDateService, eventQueue);
 
-        connectHandler = new BlindDateConnectHandler(
-                participantStorage,
-                blindDateStorage,
-                sessionStorage,
-                blindDateService,
-                sessionService,
-                sessionScheduler,
-                messagingTemplate,
-                eventQueue,
-                disconnectHandler
-        );
+    connectHandler =
+        new BlindDateConnectHandler(
+            participantStorage,
+            blindDateStorage,
+            sessionStorage,
+            blindDateService,
+            sessionService,
+            sessionScheduler,
+            messagingTemplate,
+            eventQueue,
+            disconnectHandler);
 
-        choiceHandler = new BlindDateChoiceHandler(
-                participantStorage,
-                sessionStorage,
-                messagingTemplate,
-                chatRoomService,
-                eventQueue,
-                mock(BlindDateMatchNotification.class)
-        );
+    choiceHandler =
+        new BlindDateChoiceHandler(
+            participantStorage,
+            sessionStorage,
+            messagingTemplate,
+            chatRoomService,
+            eventQueue,
+            mock(BlindDateMatchNotification.class));
+  }
+
+  @AfterEach
+  void tearDown() {
+    // TaskScheduler 정리 - cleanupAllSessions로 변경
+    if (taskScheduler != null) {
+      taskScheduler.cleanupAllSessions();
+    }
+  }
+
+  /** 헬퍼 메서드: 세션의 참여자 수 조회 */
+  private int getParticipantCount(String sessionId) {
+    return participantStorage.findAllBySessionId(sessionId).size();
+  }
+
+  @Nested
+  @DisplayName("시나리오 1: 사용자 입장 → 세션 할당")
+  class UserEnterScenarios {
+
+    @Test
+    @DisplayName("첫 사용자 입장 - Pointer가 없으면 새 세션 생성")
+    void firstUser_CreatesNewSession() {
+      // given
+      blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+
+      // when
+      Map<String, Object> sessionAttributes = new HashMap<>();
+      connectHandler.execute("socket-1", 1L, sessionAttributes);
+      eventQueue.awaitIdle();
+      String sessionId = (String) sessionAttributes.get("sessionId");
+
+      // then
+      assertThat(sessionId).isNotNull();
+      assertThat(blindDateStorage.getPointer()).isEqualTo(sessionId);
+      assertThat(getParticipantCount(sessionId)).isEqualTo(1);
+
+      ParticipantInfo participant = participantStorage.getByMemberId(1L);
+      assertThat(participant).isNotNull();
+      assertThat(participant.getAnonymousName()).isEqualTo("익명1");
     }
 
-    @AfterEach
-    void tearDown() {
-        // TaskScheduler 정리 - cleanupAllSessions로 변경
-        if (taskScheduler != null) {
-            taskScheduler.cleanupAllSessions();
-        }
+    @Test
+    @DisplayName("입장 응답에 세션 정원을 포함한다")
+    void joinResponse_IncludesMaxCount() {
+      blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+
+      connectHandler.execute("socket-1", 1L, new HashMap<>());
+      eventQueue.awaitIdle();
+
+      assertThat(joinResponses)
+          .filteredOn(response -> response.member().equals("1"))
+          .extracting(JoinResponse::destination)
+          .containsExactly("/queue/blinddate/join");
+      assertThat(joinResponses.get(0).payload()).containsEntry("maxCount", 5);
     }
 
-    /**
-     * 헬퍼 메서드: 세션의 참여자 수 조회
-     */
-    private int getParticipantCount(String sessionId) {
-        return participantStorage.findAllBySessionId(sessionId).size();
+    @Test
+    @DisplayName("여러 사용자 입장 - 같은 세션에 배정")
+    void multipleUsers_AssignedToSameSession() {
+      // given
+      blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+
+      // when
+      Map<String, Object> attr1 = new HashMap<>();
+      Map<String, Object> attr2 = new HashMap<>();
+      Map<String, Object> attr3 = new HashMap<>();
+
+      connectHandler.execute("socket-1", 1L, attr1);
+      connectHandler.execute("socket-2", 2L, attr2);
+      connectHandler.execute("socket-3", 3L, attr3);
+      eventQueue.awaitIdle();
+
+      String session1 = (String) attr1.get("sessionId");
+      String session2 = (String) attr2.get("sessionId");
+      String session3 = (String) attr3.get("sessionId");
+
+      // then
+      assertThat(session1).isEqualTo(session2).isEqualTo(session3);
+      assertThat(getParticipantCount(session1)).isEqualTo(3);
     }
 
-    @Nested
-    @DisplayName("시나리오 1: 사용자 입장 → 세션 할당")
-    class UserEnterScenarios {
+    @Test
+    @DisplayName("세션 꽉 찬 후 새 사용자 - 새 세션 생성")
+    void fullSession_CreatesNewSession() {
+      // given
+      blindDateStorage.start(3, LocalDateTime.now().plusHours(1));
 
-        @Test
-        @DisplayName("첫 사용자 입장 - Pointer가 없으면 새 세션 생성")
-        void firstUser_CreatesNewSession() {
-            // given
-            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+      // when - 3명 입장 (세션 꽉 참)
+      Map<String, Object> attr1 = new HashMap<>();
+      connectHandler.execute("socket-1", 1L, attr1);
+      connectHandler.execute("socket-2", 2L, attr1);
+      connectHandler.execute("socket-3", 3L, attr1);
+      eventQueue.awaitIdle();
+      String session1 = (String) attr1.get("sessionId");
 
-            // when
-            Map<String, Object> sessionAttributes = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, sessionAttributes);
-            eventQueue.awaitIdle();
-            String sessionId = (String) sessionAttributes.get("sessionId");
+      // 4번째 사용자
+      Map<String, Object> attr2 = new HashMap<>();
+      connectHandler.execute("socket-4", 4L, attr2);
+      eventQueue.awaitIdle();
+      String session2 = (String) attr2.get("sessionId");
 
-            // then
-            assertThat(sessionId).isNotNull();
-            assertThat(blindDateStorage.getPointer()).isEqualTo(sessionId);
-            assertThat(getParticipantCount(sessionId)).isEqualTo(1);
-
-            ParticipantInfo participant = participantStorage.getByMemberId(1L);
-            assertThat(participant).isNotNull();
-            assertThat(participant.getAnonymousName()).isEqualTo("익명1");
-        }
-
-        @Test
-        @DisplayName("입장 응답에 세션 정원을 포함한다")
-        void joinResponse_IncludesMaxCount() {
-            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
-
-            connectHandler.execute("socket-1", 1L, new HashMap<>());
-            eventQueue.awaitIdle();
-
-            assertThat(joinResponses).filteredOn(response -> response.member().equals("1"))
-                    .extracting(JoinResponse::destination).containsExactly("/queue/blinddate/join");
-            assertThat(joinResponses.get(0).payload()).containsEntry("maxCount", 5);
-        }
-
-        @Test
-        @DisplayName("여러 사용자 입장 - 같은 세션에 배정")
-        void multipleUsers_AssignedToSameSession() {
-            // given
-            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
-
-            // when
-            Map<String, Object> attr1 = new HashMap<>();
-            Map<String, Object> attr2 = new HashMap<>();
-            Map<String, Object> attr3 = new HashMap<>();
-
-            connectHandler.execute("socket-1", 1L, attr1);
-            connectHandler.execute("socket-2", 2L, attr2);
-            connectHandler.execute("socket-3", 3L, attr3);
-            eventQueue.awaitIdle();
-
-            String session1 = (String) attr1.get("sessionId");
-            String session2 = (String) attr2.get("sessionId");
-            String session3 = (String) attr3.get("sessionId");
-
-            // then
-            assertThat(session1).isEqualTo(session2).isEqualTo(session3);
-            assertThat(getParticipantCount(session1)).isEqualTo(3);
-        }
-
-        @Test
-        @DisplayName("세션 꽉 찬 후 새 사용자 - 새 세션 생성")
-        void fullSession_CreatesNewSession() {
-            // given
-            blindDateStorage.start(3, LocalDateTime.now().plusHours(1));
-
-            // when - 3명 입장 (세션 꽉 참)
-            Map<String, Object> attr1 = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, attr1);
-            connectHandler.execute("socket-2", 2L, attr1);
-            connectHandler.execute("socket-3", 3L, attr1);
-            eventQueue.awaitIdle();
-            String session1 = (String) attr1.get("sessionId");
-
-            // 4번째 사용자
-            Map<String, Object> attr2 = new HashMap<>();
-            connectHandler.execute("socket-4", 4L, attr2);
-            eventQueue.awaitIdle();
-            String session2 = (String) attr2.get("sessionId");
-
-            // then
-            assertThat(session2).isNotEqualTo(session1);
-            assertThat(blindDateStorage.getPointer()).isEqualTo(session2);
-        }
-
-        @Test
-        @DisplayName("진행 중 연결 해제 후 재접속 - 기존 세션 상태와 닉네임으로 복귀")
-        void reconnect_ReturnsToExistingSession() {
-            // given
-            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
-            Map<String, Object> attr1 = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, attr1);
-            eventQueue.awaitIdle();
-            String session1 = (String) attr1.get("sessionId");
-            String originalName = participantStorage.getByMemberId(1L).getAnonymousName();
-            sessionStorage.start(session1);
-
-            disconnectHandler.execute("socket-1", 1L, session1);
-            eventQueue.awaitIdle();
-
-            ParticipantInfo disconnected = participantStorage.getByMemberId(1L);
-            assertThat(disconnected).isNotNull();
-            assertThat(disconnected.getAnonymousName()).isEqualTo(originalName);
-            assertThat(disconnected.getSocketIds()).isEmpty();
-
-            // when - 같은 memberId로 실제 재접속
-            Map<String, Object> attr2 = new HashMap<>();
-            connectHandler.execute("socket-2", 1L, attr2);
-            eventQueue.awaitIdle();
-            String session2 = (String) attr2.get("sessionId");
-
-            // then
-            assertThat(session2).isEqualTo(session1);
-            assertThat(getParticipantCount(session1)).isEqualTo(1); // 인원 증가 안 함
-            assertThat(participantStorage.getByMemberId(1L).getAnonymousName()).isEqualTo(originalName);
-
-            assertThat(joinResponses).hasSize(2);
-            Map<String, Object> reconnectPayload = joinResponses.get(1).payload();
-            assertThat(reconnectPayload)
-                    .containsEntry("state", "PROCESSING")
-                    .containsEntry("name", originalName);
-        }
-
-        @Test
-        @DisplayName("과팅 종료 상태 - 입장 거부")
-        void closedBlindDate_RejectsEntry() {
-            // given
-            blindDateStorage.close();
-
-            // when & then
-            Map<String, Object> attr = new HashMap<>();
-            assertThatThrownBy(() -> connectHandler.execute("socket-1", 1L, attr))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("과팅이 운영되지 않습니다");
-        }
+      // then
+      assertThat(session2).isNotEqualTo(session1);
+      assertThat(blindDateStorage.getPointer()).isEqualTo(session2);
     }
 
-    @Nested
-    @DisplayName("시나리오 2: 참여 정보 저장 (세션, 사용자, 소켓)")
-    class ParticipantInfoStorage {
+    @Test
+    @DisplayName("진행 중 연결 해제 후 재접속 - 기존 세션 상태와 닉네임으로 복귀")
+    void reconnect_ReturnsToExistingSession() {
+      // given
+      blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+      Map<String, Object> attr1 = new HashMap<>();
+      connectHandler.execute("socket-1", 1L, attr1);
+      eventQueue.awaitIdle();
+      String session1 = (String) attr1.get("sessionId");
+      String originalName = participantStorage.getByMemberId(1L).getAnonymousName();
+      sessionStorage.start(session1);
 
-        @Test
-        @DisplayName("참여 정보 저장 - 세션, 사용자, 소켓 모두 저장")
-        void addParticipant_SavesAllInfo() {
-            // given
-            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+      disconnectHandler.execute("socket-1", 1L, session1);
+      eventQueue.awaitIdle();
 
-            // when
-            Map<String, Object> attr = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, attr);
-            eventQueue.awaitIdle();
-            String sessionId = (String) attr.get("sessionId");
+      ParticipantInfo disconnected = participantStorage.getByMemberId(1L);
+      assertThat(disconnected).isNotNull();
+      assertThat(disconnected.getAnonymousName()).isEqualTo(originalName);
+      assertThat(disconnected.getSocketIds()).isEmpty();
 
-            // then
-            ParticipantInfo byMember = participantStorage.getByMemberId(1L);
-            ParticipantInfo bySocket = participantStorage.getBySocketId("socket-1");
+      // when - 같은 memberId로 실제 재접속
+      Map<String, Object> attr2 = new HashMap<>();
+      connectHandler.execute("socket-2", 1L, attr2);
+      eventQueue.awaitIdle();
+      String session2 = (String) attr2.get("sessionId");
 
-            assertThat(byMember).isNotNull().isEqualTo(bySocket);
-            assertThat(byMember.getSessionId()).isEqualTo(sessionId);
-            assertThat(byMember.getMemberId()).isEqualTo(1L);
-            assertThat(byMember.getSocketIds()).contains("socket-1");
-        }
+      // then
+      assertThat(session2).isEqualTo(session1);
+      assertThat(getParticipantCount(session1)).isEqualTo(1); // 인원 증가 안 함
+      assertThat(participantStorage.getByMemberId(1L).getAnonymousName()).isEqualTo(originalName);
 
-        @Test
-        @DisplayName("익명 이름 순차 할당 - 익명1, 익명2, 익명3...")
-        void anonymousNames_AssignedSequentially() {
-            // given
-            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
-
-            // when
-            Map<String, Object> attr = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, attr);
-            connectHandler.execute("socket-2", 2L, attr);
-            connectHandler.execute("socket-3", 3L, attr);
-            eventQueue.awaitIdle();
-
-            // then
-            assertThat(participantStorage.getAnonymousName(1L)).isEqualTo("익명1");
-            assertThat(participantStorage.getAnonymousName(2L)).isEqualTo("익명2");
-            assertThat(participantStorage.getAnonymousName(3L)).isEqualTo("익명3");
-        }
+      assertThat(joinResponses).hasSize(2);
+      Map<String, Object> reconnectPayload = joinResponses.get(1).payload();
+      assertThat(reconnectPayload)
+          .containsEntry("state", "PROCESSING")
+          .containsEntry("name", originalName);
     }
 
-    @Nested
-    @DisplayName("시나리오 3: 마지막 참여자 → 세션 시작")
-    class SessionStartTrigger {
+    @Test
+    @DisplayName("과팅 종료 상태 - 입장 거부")
+    void closedBlindDate_RejectsEntry() {
+      // given
+      blindDateStorage.close();
 
-        @Test
-        @DisplayName("기준 인원 충족 - 세션 시작 준비")
-        void lastParticipant_PrepareToStartSession() {
-            // given
-            blindDateStorage.start(3, LocalDateTime.now().plusHours(1));
+      // when & then
+      Map<String, Object> attr = new HashMap<>();
+      assertThatThrownBy(() -> connectHandler.execute("socket-1", 1L, attr))
+          .isInstanceOf(IllegalStateException.class)
+          .hasMessageContaining("과팅이 운영되지 않습니다");
+    }
+  }
 
-            // when - 3명 입장
-            Map<String, Object> attr = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, attr);
-            connectHandler.execute("socket-2", 2L, attr);
-            connectHandler.execute("socket-3", 3L, attr);
-            eventQueue.awaitIdle();
-            String sessionId = (String) attr.get("sessionId");
+  @Nested
+  @DisplayName("시나리오 2: 참여 정보 저장 (세션, 사용자, 소켓)")
+  class ParticipantInfoStorage {
 
-            // then
-            assertThat(getParticipantCount(sessionId)).isEqualTo(3);
-            // 세션 시작은 scheduler에 의해 비동기로 처리됨
-        }
+    @Test
+    @DisplayName("참여 정보 저장 - 세션, 사용자, 소켓 모두 저장")
+    void addParticipant_SavesAllInfo() {
+      // given
+      blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
 
-        @Test
-        @DisplayName("기준 인원 미달 - 세션 대기 상태 유지")
-        void notFull_RemainsWaiting() {
-            // given
-            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+      // when
+      Map<String, Object> attr = new HashMap<>();
+      connectHandler.execute("socket-1", 1L, attr);
+      eventQueue.awaitIdle();
+      String sessionId = (String) attr.get("sessionId");
 
-            // when - 3명만 입장
-            Map<String, Object> attr = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, attr);
-            connectHandler.execute("socket-2", 2L, attr);
-            connectHandler.execute("socket-3", 3L, attr);
-            eventQueue.awaitIdle();
-            String sessionId = (String) attr.get("sessionId");
+      // then
+      ParticipantInfo byMember = participantStorage.getByMemberId(1L);
+      ParticipantInfo bySocket = participantStorage.getBySocketId("socket-1");
 
-            // then
-            SessionState state = sessionStorage.getState(sessionId);
-            assertThat(state).isEqualTo(SessionState.WAITING);
-        }
+      assertThat(byMember).isNotNull().isEqualTo(bySocket);
+      assertThat(byMember.getSessionId()).isEqualTo(sessionId);
+      assertThat(byMember.getMemberId()).isEqualTo(1L);
+      assertThat(byMember.getSocketIds()).contains("socket-1");
     }
 
-    @Nested
-    @DisplayName("시나리오 4: 퇴장 처리")
-    class LeaveScenarios {
+    @Test
+    @DisplayName("익명 이름 순차 할당 - 익명1, 익명2, 익명3...")
+    void anonymousNames_AssignedSequentially() {
+      // given
+      blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
 
-        @Test
-        @DisplayName("소켓 연결 해제 - 참여 정보 제거")
-        void disconnect_RemovesSocket() {
-            // given
-            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
-            Map<String, Object> attr = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, attr);
-            connectHandler.execute("socket-2", 2L, attr);
-            eventQueue.awaitIdle();
-            String sessionId = (String) attr.get("sessionId");
+      // when
+      Map<String, Object> attr = new HashMap<>();
+      connectHandler.execute("socket-1", 1L, attr);
+      connectHandler.execute("socket-2", 2L, attr);
+      connectHandler.execute("socket-3", 3L, attr);
+      eventQueue.awaitIdle();
 
-            assertThat(getParticipantCount(sessionId)).isEqualTo(2);
+      // then
+      assertThat(participantStorage.getAnonymousName(1L)).isEqualTo("익명1");
+      assertThat(participantStorage.getAnonymousName(2L)).isEqualTo("익명2");
+      assertThat(participantStorage.getAnonymousName(3L)).isEqualTo("익명3");
+    }
+  }
 
-            // when
-            disconnectHandler.execute("socket-1", 1L, sessionId);
-            eventQueue.awaitIdle();
+  @Nested
+  @DisplayName("시나리오 3: 마지막 참여자 → 세션 시작")
+  class SessionStartTrigger {
 
-            // then
-            assertThat(participantStorage.getByMemberId(1L)).isNull();
-        }
+    @Test
+    @DisplayName("기준 인원 충족 - 세션 시작 준비")
+    void lastParticipant_PrepareToStartSession() {
+      // given
+      blindDateStorage.start(3, LocalDateTime.now().plusHours(1));
+
+      // when - 3명 입장
+      Map<String, Object> attr = new HashMap<>();
+      connectHandler.execute("socket-1", 1L, attr);
+      connectHandler.execute("socket-2", 2L, attr);
+      connectHandler.execute("socket-3", 3L, attr);
+      eventQueue.awaitIdle();
+      String sessionId = (String) attr.get("sessionId");
+
+      // then
+      assertThat(getParticipantCount(sessionId)).isEqualTo(3);
+      // 세션 시작은 scheduler에 의해 비동기로 처리됨
     }
 
-    @Nested
-    @DisplayName("시나리오 5: 동시성 테스트")
-    class ConcurrencyScenarios {
+    @Test
+    @DisplayName("기준 인원 미달 - 세션 대기 상태 유지")
+    void notFull_RemainsWaiting() {
+      // given
+      blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
 
-        @Test
-        @DisplayName("100명 동시 입장 - 정확한 세션 분배")
-        void concurrent100Users_AccurateDistribution() throws Exception {
-            // given
-            blindDateStorage.start(10, LocalDateTime.now().plusHours(1));
+      // when - 3명만 입장
+      Map<String, Object> attr = new HashMap<>();
+      connectHandler.execute("socket-1", 1L, attr);
+      connectHandler.execute("socket-2", 2L, attr);
+      connectHandler.execute("socket-3", 3L, attr);
+      eventQueue.awaitIdle();
+      String sessionId = (String) attr.get("sessionId");
 
-            ExecutorService executor = Executors.newFixedThreadPool(20);
-            CountDownLatch latch = new CountDownLatch(100);
-            Set<String> sessions = java.util.concurrent.ConcurrentHashMap.newKeySet();
-            List<Exception> exceptions = Collections.synchronizedList(new ArrayList<>());
+      // then
+      SessionState state = sessionStorage.getState(sessionId);
+      assertThat(state).isEqualTo(SessionState.WAITING);
+    }
+  }
 
-            // when - 100명 동시 입장
-            for (int i = 1; i <= 100; i++) {
-                final long memberId = i;
-                executor.submit(() -> {
-                    try {
-                        Map<String, Object> attr = new HashMap<>();
-                        connectHandler.execute("socket-" + memberId, memberId, attr);
-                        eventQueue.awaitIdle();
-                        String sessionId = (String) attr.get("sessionId");
-                        if (sessionId != null) {
-                            sessions.add(sessionId);
-                        }
-                    } catch (Exception e) {
-                        exceptions.add(e);
-                        log.error("Error during concurrent enter for memberId={}", memberId, e);
-                    } finally {
-                        latch.countDown();
-                    }
-                });
-            }
+  @Nested
+  @DisplayName("시나리오 4: 퇴장 처리")
+  class LeaveScenarios {
 
-            assertThat(latch.await(30, TimeUnit.SECONDS)).as("모든 스레드가 완료되어야 함").isTrue();
-            executor.shutdown();
-            executor.awaitTermination(10, TimeUnit.SECONDS);
-            eventQueue.awaitIdle();
+    @Test
+    @DisplayName("소켓 연결 해제 - 참여 정보 제거")
+    void disconnect_RemovesSocket() {
+      // given
+      blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+      Map<String, Object> attr = new HashMap<>();
+      connectHandler.execute("socket-1", 1L, attr);
+      connectHandler.execute("socket-2", 2L, attr);
+      eventQueue.awaitIdle();
+      String sessionId = (String) attr.get("sessionId");
 
-            if (!exceptions.isEmpty()) {
-                log.error("=== Exceptions in 100 users test ===");
-                exceptions.forEach(e -> log.error("Exception: {}", e.getMessage(), e));
-            }
+      assertThat(getParticipantCount(sessionId)).isEqualTo(2);
 
-            // 예외 없어야 함
-            assertThat(exceptions).as("예외 없어야 함").isEmpty();
+      // when
+      disconnectHandler.execute("socket-1", 1L, sessionId);
+      eventQueue.awaitIdle();
 
-            log.info("Created {} sessions for 100 users", sessions.size());
-            assertThat(sessions).as("최소 10개 세션 생성되어야 함").hasSizeGreaterThanOrEqualTo(10);
+      // then
+      assertThat(participantStorage.getByMemberId(1L)).isNull();
+    }
+  }
 
-            // 모든 사용자가 세션에 배정되었는지
-            for (int i = 1; i <= 100; i++) {
-                ParticipantInfo participant = participantStorage.getByMemberId((long) i);
-                assertThat(participant).as("Member " + i + "가 배정되어야 함").isNotNull();
-            }
-        }
+  @Nested
+  @DisplayName("시나리오 5: 동시성 테스트")
+  class ConcurrencyScenarios {
 
-        @Test
-        @DisplayName("동시 입장 - Pointer 동기화 보장")
-        void concurrentEnter_PointerSynchronized() throws Exception {
-            // given
-            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+    @Test
+    @DisplayName("100명 동시 입장 - 정확한 세션 분배")
+    void concurrent100Users_AccurateDistribution() throws Exception {
+      // given
+      blindDateStorage.start(10, LocalDateTime.now().plusHours(1));
 
-            ExecutorService executor = Executors.newFixedThreadPool(10);
-            CountDownLatch latch = new CountDownLatch(15);
-            List<Exception> exceptions = Collections.synchronizedList(new ArrayList<>());
+      ExecutorService executor = Executors.newFixedThreadPool(20);
+      CountDownLatch latch = new CountDownLatch(100);
+      Set<String> sessions = java.util.concurrent.ConcurrentHashMap.newKeySet();
+      List<Exception> exceptions = Collections.synchronizedList(new ArrayList<>());
 
-            // when - 15명 동시 입장
-            for (int i = 1; i <= 15; i++) {
-                final long memberId = i;
-                executor.submit(() -> {
-                    try {
-                        Map<String, Object> attr = new HashMap<>();
-                        connectHandler.execute("socket-" + memberId, memberId, attr);
-                    } catch (Exception e) {
-                        exceptions.add(e);
-                        log.error("Error for memberId={}", memberId, e);
-                    } finally {
-                        latch.countDown();
-                    }
-                });
-            }
+      // when - 100명 동시 입장
+      for (int i = 1; i <= 100; i++) {
+        final long memberId = i;
+        executor.submit(
+            () -> {
+              try {
+                Map<String, Object> attr = new HashMap<>();
+                connectHandler.execute("socket-" + memberId, memberId, attr);
+                eventQueue.awaitIdle();
+                String sessionId = (String) attr.get("sessionId");
+                if (sessionId != null) {
+                  sessions.add(sessionId);
+                }
+              } catch (Exception e) {
+                exceptions.add(e);
+                log.error("Error during concurrent enter for memberId={}", memberId, e);
+              } finally {
+                latch.countDown();
+              }
+            });
+      }
 
-            assertThat(latch.await(15, TimeUnit.SECONDS)).as("모든 스레드가 완료되어야 함").isTrue();
-            executor.shutdown();
-            executor.awaitTermination(10, TimeUnit.SECONDS);
-            eventQueue.awaitIdle();
+      assertThat(latch.await(30, TimeUnit.SECONDS)).as("모든 스레드가 완료되어야 함").isTrue();
+      executor.shutdown();
+      executor.awaitTermination(10, TimeUnit.SECONDS);
+      eventQueue.awaitIdle();
 
-            if (!exceptions.isEmpty()) {
-                log.error("=== Exceptions in pointer sync test ===");
-                exceptions.forEach(e -> log.error("Exception: {}", e.getMessage(), e));
-            }
+      if (!exceptions.isEmpty()) {
+        log.error("=== Exceptions in 100 users test ===");
+        exceptions.forEach(e -> log.error("Exception: {}", e.getMessage(), e));
+      }
 
-            // then - 3개 세션으로 정확히 분배 (15 / 5 = 3)
-            assertThat(exceptions).as("예외 없어야 함").isEmpty();
+      // 예외 없어야 함
+      assertThat(exceptions).as("예외 없어야 함").isEmpty();
 
-            Set<String> uniqueSessions = new java.util.HashSet<>();
-            for (int i = 1; i <= 15; i++) {
-                ParticipantInfo p = participantStorage.getByMemberId((long) i);
-                assertThat(p).as("Member " + i + "가 배정되어야 함").isNotNull();
-                uniqueSessions.add(p.getSessionId());
-            }
+      log.info("Created {} sessions for 100 users", sessions.size());
+      assertThat(sessions).as("최소 10개 세션 생성되어야 함").hasSizeGreaterThanOrEqualTo(10);
 
-            log.info("Created {} sessions for 15 users with capacity 5", uniqueSessions.size());
-
-            // PointerLock 적용 후: 정확히 3개 세션만 생성되어야 함
-            assertThat(uniqueSessions).as("정확히 3개 세션이 생성되어야 함 (15명 / 5명)").hasSize(3);
-
-            // 각 세션의 인원 확인
-            for (String sessionId : uniqueSessions) {
-                int count = participantStorage.findAllBySessionId(sessionId).size();
-                log.info("Session {} has {} participants", sessionId, count);
-
-                // 정원 절대 초과 불가!
-                assertThat(count).as("각 세션은 정원을 절대 초과하면 안 됨").isLessThanOrEqualTo(5);
-            }
-
-            // 총 인원 확인 - 15명 모두 배정되어야 함
-            int totalCount = uniqueSessions.stream()
-                    .mapToInt(sid -> participantStorage.findAllBySessionId(sid).size())
-                    .sum();
-            assertThat(totalCount).as("총 15명이 배정되어야 함").isEqualTo(15);
-        }
+      // 모든 사용자가 세션에 배정되었는지
+      for (int i = 1; i <= 100; i++) {
+        ParticipantInfo participant = participantStorage.getByMemberId((long) i);
+        assertThat(participant).as("Member " + i + "가 배정되어야 함").isNotNull();
+      }
     }
 
-    @Nested
-    @DisplayName("시나리오 6: 사랑의 작대기 - 매칭")
-    class MatchingScenarios {
+    @Test
+    @DisplayName("동시 입장 - Pointer 동기화 보장")
+    void concurrentEnter_PointerSynchronized() throws Exception {
+      // given
+      blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
 
-        @Test
-        @DisplayName("서로 선택 - 매칭 성공")
-        void mutualChoice_Matches() {
-            // given
-            blindDateStorage.start(2, LocalDateTime.now().plusHours(1));
-            Map<String, Object> attr = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, attr);
-            connectHandler.execute("socket-2", 2L, attr);
-            eventQueue.awaitIdle();
-            String sessionId = (String) attr.get("sessionId");
-            participantStorage.openChoices(sessionId);
-            eventQueue.openChoices(sessionId);
+      ExecutorService executor = Executors.newFixedThreadPool(10);
+      CountDownLatch latch = new CountDownLatch(15);
+      List<Exception> exceptions = Collections.synchronizedList(new ArrayList<>());
 
-            // when
-            choiceHandler.execute(sessionId, 1L, 2L);
-            choiceHandler.execute(sessionId, 2L, 1L);
-            eventQueue.awaitIdle();
+      // when - 15명 동시 입장
+      for (int i = 1; i <= 15; i++) {
+        final long memberId = i;
+        executor.submit(
+            () -> {
+              try {
+                Map<String, Object> attr = new HashMap<>();
+                connectHandler.execute("socket-" + memberId, memberId, attr);
+              } catch (Exception e) {
+                exceptions.add(e);
+                log.error("Error for memberId={}", memberId, e);
+              } finally {
+                latch.countDown();
+              }
+            });
+      }
 
-            // then
-            Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
-            assertThat(notMatched).isEmpty();
+      assertThat(latch.await(15, TimeUnit.SECONDS)).as("모든 스레드가 완료되어야 함").isTrue();
+      executor.shutdown();
+      executor.awaitTermination(10, TimeUnit.SECONDS);
+      eventQueue.awaitIdle();
 
-            // 매칭 확인
-            assertThat(participantStorage.isMatched(sessionId, 1L)).isTrue();
-            assertThat(participantStorage.isMatched(sessionId, 2L)).isTrue();
-        }
+      if (!exceptions.isEmpty()) {
+        log.error("=== Exceptions in pointer sync test ===");
+        exceptions.forEach(e -> log.error("Exception: {}", e.getMessage(), e));
+      }
 
-        @Test
-        @DisplayName("한쪽만 선택 - 매칭 실패")
-        void oneWayChoice_NoMatch() {
-            // given
-            blindDateStorage.start(2, LocalDateTime.now().plusHours(1));
-            Map<String, Object> attr = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, attr);
-            connectHandler.execute("socket-2", 2L, attr);
-            eventQueue.awaitIdle();
-            String sessionId = (String) attr.get("sessionId");
-            participantStorage.openChoices(sessionId);
-            eventQueue.openChoices(sessionId);
+      // then - 3개 세션으로 정확히 분배 (15 / 5 = 3)
+      assertThat(exceptions).as("예외 없어야 함").isEmpty();
 
-            // when
-            choiceHandler.execute(sessionId, 1L, 2L);
-            eventQueue.awaitIdle();
+      Set<String> uniqueSessions = new java.util.HashSet<>();
+      for (int i = 1; i <= 15; i++) {
+        ParticipantInfo p = participantStorage.getByMemberId((long) i);
+        assertThat(p).as("Member " + i + "가 배정되어야 함").isNotNull();
+        uniqueSessions.add(p.getSessionId());
+      }
 
-            // then
-            Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
-            assertThat(notMatched).containsExactlyInAnyOrder(1L, 2L);
+      log.info("Created {} sessions for 15 users with capacity 5", uniqueSessions.size());
 
-            assertThat(participantStorage.isMatched(sessionId, 1L)).isFalse();
-            assertThat(participantStorage.isMatched(sessionId, 2L)).isFalse();
-        }
+      // PointerLock 적용 후: 정확히 3개 세션만 생성되어야 함
+      assertThat(uniqueSessions).as("정확히 3개 세션이 생성되어야 함 (15명 / 5명)").hasSize(3);
 
-        @Test
-        @DisplayName("세션 종료 후 도착한 선택은 매칭하지 않는다")
-        void choiceAfterTermination_IsIgnored() {
-            blindDateStorage.start(2, LocalDateTime.now().plusHours(1));
-            Map<String, Object> attr = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, attr);
-            connectHandler.execute("socket-2", 2L, attr);
-            eventQueue.awaitIdle();
-            String sessionId = (String) attr.get("sessionId");
-            participantStorage.openChoices(sessionId);
-            eventQueue.openChoices(sessionId);
-            sessionStorage.terminate(sessionId);
+      // 각 세션의 인원 확인
+      for (String sessionId : uniqueSessions) {
+        int count = participantStorage.findAllBySessionId(sessionId).size();
+        log.info("Session {} has {} participants", sessionId, count);
 
-            choiceHandler.execute(sessionId, 1L, 2L);
-            choiceHandler.execute(sessionId, 2L, 1L);
-            eventQueue.awaitIdle();
+        // 정원 절대 초과 불가!
+        assertThat(count).as("각 세션은 정원을 절대 초과하면 안 됨").isLessThanOrEqualTo(5);
+      }
 
-            assertThat(participantStorage.isMatched(sessionId, 1L)).isFalse();
-            assertThat(participantStorage.isMatched(sessionId, 2L)).isFalse();
-        }
+      // 총 인원 확인 - 15명 모두 배정되어야 함
+      int totalCount =
+          uniqueSessions.stream()
+              .mapToInt(sid -> participantStorage.findAllBySessionId(sid).size())
+              .sum();
+      assertThat(totalCount).as("총 15명이 배정되어야 함").isEqualTo(15);
+    }
+  }
 
-        @Test
-        @DisplayName("삼각관계 - 모두 매칭 실패")
-        void triangleChoice_AllFail() {
-            // given
-            blindDateStorage.start(3, LocalDateTime.now().plusHours(1));
-            Map<String, Object> attr = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, attr);
-            connectHandler.execute("socket-2", 2L, attr);
-            connectHandler.execute("socket-3", 3L, attr);
-            eventQueue.awaitIdle();
-            String sessionId = (String) attr.get("sessionId");
-            participantStorage.openChoices(sessionId);
-            eventQueue.openChoices(sessionId);
+  @Nested
+  @DisplayName("시나리오 6: 사랑의 작대기 - 매칭")
+  class MatchingScenarios {
 
-            // when - 1→2, 2→3, 3→1
-            choiceHandler.execute(sessionId, 1L, 2L);
-            choiceHandler.execute(sessionId, 2L, 3L);
-            choiceHandler.execute(sessionId, 3L, 1L);
-            eventQueue.awaitIdle();
+    @Test
+    @DisplayName("서로 선택 - 매칭 성공")
+    void mutualChoice_Matches() {
+      // given
+      blindDateStorage.start(2, LocalDateTime.now().plusHours(1));
+      Map<String, Object> attr = new HashMap<>();
+      connectHandler.execute("socket-1", 1L, attr);
+      connectHandler.execute("socket-2", 2L, attr);
+      eventQueue.awaitIdle();
+      String sessionId = (String) attr.get("sessionId");
+      participantStorage.openChoices(sessionId);
+      eventQueue.openChoices(sessionId);
 
-            // then
-            Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
-            assertThat(notMatched).containsExactlyInAnyOrder(1L, 2L, 3L);
-        }
+      // when
+      choiceHandler.execute(sessionId, 1L, 2L);
+      choiceHandler.execute(sessionId, 2L, 1L);
+      eventQueue.awaitIdle();
 
-        @Test
-        @DisplayName("5명 중 2쌍 매칭, 1명 실패")
-        void partialMatching() {
-            // given
-            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
-            Map<String, Object> attr = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, attr);
-            for (long i = 2; i <= 5; i++) {
-                connectHandler.execute("socket-" + i, i, attr);
-            }
-            eventQueue.awaitIdle();
-            String sessionId = (String) attr.get("sessionId");
-            participantStorage.openChoices(sessionId);
-            eventQueue.openChoices(sessionId);
+      // then
+      Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
+      assertThat(notMatched).isEmpty();
 
-            // when - 1↔2, 3↔4, 5 혼자
-            choiceHandler.execute(sessionId, 1L, 2L);
-            choiceHandler.execute(sessionId, 2L, 1L);
-            choiceHandler.execute(sessionId, 3L, 4L);
-            choiceHandler.execute(sessionId, 4L, 3L);
-            choiceHandler.execute(sessionId, 5L, 1L);
-            eventQueue.awaitIdle();
-
-            // then
-            Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
-            assertThat(notMatched).containsExactly(5L);
-        }
+      // 매칭 확인
+      assertThat(participantStorage.isMatched(sessionId, 1L)).isTrue();
+      assertThat(participantStorage.isMatched(sessionId, 2L)).isTrue();
     }
 
-    @Nested
-    @DisplayName("시나리오 7: 전체 플로우")
-    class CompleteFlow {
+    @Test
+    @DisplayName("한쪽만 선택 - 매칭 실패")
+    void oneWayChoice_NoMatch() {
+      // given
+      blindDateStorage.start(2, LocalDateTime.now().plusHours(1));
+      Map<String, Object> attr = new HashMap<>();
+      connectHandler.execute("socket-1", 1L, attr);
+      connectHandler.execute("socket-2", 2L, attr);
+      eventQueue.awaitIdle();
+      String sessionId = (String) attr.get("sessionId");
+      participantStorage.openChoices(sessionId);
+      eventQueue.openChoices(sessionId);
 
-        @Test
-        @DisplayName("전체 플로우: 시작 → 입장 → 매칭")
-        void completeFlow_StartToEnd() {
-            // 1. 과팅 시작
-            LocalDateTime expiredDate = LocalDateTime.now().plusHours(1);
-            StartBlindDateRequest request = new StartBlindDateRequest(expiredDate, 3);
-            blindDateService.startBlindDate(request);
+      // when
+      choiceHandler.execute(sessionId, 1L, 2L);
+      eventQueue.awaitIdle();
 
-            assertThat(blindDateService.isAvailable()).isTrue();
+      // then
+      Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
+      assertThat(notMatched).containsExactlyInAnyOrder(1L, 2L);
 
-            // 2. 3명 입장
-            Map<String, Object> attr = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, attr);
-            connectHandler.execute("socket-2", 2L, attr);
-            connectHandler.execute("socket-3", 3L, attr);
-            eventQueue.awaitIdle();
-            String sessionId = (String) attr.get("sessionId");
-            participantStorage.openChoices(sessionId);
-            eventQueue.openChoices(sessionId);
-
-            // 3. 사랑의 작대기 - 1↔2 매칭
-            choiceHandler.execute(sessionId, 1L, 2L);
-            choiceHandler.execute(sessionId, 2L, 1L);
-            eventQueue.awaitIdle();
-
-            choiceHandler.execute(sessionId, 3L, null);
-            eventQueue.awaitIdle();
-
-            // 4. 매칭 결과 확인
-            Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
-            assertThat(notMatched).containsExactly(3L);
-
-            assertThat(participantStorage.isMatched(sessionId, 1L)).isTrue();
-            assertThat(participantStorage.isMatched(sessionId, 2L)).isTrue();
-            assertThat(participantStorage.isMatched(sessionId, 3L)).isFalse();
-        }
-    }
-    @Nested
-    @DisplayName("관리자 강퇴")
-    class KickScenarios {
-
-        private List<Map<String, Object>> joinStatesOf(long memberId) {
-            return joinResponses.stream()
-                    .filter(response -> response.member().equals(String.valueOf(memberId)))
-                    .map(JoinResponse::payload)
-                    .toList();
-        }
-
-        @Test
-        @DisplayName("진행 중 세션에서 강퇴하면 본인에게 KICKED, 다른 참가자에게 익명 이름 퇴장 안내를 보내고 재입장을 막는다")
-        void kickFromProcessingSession_NotifiesAndBlocksReconnect() {
-            blindDateStorage.start(3, LocalDateTime.now().plusHours(1));
-            Map<String, Object> attr = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, attr);
-            connectHandler.execute("socket-2", 2L, new HashMap<>());
-            connectHandler.execute("socket-3", 3L, new HashMap<>());
-            eventQueue.awaitIdle();
-            String sessionId = (String) attr.get("sessionId");
-            assertThat(sessionStorage.isProcessing(sessionId)).isTrue();
-
-            blindDateService.kickParticipant(sessionId, 2L);
-            eventQueue.awaitIdle();
-
-            assertThat(joinStatesOf(2L)).last().isEqualTo(Map.of("state", "KICKED"));
-            verify(messagingTemplate).convertAndSend(
-                    eq("/topic/blinddate/session/" + sessionId + "/system"),
-                    (Object) argThat(payload -> payload instanceof Map<?, ?> map
-                            && "익명2님이 퇴장당했습니다.".equals(map.get("message"))
-                            && Long.valueOf(0L).equals(map.get("senderId"))));
-            assertThat(participantStorage.getAnonymousName(2L)).isNull();
-            assertThat(participantStorage.findAllBySessionId(sessionId))
-                    .extracting(ParticipantInfo::getMemberId).containsExactlyInAnyOrder(1L, 3L);
-
-            Map<String, Object> reconnect = new HashMap<>();
-            connectHandler.execute("socket-2b", 2L, reconnect);
-            eventQueue.awaitIdle();
-
-            assertThat(reconnect).doesNotContainKey("sessionId");
-            assertThat(participantStorage.getByMemberId(2L)).isNull();
-            assertThat(joinStatesOf(2L)).last().isEqualTo(Map.of("state", "KICKED"));
-        }
-
-        @Test
-        @DisplayName("대기 중 세션에서 강퇴하면 인원을 갱신하고, 전체 초기화 뒤에는 다시 입장할 수 있다")
-        void kickFromWaitingSession_UpdatesCountAndResetAllowsRejoin() {
-            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
-            Map<String, Object> attr = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, attr);
-            connectHandler.execute("socket-2", 2L, new HashMap<>());
-            eventQueue.awaitIdle();
-            String sessionId = (String) attr.get("sessionId");
-            clearInvocations(messagingTemplate);
-
-            blindDateService.kickParticipant(sessionId, 2L);
-            eventQueue.awaitIdle();
-
-            verify(messagingTemplate).convertAndSend(
-                    "/topic/blinddate/session/" + sessionId + "/joined", Map.of("volunteer", 1));
-
-            blindDateService.resetParticipants();
-            eventQueue.awaitIdle();
-            Map<String, Object> rejoin = new HashMap<>();
-            connectHandler.execute("socket-2b", 2L, rejoin);
-            eventQueue.awaitIdle();
-
-            assertThat(rejoin).containsKey("sessionId");
-            assertThat(participantStorage.getByMemberId(2L)).isNotNull();
-        }
-
-        @Test
-        @DisplayName("이미 끝난 세션의 참가자를 강퇴하면 안내 없이 재입장만 막는다")
-        void kickAfterSessionTerminated_OnlyBlocksRejoin() {
-            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
-            Map<String, Object> attr = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, attr);
-            eventQueue.awaitIdle();
-            String sessionId = (String) attr.get("sessionId");
-            sessionStorage.terminate(sessionId);
-            int responsesBeforeKick = joinStatesOf(1L).size();
-
-            blindDateService.kickParticipant(sessionId, 1L);
-            eventQueue.awaitIdle();
-
-            assertThat(joinStatesOf(1L)).hasSize(responsesBeforeKick);
-            connectHandler.execute("socket-1b", 1L, new HashMap<>());
-            eventQueue.awaitIdle();
-            assertThat(joinStatesOf(1L)).last().isEqualTo(Map.of("state", "KICKED"));
-        }
-
-        @Test
-        @DisplayName("전체 초기화로 참가 기록이 없으면 강퇴해도 다음 입장을 막지 않는다")
-        void kickWithoutParticipantRecord_DoesNothing() {
-            blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
-
-            blindDateService.kickParticipant("cleared-session", 1L);
-            eventQueue.awaitIdle();
-            Map<String, Object> join = new HashMap<>();
-            connectHandler.execute("socket-1", 1L, join);
-            eventQueue.awaitIdle();
-
-            assertThat(join).containsKey("sessionId");
-            assertThat(joinStatesOf(1L)).noneMatch(payload -> "KICKED".equals(payload.get("state")));
-        }
+      assertThat(participantStorage.isMatched(sessionId, 1L)).isFalse();
+      assertThat(participantStorage.isMatched(sessionId, 2L)).isFalse();
     }
 
-    private record JoinResponse(String member, String destination, Map<String, Object> payload) {}
+    @Test
+    @DisplayName("세션 종료 후 도착한 선택은 매칭하지 않는다")
+    void choiceAfterTermination_IsIgnored() {
+      blindDateStorage.start(2, LocalDateTime.now().plusHours(1));
+      Map<String, Object> attr = new HashMap<>();
+      connectHandler.execute("socket-1", 1L, attr);
+      connectHandler.execute("socket-2", 2L, attr);
+      eventQueue.awaitIdle();
+      String sessionId = (String) attr.get("sessionId");
+      participantStorage.openChoices(sessionId);
+      eventQueue.openChoices(sessionId);
+      sessionStorage.terminate(sessionId);
+
+      choiceHandler.execute(sessionId, 1L, 2L);
+      choiceHandler.execute(sessionId, 2L, 1L);
+      eventQueue.awaitIdle();
+
+      assertThat(participantStorage.isMatched(sessionId, 1L)).isFalse();
+      assertThat(participantStorage.isMatched(sessionId, 2L)).isFalse();
+    }
+
+    @Test
+    @DisplayName("삼각관계 - 모두 매칭 실패")
+    void triangleChoice_AllFail() {
+      // given
+      blindDateStorage.start(3, LocalDateTime.now().plusHours(1));
+      Map<String, Object> attr = new HashMap<>();
+      connectHandler.execute("socket-1", 1L, attr);
+      connectHandler.execute("socket-2", 2L, attr);
+      connectHandler.execute("socket-3", 3L, attr);
+      eventQueue.awaitIdle();
+      String sessionId = (String) attr.get("sessionId");
+      participantStorage.openChoices(sessionId);
+      eventQueue.openChoices(sessionId);
+
+      // when - 1→2, 2→3, 3→1
+      choiceHandler.execute(sessionId, 1L, 2L);
+      choiceHandler.execute(sessionId, 2L, 3L);
+      choiceHandler.execute(sessionId, 3L, 1L);
+      eventQueue.awaitIdle();
+
+      // then
+      Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
+      assertThat(notMatched).containsExactlyInAnyOrder(1L, 2L, 3L);
+    }
+
+    @Test
+    @DisplayName("5명 중 2쌍 매칭, 1명 실패")
+    void partialMatching() {
+      // given
+      blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+      Map<String, Object> attr = new HashMap<>();
+      connectHandler.execute("socket-1", 1L, attr);
+      for (long i = 2; i <= 5; i++) {
+        connectHandler.execute("socket-" + i, i, attr);
+      }
+      eventQueue.awaitIdle();
+      String sessionId = (String) attr.get("sessionId");
+      participantStorage.openChoices(sessionId);
+      eventQueue.openChoices(sessionId);
+
+      // when - 1↔2, 3↔4, 5 혼자
+      choiceHandler.execute(sessionId, 1L, 2L);
+      choiceHandler.execute(sessionId, 2L, 1L);
+      choiceHandler.execute(sessionId, 3L, 4L);
+      choiceHandler.execute(sessionId, 4L, 3L);
+      choiceHandler.execute(sessionId, 5L, 1L);
+      eventQueue.awaitIdle();
+
+      // then
+      Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
+      assertThat(notMatched).containsExactly(5L);
+    }
+  }
+
+  @Nested
+  @DisplayName("시나리오 7: 전체 플로우")
+  class CompleteFlow {
+
+    @Test
+    @DisplayName("전체 플로우: 시작 → 입장 → 매칭")
+    void completeFlow_StartToEnd() {
+      // 1. 과팅 시작
+      LocalDateTime expiredDate = LocalDateTime.now().plusHours(1);
+      StartBlindDateRequest request = new StartBlindDateRequest(expiredDate, 3);
+      blindDateService.startBlindDate(request);
+
+      assertThat(blindDateService.isAvailable()).isTrue();
+
+      // 2. 3명 입장
+      Map<String, Object> attr = new HashMap<>();
+      connectHandler.execute("socket-1", 1L, attr);
+      connectHandler.execute("socket-2", 2L, attr);
+      connectHandler.execute("socket-3", 3L, attr);
+      eventQueue.awaitIdle();
+      String sessionId = (String) attr.get("sessionId");
+      participantStorage.openChoices(sessionId);
+      eventQueue.openChoices(sessionId);
+
+      // 3. 사랑의 작대기 - 1↔2 매칭
+      choiceHandler.execute(sessionId, 1L, 2L);
+      choiceHandler.execute(sessionId, 2L, 1L);
+      eventQueue.awaitIdle();
+
+      choiceHandler.execute(sessionId, 3L, null);
+      eventQueue.awaitIdle();
+
+      // 4. 매칭 결과 확인
+      Set<Long> notMatched = participantStorage.getNotMatched(sessionId);
+      assertThat(notMatched).containsExactly(3L);
+
+      assertThat(participantStorage.isMatched(sessionId, 1L)).isTrue();
+      assertThat(participantStorage.isMatched(sessionId, 2L)).isTrue();
+      assertThat(participantStorage.isMatched(sessionId, 3L)).isFalse();
+    }
+  }
+
+  @Nested
+  @DisplayName("관리자 강퇴")
+  class KickScenarios {
+
+    private List<Map<String, Object>> joinStatesOf(long memberId) {
+      return joinResponses.stream()
+          .filter(response -> response.member().equals(String.valueOf(memberId)))
+          .map(JoinResponse::payload)
+          .toList();
+    }
+
+    @Test
+    @DisplayName("진행 중 세션에서 강퇴하면 본인에게 KICKED, 다른 참가자에게 익명 이름 퇴장 안내를 보내고 재입장을 막는다")
+    void kickFromProcessingSession_NotifiesAndBlocksReconnect() {
+      blindDateStorage.start(3, LocalDateTime.now().plusHours(1));
+      Map<String, Object> attr = new HashMap<>();
+      connectHandler.execute("socket-1", 1L, attr);
+      connectHandler.execute("socket-2", 2L, new HashMap<>());
+      connectHandler.execute("socket-3", 3L, new HashMap<>());
+      eventQueue.awaitIdle();
+      String sessionId = (String) attr.get("sessionId");
+      assertThat(sessionStorage.isProcessing(sessionId)).isTrue();
+
+      blindDateService.kickParticipant(sessionId, 2L);
+      eventQueue.awaitIdle();
+
+      assertThat(joinStatesOf(2L)).last().isEqualTo(Map.of("state", "KICKED"));
+      verify(messagingTemplate)
+          .convertAndSend(
+              eq("/topic/blinddate/session/" + sessionId + "/system"),
+              (Object)
+                  argThat(
+                      payload ->
+                          payload instanceof Map<?, ?> map
+                              && "익명2님이 퇴장당했습니다.".equals(map.get("message"))
+                              && Long.valueOf(0L).equals(map.get("senderId"))));
+      assertThat(participantStorage.getAnonymousName(2L)).isNull();
+      assertThat(participantStorage.findAllBySessionId(sessionId))
+          .extracting(ParticipantInfo::getMemberId)
+          .containsExactlyInAnyOrder(1L, 3L);
+
+      Map<String, Object> reconnect = new HashMap<>();
+      connectHandler.execute("socket-2b", 2L, reconnect);
+      eventQueue.awaitIdle();
+
+      assertThat(reconnect).doesNotContainKey("sessionId");
+      assertThat(participantStorage.getByMemberId(2L)).isNull();
+      assertThat(joinStatesOf(2L)).last().isEqualTo(Map.of("state", "KICKED"));
+    }
+
+    @Test
+    @DisplayName("대기 중 세션에서 강퇴하면 인원을 갱신하고, 전체 초기화 뒤에는 다시 입장할 수 있다")
+    void kickFromWaitingSession_UpdatesCountAndResetAllowsRejoin() {
+      blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+      Map<String, Object> attr = new HashMap<>();
+      connectHandler.execute("socket-1", 1L, attr);
+      connectHandler.execute("socket-2", 2L, new HashMap<>());
+      eventQueue.awaitIdle();
+      String sessionId = (String) attr.get("sessionId");
+      clearInvocations(messagingTemplate);
+
+      blindDateService.kickParticipant(sessionId, 2L);
+      eventQueue.awaitIdle();
+
+      verify(messagingTemplate)
+          .convertAndSend(
+              "/topic/blinddate/session/" + sessionId + "/joined", Map.of("volunteer", 1));
+
+      blindDateService.resetParticipants();
+      eventQueue.awaitIdle();
+      Map<String, Object> rejoin = new HashMap<>();
+      connectHandler.execute("socket-2b", 2L, rejoin);
+      eventQueue.awaitIdle();
+
+      assertThat(rejoin).containsKey("sessionId");
+      assertThat(participantStorage.getByMemberId(2L)).isNotNull();
+    }
+
+    @Test
+    @DisplayName("이미 끝난 세션의 참가자를 강퇴하면 안내 없이 재입장만 막는다")
+    void kickAfterSessionTerminated_OnlyBlocksRejoin() {
+      blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+      Map<String, Object> attr = new HashMap<>();
+      connectHandler.execute("socket-1", 1L, attr);
+      eventQueue.awaitIdle();
+      String sessionId = (String) attr.get("sessionId");
+      sessionStorage.terminate(sessionId);
+      int responsesBeforeKick = joinStatesOf(1L).size();
+
+      blindDateService.kickParticipant(sessionId, 1L);
+      eventQueue.awaitIdle();
+
+      assertThat(joinStatesOf(1L)).hasSize(responsesBeforeKick);
+      connectHandler.execute("socket-1b", 1L, new HashMap<>());
+      eventQueue.awaitIdle();
+      assertThat(joinStatesOf(1L)).last().isEqualTo(Map.of("state", "KICKED"));
+    }
+
+    @Test
+    @DisplayName("전체 초기화로 참가 기록이 없으면 강퇴해도 다음 입장을 막지 않는다")
+    void kickWithoutParticipantRecord_DoesNothing() {
+      blindDateStorage.start(5, LocalDateTime.now().plusHours(1));
+
+      blindDateService.kickParticipant("cleared-session", 1L);
+      eventQueue.awaitIdle();
+      Map<String, Object> join = new HashMap<>();
+      connectHandler.execute("socket-1", 1L, join);
+      eventQueue.awaitIdle();
+
+      assertThat(join).containsKey("sessionId");
+      assertThat(joinStatesOf(1L)).noneMatch(payload -> "KICKED".equals(payload.get("state")));
+    }
+  }
+
+  private record JoinResponse(String member, String destination, Map<String, Object> payload) {}
 }
