@@ -1,0 +1,47 @@
+mutation cleanup counter fails decrement
+detects TypeOK
+only items=0
+- /\ pending' = pending - 1 /\ mapped' = {}
++ /\ pending' = pending /\ mapped' = {}
+
+mutation dequeue selects last but removes first
+detects FIFOOnce
+only sessions=1 items=3
+- /\ active' = [active EXCEPT ![s] = Head(lanes[s])]
++ /\ active' = [active EXCEPT ![s] = lanes[s][Len(lanes[s])]]
+
+mutation dequeue leaves duplicate owner
+detects Ownership
+only sessions=1 items=3
+- /\ lanes' = [lanes EXCEPT ![s] = Tail(@)]
++ /\ lanes' = lanes
+
+mutation timeout finalizer overtakes accepted work
+detects TimeoutDrains
+only sessions=1 items=3
+- IF s \in opened THEN Append(@,Job("final",0)) ELSE @
++ IF s \in opened THEN <<Job("final",0)>> \o @ ELSE @
+
+mutation cleanup does not wait barriers
+detects ResetDrains
+only sessions=1 items=3
+- /\ \A s \in S : <<cleaned+1,s>> \in barriers
++ /\ TRUE
+
+mutation cleanup bypass wait exposes late output
+detects NoLateOutput
+only sessions=1 items=3
+- /\ \A s \in S : <<cleaned+1,s>> \in barriers
++ /\ TRUE
+
+mutation open omits pending cleanup guard
+detects AdmissionClosed
+only sessions=1 items=3
+- CanOpen(s) == pending = 0 /\ s \in alive
++ CanOpen(s) == s \in alive
+
+mutation barrier future never completed
+detects AllFinished
+only sessions=1 items=3
+- IF j.kind = "barrier" THEN barriers \cup {<<j.id,s>>} ELSE barriers
++ barriers

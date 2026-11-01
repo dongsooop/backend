@@ -1,0 +1,17 @@
+spec BlindDateLifecycle.tla
+check INVARIANTS TypeOK FIFOOnce Ownership TimeoutDrains ResetDrains NoLateOutput AdmissionClosed
+check PROPERTIES AllFinished
+reach CleanupWaiting | sessions=1 items=3
+reach TimeoutBehindChoice | sessions=1 items=3
+reach MultipleResets | resets=2
+reach StaleCallback | sessions=1 items=3
+reach EmptyTimeout | items=0
+reach WorkerSaturated | sessions=3 items=1
+run sessions=1 items=0 workers=1 resets=1 | Sessions=1 Items=0 Workers=1 Resets=1
+run sessions=1 items=1 workers=2 resets=0 | Sessions=1 Items=1 Workers=2 Resets=0
+run sessions=1 items=3 workers=1 resets=1 | Sessions=1 Items=3 Workers=1 Resets=1
+run sessions=1 items=5 workers=5 resets=2 | Sessions=1 Items=5 Workers=5 Resets=2
+run sessions=2 items=1 workers=1 resets=1 | Sessions=2 Items=1 Workers=1 Resets=1
+run sessions=3 items=0 workers=3 resets=1 | Sessions=3 Items=0 Workers=3 Resets=1
+run sessions=2 items=1 workers=5 resets=1 | Sessions=2 Items=1 Workers=5 Resets=1
+run sessions=3 items=1 workers=2 resets=1 | Sessions=3 Items=1 Workers=2 Resets=1
