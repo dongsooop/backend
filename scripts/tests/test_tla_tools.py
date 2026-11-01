@@ -18,6 +18,11 @@ class TlaBootstrapTest(unittest.TestCase):
         (self.root / 'tla').mkdir()
         shutil.copy2(ROOT / 'scripts/tla.sh', self.root / 'scripts/tla.sh')
         shutil.copy2(ROOT / 'tla/toolchain.env', self.root / 'tla/toolchain.env')
+        self.pins = dict(
+            line.split('=', 1)
+            for line in (self.root / 'tla/toolchain.env').read_text().splitlines()
+            if line and not line.startswith('#')
+        )
         self.cache = self.root / 'cache'
         self.cache.mkdir()
         self.env = dict(os.environ, TLA_TOOLS_DIR=str(self.cache))
@@ -39,7 +44,7 @@ class TlaBootstrapTest(unittest.TestCase):
         self.assertNotIn('PASS', result.stdout)
 
     def test_corrupt_helper_archive_fails_before_execution(self):
-        revision = 'dec7ff413fc2b88d2fa8cf6af1cd03bcae6fe92d'
+        revision = self.pins['FORMAL_VERIFY_REV']
         (self.cache / f'formal-verify-{revision}.tar.gz').write_bytes(b'corrupt archive')
         result = self.run_tool('check')
         self.assertEqual(result.returncode, 3)
@@ -51,18 +56,19 @@ class TlaBootstrapTest(unittest.TestCase):
         pins = self.root / 'tla/toolchain.env'
         fake_archive = b'checksum validation must precede extraction'
         pins.write_text(pins.read_text().replace(
-            '395e67b9caf17762d13a5dcaafcf3b1c4a2d4a041af393be75a58d4605fa8448',
+            self.pins['FORMAL_VERIFY_SHA256'],
             hashlib.sha256(fake_archive).hexdigest(),
         ))
-        revision = 'dec7ff413fc2b88d2fa8cf6af1cd03bcae6fe92d'
+        revision = self.pins['FORMAL_VERIFY_REV']
         (self.cache / f'formal-verify-{revision}.tar.gz').write_bytes(fake_archive)
         (self.cache / 'tlc').mkdir()
-        (self.cache / 'tlc/tla2tools-v1.7.4.jar').write_bytes(b'corrupt jar')
+        jar_name = f"tla2tools-v{self.pins['TLC_VERSION']}.jar"
+        (self.cache / 'tlc' / jar_name).write_bytes(b'corrupt jar')
         self.env['TLC_JAR'] = '/some/unchecked.jar'
         result = self.run_tool('check')
         self.assertEqual(result.returncode, 3)
         self.assertIn('SHA256 mismatch', result.stderr)
-        self.assertIn('tla2tools-v1.7.4.jar', result.stderr)
+        self.assertIn(jar_name, result.stderr)
         self.assertFalse(list(self.cache.glob('run.*')))
         self.assertNotIn('PASS', result.stdout)
 
