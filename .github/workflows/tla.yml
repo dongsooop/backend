@@ -1,0 +1,43 @@
+name: TLA
+
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  model-check:
+    name: TLA model check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TLC_WORKERS: '2'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .tla-tools
+          key: ${{ runner.os }}-tla-${{ hashFiles('tla/toolchain.env') }}
+      - name: Check tool bootstrap failures
+        run: python3 -m unittest discover -s scripts/tests -p 'test_tla_tools.py' -v
+      - name: Prepare pinned tools
+        run: bash scripts/tla.sh setup
+      - name: Check model matrix and boundary reachability
+        run: bash scripts/tla.sh check
+      - name: Detect planted faults
+        run: bash scripts/tla.sh mutations

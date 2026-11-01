@@ -185,3 +185,9 @@ PR에는 다음을 담는다.
 - 규칙은 이 파일에 쓴다. Claude 전용 동작에만 해당하는 내용이 아니면 `CLAUDE.md`에 쓰지 않는다.
 - `CLAUDE.md`는 `@AGENTS.md` 한 줄로 이 파일을 가리키며, 그 아래에는 Claude 종속적인 내용만 덧붙인다.
 - 커밋 메시지와 PR 본문에 에이전트 흔적(`Co-Authored-By: Claude`, `Generated with ...` 등)을 남기지 않는다.
+
+## TLA+ 동시성 모델
+
+- `tla/`의 모델이 대상으로 명시한 큐·호출자 코드를 변경하면 모델 header와 실제 전이의 대응을 검토한다.
+- 공용 실행은 `bash scripts/tla.sh setup` 후 `bash scripts/tla.sh all`이다. 개인 스킬 설치 경로에 의존하지 않는다.
+- 검사 범위·가정·도구 갱신 기준은 `docs/testing/tla.md`를 따른다. 실패한 속성이나 변이를 삭제해 검증을 통과시키지 않는다.
