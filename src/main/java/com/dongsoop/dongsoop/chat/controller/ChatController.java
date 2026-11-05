@@ -166,19 +166,6 @@ public class ChatController {
         return ResponseEntity.ok(participants);
     }
 
-    @PostMapping("/room/contact")
-    public ResponseEntity<ChatRoom> createContactRoom(@RequestBody @Valid CreateContactRoomRequest request) {
-        Long currentUserId = getCurrentUserId();
-        ChatRoom contactRoom = chatRoomService.createContactChatRoom(
-                currentUserId,
-                request.getTargetUserId(),
-                request.getBoardType(),
-                request.getBoardId(),
-                request.getBoardTitle()
-        );
-        return ResponseEntity.ok(contactRoom);
-    }
-
     private Long getCurrentUserId() {
         Member member = memberService.getMemberReferenceByContext();
         return member.getId();
