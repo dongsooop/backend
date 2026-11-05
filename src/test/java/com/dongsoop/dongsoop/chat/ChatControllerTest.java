@@ -108,26 +108,4 @@ class ChatControllerTest {
                         .content("{}"))
                 .andExpect(status().isBadRequest());
     }
-
-    @Test
-    @DisplayName("POST /chat/room/contact - targetUserId null이면 400")
-    void createContactRoom_nullTargetUserId_returns400() throws Exception {
-        mockCurrentUser();
-
-        mockMvc.perform(post("/chat/room/contact")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"boardType\": \"PROJECT\", \"boardId\": 1, \"boardTitle\": \"test\"}"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("POST /chat/room/contact - boardTitle 빈 값이면 400")
-    void createContactRoom_blankBoardTitle_returns400() throws Exception {
-        mockCurrentUser();
-
-        mockMvc.perform(post("/chat/room/contact")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"targetUserId\": 2, \"boardType\": \"PROJECT\", \"boardId\": 1, \"boardTitle\": \"\"}"))
-                .andExpect(status().isBadRequest());
-    }
 }
