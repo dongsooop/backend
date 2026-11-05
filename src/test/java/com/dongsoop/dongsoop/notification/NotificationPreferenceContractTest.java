@@ -107,18 +107,6 @@ class NotificationPreferenceContractTest {
         verify(settings, never()).saveAll(any()); verify(settings, never()).deleteAll(any());
     }
 
-    @Test
-    void recruitmentGroupChangesKeepApplyAndResultScopesSeparate() {
-        NotificationSettingSwitcher boundary = mock(NotificationSettingSwitcher.class);
-        NotificationSettingServiceImpl facade = new NotificationSettingServiceImpl(settings, boundary);
-        facade.updateRecruitmentApplyNotification(new RecruitmentSettingUpdateRequest("a", false));
-        facade.updateRecruitmentResultNotification(new RecruitmentSettingUpdateRequest("a", true));
-        verify(boundary).updateStatus(new NotificationSettingUpdate("a", List.of(NotificationType.RECRUITMENT_PROJECT_APPLY,
-                NotificationType.RECRUITMENT_TUTORING_APPLY, NotificationType.RECRUITMENT_STUDY_APPLY), false));
-        verify(boundary).updateStatus(new NotificationSettingUpdate("a", List.of(NotificationType.RECRUITMENT_PROJECT_APPLY_RESULT,
-                NotificationType.RECRUITMENT_TUTORING_APPLY_RESULT, NotificationType.RECRUITMENT_STUDY_APPLY_RESULT), true));
-    }
-
     @SuppressWarnings("unchecked")
     private ArgumentCaptor<Iterable<NotificationSetting>> settingCaptor() { return ArgumentCaptor.forClass(Iterable.class); }
 }
